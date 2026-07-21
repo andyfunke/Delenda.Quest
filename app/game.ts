@@ -162,7 +162,6 @@ export const DOCTRINES: DoctrineVector[] = [
     { id:"disintermediation",label:"Disintermediation",cost:150,output:"Army Button",affects:"Concentrated armies",description:"Break a concentrated army into adjacent legal positions without optimizing the terrain.",effect:"Unlock Disintermediate Army. Reduces concentration risk and imposes disorder." },
     { id:"casualty-table",label:"Priority Casualty Table",cost:220,output:"Resolution Rule",affects:"Stacked combat",description:"Override the default order in which formation categories absorb losses.",effect:"Unlock manual casualty-priority control before resolution." },
     { id:"vanguard",label:"Vanguard Designation",cost:260,output:"Unit Module",affects:"Screens and expendable units",description:"Mark one formation as first-contact absorber for mines, ambush, and opening fire.",effect:"Unlock Designate Vanguard in eligible situations." },
-    { id:"stimulants",label:"Administer Stimulants",cost:320,output:"Unit Button",affects:"Biological formations",description:"Purchase one emergency movement interval with accumulated exhaustion debt.",effect:"Unlock emergency reinforcement; next-day Readiness penalty applies." },
     { id:"shoot-scoot",label:"Shoot-and-Scoot",cost:390,output:"Unit Button",affects:"Mobile batteries",description:"Fire and displace before counterfire at the expense of sustained accuracy.",effect:"Counterbattery losses fall; immediate fire output is reduced." },
   ]},
   { id: "fieldcraft", label: "Fieldcraft and Emplacement", authority: "Engineer Directorate", quote: "The ground becomes doctrine when somebody is ordered to alter it.", stages: [
@@ -176,6 +175,7 @@ export const DOCTRINES: DoctrineVector[] = [
     { id: "gas", label: "Gas Warfare", cost: 10, description: "Correct the enemy belief that contaminated ground can be occupied.", effect: "Pressure +0.25. Reciprocity -8. Atrocity Exposure +12.", delta: { reciprocity: -8, atrocityExposure: 12, legitimacy: -3 } },
     { id: "mines", label: "Persistent Mine Denial", cost: 14, description: "Make the ground remain hostile after the front has moved.", effect: "Withdrawal pressure improves. Materiel Condition -2.", delta: { atrocityExposure: 9, materiel: -2 } },
     { id: "deny-reciprocity", label: "Deny Reciprocity", cost: 20, description: "Remove exchange from the surrender economy.", effect: "Prisoner burden falls. Enemy surrender expectancy collapses.", delta: { reciprocity: -25, atrocityExposure: 18, legitimacy: -4 } },
+    { id:"stimulants",label:"Administer Stimulants",cost:26,output:"Unit Button",affects:"Biological formations",description:"Purchase one emergency movement interval with accumulated exhaustion debt.",effect:"Unlock emergency reinforcement; next-day Readiness penalty applies.",delta:{atrocityExposure:6,readiness:-3} },
     { id: "deny-quarter", label: "Deny Quarter", cost: 32, description: "Destroy the expectation that surrender remains available.", effect: "Enemy cohesion hardens. Friendly desertion pressure +12.", delta: { reciprocity: -45, atrocityExposure: 30, desertionPressure: 12, legitimacy: -8 } },
   ]},
 ];
