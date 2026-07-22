@@ -48,3 +48,17 @@ test("campaign UI keeps one deferred report and consistent order language", asyn
     assert.match(packet,new RegExp(`id:"${id}"`));
   }
 });
+
+test("dashboard uses plain operational headings and the established minimum type size",async()=>{
+  const[page,css,account]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
+  ]);
+  for(const heading of ["Live Expenditure","Production Capacity","Industrial Throughput","Systemic Attrition"]){
+    assert.match(page,new RegExp(`title="${heading}"`));
+  }
+  assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
+  assert.doesNotMatch(css,/\b6px\b/);
+  assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
+});
