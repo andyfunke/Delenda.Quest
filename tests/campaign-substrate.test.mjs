@@ -3,7 +3,7 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS,
+  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
   outcomeBandForMargin, projectAdversary, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
@@ -160,14 +160,41 @@ test("the opportunity corpus is rare, unique, timed, and wiki-addressable",()=>{
   assert.equal(OPPORTUNITY_FREQUENCY,.33);
 });
 
-test("the force ratio and assessed enemy use the same forward-deployed personnel basis",()=>{
+test("the force report uses one local personnel chain and one disclosed effective ratio",()=>{
   const state=initialState({seed:99173,theater:"industrial"});
   const situation=situationForState(state);
   const maneuver=MANEUVERS.find(item=>item.id===situation.maneuvers[0]);
   const operation=projectOperations(state,maneuver),adversary=projectAdversary(state,maneuver);
-  assert.equal(Math.round(operation.enemyCommitted),adversary.deployedEstimate);
-  assert.ok(adversary.estimatedForce>adversary.deployedEstimate);
-  assert.ok(adversary.deployedLow<adversary.deployedHigh);
+  assert.ok(operation.enemyCommitted<adversary.deployedEstimate);
+  assert.ok(operation.enemyCommitted>operation.enemyCommittedLow);
+  assert.ok(operation.enemyCommitted<operation.enemyCommittedHigh);
+  assert.equal(operation.friendlyPower,operation.effectiveCommitted);
+  assert.equal(operation.forceRatio,Math.max(.35,Math.min(1.8,operation.friendlyPower/operation.enemyPower)));
+  assert.ok(operation.friendlyConditionFactor>=.42&&operation.friendlyConditionFactor<=1.08);
+  assert.ok(operation.enemyConditionFactor>=.45&&operation.enemyConditionFactor<=1.08);
+});
+
+test("first-day loss exposure is daily while an inert command loses at the thirty-day horizon",()=>{
+  assert.equal(NO_ACTION_DAILY_FRONT_LOSS,-.29);
+  for(const theater of THEATERS){
+    const opening=initialState({seed:1729,theater:theater.id});
+    const situation=situationForState(opening);
+    for(const id of situation.maneuvers){
+      const maneuver=MANEUVERS.find(item=>item.id===id),operation=projectOperations(opening,maneuver);
+      assert.ok(operation.friendlyLosses<operation.committed*.08,`${theater.id} ${maneuver.id} exposed more than 8% in one day`);
+    }
+  }
+  const terminalDays=[];
+  for(let seed=1;seed<=12;seed++)for(const theater of THEATERS){
+    let state=initialState({seed:seed*7919,theater:theater.id});
+    while(state.status==="active"&&state.day<=35)state=resolve(state);
+    assert.equal(state.status,"defeat");
+    terminalDays.push(state.day-1);
+  }
+  assert.ok(Math.min(...terminalDays)>=26);
+  assert.ok(Math.max(...terminalDays)<=31);
+  const average=terminalDays.reduce((total,day)=>total+day,0)/terminalDays.length;
+  assert.ok(average>=28&&average<=30.5);
 });
 
 test("diplomatic actions coexist, retain separate expiries, and leave an effects report",()=>{

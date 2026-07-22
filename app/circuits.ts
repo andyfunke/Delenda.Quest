@@ -32,7 +32,7 @@ export type ForceGenerationContext = { preview?:boolean };
 export type OperationsLedger = {
   day:number; sector:string; maneuver:string; committed:number; commitmentShare:number; frontageDemand:number; frontageSaturation:number;
   terrainFactor:number; groundFactor:number; networkFactor:number; supplyFactor:number; intelligenceFactor:number;
-  readinessFactor:number; equipmentFactor:number; effectiveCommitted:number; friendlyPower:number; enemyCommitted:number; enemyCommitmentShare:number; enemyPower:number; forceRatio:number;
+  readinessFactor:number; equipmentFactor:number; friendlyConditionFactor:number; effectiveCommitted:number; friendlyPower:number; enemyCommitted:number; enemyCommittedLow:number; enemyCommittedHigh:number; enemyCommitmentShare:number; enemyConditionFactor:number; enemyPower:number; forceRatio:number;
   executionConfidence:number; resolutionRoll:number; margin:number; outcomeBand:OutcomeBand; succeeded:boolean; friendlyLosses:number; lossRate:number; enemyLosses:number;
   basePressure:number; maneuverPressure:number; forceRatioPressure:number; intelligencePressure:number; shortagePressure:number; groundMovement:number;
   evidence:string[];
@@ -55,6 +55,7 @@ const resources:Resource[]=["munitions","armor","flight","drones"];
 const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,drones:12.6};
 const baseUse:Record<Resource,number>={munitions:21000,armor:74,flight:17,drones:355};
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
+export const NO_ACTION_DAILY_FRONT_LOSS=-0.29;
 export const enemyDeploymentShareForPosture=(posture:string)=>posture.includes("Reconstitute") ? .28 : posture.includes("Concentrated") ? .72 : posture.includes("Exploit") ? .62 : posture.includes("Counterstroke") ? .58 : posture.includes("Defense") ? .38 : .48;
 const allocationFor=(target:GameState["target"],resource:Resource)=>target==="balanced"?25:resource===target?46:18;
 
@@ -156,12 +157,19 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const readinessFactor=state.readiness/100,equipmentFactor=state.equipment/100;
     const frontageSaturation=committed/frontageDemand;
     const congestionFactor=frontageSaturation>1.35?clamp(1-(frontageSaturation-1.35)*.22,.68,1):1;
-    const effectiveCommitted=committed*readinessFactor*equipmentFactor*terrainFactor*groundFactor*networkFactor*supplyFactor*intelligenceFactor*congestionFactor;
-    const supportPower=Math.max(0,state.deployable-committed)*.13*readinessFactor*equipmentFactor;
-    const enemyReadiness=(state.adversary?.readiness??61)/100,enemyEquipment=(state.adversary?.equipment??68)/100;const friendlyPower=effectiveCommitted+supportPower;
+    const friendlyConditionFactor=clamp(readinessFactor*.2+equipmentFactor*.18+terrainFactor*.12+groundFactor*.12+networkFactor*.12+supplyFactor*.14+intelligenceFactor*.12,.42,1.08);
+    const effectiveCommitted=committed*friendlyConditionFactor*congestionFactor;
+    const enemyReadiness=(state.adversary?.readiness??61)/100,enemyEquipment=(state.adversary?.equipment??68)/100;const friendlyPower=effectiveCommitted;
     const enemyCommitmentShare=state.adversaryLedger?.deploymentShare??enemyDeploymentShareForPosture(state.adversary?.posture??"Methodical Pressure");
-    const enemyCommitted=state.enemy*enemyCommitmentShare;
-    const enemyPower=Math.max(1,enemyCommitted*.25*enemyReadiness*enemyEquipment*(state.adversaryLedger?.powerFactor??1));
+    const targetSector=state.theaterSectors?.find(sector=>sector.id===situation.sectorId);
+    const theaterEnemyBase=Math.max(1,(state.theaterSectors??[]).filter(sector=>sector.theater===state.theater).reduce((total,sector)=>total+sector.enemyForceEstimate,0));
+    const sectorEnemyShare=targetSector?targetSector.enemyForceEstimate/theaterEnemyBase:1/6;
+    const assessedForward=state.adversaryLedger?.deployedEstimate??state.enemy*enemyCommitmentShare;
+    const enemyCommitted=Math.max(1,assessedForward*sectorEnemyShare);
+    const enemyCommittedLow=Math.max(1,(state.adversaryLedger?.deployedLow??assessedForward*.8)*sectorEnemyShare);
+    const enemyCommittedHigh=Math.max(enemyCommittedLow,(state.adversaryLedger?.deployedHigh??assessedForward*1.2)*sectorEnemyShare);
+    const enemyConditionFactor=clamp(enemyReadiness*.34+enemyEquipment*.26+terrainFactor*.1+groundFactor*.1+.82*.1+.86*.1,.45,1.08);
+    const enemyPower=Math.max(1,enemyCommitted*enemyConditionFactor*(state.adversaryLedger?.powerFactor??1));
     const forceRatio=clamp(friendlyPower/enemyPower,.35,1.8);
     const margin=maneuver?context.confidence-context.roll:0;
     const outcomeBand=outcomeBandForMargin(margin);
@@ -171,16 +179,19 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const shortagePenalty=context.shortages*.18;
     const doctrineCasualty=maneuver?.id==="breach"&&state.unlocked.includes("suppression")?.92:1;
     const lossBandFactor=outcomeBand==="clean" ? .88 : outcomeBand==="executed" ? 1 : outcomeBand==="disrupted" ? 1.12 : 1.28;
-    const friendlyLosses=Math.round((4200+state.day*38)*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*context.directorCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,flooded:1.18,saturated:1.08,rubble:1.1,dry:.94})*lossBandFactor/Math.max(.55,forceRatio));
+    const dailyLossRate=.014*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*context.directorCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,flooded:1.18,saturated:1.08,rubble:1.1,dry:.94})*lossBandFactor/Math.sqrt(Math.max(.35,forceRatio));
+    const friendlyLosses=Math.round(committed*clamp(dailyLossRate,.006,.075));
     const atrocities=(state.unlocked.includes("gas")?.25:0)+(state.unlocked.includes("mines")?.12:0);
     const enemyLossBand=outcomeBand==="clean" ? 1.15 : outcomeBand==="executed" ? 1 : outcomeBand==="disrupted" ? .72 : .45;
-    const enemyLosses=Math.max(0,Math.round((3600+state.day*31)*forceRatio*(.8+(context.tempoPressure+maneuverPressure+atrocities)*.3)*enemyLossBand));
-    const forceRatioPressure=(forceRatio-1)*1.5,intelligencePressure=(state.intelligence-42)/120,shortagePressure=-shortagePenalty;
-    const basePressure=context.tempoPressure+atrocities+.25;
-    const groundMovement=basePressure+maneuverPressure+forceRatioPressure+intelligencePressure+shortagePressure+context.directorFriendlyPressure-context.directorEnemyPressure-.25-(state.adversaryLedger?.pressure??.35);
+    const enemyLossRate=.011*Math.sqrt(forceRatio)*(.9+Math.max(-.25,context.tempoPressure+maneuverPressure)*.18)*enemyLossBand;
+    const enemyLosses=Math.max(0,Math.round(enemyCommitted*clamp(enemyLossRate,.004,.05)));
+    const forceRatioPressure=clamp((forceRatio-.45)*.55,-.22,.42),intelligencePressure=(state.intelligence-42)/180,shortagePressure=-shortagePenalty;
+    const basePressure=(maneuver?0:NO_ACTION_DAILY_FRONT_LOSS)+(context.tempoPressure-.35)*.45+atrocities;
+    const enemyPressureDeviation=(state.adversaryLedger?.pressure??.35)-.35;
+    const groundMovement=basePressure+maneuverPressure*1.5+forceRatioPressure+intelligencePressure+shortagePressure+context.directorFriendlyPressure-context.directorEnemyPressure-enemyPressureDeviation;
     const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/state.deployable*100).toFixed(1)}% of deployable force)`,`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence; margin ${margin>=0?"+":""}${(margin*100).toFixed(1)} points`,`${outcomeBand.toUpperCase()} outcome band selected from the stored margin`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];
     const signals:CircuitSignal[]=[];if(frontageSaturation>1.35)signals.push({severity:"warning",code:"operations.frontage.congestion",message:"Committed force exceeds useful frontage and loses conversion efficiency."});if(networkFactor<.8)signals.push({severity:"critical",code:"operations.network.severed",message:"Command network sharply reduces committed-force conversion."});if(supplyFactor<.8)signals.push({severity:"critical",code:"operations.supply.interdicted",message:"Supply condition constrains operational power."});
-    return{state,signals,ledger:{day:state.day,sector:situation.sector,maneuver:maneuver?.label??"Standing Tempo",committed,commitmentShare:committed/Math.max(1,state.deployable),frontageDemand,frontageSaturation,terrainFactor,groundFactor,networkFactor,supplyFactor,intelligenceFactor,readinessFactor,equipmentFactor,effectiveCommitted,friendlyPower,enemyCommitted,enemyCommitmentShare,enemyPower,forceRatio,executionConfidence:context.confidence,resolutionRoll:context.roll,margin,outcomeBand,succeeded,friendlyLosses,lossRate:friendlyLosses/Math.max(1,committed),enemyLosses,basePressure,maneuverPressure,forceRatioPressure,intelligencePressure,shortagePressure,groundMovement,evidence}};
+    return{state,signals,ledger:{day:state.day,sector:situation.sector,maneuver:maneuver?.label??"Standing Tempo",committed,commitmentShare:committed/Math.max(1,state.deployable),frontageDemand,frontageSaturation,terrainFactor,groundFactor,networkFactor,supplyFactor,intelligenceFactor,readinessFactor,equipmentFactor,friendlyConditionFactor,effectiveCommitted,friendlyPower,enemyCommitted,enemyCommittedLow,enemyCommittedHigh,enemyCommitmentShare,enemyConditionFactor,enemyPower,forceRatio,executionConfidence:context.confidence,resolutionRoll:context.roll,margin,outcomeBand,succeeded,friendlyLosses,lossRate:friendlyLosses/Math.max(1,committed),enemyLosses,basePressure,maneuverPressure,forceRatioPressure,intelligencePressure,shortagePressure,groundMovement,evidence}};
   }
 };
 

@@ -1,4 +1,4 @@
-import { adversaryCircuit, diplomacyCircuit, domesticCircuit, executeCircuit, forceGenerationCircuit, operationsCircuit, productionCircuit, type AdversaryLedger, type AdversaryState, type DiplomacyLedger, type DiplomaticActor, type DomesticLedger, type ForceGenerationLedger, type OperationsLedger, type ProductionLedger, type TrainingCohort } from "./circuits";
+import { NO_ACTION_DAILY_FRONT_LOSS, adversaryCircuit, diplomacyCircuit, domesticCircuit, executeCircuit, forceGenerationCircuit, operationsCircuit, productionCircuit, type AdversaryLedger, type AdversaryState, type DiplomacyLedger, type DiplomaticActor, type DomesticLedger, type ForceGenerationLedger, type OperationsLedger, type ProductionLedger, type TrainingCohort } from "./circuits";
 import {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, GENERIC_SITUATION_TEMPLATES,
   MANEUVER_AFTERMATH, auditCampaignSubstrate, compileSituation, deterministicRoll,
@@ -672,9 +672,8 @@ export const unlockDoctrine = (state: GameState, stageId: string) => {
 
 const tempoProfile = (tempo: Tempo) => ({ hold: [.55,.65,-.25], methodical: [1,1,.35], surge: [1.35,1.4,.85], "human-wave": [2.1,1.2,1.25] }[tempo]);
 export const estimateDay = (s: GameState, director:CampaignDirector=directorForState(s)) => {
-  const maneuver = maneuverById(s.maneuver); const [tempoCasualty,tempoSupply] = tempoProfile(s.tempo);
-  const power = s.deployable * s.readiness / 100 * s.equipment / 100; const ratio = Math.max(.45, Math.min(1.7, power / Math.max(1, s.enemy * .52)));
-  const casualty = Math.round((4200 + s.day * 38) * tempoCasualty * (maneuver?.casualty ?? 1) * director.modifiers.casualty * (s.production.munitions.stock < 42000 ? 1.15 : 1) / Math.max(.6, ratio));
+  const maneuver = maneuverById(s.maneuver); const [,tempoSupply] = tempoProfile(s.tempo);
+  const casualty = projectOperations(s,maneuver??null).friendlyLosses;
   const desertion = Math.round((260 + s.desertionPressure * 31 + s.forced * .018) * (s.reciprocity < 45 ? 1.25 : 1) * director.modifiers.desertion);
   const intercepted = Math.min(desertion, Math.round(desertion * Math.min(.62, s.patrolCommitment / 9000)));
   return { casualty, desertion, intercepted, netDesertion: desertion - intercepted, supply: tempoSupply * (maneuver?.supply ?? 1) * director.modifiers.supplyUse };
@@ -746,5 +745,5 @@ export const resolve = (state: GameState) => {
 
 export const fmt = (n: number, full=false) => full?Math.round(n).toLocaleString():new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(n);
 export const coverage = (s: GameState, r: Resource) => s.production[r].stock/Math.max(1,s.production[r].use);
-export const assessment = (s: GameState) => { const ratio=(s.deployable*s.readiness/100*s.equipment/100)/Math.max(1,s.enemy*.52); return ratio>1.15?["Local advantage","good"]:ratio>.9?["Contested","warn"]:["Enemy advantage","bad"] as [string,Tone]; };
-export { BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, auditCampaignSubstrate, outcomeBandForMargin };
+export const assessment = (s: GameState) => { const ratio=projectOperations(s).forceRatio; return ratio>1.15?["Local advantage","good"]:ratio>.9?["Contested","warn"]:["Enemy advantage","bad"] as [string,Tone]; };
+export { BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, NO_ACTION_DAILY_FRONT_LOSS, auditCampaignSubstrate, outcomeBandForMargin };

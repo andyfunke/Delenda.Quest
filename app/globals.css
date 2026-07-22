@@ -182,6 +182,23 @@ small,.eyebrow,.strip,.top nav button,.top nav button span,.continuity span,.con
 @media(max-width:560px){.report-datum .effect-bubble,.report-datum:nth-child(n+3) .effect-bubble{left:0;right:auto;width:min(350px,82vw)}}
 @media(max-width:700px){.strip .early{display:block;flex:0 0 auto}.strip .opportunity-alert>.effect-bubble{display:none}}
 
+/* Diplomacy has two explicit sibling selections: foreign actor first, directive family second. */
+.diplomacy-menu-layout{grid-template-columns:320px minmax(0,1fr)}
+.diplomacy-command-rail{background:#d4d0c8;border-right:1px solid #808080;display:flex;flex-direction:column;min-height:0;padding:8px}
+.diplomacy-command-rail .tree-menu{border:2px inset #eee;margin:0;max-height:none;overflow:visible;padding:5px}
+.diplomacy-command-rail .foreign-actor-menu{background:#e7e3d8;flex:0 0 auto;margin-bottom:8px}
+.diplomacy-command-rail .directive-family-menu{flex:1 1 auto;overflow:auto}
+.foreign-actor-menu summary{align-items:center;background:#111;color:#fff;display:flex;justify-content:space-between;letter-spacing:.06em}
+.foreign-actor-menu summary small{color:var(--acid)}
+.foreign-actor-menu button{grid-template-columns:18px minmax(0,1fr);min-height:56px}
+.foreign-actor-menu button>b{font-size:13px;line-height:1.15}
+.foreign-actor-menu button>small{color:#676860;grid-column:2;letter-spacing:.02em}
+.foreign-actor-menu button.selected{box-shadow:inset 6px 0 var(--acid)}
+.foreign-actor-menu button.selected>small{color:#d8dacd}
+.directive-family-menu:before{color:#555;content:"DIPLOMATIC ACTIONS";display:block;font:900 11px monospace;letter-spacing:.08em;padding:8px 7px 6px}
+.diplomacy-workspace{display:block;grid-template-columns:none}
+@media(max-width:900px){.diplomacy-menu-layout{grid-template-columns:1fr}.diplomacy-command-rail{border-bottom:1px solid #808080;border-right:0}.diplomacy-command-rail .directive-family-menu{max-height:300px}.diplomacy-command-rail .foreign-actor-menu{max-height:none}}
+
 /* Campaign issuance is authored and sealed. Players never configure the generator. */
 .campaign-issuance{max-width:760px;width:min(760px,92vw)}.campaign-issuance>header{padding:42px 44px 24px}.campaign-issuance>header h2{font-size:42px;margin:10px 0 16px}.campaign-issuance>header p{font-size:15px;line-height:1.55;max-width:650px}.campaign-sealed-brief{background:#111;color:#fff;margin:0 44px 32px;padding:24px}.campaign-sealed-brief small,.campaign-sealed-brief b{display:block;font-family:monospace}.campaign-sealed-brief small{color:#aaa;font-size:11px}.campaign-sealed-brief b{color:var(--acid);font-size:17px;margin:9px 0}.campaign-sealed-brief p{font:12px/1.5 monospace;margin:0}.campaign-issuance .campaign-generator-actions{grid-template-columns:minmax(220px,1fr) auto auto auto}
 

@@ -41,12 +41,25 @@ test("campaign UI keeps one deferred report and consistent order language", asyn
   assert.match(page,/label="ORDERS ISSUED"/);
   assert.match(page,/ISSUE ORDER →/);
   assert.doesNotMatch(page,/ISSUE OPERATIONAL ORDER|SHOW FULL CALCULATION|SHOW PRESSURE CALCULUS/i);
-  assert.match(packet,/label="ASSESSED ENEMY"/);
+  assert.match(packet,/label="ENEMY DEPLOYED"/);
+  assert.match(packet,/label="EFFECTIVE FORCE RATIO"/);
   assert.match(packet,/label:"FRONTAGE"/);
   assert.doesNotMatch(packet,/label="FRONTAGE"/);
   for(const id of ["terrain-conversion","ground-condition","command-network","operational-supply","intelligence"]){
     assert.match(packet,new RegExp(`id:"${id}"`));
   }
+});
+
+test("diplomacy separates foreign actors from diplomatic actions",async()=>{
+  const[page,panel]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/DiplomacyPanel.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(page,/FOREIGN ACTORS/);
+  assert.match(page,/diplomacy-command-rail/);
+  assert.match(page,/directive-family-menu/);
+  assert.match(panel,/SELECTED FOREIGN ACTOR/);
+  assert.doesNotMatch(panel,/<nav>/);
 });
 
 test("dashboard uses plain operational headings and the established minimum type size",async()=>{

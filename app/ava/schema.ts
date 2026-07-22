@@ -11,6 +11,8 @@ export type AvaEntity = {
 };
 
 export type AvaInstruction =
+  | { kind: "GREETING" }
+  | { kind: "ORDERS" }
   | { kind: "HELP"; subject?: string }
   | { kind: "STATUS" }
   | { kind: "REPORT"; scope: AvaModule | "current" }
@@ -50,6 +52,8 @@ export type AvaCommandHelp = {
 };
 
 export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
+  { command:"HELLO",purpose:"Open the command channel and receive the shortest useful orientation.",examples:["hello","hi Ava","are you there"],mutates:false },
+  { command:"ORDERS",purpose:"List remaining order capacity, the staged order, and authorized campaign maneuvers.",examples:["orders","what are my orders","orders available"],mutates:false },
   { command:"STATUS",purpose:"Summarize the campaign condition and orders still requiring command.",examples:["status","how are we doing","command situation"],mutates:false },
   { command:"REPORT [SYSTEM]",purpose:"Produce the authoritative report for the current or named command system.",examples:["report","production report","report diplomacy"],mutates:false },
   { command:"EXPLAIN [SUBJECT]",purpose:"Reveal a metric's meaning, effects, calculus, or controllable levers.",examples:["explain intelligence","what affects readiness","how do I improve supply"],mutates:false },

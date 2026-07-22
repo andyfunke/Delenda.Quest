@@ -16,6 +16,14 @@ const instruction=raw=>{const result=mod.compileAvaCommand(raw,context);assert.e
 test("natural status phrases compile to STATUS",()=>{
   assert.equal(instruction("How are we doing?").kind,"STATUS");
   assert.equal(instruction("where do we stand").kind,"STATUS");
+  assert.equal(instruction("update").kind,"STATUS");
+});
+
+test("the conversational substrate handles channel opening and order orientation",()=>{
+  assert.equal(instruction("hello").kind,"GREETING");
+  assert.equal(instruction("hi Ava").kind,"GREETING");
+  assert.equal(instruction("orders").kind,"ORDERS");
+  assert.equal(instruction("command").kind,"HELP");
 });
 
 test("reports resolve module aliases",()=>{

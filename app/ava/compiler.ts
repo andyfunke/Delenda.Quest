@@ -1,7 +1,7 @@
 import { AvaCompileResult, AvaCompilerContext, AvaCompilerTrace, AvaEntity, AvaEntityKind, AvaInstruction, AvaModule } from "./schema";
 
 const filler = new Set(["a","an","the","me","my","our","please","ava","now","current","currently","some","about"]);
-const commandWords = new Set(["help","commands","status","condition","situation","report","brief","briefing","explain","what","does","mean","affect","affects","underpin","underpinnings","improve","raise","change","control","calculus","calculate","open","show","take","go","navigate","select","choose","prepare","stage","maneuver","manoeuvre","forecast","project","predict","compare","versus","vs","with","and","clear","cancel","unselect","commit","issue","execute","do","it","that","resolve","end","day","to","for","of","how","is","are","give"]);
+const commandWords = new Set(["hello","hi","hey","there","online","update","orders","order","available","help","command","commands","status","condition","situation","report","brief","briefing","explain","what","does","mean","affect","affects","underpin","underpinnings","improve","raise","change","control","calculus","calculate","open","show","take","go","navigate","select","choose","prepare","stage","maneuver","manoeuvre","forecast","project","predict","compare","versus","vs","with","and","clear","cancel","unselect","commit","issue","execute","do","it","that","resolve","end","day","to","for","of","how","is","are","give"]);
 
 export const normalizeAvaInput = (raw:string) => raw
   .normalize("NFKD")
@@ -60,8 +60,11 @@ export function compileAvaCommand(raw:string,context:AvaCompilerContext):AvaComp
   const input=normalizeAvaInput(raw);
   if(!input)return{status:"clarify",failure:"empty",prompt:"Command not executed. Please clarify orders.",trace:trace("empty",input)};
 
-  if(/^(help|commands|command list|what can (you|i) do)/.test(input)){
-    const subject=input.replace(/^(help|commands|command list|what can (you|i) do)\s*/,"")||undefined;
+  if(/^(hello|hi|hey)( ava)?$/.test(input)||/^(ava )?(are you there|are you online)$/.test(input))return compiled(input,"greeting",{kind:"GREETING"});
+  if(/^(orders?|orders available|available orders|what are (my|the) orders|what orders (do i have|remain))$/.test(input))return compiled(input,"orders",{kind:"ORDERS"});
+  if(/^(status update|update|update me|situation update|give me an update)$/.test(input))return compiled(input,"status-update",{kind:"STATUS"});
+  if(/^(help|command list|commands|command|what can (you|i) do)/.test(input)){
+    const subject=input.replace(/^(help|command list|commands|command|what can (you|i) do)\s*/,"")||undefined;
     return compiled(input,"help",{kind:"HELP",subject});
   }
   if(/^(status|command status|how are we doing|where do we stand|command situation)$/.test(input))return compiled(input,"status",{kind:"STATUS"});
