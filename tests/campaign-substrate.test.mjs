@@ -3,10 +3,10 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, SITUATIONS,
+  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
-  commitOpportunity, describeGroundMovement, initialState, opportunityForState,
-  outcomeBandForMargin, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
+  commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
+  outcomeBandForMargin, projectAdversary, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -104,16 +104,70 @@ test("same seed and orders replay to identical campaign state",()=>{
 });
 
 test("targets of opportunity are deterministic and do not spend a strategic order",()=>{
-  const state=initialState({seed:88031,theater:"river"});
+  let state=null,initialPacket=null;
+  for(let seed=1;seed<500&&!initialPacket;seed++){
+    const candidate=initialState({seed,theater:"river"});
+    const found=opportunityForState(candidate);
+    if(found){state=candidate;initialPacket=found;}
+  }
+  assert.ok(state&&initialPacket);
   const packet=opportunityForState(state),again=opportunityForState(state);
   assert.deepEqual(packet,again);
   const response=packet.responses[0],beforeActions=state.actions;
   const committed=commitOpportunity(state,response);
   assert.equal(committed.actions,beforeActions);
-  assert.equal(committed.opportunityCommitment.responseId,response.id);
-  const next=resolve(committed);
-  assert.equal(next.opportunityHistory.length,1);
-  assert.equal(next.opportunityHistory[0].opportunityId,packet.id);
+  assert.equal(committed.opportunityCommitment,null);
+  assert.equal(committed.opportunityHistory.length,1);
+  assert.equal(committed.opportunityHistory[0].opportunityId,packet.id);
+  assert.match(committed.opportunityHistory[0].report,/opening/i);
+  assert.notDeepEqual(committed,state);
+});
+
+test("immediate opportunities alter the same-day operation when their effect is operational",()=>{
+  let state=null,committed=null;
+  for(let seed=1;seed<2000&&!committed;seed++){
+    const candidate=initialState({seed,theater:"river"});
+    const packet=opportunityForState(candidate);if(!packet)continue;
+    const next=commitOpportunity(candidate,packet.responses[0]);
+    if(next.opportunityHistory[0]?.friendlyPressure){state=candidate;committed=next;}
+  }
+  assert.ok(state&&committed);
+  assert.notEqual(projectOperations(committed).groundMovement,projectOperations(state).groundMovement);
+  assert.notEqual(resolve(committed).operationsLedger.groundMovement,resolve(state).operationsLedger.groundMovement);
+});
+
+test("the opportunity corpus is rare, unique, timed, and wiki-addressable",()=>{
+  assert.equal(OPPORTUNITY_TEMPLATES.length,100);
+  assert.equal(new Set(OPPORTUNITY_TEMPLATES.map(item=>item.id)).size,100);
+  assert.ok(OPPORTUNITY_TEMPLATES.every(item=>item.headline&&item.individual&&item.responses.length===2));
+  let occurrences=0,total=0;
+  const ids=[];
+  const state=initialState({seed:99173,theater:"industrial"});
+  for(let day=1;day<=30;day++){
+    const candidate={...state,day,currentSituation:null};
+    const packet=opportunityForState(candidate);total+=1;
+    if(!packet)continue;
+    occurrences+=1;ids.push(packet.id);
+    assert.ok(packet.opensAtFraction>=.08);
+    assert.ok(packet.closesAtFraction<1);
+    assert.ok(packet.closesAtFraction>packet.opensAtFraction);
+    assert.equal(opportunityStatusForFraction(candidate,packet.opensAtFraction-.001).status,"upcoming");
+    assert.equal(opportunityStatusForFraction(candidate,(packet.opensAtFraction+packet.closesAtFraction)/2).status,"active");
+    assert.equal(opportunityStatusForFraction(candidate,packet.closesAtFraction).status,"expired");
+  }
+  assert.equal(new Set(ids).size,ids.length);
+  assert.ok(occurrences/total>.15&&occurrences/total<.5);
+  assert.equal(OPPORTUNITY_FREQUENCY,.33);
+});
+
+test("the force ratio and assessed enemy use the same forward-deployed personnel basis",()=>{
+  const state=initialState({seed:99173,theater:"industrial"});
+  const situation=situationForState(state);
+  const maneuver=MANEUVERS.find(item=>item.id===situation.maneuvers[0]);
+  const operation=projectOperations(state,maneuver),adversary=projectAdversary(state,maneuver);
+  assert.equal(Math.round(operation.enemyCommitted),adversary.deployedEstimate);
+  assert.ok(adversary.estimatedForce>adversary.deployedEstimate);
+  assert.ok(adversary.deployedLow<adversary.deployedHigh);
 });
 
 test("diplomatic actions coexist, retain separate expiries, and leave an effects report",()=>{

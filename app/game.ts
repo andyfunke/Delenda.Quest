@@ -8,6 +8,7 @@ import {
   type TheaterSector,
 } from "./campaign-substrate";
 import { composeWarDispatch } from "./war-dispatch";
+import { OPPORTUNITY_CATEGORY_LABELS, OPPORTUNITY_SPINES, type OpportunityCategory } from "./opportunity-corpus";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -18,21 +19,26 @@ export type CampaignConfig = { seed:number; archetype:string; adversaryPersonali
 export const DAILY_ORDERS = 3;
 
 export type OpportunityEffect = Partial<{
-  enemyForce:number; enemyMunitions:number; intelligence:number; readiness:number;
-  equipment:number; materiel:number; friendlyPressure:number;
+  enemyForce:number; enemyMunitions:number; enemyReadiness:number; enemyEquipment:number;
+  intelligence:number; readiness:number; equipment:number; materiel:number; friendlyPressure:number;
+  munitions:number; armor:number; flight:number; drones:number; treasury:number; legitimacy:number;
+  resistance:number; dependency:number; atrocityExposure:number; reciprocity:number;
 }>;
 export type OpportunityResponse = {
   id:string; label:string; flavor:string; exact:string[]; contingent:string[]; chance:number;
-  cost?:Partial<Record<Resource,number>>; success:OpportunityEffect; failure?:OpportunityEffect;
+  cost?:Partial<Record<Resource,number>>; commit?:OpportunityEffect; success:OpportunityEffect; failure?:OpportunityEffect;
 };
 export type OpportunityTemplate = {
-  id:string; label:string; headline:string; brief:string; responses:OpportunityResponse[];
+  id:string; category:OpportunityCategory; categoryLabel:string; sourceSpine:string; label:string;
+  individual:string; headline:string; brief:string; responses:OpportunityResponse[];
 };
-export type OpportunityPacket = OpportunityTemplate & { sector:string; ticket:string };
+export type OpportunityPacket = OpportunityTemplate & {
+  sector:string; ticket:string; occurrence:number; opensAtFraction:number; closesAtFraction:number;
+};
 export type OpportunityCommitment = { day:number; opportunityId:string; responseId:string };
 export type OpportunityHistoryRecord = {
   day:number; opportunityId:string; responseId:string; label:string; response:string;
-  outcome:"exploited"|"missed"; report:string;
+  outcome:"exploited"|"missed"; report:string; friendlyPressure?:number; category?:OpportunityCategory;
 };
 export type ActiveDiplomacyAction = { familyId:string; choiceId:string; startedDay:number; expiresDay:number };
 
@@ -390,7 +396,7 @@ const normalize = (s: GameState) => {
 };
 const hash = (text: string) => { let h = 2166136261; for (let i=0;i<text.length;i++) { h ^= text.charCodeAt(i); h = Math.imul(h,16777619); } return (h>>>0)/4294967295; };
 
-export const OPPORTUNITY_TEMPLATES:OpportunityTemplate[]=[
+const LEGACY_OPPORTUNITY_TEMPLATES=[
   {id:"displacing-battery",label:"Exposed Battery",headline:"An Enemy Battery Is Displacing in the Open",brief:"Counterbattery observers have retained a firing unit through its first displacement. The road is exposed for minutes, not hours; engaging it will spend stock outside the day’s three strategic orders.",responses:[
     {id:"drone-strike",label:"Commit a Drone Strike",flavor:"Trade machines and shells for the shortest available kill chain.",exact:["Munitions stock: −1,200","Drone stock: −240","Does not consume a strategic order"],contingent:["68% exploitation confidence","Success removes about 3,200 enemy force and adds local pressure","Failure reduces Equipment Coverage by 0.4"],chance:.68,cost:{munitions:1200,drones:240},success:{enemyForce:-3200,intelligence:1,friendlyPressure:.18},failure:{equipment:-.4}},
     {id:"counterbattery",label:"Fire the Registered Mission",flavor:"Spend shells before the enemy finishes becoming a different target.",exact:["Munitions stock: −3,400","Does not consume a strategic order"],contingent:["78% exploitation confidence","Success removes about 2,200 enemy force and 5,400 enemy munitions"],chance:.78,cost:{munitions:3400},success:{enemyForce:-2200,enemyMunitions:-5400,friendlyPressure:.1}},
@@ -411,7 +417,75 @@ export const OPPORTUNITY_TEMPLATES:OpportunityTemplate[]=[
     {id:"raid-depot",label:"Raid the Distribution Detail",flavor:"Exchange certainty for a larger theft from the enemy timetable.",exact:["Munitions stock: −1,200","Does not consume a strategic order"],contingent:["48% exploitation confidence","Success destroys about 12,000 enemy munitions and 3,000 enemy force","Failure reduces Readiness by 1"],chance:.48,cost:{munitions:1200},success:{enemyMunitions:-12000,enemyForce:-3000,friendlyPressure:.2},failure:{readiness:-1}},
     {id:"observe-distribution",label:"Observe Distribution",flavor:"Let the stock survive long enough to identify every formation expecting it.",exact:["No stock committed","Intelligence: +2 at resolution","Does not consume a strategic order"],contingent:["Enemy stock remains available"],chance:1,success:{intelligence:2}},
   ]},
-];
+] as const;
+
+type OpportunityProfile={
+  chance:number; cost?:Partial<Record<Resource,number>>; commit?:OpportunityEffect;
+  success:OpportunityEffect; failure?:OpportunityEffect; alternate:OpportunityEffect;
+};
+
+const OPPORTUNITY_PROFILES:Record<OpportunityCategory,OpportunityProfile>={
+  "individual-action":{chance:.68,cost:{munitions:800,drones:40},success:{enemyForce:-1800,intelligence:1,friendlyPressure:.12},failure:{readiness:-.3},alternate:{intelligence:3}},
+  "clandestine-sabotage":{chance:.66,cost:{drones:40},success:{enemyMunitions:-6500,enemyReadiness:-1.2,friendlyPressure:.14},failure:{intelligence:-1},alternate:{intelligence:2,enemyMunitions:-1800}},
+  "proxy-warfare":{chance:.61,cost:{munitions:700},commit:{treasury:-.8,dependency:.4},success:{enemyForce:-2200,enemyReadiness:-1.4,intelligence:1,friendlyPressure:.18},failure:{legitimacy:-.6},alternate:{intelligence:3,enemyReadiness:-.4}},
+  "equipment-recovery":{chance:.64,cost:{munitions:500},success:{equipment:1,materiel:.5,munitions:2000},failure:{readiness:-.5},alternate:{intelligence:2,equipment:.4}},
+  "energy-warfare":{chance:.65,cost:{drones:80},success:{enemyMunitions:-4000,enemyReadiness:-1.8,friendlyPressure:.15},failure:{intelligence:-1},alternate:{intelligence:3,enemyReadiness:-.5}},
+  "political-warfare":{chance:.62,success:{enemyReadiness:-1.3,intelligence:2,friendlyPressure:.12},failure:{legitimacy:-.5},alternate:{intelligence:3,enemyReadiness:-.4}},
+  "leadership-interdiction":{chance:.54,cost:{drones:100},commit:{atrocityExposure:2.2,reciprocity:-3,legitimacy:-.4},success:{enemyReadiness:-2.2,enemyForce:-500,friendlyPressure:.2},failure:{atrocityExposure:1,legitimacy:-1},alternate:{intelligence:4,enemyReadiness:-.6}},
+  "counterintelligence":{chance:.72,success:{intelligence:4,friendlyPressure:.08},failure:{intelligence:-2},alternate:{intelligence:2,enemyReadiness:-.3}},
+  "personnel-recovery":{chance:.67,cost:{munitions:500,drones:50},success:{readiness:1,intelligence:2,legitimacy:.3},failure:{readiness:-.5},alternate:{intelligence:2,friendlyPressure:.05}},
+  "domestic-reform":{chance:.74,success:{readiness:1.5,materiel:1,equipment:.4,legitimacy:.4},failure:{resistance:.8,readiness:-.5},alternate:{intelligence:1,materiel:.6}},
+};
+
+const signed=(value:number,decimals=Number.isInteger(value)?0:1)=>`${value>=0?"+":"−"}${Math.abs(value).toFixed(decimals)}`;
+const opportunityEffectLines=(effect:OpportunityEffect={})=>{
+  const lines:string[]=[];
+  if(effect.enemyForce)lines.push(`Enemy field force ${signed(effect.enemyForce)}`);
+  if(effect.enemyMunitions)lines.push(`Enemy munitions ${signed(effect.enemyMunitions)}`);
+  if(effect.enemyReadiness)lines.push(`Enemy readiness ${signed(effect.enemyReadiness)} points`);
+  if(effect.enemyEquipment)lines.push(`Enemy equipment ${signed(effect.enemyEquipment)} points`);
+  if(effect.intelligence)lines.push(`Intelligence ${signed(effect.intelligence)} points`);
+  if(effect.readiness)lines.push(`Readiness ${signed(effect.readiness)} points`);
+  if(effect.equipment)lines.push(`Equipment Coverage ${signed(effect.equipment)} points`);
+  if(effect.materiel)lines.push(`Materiel Condition ${signed(effect.materiel)} points`);
+  if(effect.friendlyPressure)lines.push(`Same-day battlefield pressure ${signed(effect.friendlyPressure,2)}`);
+  if(effect.munitions)lines.push(`Munitions stock ${signed(effect.munitions)}`);
+  if(effect.armor)lines.push(`Armor stock ${signed(effect.armor)}`);
+  if(effect.flight)lines.push(`Flight stock ${signed(effect.flight)}`);
+  if(effect.drones)lines.push(`Drone stock ${signed(effect.drones)}`);
+  if(effect.treasury)lines.push(`Treasury ${signed(effect.treasury)} B`);
+  if(effect.legitimacy)lines.push(`Legitimacy ${signed(effect.legitimacy)} points`);
+  if(effect.resistance)lines.push(`Resistance ${signed(effect.resistance)} points`);
+  if(effect.dependency)lines.push(`Dependency ${signed(effect.dependency)} points`);
+  if(effect.atrocityExposure)lines.push(`Atrocity Exposure ${signed(effect.atrocityExposure)} points`);
+  if(effect.reciprocity)lines.push(`Reciprocity ${signed(effect.reciprocity)} points`);
+  return lines;
+};
+
+const scaledCost=(cost:Partial<Record<Resource,number>>|undefined,index:number)=>cost?Object.fromEntries(Object.entries(cost).map(([resource,amount])=>[resource,Math.round(Number(amount)*(1+(index%5-2)*.08)/10)*10])) as Partial<Record<Resource,number>>:undefined;
+
+export const OPPORTUNITY_TEMPLATES:OpportunityTemplate[]=OPPORTUNITY_SPINES.map((spine,index)=>{
+  const profile=OPPORTUNITY_PROFILES[spine.category];
+  const chance=Math.min(.88,profile.chance+(index%4)*.025);
+  const cost=scaledCost(profile.cost,index);
+  const costLines=Object.entries(cost??{}).map(([resource,amount])=>`${resource[0].toUpperCase()+resource.slice(1)} stock: −${Number(amount).toLocaleString()}`);
+  const primary:OpportunityResponse={
+    id:`${spine.id}-act`,label:spine.primary,
+    flavor:`Convert ${spine.individual.toLowerCase()}'s opening into an immediate ${OPPORTUNITY_CATEGORY_LABELS[spine.category].toLowerCase()} operation.`,
+    exact:[...costLines,...opportunityEffectLines(profile.commit),"Strategic orders: 0","Resolution: immediate"],
+    contingent:[`${Math.round(chance*100)}% exploitation confidence`,...opportunityEffectLines(profile.success).map(line=>`SUCCESS // ${line}`),...opportunityEffectLines(profile.failure).map(line=>`FAILURE // ${line}`)],
+    chance,cost,commit:profile.commit,success:profile.success,failure:profile.failure,
+  };
+  const alternateChance=Math.min(.96,.82+(index%4)*.03);
+  const alternate:OpportunityResponse={
+    id:`${spine.id}-exploit`,label:spine.alternate,
+    flavor:"Use the same access to deepen classification, preserve the channel, or create a less attributable second-order advantage.",
+    exact:["No strategic order consumed","Resolution: immediate"],
+    contingent:[`${Math.round(alternateChance*100)}% exploitation confidence`,...opportunityEffectLines(profile.alternate).map(line=>`SUCCESS // ${line}`),"FAILURE // Intelligence −1 point"],
+    chance:alternateChance,success:profile.alternate,failure:{intelligence:-1},
+  };
+  return{...spine,categoryLabel:OPPORTUNITY_CATEGORY_LABELS[spine.category],responses:[primary,alternate]};
+});
 
 const DIRECTOR_DEFAULTS:DirectorModifiers={productionOutput:1,supplyUse:1,casualty:1,desertion:1,confidence:0,friendlyPressure:0,enemyPressure:0,supplyConversion:1,legitimacy:0,resistance:0,maintenance:0,treasury:0};
 export const phaseForDay=(day:number)=>CAMPAIGN_PHASES.find(x=>day>=x.days[0]&&day<=x.days[1])??CAMPAIGN_PHASES[CAMPAIGN_PHASES.length-1];
@@ -440,10 +514,28 @@ export const situationForState = (state:GameState):CompiledSituation => {
   return compileSituationForState(state);
 };
 
-export const opportunityForState=(state:GameState):OpportunityPacket=>{
-  const template=OPPORTUNITY_TEMPLATES[Math.floor(hash(`${state.campaignSeed}:${state.day}:target-of-opportunity`)*OPPORTUNITY_TEMPLATES.length)]??OPPORTUNITY_TEMPLATES[0];
+export const OPPORTUNITY_FREQUENCY=.33;
+const opportunityOccurs=(seed:number,day:number)=>hash(`${seed}:${day}:target-of-opportunity:occurrence`)<OPPORTUNITY_FREQUENCY;
+const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>hash(`${seed}:target-of-opportunity:deck:${a.id}`)-hash(`${seed}:target-of-opportunity:deck:${b.id}`));
+
+export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
+  if(!opportunityOccurs(state.campaignSeed,state.day))return null;
+  let occurrence=0;for(let day=1;day<state.day;day+=1)if(opportunityOccurs(state.campaignSeed,day))occurrence+=1;
+  const deck=opportunityOrder(state.campaignSeed);const template=deck[occurrence%deck.length];if(!template)return null;
   const situation=situationForState(state);
-  return{...template,sector:situation.sector,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
+  const opensAtFraction=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-open`)*.68;
+  const duration=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-duration`)*.14;
+  const closesAtFraction=Math.min(.94,opensAtFraction+duration);
+  return{...template,sector:situation.sector,occurrence:occurrence+1,opensAtFraction,closesAtFraction,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
+};
+
+export const opportunityStatusForFraction=(state:GameState,fraction:number)=>{
+  const packet=opportunityForState(state);if(!packet)return{status:"none" as const,packet:null};
+  if(fraction<packet.opensAtFraction)return{status:"upcoming" as const,packet};
+  if(fraction>=packet.closesAtFraction)return{status:"expired" as const,packet};
+  const resolved=state.opportunityHistory.some(record=>record.day===state.day&&record.opportunityId===packet.id);
+  if(resolved)return{status:"resolved" as const,packet};
+  return{status:"active" as const,packet};
 };
 
 const legacyTelemetryReport=/Campaign Director:|Operational packet:|Field condition:|Foreign delivery:|Domestic state:|Production closed with|entered training|No Insight Points were awarded/i;
@@ -513,37 +605,61 @@ export const commitManeuver = (state: GameState, maneuver: Maneuver) => {
 
 export const opportunityResponseRejection=(state:GameState,response:OpportunityResponse)=>{
   if(state.status!=="active")return `The campaign is ${state.status}.`;
-  if(state.opportunityCommitment?.day===state.day)return "A target-of-opportunity response is already committed for this day.";
+  const packet=opportunityForState(state);
+  if(!packet)return "No target of opportunity is scheduled for this day.";
+  if(!packet.responses.some(candidate=>candidate.id===response.id))return "That response does not belong to the current opportunity.";
+  if(state.opportunityHistory.some(record=>record.day===state.day&&record.opportunityId===packet.id))return "This opportunity has already resolved.";
+  if(state.opportunityCommitment?.day===state.day)return "A legacy target-of-opportunity response is already committed for this day.";
   const short=Object.entries(response.cost??{}).find(([resource,amount])=>state.production[resource as Resource].stock<Number(amount));
   return short?`Insufficient ${short[0]} stock for this response.`:null;
 };
 
 export const commitOpportunity=(state:GameState,response:OpportunityResponse)=>{
   if(opportunityResponseRejection(state,response))return state;
-  const s=clone(state),packet=opportunityForState(s);
+  const s=clone(state),packet=opportunityForState(s);if(!packet)return state;
   Object.entries(response.cost??{}).forEach(([resource,amount])=>{s.production[resource as Resource].stock=Math.max(0,s.production[resource as Resource].stock-Number(amount));});
-  s.opportunityCommitment={day:s.day,opportunityId:packet.id,responseId:response.id};
+  applyOpportunityEffect(s,response.commit);
+  const exploited=response.chance>=1||hash(`${packet.ticket}:${response.id}:immediate-resolution`)<=response.chance;
+  const effect=exploited?response.success:response.failure??{};applyOpportunityEffect(s,effect);normalize(s);
+  const report=exploited?`${packet.individual} executed ${response.label.toLowerCase()} at ${packet.sector}; the opening was exploited before the window closed.`:`${packet.individual} attempted ${response.label.toLowerCase()} at ${packet.sector}; the opening closed without the intended effect.`;
+  s.opportunityHistory.unshift({day:s.day,opportunityId:packet.id,responseId:response.id,label:packet.label,response:response.label,outcome:exploited?"exploited":"missed",report,friendlyPressure:effect.friendlyPressure??0,category:packet.category});
+  s.opportunityCommitment=null;
   return s;
 };
 
 const applyOpportunityEffect=(state:GameState,effect:OpportunityEffect={})=>{
   if(effect.enemyForce){state.adversary.force=Math.max(0,state.adversary.force+effect.enemyForce);state.enemy=Math.max(0,state.enemy+effect.enemyForce);}
   if(effect.enemyMunitions)state.adversary.munitions=Math.max(0,state.adversary.munitions+effect.enemyMunitions);
+  if(effect.enemyReadiness)state.adversary.readiness=Math.max(0,Math.min(100,state.adversary.readiness+effect.enemyReadiness));
+  if(effect.enemyEquipment)state.adversary.equipment=Math.max(0,Math.min(100,state.adversary.equipment+effect.enemyEquipment));
   if(effect.intelligence)state.intelligence+=effect.intelligence;
   if(effect.readiness)state.readiness+=effect.readiness;
   if(effect.equipment)state.equipment+=effect.equipment;
   if(effect.materiel)state.materiel+=effect.materiel;
+  if(effect.munitions)state.production.munitions.stock=Math.max(0,state.production.munitions.stock+effect.munitions);
+  if(effect.armor)state.production.armor.stock=Math.max(0,state.production.armor.stock+effect.armor);
+  if(effect.flight)state.production.flight.stock=Math.max(0,state.production.flight.stock+effect.flight);
+  if(effect.drones)state.production.drones.stock=Math.max(0,state.production.drones.stock+effect.drones);
+  if(effect.treasury)state.treasury+=effect.treasury;
+  if(effect.legitimacy)state.legitimacy+=effect.legitimacy;
+  if(effect.resistance)state.resistance+=effect.resistance;
+  if(effect.dependency)state.dependency+=effect.dependency;
+  if(effect.atrocityExposure)state.atrocityExposure+=effect.atrocityExposure;
+  if(effect.reciprocity)state.reciprocity+=effect.reciprocity;
 };
 
-const resolveOpportunityForDay=(state:GameState)=>{
+const resolveLegacyOpportunityForDay=(state:GameState)=>{
   const commitment=state.opportunityCommitment;
   if(!commitment||commitment.day!==state.day)return{pressure:0,report:""};
-  const packet=opportunityForState(state),response=packet.responses.find(x=>x.id===commitment.responseId);
-  if(!response){state.opportunityCommitment=null;return{pressure:0,report:""};}
-  const exploited=response.chance>=1||hash(`${packet.ticket}:${response.id}:resolution`)<=response.chance;
+  const packet=(LEGACY_OPPORTUNITY_TEMPLATES as unknown as Array<{id:string;label:string;headline:string;brief:string;responses:OpportunityResponse[]}>).find(item=>item.id===commitment.opportunityId);
+  const response=packet?.responses.find(x=>x.id===commitment.responseId);
+  if(!packet||!response){state.opportunityCommitment=null;return{pressure:0,report:""};}
+  const ticket=`LEGACY-TOO-${state.campaignSeed}-${state.day}-${packet.id}`;
+  const exploited=response.chance>=1||hash(`${ticket}:${response.id}:resolution`)<=response.chance;
   const effect=exploited?response.success:response.failure??{};applyOpportunityEffect(state,effect);normalize(state);
-  const report=exploited?`${response.label} exploited ${packet.label.toLowerCase()} at ${packet.sector}.`:`${response.label} missed the ${packet.label.toLowerCase()} at ${packet.sector}.`;
-  state.opportunityHistory.unshift({day:state.day,opportunityId:packet.id,responseId:response.id,label:packet.label,response:response.label,outcome:exploited?"exploited":"missed",report});
+  const sector=situationForState(state).sector;
+  const report=exploited?`${response.label} exploited ${packet.label.toLowerCase()} at ${sector}.`:`${response.label} missed the ${packet.label.toLowerCase()} at ${sector}.`;
+  state.opportunityHistory.unshift({day:state.day,opportunityId:packet.id,responseId:response.id,label:packet.label,response:response.label,outcome:exploited?"exploited":"missed",report,friendlyPressure:effect.friendlyPressure??0});
   state.opportunityCommitment=null;
   return{pressure:effect.friendlyPressure??0,report:` Target of opportunity: ${report}`};
 };
@@ -574,7 +690,7 @@ export const liveProjection = (s: GameState, fraction: number) => {
 
 export const projectProduction = (s:GameState) => {const director=directorForState(s);return executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],resourceUse:maneuverById(s.maneuver)?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance}).ledger;};
 export const projectForceGeneration = (s:GameState) => executeCircuit(forceGenerationCircuit,s,{preview:true}).ledger;
-const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForState(s);const director=directorForState(s);const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(s.tempo);const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(operationsCircuit,s,{situation,maneuver,roll,confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply:tempoSupply*(maneuver?.supply??1),tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion}).ledger;};
+const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForState(s);const director=directorForState(s);const adversaryPreview=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});const projected={...adversaryPreview.state,adversaryLedger:adversaryPreview.ledger};const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(projected.tempo);const shortages=Object.values(projected.production).filter(x=>x.stock<x.use*2).length;const opportunityPressure=projected.opportunityHistory.find(record=>record.day===projected.day)?.friendlyPressure??0;return executeCircuit(operationsCircuit,projected,{situation,maneuver,roll,confidence:maneuver?maneuverChance(projected,maneuver):1,tempoCasualty,tempoSupply:tempoSupply*(maneuver?.supply??1),tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion}).ledger;};
 export const projectOperations = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => {const situation=situationForState(s);return operationProjection(s,maneuver,deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"));};
 export const projectOperationRange = (s:GameState,maneuver:Maneuver) => {const confidence=maneuverChance(s,maneuver);return{success:operationProjection(s,maneuver,confidence-.1),failure:operationProjection(s,maneuver,confidence+.1)};};
 export const projectOutcomeBands=(s:GameState,maneuver:Maneuver)=>{const confidence=maneuverChance(s,maneuver);return{
@@ -609,13 +725,14 @@ export const resolve = (state: GameState) => {
   if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const maneuver = maneuverById(s.maneuver)??null; const director=directorForState(s);
   const arrivals = s.scheduled.filter((x) => x.day <= s.day); s.scheduled = s.scheduled.filter((x) => x.day > s.day); arrivals.forEach((x) => add(s, x.delta));
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); if(f?.module==="diplomacy")return;const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
-  const opportunityResult=resolveOpportunityForDay(s);
+  const opportunityResult=resolveLegacyOpportunityForDay(s);
   const diplomacyResult=executeCircuit(diplomacyCircuit,s,{});Object.assign(s,diplomacyResult.state);s.diplomacyLedger=diplomacyResult.ledger;
   const adversaryResult=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});Object.assign(s,adversaryResult.state);s.adversaryLedger=adversaryResult.ledger;
   const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const maneuverSupply = maneuver?.supply ?? 1;
   const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,resourceUse:maneuver?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
   const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
-  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"),confidence:maneuver?maneuverChance(s,maneuver,director):1,tempoCasualty,tempoSupply:tempoSupply*maneuverSupply,tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityResult.pressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move,outcomeBand,margin}=operationResult.ledger;
+  const immediateOpportunityPressure=opportunityResult.pressure?0:s.opportunityHistory.find(record=>record.day===s.day)?.friendlyPressure??0;
+  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"),confidence:maneuver?maneuverChance(s,maneuver,director):1,tempoCasualty,tempoSupply:tempoSupply*maneuverSupply,tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityResult.pressure+immediateOpportunityPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move,outcomeBand,margin}=operationResult.ledger;
   const desert=estimateDay(s,director); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion;s.adversary.force=Math.max(0,s.adversary.force-enemyLoss);s.enemy=Math.round(s.adversary.force*s.adversary.estimateBias); s.population-=Math.round(losses*.72);
   s.front+=move;if(maneuver?.id==="network"&&succeeded)s.intelligence+=3;const aftermath=resolveSituationAftermath(s,situation,maneuver?.id??null,outcomeBand,margin,move);s.theaterSectors=aftermath.theaterSectors;s.operationalFacts=aftermath.operationalFacts;s.situationHistory=aftermath.situationHistory;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${fmtStrategic(enemyLoss)} enemy losses // ${describeGroundMovement(move).display}`,reward:doctrineGain});}

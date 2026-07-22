@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const developmentPreviewMeta =
@@ -30,4 +31,20 @@ test("renders development preview metadata", async () => {
     /^text\/html\b/i,
   );
   assert.match(await response.text(), developmentPreviewMeta);
+});
+
+test("campaign UI keeps one deferred report and consistent order language", async () => {
+  const [page,packet]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/OperationsPacket.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(page,/label="ORDERS ISSUED"/);
+  assert.match(page,/ISSUE ORDER →/);
+  assert.doesNotMatch(page,/ISSUE OPERATIONAL ORDER|SHOW FULL CALCULATION|SHOW PRESSURE CALCULUS/i);
+  assert.match(packet,/label="ASSESSED ENEMY"/);
+  assert.match(packet,/label:"FRONTAGE"/);
+  assert.doesNotMatch(packet,/label="FRONTAGE"/);
+  for(const id of ["terrain-conversion","ground-condition","command-network","operational-supply","intelligence"]){
+    assert.match(packet,new RegExp(`id:"${id}"`));
+  }
 });
