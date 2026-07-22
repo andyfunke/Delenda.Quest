@@ -62,27 +62,28 @@ test("diplomacy separates foreign actors from diplomatic actions",async()=>{
   assert.doesNotMatch(panel,/<nav>/);
 });
 
-test("daily brief is a second renderer over the same convergence substrate",async()=>{
+test("Alt UX is a second renderer over the same convergence substrate",async()=>{
   const[page,briefing,convergence,css]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/convergence.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
-  assert.match(page,/interfaceMode===\"briefing\"/);
+  assert.match(page,/interfaceMode\s*===\s*\"briefing\"/);
   assert.match(page,/executeAvaPlan/);
   assert.match(page,/buildAvaPlan/);
-  assert.match(page,/DAILY BRIEF/);
+  assert.match(page,/ALT UX/);
   for(const domain of ["PRIMARY · MAIN CAMPAIGN","SITUATIONAL · DOMESTIC","SITUATIONAL · NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
-  assert.match(briefing,/GENERATED FROM THE ACTIVE SECTOR GRAPH/);
+  assert.match(briefing,/REFERENCE TACTICAL PLATE/);
   assert.match(convergence,/CONVERGENCE_MATRIX_VERSION=SUB_MISSION_SCHEMA_VERSION/);
   assert.match(briefing,/TheaterGeometry/);
   assert.doesNotMatch(briefing,/openModule/);
   assert.doesNotMatch(briefing,/openManual/);
   assert.match(briefing,/modern-dialog-scrim/);
   assert.match(briefing,/focusFamilyId/);
+  assert.match(briefing,/onSurfaceChange/);
   assert.match(briefing,/briefing-open-manual/);
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
@@ -90,14 +91,38 @@ test("daily brief is a second renderer over the same convergence substrate",asyn
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
-  const[page,css,manual,reports,schema]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8"),readFile(new URL("../app/FieldManual.tsx",import.meta.url),"utf8"),readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),readFile(new URL("../app/submission-schema.ts",import.meta.url),"utf8"),
+  const[page,css,manual,reports,schema,bubblette,avaRenderer,briefing]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8"),readFile(new URL("../app/FieldManual.tsx",import.meta.url),"utf8"),readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),readFile(new URL("../app/submission-schema.ts",import.meta.url),"utf8"),readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),readFile(new URL("../app/AvaTextRenderer.tsx",import.meta.url),"utf8"),readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
   ]);
   for(const label of ["MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"])assert.match(page,new RegExp(label));
   assert.match(schema,/DOMESTIC_SUB_MISSIONS/);assert.match(schema,/NETWORK_SUB_MISSIONS/);assert.match(schema,/sub-missions-v3/);assert.match(schema,/SUB_MISSION_CONTENT_VERSION/);
-  assert.match(css,/\.bubblette\.pinned>/);assert.match(css,/min-height:0!important/);
+  assert.match(page,/SubMissionReadout/);assert.match(page,/NETWORK POSTURE/);assert.match(page,/STRIKE RISK/);
+  assert.match(css,/\.bubblette\.pinned\s*>\s*\.bubblette-panel/);assert.match(css,/min-height:\s*0\s*!important/);
+  assert.match(css,/position:\s*fixed/);assert.match(css,/translate\(-50%,\s*-50%\)/);
+  assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/detail\.control \?\? detailConcept\?\.control/);
   assert.match(manual,/Depends on/);assert.match(manual,/Used by/);assert.match(manual,/usedBy/);
-  assert.match(page,/AvaReportView/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
+  assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
+  assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
+  assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
+  assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
+});
+
+test("the reference tactical plate and munitions stockpile label are preserved exactly",async()=>{
+  const[page,briefing,map]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/TheaterGeometry.tsx",import.meta.url),"utf8"),
+  ]);
+  for(const path of ["M40 20L240 20L300 105L240 190L40 190Z","M300 105L430 70L470 105L430 140Z","M520 20L670 20L670 190L520 190L470 105Z"])assert.match(map,new RegExp(path));
+  for(const coordinates of ['x1="240" y1="52" x2="520" y2="52"','x1="330" y1="44" x2="346" y2="60"','x1="346" y1="44" x2="330" y2="60"','x1="410" y1="44" x2="426" y2="60"','x1="426" y1="44" x2="410" y2="60"'])assert.match(map,new RegExp(coordinates));
+  assert.match(map,/circle cx="590" cy="70" r="6"/);
+  assert.match(map,/>\s*18th\s*</);
+  assert.match(map,/SALIENT \/ CORRIDOR/);
+  assert.match(map,/ENEMY \/ INTERDICTED/);
+  assert.match(map,/INTERDICTED/);assert.match(map,/EMITTER\?/);
+  assert.doesNotMatch(map,/geometry-sectors|geometry-edges|DEPENDENCY/);
+  assert.match(page,/<small>Stockpile<\/small>/);assert.match(briefing,/STOCKPILE/);
+  assert.doesNotMatch(page,/Net expenditure/i);
 });
 
 test("dashboard uses plain operational headings and the established minimum type size",async()=>{

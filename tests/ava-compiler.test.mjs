@@ -30,7 +30,7 @@ test("the conversational substrate handles channel opening and order orientation
 test("reports resolve module aliases",()=>{
   assert.deepEqual(instruction("production report"),{kind:"REPORT",topic:"production",days:undefined,scope:"national"});
   assert.deepEqual(instruction("produce a report on production"),{kind:"REPORT",topic:"production",days:undefined,scope:"national"});
-  assert.deepEqual(instruction("report"),{kind:"REPORT",topic:"overview",days:undefined,scope:"current"});
+  assert.deepEqual(instruction("report"),{kind:"REPORT",topic:"daily-brief",days:undefined,scope:"current"});
   assert.deepEqual(instruction("domestic"),{kind:"REPORT",topic:"domestic",days:undefined,scope:"current"});
   assert.deepEqual(instruction("projection"),{kind:"REPORT",topic:"projection",days:undefined,scope:"current"});
   assert.deepEqual(instruction("what happens next"),{kind:"REPORT",topic:"projection",days:undefined,scope:"current"});
@@ -40,7 +40,13 @@ test("reports resolve module aliases",()=>{
 });
 
 test("advice language compiles to the deterministic advisory layer",()=>{
-  for(const phrase of ["what should I do","wtf do I do","where do I start","recommend a next move","advise me"]){assert.deepEqual(instruction(phrase),{kind:"ADVISE"})}
+  for(const phrase of ["what should I do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){assert.deepEqual(instruction(phrase),{kind:"ADVISE"})}
+});
+
+test("a bare report stays bounded to the command surface",()=>{
+  const result=mod.compileAvaCommand("report",{...context,currentModule:"military"});
+  assert.equal(result.status,"compiled");
+  assert.deepEqual(result.instruction,{kind:"REPORT",topic:"military",days:undefined,scope:"current"});
 });
 
 test("explanations resolve facet and entity",()=>{

@@ -88,7 +88,7 @@ test("ISSUE PLAN preflights, state-bound confirmation executes, and terminal mat
   assert.deepEqual(issued.state,initial,"preflight must not mutate state");
   assert.ok(issued.session.confirmation);
   assert.equal(issued.session.confirmation.stateRevision,runtime.avaStateRevision(initial));
-  assert.match(issued.text,/MUTATION STAGED/);
+  assert.match(issued.text,/ORDER AWAITING CONFIRMATION/);
   assert.match(issued.text,/TYPE CONFIRM/);
 
   const directPlan=runtime.buildAvaPlan(initial,staged.session.plan);
@@ -124,13 +124,39 @@ test("terminal reports preserve requested historical windows and expose report s
   assert.equal(losses.report?.topic,"losses");
   assert.equal(losses.report?.history.requestedDays,5);
   assert.equal(losses.report?.history.resolvedDays,5);
-  assert.match(losses.text,/\[MECHANISM\]/);
-  assert.match(losses.text,/\[LEDGER\]/);
+  assert.match(losses.text,/CALCULATION/);
+  assert.match(losses.text,/CUMULATIVE INTELLIGENCE/);
   assert.match(losses.text,/FRIENDLY COMBAT LOSS/);
 
   const network=run("report network",state);
   assert.equal(network.report?.topic,"network");
   assert.match(network.text,/NETWORK/i,"a Network report must identify and describe the requested system");
+});
+
+test("MORE and LESS materially change report disclosure depth",()=>{
+  const state=newState();
+  const deepMode=run("more detail",state),deepReport=run("report production",state,deepMode.session);
+  assert.match(deepReport.text,/DEPENDENCIES/);assert.match(deepReport.text,/LEDGER SCOPE/);assert.match(deepReport.text,/CALCULATION/);
+  const glanceMode=run("less",state,deepReport.session),glanceReport=run("report production",state,glanceMode.session);
+  assert.doesNotMatch(glanceReport.text,/DEPENDENCIES|LEDGER SCOPE|CALCULATION|CUMULATIVE INTELLIGENCE/);
+  assert.match(glanceReport.text,/ANSWER/);assert.match(glanceReport.text,/JUDGMENT/);assert.match(glanceReport.text,/GRAMMAR/);
+  assert.notEqual(deepReport.text,glanceReport.text);
+});
+
+test("Ava explains influence and calculus from the same indexed metric",()=>{
+  const state=newState();
+  const levers=run("where do I influence execution confidence",state);
+  assert.match(levers.text,/CONTROL/);
+  assert.match(levers.text,/Select and Prepare a Maneuver/);
+  assert.match(levers.text,/DEPENDENCIES/);
+  assert.match(levers.text,/GRAMMAR/);
+
+  const calculus=run("explain execution confidence calculus",state);
+  assert.match(calculus.text,/CALCULATION/);
+  assert.match(calculus.text,/BASE CHANCE|READINESS|INTELLIGENCE/);
+  assert.match(calculus.text,/EXECUTION CONFIDENCE/);
+  assert.doesNotMatch(calculus.text,/sealed deterministic roll/i);
+  assert.doesNotMatch(calculus.text,/<(?:div|section|table|svg)\b/i);
 });
 
 test("available doctrine can be internalized through a state-bound zero-order confirmation",()=>{
@@ -220,7 +246,7 @@ test("confirmation is rejected after authoritative state changes",()=>{
 
   const rejected=confirmPending(external.state,staged.session);
   assert.equal(rejected.executed,false);
-  assert.equal(rejected.rejection,"Confirmation expired because authoritative state changed.");
+  assert.equal(rejected.rejection,"Confirmation expired because the command position changed.");
   assert.deepEqual(rejected.state,external.state);
   assert.match(rejected.text,/CONFIRM REJECTED/);
 });

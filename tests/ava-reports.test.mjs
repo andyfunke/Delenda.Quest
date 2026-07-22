@@ -60,11 +60,21 @@ test("new reports preserve authority boundaries and exact ledger values",()=>{
   assert.ok(!enemy.calculation.rows.some(item=>item.label.includes("ACTUAL")),"hidden actual enemy force must not be emitted");
   for(const label of ["OPERATIONS ORDER","PRODUCTION ORDER","COUNTERMEASURE"]){const value=row(enemy,label);assert.ok(value==="UNCLASSIFIED"||adversary.observedOrders.includes(value),`${label} must come from observed orders`) }
   const service=reports.buildAvaReport({kind:"REPORT",topic:"service-record",scope:"account"},state);
-  assert.equal(row(service,"ACCOUNT SERVICE DATA"),"NOT PRESENT IN GAMESTATE");
+  assert.ok(!service.calculation.rows.some(item=>/GAMESTATE|CONTENT VERSION|SERVICE DATA/.test(item.label+" "+item.value)));
+});
+
+test("report narration is topic-bounded and contains no implementation vocabulary",()=>{
+  const state=resolvedState(2),battlefield=game.situationForState(state).headline;
+  for(const topic of ["production","domestic","diplomacy","personnel","resources","service-record"]){
+    const report=reports.buildAvaReport({kind:"REPORT",topic,scope:"current"},state),text=[report.flavor,report.direct,report.recommendation,...report.history.observations,...report.calculation.rows.flatMap(item=>[item.label,item.value])].join(" ");
+    assert.doesNotMatch(report.flavor,new RegExp(battlefield.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),`${topic} must not inherit unrelated battlefield prose`);
+    assert.doesNotMatch(text,/GAMESTATE|CONTENT VERSION|SESSION CONTEXT|runtime effect|exact substrate|present in this save|public slug/i,topic);
+  }
 });
 
 test("daily brief enumerates all three convergent fronts",()=>{
   const report=reports.buildAvaReport({kind:"REPORT",topic:"daily-brief",scope:"campaign"},resolvedState(2)),labels=report.calculation.rows.map(item=>item.label);
   assert.ok(labels.includes("MAIN CAMPAIGN"));assert.ok(labels.includes("DOMESTIC FRONT"));assert.ok(labels.includes("COMMAND NETWORK"));
   assert.ok(labels.some(label=>label.startsWith("M1 //")));assert.ok(labels.some(label=>label.startsWith("D1 //")));assert.ok(labels.some(label=>label.startsWith("N1 //")));
+  assert.doesNotMatch(report.history.observations.join(" "),/deterministic rotation|seeded tie/i);
 });
