@@ -9489,6 +9489,32 @@ small,
   font: 13px/1.55 var(--mono);
   max-width: 760px;
 }
+.modern-module-epigraph {
+  border-left: 2px solid var(--b-amber);
+  color: var(--b-ink);
+  font: italic 15px/1.55 var(--serif);
+  margin: 0 0 22px;
+  max-width: 720px;
+  padding: 2px 0 2px 16px;
+}
+.modern-module-epigraph cite {
+  color: var(--b-faint);
+  display: block;
+  font: normal 9.5px var(--mono);
+  letter-spacing: 0.18em;
+  margin-top: 7px;
+}
+.modern-campaign-opening {
+  border-bottom: 1px solid var(--b-line);
+  margin-top: 34px;
+  padding-bottom: 22px;
+}
+.modern-campaign-opening .modern-module-epigraph {
+  margin-bottom: 0;
+}
+.modern-campaign-opening + .briefing-situation {
+  margin-top: 22px;
+}
 .modern-metric-grid {
   background: var(--b-line);
   border: 1px solid var(--b-line);

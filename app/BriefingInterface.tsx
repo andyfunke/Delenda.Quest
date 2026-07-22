@@ -32,6 +32,10 @@ import {
 } from "./convergence";
 import { FieldManual } from "./FieldManual";
 import { TheaterGeometry } from "./TheaterGeometry";
+import {
+  MODULE_EPIGRAPHS,
+  type ModuleEpigraphKey,
+} from "./module-epigraphs";
 
 type BriefingIssue = {
   maneuverId?: string;
@@ -65,6 +69,16 @@ const optionCost = (option: ConvergenceOption) => [
   ...option.choice.exact,
   ...option.choice.risk.map((line) => `RISK // ${line}`),
 ];
+
+function ModernModuleEpigraph({ module }: { module: ModuleEpigraphKey }) {
+  const epigraph = MODULE_EPIGRAPHS[module];
+  return (
+    <blockquote className="modern-module-epigraph">
+      “{epigraph.quote}”
+      <cite>— {epigraph.source}</cite>
+    </blockquote>
+  );
+}
 
 function InterfaceSwitch({
   useCommandInterface,
@@ -322,9 +336,11 @@ function DirectiveSurface({
   useEffect(() => setSelectedChoiceId(""), [selectedFamilyId, s.day]);
   const moduleLabel =
     module === "national" ? "PRODUCTION" : module.toUpperCase();
+  const moduleEpigraph = module === "national" ? "production" : module;
   return (
     <section className="modern-surface modern-directives">
       <header>
+        <ModernModuleEpigraph module={moduleEpigraph} />
         <span>{moduleLabel} // NATIVE ALT UX SURFACE</span>
         <h1>
           {module === "national"
@@ -453,6 +469,7 @@ function DoctrineSurface({
   return (
     <section className="modern-surface">
       <header>
+        <ModernModuleEpigraph module="doctrine" />
         <span>DOCTRINE // {s.doctrine} INSIGHT AVAILABLE</span>
         <h1>Institutional memory</h1>
         <p>
@@ -638,6 +655,9 @@ function DailySurface({
   ] as const;
   return (
     <>
+      <header className="modern-campaign-opening">
+        <ModernModuleEpigraph module="campaign" />
+      </header>
       <section className="briefing-situation">
         <span>
           DAILY STRATEGIC SITUATION // {packet.operational.sector.toUpperCase()}{" "}
@@ -696,10 +716,6 @@ function DailySurface({
           <p>
             DECISION WINDOW CLOSES IN <b>{remaining}</b>
           </p>
-          <blockquote>
-            “The day is one problem expressed through several institutions.”
-            <cite>AVA // PATTERN ANALYSIS DIRECTORATE</cite>
-          </blockquote>
         </header>
         <div className="briefing-decision-stack">
           <DecisionCard

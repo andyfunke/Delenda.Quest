@@ -188,6 +188,44 @@ test("dashboard uses plain operational headings and the established minimum type
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
 });
 
+test("every command module opens with one canonical conceptual epigraph",async()=>{
+  const[epigraphs,page,briefing,css]=await Promise.all([
+    readFile(new URL("../app/module-epigraphs.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  for(const moduleKey of ["campaign","production","military","diplomacy","doctrine"]){
+    assert.match(epigraphs,new RegExp(`\\b${moduleKey}:\\s*\\{`));
+  }
+  for(const line of [
+    "The map is where every other ledger comes to collect.",
+    "Production is the rate at which destruction stops being final.",
+    "A formation exists only while people, equipment, and orders arrive together.",
+    "Between states, every necessity becomes leverage.",
+    "A doctrine is born when a battlefield mistake becomes too useful to condemn.",
+  ])assert.equal((epigraphs.match(new RegExp(line.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"))??[]).length,1);
+  const doctrine=page.slice(page.indexOf("function DoctrineControlPanel"),page.indexOf("function Term"));
+  const shared=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
+  const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
+  const directives=briefing.slice(briefing.indexOf("function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
+  const altDoctrine=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));
+  const altCampaign=briefing.slice(briefing.indexOf("function DailySurface"),briefing.indexOf("export function BriefingInterface"));
+  assert.match(doctrine,/quote=\{MODULE_EPIGRAPHS\.doctrine\.quote\}/);
+  assert.ok(doctrine.indexOf("<Epigraph")<doctrine.indexOf('<span className="eyebrow">'));
+  assert.match(shared,/page === "national" \? "production" : page/);
+  assert.ok(shared.indexOf("<Epigraph")<shared.indexOf('<span className="eyebrow">'));
+  assert.match(campaign,/quote=\{MODULE_EPIGRAPHS\.campaign\.quote\}/);
+  assert.ok(campaign.indexOf("<Epigraph")<campaign.indexOf('<span className="eyebrow">'));
+  assert.match(directives,/module === "national" \? "production" : module/);
+  assert.ok(directives.indexOf("<ModernModuleEpigraph")<directives.indexOf("<span>{moduleLabel}"));
+  assert.ok(altDoctrine.indexOf('<ModernModuleEpigraph module="doctrine" />')<altDoctrine.indexOf("<span>DOCTRINE"));
+  assert.ok(altCampaign.indexOf('<ModernModuleEpigraph module="campaign" />')<altCampaign.indexOf('<section className="briefing-situation">'));
+  assert.doesNotMatch(altCampaign,/MODULE_EPIGRAPHS\.campaign\.(?:quote|source)/);
+  assert.match(css,/\.modern-module-epigraph\s*\{[\s\S]*?font:\s*italic 15px\/1\.55 var\(--serif\)/);
+  assert.match(css,/\.modern-module-epigraph cite\s*\{[\s\S]*?font:\s*normal 9\.5px var\(--mono\)/);
+});
+
 test("social metagame keeps power separate and issues portable campaign records",async()=>{
   const[account,setup,records,recordPage]=await Promise.all([
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),

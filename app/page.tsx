@@ -88,6 +88,7 @@ import { Bubblette, type BubbletteDetail } from "./Bubblette";
 import { TheaterGeometry } from "./TheaterGeometry";
 import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
+import { MODULE_EPIGRAPHS } from "./module-epigraphs";
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -355,8 +356,8 @@ function DoctrineControlPanel({
     <div className="module doctrine-page" data-module="DOCTRINE">
       <header>
         <Epigraph
-          quote="A doctrine is born when a battlefield mistake becomes too useful to condemn."
-          source="DOCTRINE ARCHIVE // CANON CORPUS"
+          quote={MODULE_EPIGRAPHS.doctrine.quote}
+          source={MODULE_EPIGRAPHS.doctrine.source}
         />
         <span className="eyebrow">
           Vectors of war // {s.doctrine} Insight Points available
@@ -1924,6 +1925,10 @@ function ModulePage({
     ],
   };
   const desc = descriptions[page],
+    epigraph =
+      MODULE_EPIGRAPHS[
+        page === "national" ? "production" : page
+      ],
     families = FAMILIES.filter((f) => f.module === page),
     groups = [...new Set(families.map((f) => f.category))];
   const [selected, setSelected] = useState(focus ?? families[0]?.id ?? "");
@@ -1946,6 +1951,7 @@ function ModulePage({
   return (
     <div className="module desktop-module" data-module={moduleName(page)}>
       <header>
+        <Epigraph quote={epigraph.quote} source={epigraph.source} />
         <span className="eyebrow">{desc[0]}</span>
         <h1>{desc[1]}</h1>
         <p>{desc[2]}</p>
@@ -3194,6 +3200,10 @@ function CampaignPage({
   return (
     <div className="module campaign-page" data-module="CAMPAIGN">
       <header>
+        <Epigraph
+          quote={MODULE_EPIGRAPHS.campaign.quote}
+          source={MODULE_EPIGRAPHS.campaign.source}
+        />
         <span className="eyebrow">
           {situation.theater.toUpperCase()} THEATER // {situation.sector}
         </span>
