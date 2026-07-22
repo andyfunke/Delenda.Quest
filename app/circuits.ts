@@ -16,6 +16,16 @@ export type ProductionLedger = {
 };
 export type ProductionContext = { supplyMultiplier:number; maneuverMultiplier:number };
 
+export type TrainingCohort = { id:string; admittedDay:number; headcount:number; daysRemaining:number; quality:number };
+export type ForceGenerationLedger = {
+  day:number; eligiblePopulation:number; voluntaryIntake:number; forcedIntake:number; grossIntake:number;
+  queueOpening:number; admitted:number; queueClosing:number; capacity:number; estimatedWaitDays:number;
+  cohortsOpening:number; cohortsClosing:number; graduatingCohorts:number; rawGraduates:number; effectiveGraduates:number;
+  equipmentDemand:number; equipmentAssigned:number; reserveAssigned:number; reserveReleased:number; deployableAssigned:number;
+  reservesOpening:number; reservesClosing:number; deployableOpening:number; deployableClosing:number;
+};
+export type ForceGenerationContext = { preview?:boolean };
+
 const resources:Resource[]=["munitions","armor","flight","drones"];
 const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,drones:12.6};
 const baseUse:Record<Resource,number>={munitions:21000,armor:74,flight:17,drones:355};
@@ -63,6 +73,45 @@ export const productionCircuit:Circuit<GameState,ProductionLedger,ProductionCont
     const signals:CircuitSignal[]=lines.filter(line=>line.status!=="stable").map(line=>({severity:line.status==="critical"?"critical":"warning",code:`production.${line.resource}.${line.status}`,message:`${line.resource} closes at ${line.coverage.toFixed(1)} days of coverage.`}));
     if(retooled)signals.push({severity:"warning",code:"production.retooling",message:`Industrial allocation changed to ${state.target}; conversion output absorbed a 28% retooling loss.`});
     return{state,signals,ledger:{day:state.day,target:state.target,retooled,workforceFactor,conditionFactor,policyFactor:policy.output*retoolFactor,maintenanceDebtBefore:openingDebt,maintenanceDebtAfter:state.maintenanceDebt,lines,shortages,equipmentRecovery}};
+  }
+};
+
+export const forceGenerationCircuit:Circuit<GameState,ForceGenerationLedger,ForceGenerationContext>={
+  id:"force-generation",
+  resolve(input){
+    const state:GameState=JSON.parse(JSON.stringify(input));
+    state.trainingCohorts=state.trainingCohorts??[]; state.reserves=state.reserves??0;
+    const queueOpening=state.queue,reservesOpening=state.reserves,deployableOpening=state.deployable;
+    const voluntaryIntake=Math.max(0,Math.round(state.voluntary));
+    const forcedIntake=Math.max(0,Math.round(state.forced));
+    const grossIntake=voluntaryIntake+forcedIntake;
+    state.workforce=Math.max(0,state.workforce-Math.round(grossIntake*.64));
+    state.queue+=grossIntake;
+    const admitted=Math.min(state.queue,state.training); state.queue-=admitted;
+    const cohortsOpening=state.trainingCohorts.length;
+    const matured=state.trainingCohorts.map(c=>({...c,daysRemaining:c.daysRemaining-1}));
+    const graduating=matured.filter(c=>c.daysRemaining<=0);
+    const remaining=matured.filter(c=>c.daysRemaining>0);
+    if(admitted>0)remaining.push({id:`D${state.day}-C${cohortsOpening+1}`,admittedDay:state.day,headcount:admitted,daysRemaining:state.duration,quality:state.quality});
+    const rawGraduates=graduating.reduce((n,c)=>n+c.headcount,0);
+    const effectiveGraduates=Math.round(graduating.reduce((n,c)=>n+c.headcount*clamp((c.quality-20)/80,.35,1.05),0));
+    const equipmentDemand=effectiveGraduates;
+    const equipmentAssigned=Math.min(effectiveGraduates,Math.round(effectiveGraduates*clamp(state.equipment/100,.25,1)));
+    const reserveAssigned=Math.max(0,effectiveGraduates-equipmentAssigned);
+    const readinessGate=clamp((state.readiness-30)/55,.35,1);
+    const graduateDeployment=Math.round(equipmentAssigned*readinessGate);
+    const reserveReleased=Math.min(state.reserves,Math.round(state.reserves*.08*clamp(state.equipment/100,.25,1)*readinessGate));
+    const deployableAssigned=graduateDeployment+reserveReleased;
+    state.reserves=Math.max(0,state.reserves-reserveReleased)+reserveAssigned+(equipmentAssigned-graduateDeployment);
+    state.armed+=effectiveGraduates;
+    state.deployable+=deployableAssigned;
+    state.trainingCohorts=remaining;
+    const estimatedWaitDays=state.training>0?state.queue/state.training:99;
+    const signals:CircuitSignal[]=[];
+    if(estimatedWaitDays>2)signals.push({severity:"warning",code:"force.queue.congested",message:`Induction backlog is ${estimatedWaitDays.toFixed(1)} capacity-days.`});
+    if(equipmentAssigned<effectiveGraduates*.75)signals.push({severity:"critical",code:"force.equipment.assignment",message:`Only ${Math.round(equipmentAssigned/Math.max(1,effectiveGraduates)*100)}% of graduates received field equipment.`});
+    if(state.trainingCohorts.length===0)signals.push({severity:"warning",code:"force.cohorts.empty",message:"No training cohorts remain in the pipeline."});
+    return{state,signals,ledger:{day:state.day,eligiblePopulation:Math.max(0,state.population-state.armed-state.workforce),voluntaryIntake,forcedIntake,grossIntake,queueOpening,admitted,queueClosing:state.queue,capacity:state.training,estimatedWaitDays,cohortsOpening,cohortsClosing:remaining.length,graduatingCohorts:graduating.length,rawGraduates,effectiveGraduates,equipmentDemand,equipmentAssigned,reserveAssigned,reserveReleased,deployableAssigned,reservesOpening,reservesClosing:state.reserves,deployableOpening,deployableClosing:state.deployable}};
   }
 };
 

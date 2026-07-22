@@ -1,4 +1,4 @@
-import { executeCircuit, productionCircuit, type ProductionLedger } from "./circuits";
+import { executeCircuit, forceGenerationCircuit, productionCircuit, type ForceGenerationLedger, type ProductionLedger, type TrainingCohort } from "./circuits";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -10,6 +10,7 @@ export type GameState = {
   day: number; actions: number; status: "active" | "victory" | "defeat";
   population: number; workforce: number; armed: number; deployable: number;
   voluntary: number; forced: number; queue: number; training: number; duration: number; quality: number;
+  trainingCohorts: TrainingCohort[]; reserves:number; forceGenerationLedger:ForceGenerationLedger|null;
   readiness: number; equipment: number; materiel: number; treasury: number; legitimacy: number; resistance: number;
   dependency: number; intelligence: number; front: number; enemy: number;
   doctrine: number; doctrineEarned: number; doctrineWinAwards: { day:number; action:string; verified:string; reward:number }[]; affinityProofs: Record<string,number>; atrocityExposure: number; reciprocity: number; desertionPressure: number;
@@ -187,6 +188,7 @@ export const DOCTRINES: DoctrineVector[] = [
 export const initialState = (): GameState => ({
   day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
   voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
+  trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
   readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
   front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
   target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null,
@@ -254,6 +256,7 @@ export const liveProjection = (s: GameState, fraction: number) => {
 };
 
 export const projectProduction = (s:GameState) => executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],maneuverMultiplier:maneuverById(s.maneuver)?.supply??1}).ledger;
+export const projectForceGeneration = (s:GameState) => executeCircuit(forceGenerationCircuit,s,{preview:true}).ledger;
 
 export const resolve = (state: GameState) => {
   if (state.status !== "active") return state; const s = clone(state); const situation = situationForDay(s.day); const maneuver = maneuverById(s.maneuver);
@@ -261,18 +264,18 @@ export const resolve = (state: GameState) => {
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
   const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const maneuverSupply = maneuver?.supply ?? 1;
   const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,maneuverMultiplier:maneuverSupply});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
-  const intake=Math.max(0,s.voluntary+s.forced); s.workforce-=Math.round(intake*.64); s.queue+=intake; const admitted=Math.min(s.queue,s.training); s.queue-=admitted; const grads=Math.round(admitted/s.duration*Math.max(.35,(s.quality-20)/80));
+  const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
   const power=s.deployable*s.readiness/100*s.equipment/100; const ratio=Math.max(.45,Math.min(1.7,power/Math.max(1,s.enemy*.52))); const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;
   const successRoll=hash(`${s.day}:${situation.id}:${maneuver?.id ?? "standing"}`); const succeeded=maneuver?successRoll<maneuverChance(s,maneuver):true; const maneuverPressure=maneuver?(succeeded?maneuver.successPressure:maneuver.failurePressure):0;
   const atrocities=(s.unlocked.includes("gas")?.25:0)+(s.unlocked.includes("mines")?.12:0); const losses=Math.round((4200+s.day*38)*tempoCasualty*(maneuver?.casualty??1)*(s.production.munitions.stock<42000?1.15:1)/Math.max(.6,ratio)); const enemyLoss=Math.round((3600+s.day*31)*ratio*(.8+(tempoPressure+maneuverPressure+atrocities)*.3));
-  const desert=estimateDay(s); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed+=grads-losses-desert.netDesertion; s.deployable+=Math.max(0,grads-Math.round(losses*.16))-losses-desert.netDesertion; s.enemy+=7900+s.day*55-enemyLoss; s.population-=Math.round(losses*.72);
+  const desert=estimateDay(s); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion; s.enemy+=7900+s.day*55-enemyLoss; s.population-=Math.round(losses*.72);
   const move=tempoPressure+maneuverPressure+atrocities+(ratio-1)*1.5+(s.intelligence-42)/120+(1-shortages*.18)*.25-.25; s.front+=move;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${enemyLoss.toLocaleString()} enemy losses // ${move>=0?"+":""}${move.toFixed(1)} km`,reward:doctrineGain});}
   s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000; s.legitimacy-=losses/8500+s.atrocityExposure/180; s.resistance+=s.forced/28000-s.legitimacy/180; s.desertionPressure+=losses/4500+(s.readiness<45?3:0)-s.legitimacy/120;
   const resultTitle=maneuver?`${maneuver.label} ${succeeded?"Opened the Day":"Was Collected in Casualties"}`:(move>=0?`The Line Moved ${Math.abs(move).toFixed(1)} km Forward`:`The Line Fell Back ${Math.abs(move).toFixed(1)} km`);
   const doctrineText=doctrineGain?` ${doctrineGain} Insight Points were awarded for the verified battlefield result.`:" No Insight Points were awarded because the maneuver did not produce a verified win."; const desertText=` ${desert.desertion.toLocaleString()} deserted; ${desert.intercepted.toLocaleString()} were intercepted.`;
-  const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;
-  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. ${grads.toLocaleString()} recruits graduated. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
+  const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;const forceText=` ${forceResult.ledger.admitted.toLocaleString()} entered training; ${forceResult.ledger.effectiveGraduates.toLocaleString()} graduated, ${forceResult.ledger.deployableAssigned.toLocaleString()} reached deployable formations, and ${forceResult.ledger.reserveAssigned.toLocaleString()} entered reserve pending equipment; ${forceResult.ledger.reserveReleased.toLocaleString()} reservists returned to deployable formations.`;
+  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${forceText}${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
   if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s); return s;
 };
 
