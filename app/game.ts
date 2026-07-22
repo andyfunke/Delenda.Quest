@@ -7,6 +7,7 @@ import {
   type SituationHistoryRecord, type SituationTemplate, type Theater as SubstrateTheater,
   type TheaterSector,
 } from "./campaign-substrate";
+import { composeWarDispatch } from "./war-dispatch";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -377,7 +378,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
   applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);s.currentSituation=compileSituationForState(s);
   const situation=situationForState(s),director=directorForState(s);s.adversary.objective=situation.sector;
   const archetype=STATE_ARCHETYPES.find(x=>x.id===config.archetype)!;
-  s.reports=[{day:1,title:`${situation.sector} Will Consume the First Available Reserve`,body:`${situation.briefing} ${director.event.brief} At opening strength, ${fmtStrategic(s.deployable)} soldiers are deployable and Munitions coverage is ${(s.production.munitions.stock/Math.max(1,s.production.munitions.use)).toFixed(1)} days. Three orders may be issued before the first resolution.`,tone:"warn",epigraph:archetype.quote}];
+  s.reports=[{day:1,title:`${situation.sector} Will Consume the First Available Reserve`,body:`${situation.briefing}\n\n${director.event.brief} The field army enters the sector with a serviceable reserve and arsenals able to sustain immediate operations. By dusk, headquarters must decide where to mass force and what to leave exposed.`,tone:"warn",epigraph:archetype.quote}];
   return s;
 };
 
@@ -445,6 +446,17 @@ export const opportunityForState=(state:GameState):OpportunityPacket=>{
   return{...template,sector:situation.sector,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
 };
 
+const legacyTelemetryReport=/Campaign Director:|Operational packet:|Field condition:|Foreign delivery:|Domestic state:|Production closed with|entered training|No Insight Points were awarded/i;
+const rewriteLegacyMorningReport=(state:GameState)=>{
+  const latest=state.reports[0],operations=state.operationsLedger,adversary=state.adversaryLedger,diplomacy=state.diplomacyLedger,domestic=state.domesticLedger,production=state.productionLedger,forceGeneration=state.forceGenerationLedger;
+  if(!latest||!legacyTelemetryReport.test(latest.body)||!operations||!adversary||!diplomacy||!domestic||!production||!forceGeneration)return;
+  const eventRecord=state.eventHistory.find(record=>record.day===operations.day);const event=CAMPAIGN_EVENTS.find(item=>item.id===eventRecord?.eventId);
+  const history=state.situationHistory.find(record=>record.day===operations.day);const aftermath=(history?.factsCreated??[]).map(id=>FACT_CATALOG[id]).filter(Boolean);
+  const award=state.doctrineWinAwards.find(item=>item.day===operations.day);const opportunity=state.opportunityHistory.find(item=>item.day===operations.day);
+  const dispatch=composeWarDispatch({sector:operations.sector,maneuverLabel:operations.maneuver==="Standing Tempo"?null:operations.maneuver,conditionBrief:event?.brief??"Field reports reached headquarters before the formations had finished counting the night.",outcomeBand:operations.outcomeBand,movement:operations.groundMovement,friendlyLosses:operations.friendlyLosses,enemyLosses:operations.enemyLosses,committed:operations.committed,forceRatio:operations.forceRatio,adversary,diplomacy,domestic,production,forceGeneration,desertionAttempted:state.deserters,doctrineGain:award?.reward??0,aftermath,opportunityOutcome:opportunity?.outcome??null});
+  state.reports[0]={...latest,...dispatch,epigraph:event?.quote??latest.epigraph};
+};
+
 export const restoreCampaignState=(value:unknown):GameState|null=>{
   if(!value||typeof value!=="object")return null;const candidate=value as Partial<GameState>;
   const theater=validTheater(candidate.theater)?candidate.theater:DEFAULT_CAMPAIGN.theater;
@@ -460,7 +472,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     operationalFacts:Array.isArray(candidate.operationalFacts)?candidate.operationalFacts:base.operationalFacts,
     situationHistory:Array.isArray(candidate.situationHistory)?candidate.situationHistory:base.situationHistory,currentSituation:candidate.currentSituation??null,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs};
-  normalize(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
 export const maneuverChance = (s: GameState, m: Maneuver, director:CampaignDirector=directorForState(s)) => {
@@ -608,11 +620,10 @@ export const resolve = (state: GameState) => {
   s.front+=move;if(maneuver?.id==="network"&&succeeded)s.intelligence+=3;const aftermath=resolveSituationAftermath(s,situation,maneuver?.id??null,outcomeBand,margin,move);s.theaterSectors=aftermath.theaterSectors;s.operationalFacts=aftermath.operationalFacts;s.situationHistory=aftermath.situationHistory;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${fmtStrategic(enemyLoss)} enemy losses // ${describeGroundMovement(move).display}`,reward:doctrineGain});}
   s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000+director.modifiers.treasury;const domesticResult=executeCircuit(domesticCircuit,s,{friendlyLosses:losses,shortages,directorLegitimacy:director.modifiers.legitimacy,directorResistance:director.modifiers.resistance});Object.assign(s,domesticResult.state);s.domesticLedger=domesticResult.ledger;
-  const movement=describeGroundMovement(move);const resultTitle=maneuver?`${maneuver.label} // ${Math.abs(move)<.05?"FRONT STALLED":outcomeBandLabel[outcomeBand]}`:movement.title;
-  const doctrineText=doctrineGain?` ${doctrineGain} Insight Points were awarded for the verified battlefield result.`:" No Insight Points were awarded because the maneuver did not produce a verified win.";const roundedDesert=roundStrategicCount(desert.desertion),roundedIntercepted=roundStrategicCount(desert.intercepted);const desertText=roundedDesert||roundedIntercepted?` ${fmtStrategic(desert.desertion)} deserted; ${fmtStrategic(desert.intercepted)} were intercepted.`:" Desertion remained below the strategic reporting threshold.";
-  const factText=aftermath.createdFacts.length?` Battlefield aftermath: ${aftermath.createdFacts.map(x=>x.label).join("; ")}.`:"";const adversaryText=` Enemy action observed: ${adversaryResult.ledger.observedOrders[0]??"none classified"}. Reinforcement ${fmtStrategic(adversaryResult.ledger.reinforcement)}; assessed strength ${fmtStrategic(s.enemy)}.`;const diplomacyText=` Foreign delivery: ${fmtStrategic(diplomacyResult.ledger.totalMunitions)} munitions, ${diplomacyResult.ledger.totalTreasury.toFixed(1)} B treasury, ${diplomacyResult.ledger.totalIntelligence} intelligence.`;const domesticText=` Domestic state: Legitimacy ${domesticResult.ledger.legitimacyChange>=0?"+":""}${domesticResult.ledger.legitimacyChange.toFixed(1)}, Resistance ${domesticResult.ledger.resistanceChange>=0?"+":""}${domesticResult.ledger.resistanceChange.toFixed(1)}, strike risk ${(domesticResult.ledger.strikeRisk*100).toFixed(0)}%.`;const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; industrial condition changed ${productionResult.ledger.materielChange>=0?"+":""}${productionResult.ledger.materielChange.toFixed(1)}.`;const forceText=` ${fmtStrategic(forceResult.ledger.admitted)} entered training; ${fmtStrategic(forceResult.ledger.effectiveGraduates)} graduated and ${fmtStrategic(forceResult.ledger.deployableAssigned)} reached deployable formations.`;const conditionText=` Field condition: ${director.event.label}. ${director.event.report}`;
+  const opportunityOutcome=s.opportunityHistory[0]?.day===s.day?s.opportunityHistory[0].outcome:null;
+  const dispatch=composeWarDispatch({sector:situation.sector,maneuverLabel:maneuver?.label??null,conditionBrief:director.event.brief,outcomeBand,movement:move,friendlyLosses:losses,enemyLosses:enemyLoss,committed:operationResult.ledger.committed,forceRatio:operationResult.ledger.forceRatio,adversary:adversaryResult.ledger,diplomacy:diplomacyResult.ledger,domestic:domesticResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,desertionAttempted:desert.desertion,doctrineGain,aftermath:aftermath.createdFacts,opportunityOutcome});
   s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,trigger:director.trigger});
-  const lossText=roundStrategicCount(losses)?`${fmtStrategic(losses)} soldiers were lost.`:"Losses remained below the strategic reporting threshold.";s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${lossText} ${movement.sentence}${factText}${opportunityResult.report}${conditionText}${adversaryText}${diplomacyText}${domesticText}${forceText}${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:director.event.quote });
+  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, ...dispatch, epigraph:director.event.quote });
   if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s);s.currentSituation=compileSituationForState(s);s.adversary.objective=s.currentSituation.sector;return s;
 };
 

@@ -170,3 +170,6 @@ small,.eyebrow,.strip,.top nav button,.top nav button span,.continuity span,.con
 @media(max-width:760px){.module-report{grid-template-columns:1fr 1fr}.module-report>div{border-bottom:1px solid #4b4b48}}
 @media(max-width:900px){.account-campaigns>div{grid-template-columns:1fr}.account-campaigns article{grid-template-columns:1fr auto}.account-campaigns article>div{grid-column:1/-1}.account-actions{align-items:stretch;flex-wrap:wrap}.account-actions>div{flex-basis:100%}}
 .account-actions{gap:10px;justify-content:flex-end}.account-actions>div{flex:1}.account-actions>a{background:#d4d0c8;border:2px outset #fff;color:#111;font-family:monospace;font-size:12px;font-weight:900;padding:9px 12px;text-decoration:none}
+
+/* The morning report is a field dispatch. Exact arithmetic remains in the ledgers below. */
+.morning-copy{min-width:0}.morning-prose{display:grid;gap:11px;max-width:840px}.morning .morning-prose p{color:#343630;font-family:Georgia,"Times New Roman",serif;font-size:14px!important;line-height:1.58;margin:0;max-width:none}.morning .morning-prose p:first-child{font-size:15px!important}.morning .morning-prose p:last-child{border-left:3px solid var(--red);font-style:italic;padding-left:13px}

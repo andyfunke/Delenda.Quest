@@ -6,7 +6,7 @@ const {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, SITUATIONS,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState,
-  outcomeBandForMargin, projectOperations, resolve, situationForState, FAMILIES,
+  outcomeBandForMargin, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -124,11 +124,31 @@ test("diplomatic actions coexist, retain separate expiries, and leave an effects
   assert.equal(activeDiplomacyForState(current).length,2);
   assert.notEqual(current.activeDiplomacy[0].expiresDay,current.activeDiplomacy[1].expiresDay);
   current=resolve(current);
-  assert.match(current.reports[0].body,/Foreign delivery:/);
+  assert.match(current.reports[0].body,/foreign ammunition reached the railheads/i);
   current=resolve(resolve(resolve(current)));
   assert.equal(current.day,5);
   assert.equal(activeDiplomacyForState(current).some(action=>action.choiceId==="summit"),false);
   assert.equal(activeDiplomacyForState(current).some(action=>action.choiceId==="credit"),true);
+});
+
+test("morning reports are cinematic dispatches rather than telemetry dumps",()=>{
+  const state=initialState({seed:1729,theater:"lowland"});
+  const next=resolve(state),report=next.reports[0];
+  assert.match(report.title,/line|lodgment|culminated|broke|ground/i);
+  assert.match(report.body,/Enemy command/);
+  assert.match(report.body,/butcher's bill/i);
+  assert.equal(report.body.split("\n\n").length,3);
+  assert.doesNotMatch(report.body,/Campaign Director:|Operational packet:|Foreign delivery:|Domestic state:|Production closed with|entered training|No Insight Points|resolution roll|\d+\.\d+%/i);
+});
+
+test("saved telemetry reports are rewritten when a campaign is restored",()=>{
+  const resolved=resolve(initialState({seed:1729,theater:"lowland"}));
+  resolved.reports[0]={...resolved.reports[0],title:"The Line Fell Back 0.0 km",body:"1,635 soldiers were lost. Operational packet: 208,506 committed. Foreign delivery: 1,875 munitions. No Insight Points were awarded."};
+  const restored=restoreCampaignState(JSON.parse(JSON.stringify(resolved)));
+  assert.ok(restored);
+  assert.notEqual(restored.reports[0].title,"The Line Fell Back 0.0 km");
+  assert.match(restored.reports[0].body,/Enemy command/);
+  assert.doesNotMatch(restored.reports[0].body,/Operational packet:|Foreign delivery:|No Insight Points/);
 });
 
 test("sub-threshold ground movement is reported as a stall",()=>{
