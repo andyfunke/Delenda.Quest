@@ -4,6 +4,7 @@ export type Module = "dashboard" | "campaign" | "national" | "military" | "diplo
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
 export type Tone = "good" | "warn" | "bad";
+export const DAILY_ORDERS = 5;
 
 export type GameState = {
   day: number; actions: number; status: "active" | "victory" | "defeat";
@@ -184,7 +185,7 @@ export const DOCTRINES: DoctrineVector[] = [
 ];
 
 export const initialState = (): GameState => ({
-  day: 1, actions: 3, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
+  day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
   voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
   readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
   front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
@@ -271,7 +272,7 @@ export const resolve = (state: GameState) => {
   const resultTitle=maneuver?`${maneuver.label} ${succeeded?"Opened the Day":"Was Collected in Casualties"}`:(move>=0?`The Line Moved ${Math.abs(move).toFixed(1)} km Forward`:`The Line Fell Back ${Math.abs(move).toFixed(1)} km`);
   const doctrineText=doctrineGain?` ${doctrineGain} Insight Points were awarded for the verified battlefield result.`:" No Insight Points were awarded because the maneuver did not produce a verified win."; const desertText=` ${desert.desertion.toLocaleString()} deserted; ${desert.intercepted.toLocaleString()} were intercepted.`;
   const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;
-  s.day+=1; s.actions=3; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. ${grads.toLocaleString()} recruits graduated. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
+  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. ${grads.toLocaleString()} recruits graduated. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
   if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s); return s;
 };
 
