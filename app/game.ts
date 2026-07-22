@@ -13,6 +13,7 @@ import { OPPORTUNITY_CATEGORY_LABELS, OPPORTUNITY_SPINES, type OpportunityCatego
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
+export type NetworkPosture = "broadcast" | "dark" | "distributed";
 export type Tone = "good" | "warn" | "bad";
 export type Theater = SubstrateTheater;
 export type CampaignConfig = { seed:number; archetype:string; adversaryPersonality:string; theater:Theater };
@@ -52,7 +53,7 @@ export type GameState = {
   dependency: number; intelligence: number; front: number; enemy: number;
   doctrine: number; doctrineEarned: number; doctrineWinAwards: { day:number; action:string; verified:string; reward:number }[]; affinityProofs: Record<string,number>; atrocityExposure: number; reciprocity: number; desertionPressure: number;
   deserters: number; intercepted: number; patrolCommitment: number;
-  target: Resource | "balanced"; pendingTarget: Resource | "balanced" | null; tempo: Tempo; maneuver: string | null;
+  target: Resource | "balanced"; pendingTarget: Resource | "balanced" | null; tempo: Tempo; networkPosture:NetworkPosture; maneuver: string | null;
   maintenanceDebt: number; productionLedger: ProductionLedger | null; operationsLedger:OperationsLedger|null; domesticLedger:DomesticLedger|null; diplomacyLedger:DiplomacyLedger|null;actors:DiplomaticActor[];adversary:AdversaryState;adversaryLedger:AdversaryLedger|null;
   production: Record<Resource, { allocation: number; stock: number; output: number; use: number }>;
   active: Record<string, string>; locks: Record<string, number>; scheduled: Scheduled[];
@@ -71,7 +72,7 @@ type Scheduled = { day: number; source: string; delta: Delta };
 export type Choice = {
   id: string; label: string; flavor: string; exact: string[]; risk: string[];
   delta?: Delta; tick?: Delta; delay?: { days: number; delta: Delta };
-  target?: GameState["target"]; tempo?: Tempo; doctrine?: number; duration?:number;
+  target?: GameState["target"]; tempo?: Tempo; networkPosture?:NetworkPosture; doctrine?: number; duration?:number;
 };
 
 export type Family = {
@@ -257,6 +258,16 @@ export const FAMILIES: Family[] = [
     c("refuse-call","Refuse the Alliance Call","Sovereignty is exercised most clearly when somebody else expected ammunition.",["Orison Trust: -4/day","Orison Leverage: -2/day","Munitions preserved"],["Aid Pipeline suspension if Trust falls below 30"]),
     c("request-corps","Request Expeditionary Corps","Borrow soldiers whose graves will remain a bilateral instrument.",["Deployable Force: +12,000 on Day +2","Orison Obligation: -3/day","Orison Dependency: +2/day"],["Command friction: Readiness -1 on arrival"],{delay:{days:2,delta:{deployable:12000,armed:12000,readiness:-1}}}),
   ]},
+  {id:"network-posture",module:"military",category:"Command Network",label:"Set Network Posture",brief:"Choose whether command travels quickly, secretly, or redundantly when every transmission is also evidence.",lock:1,choices:[
+    c("broadcast","Rebroadcast on Compromised Frequencies","Restore command tempo by accepting that the enemy will learn the shape of the traffic.",["Network conversion: +14%","Readiness: +2","Intelligence: -4"],["Enemy pattern analysis accelerates while this posture remains active"],{networkPosture:"broadcast",delta:{readiness:2,intelligence:-4},doctrine:2}),
+    c("dark","Go Dark and Run Couriers","Preserve the order picture by replacing bandwidth with distance, delay, and exposed messengers.",["Network conversion: -12%","Intelligence: +5","Equipment Coverage: +1"],["Operational execution slows while interception risk falls"],{networkPosture:"dark",delta:{intelligence:5,equipment:1}}),
+    c("distributed","Distribute Autonomous Relays","Spend equipment to keep the network usable without concentrating its signature.",["Network conversion: +4%","Equipment Coverage: -2","Readiness: +1","Intelligence: +1"],["No single relay restores full command tempo; no single loss collapses it"],{networkPosture:"distributed",delta:{equipment:-2,readiness:1,intelligence:1}}),
+  ]},
+  {id:"foreign-intelligence",module:"diplomacy",category:"Intelligence Exchange",label:"Trade Foreign Intelligence",brief:"Acquire classification by deciding which foreign dependency, fiscal cost, or secret exposure will carry it.",lock:3,choices:[
+    c("fused-exchange","Enter a Fused Intelligence Exchange","Receive the broadest foreign picture and accept that future estimates will depend on its continued arrival.",["Intelligence: +8","Dependency: +7","Legitimacy: +1"],["Foreign filtering becomes part of the national estimate"],{delta:{intelligence:8,dependency:7,legitimacy:1},duration:5}),
+    c("compartmented","Accept a Compartmented Liaison","Buy a narrower picture with treasury and retain custody of the underlying national collection.",["Intelligence: +4","Treasury: -3 B","Dependency: +2"],["Some source provenance remains unavailable to command"],{delta:{intelligence:4,treasury:-3,dependency:2},duration:4}),
+    c("unilateral-collection","Fund Unilateral Foreign Collection","Preserve autonomy by paying for access, cutouts, and attribution risk directly.",["Intelligence: +6","Treasury: -12 B","Legitimacy: -1"],["Exposure damages the state rather than an ally if collection is compromised"],{delta:{intelligence:6,treasury:-12,legitimacy:-1},duration:3}),
+  ]},
 ];
 
 export const MANEUVERS: Maneuver[] = [
@@ -334,6 +345,7 @@ FAMILIES.filter(family=>family.module==="diplomacy").forEach(family=>family.choi
 export const activeDiplomacyForState=(state:GameState)=>state.activeDiplomacy.filter(action=>action.startedDay<=state.day&&action.expiresDay>state.day);
 
 export const DEFAULT_CAMPAIGN:CampaignConfig={seed:1729,archetype:"industrial-republic",adversaryPersonality:"adaptive",theater:"lowland"};
+export const TERMINAL_RESOLUTION_DAY=24;
 const validTheater=(value:unknown):value is Theater=>THEATERS.some(x=>x.id===value);
 export const sanitizeSeed=(value:number)=>Math.max(1,Math.min(2_147_483_647,Math.abs(Math.trunc(Number.isFinite(value)?value:DEFAULT_CAMPAIGN.seed))));
 
@@ -369,7 +381,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
     readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
     front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
-    target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,diplomacyLedger:null,
+    target: "balanced", pendingTarget: null, tempo: "methodical", networkPosture:"distributed", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,diplomacyLedger:null,
     actors:[
       {id:"orison",name:"Orison Compact",role:"ally",interest:"Keep the active line consuming enemy attention without entering it",trust:62,leverage:38,dependency:24,obligation:31,aidPipeline:22,sanctionsExposure:8,betrayalRisk:.18},
       {id:"vey",name:"Vey Port Authority",role:"neutral",interest:"Preserve transit revenue and legal neutrality",trust:47,leverage:44,dependency:18,obligation:9,aidPipeline:11,sanctionsExposure:14,betrayalRisk:.27},
@@ -584,6 +596,7 @@ export const commit = (state: GameState, family: Family, choice: Choice) => {
   if (choice.delay) s.scheduled.push({ day: s.day + choice.delay.days, source: choice.label, delta: choice.delay.delta });
   if (choice.target) s.pendingTarget = choice.target;
   if (choice.tempo) s.tempo = choice.tempo;
+  if (choice.networkPosture) s.networkPosture = choice.networkPosture;
   s.active[family.id] = choice.id;
   if(family.module==="diplomacy")s.activeDiplomacy.push({familyId:family.id,choiceId:choice.id,startedDay:s.day,expiresDay:s.day+diplomacyDurationFor(family.id,choice)});
   s.locks[family.id] = s.day + family.lock; s.actions -= 1; s.decisions.unshift({ day: s.day, family: family.label, choice: choice.label }); normalize(s); return s;
@@ -740,7 +753,10 @@ export const resolve = (state: GameState) => {
   const dispatch=composeWarDispatch({sector:situation.sector,maneuverLabel:maneuver?.label??null,conditionBrief:director.event.brief,outcomeBand,movement:move,friendlyLosses:losses,enemyLosses:enemyLoss,committed:operationResult.ledger.committed,forceRatio:operationResult.ledger.forceRatio,adversary:adversaryResult.ledger,diplomacy:diplomacyResult.ledger,domestic:domesticResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,desertionAttempted:desert.desertion,doctrineGain,aftermath:aftermath.createdFacts,opportunityOutcome});
   s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,trigger:director.trigger});
   s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, ...dispatch, epigraph:director.event.quote });
-  if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s);s.currentSituation=compileSituationForState(s);s.adversary.objective=s.currentSituation.sector;return s;
+  const resolvedDay=s.day-1,terminalResolutionOpen=resolvedDay>=TERMINAL_RESOLUTION_DAY;
+  if((terminalResolutionOpen&&s.front>=12)||(s.day>30&&s.front>0))s.status="victory";
+  if((terminalResolutionOpen&&s.front<=-12)||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
+  normalize(s);s.currentSituation=compileSituationForState(s);s.adversary.objective=s.currentSituation.sector;return s;
 };
 
 export const fmt = (n: number, full=false) => full?Math.round(n).toLocaleString():new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(n);

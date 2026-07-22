@@ -3,10 +3,10 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS,
+  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  outcomeBandForMargin, projectAdversary, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
+  maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -195,6 +195,40 @@ test("first-day loss exposure is daily while an inert command loses at the thirt
   assert.ok(Math.max(...terminalDays)<=31);
   const average=terminalDays.reduce((total,day)=>total+day,0)/terminalDays.length;
   assert.ok(average>=28&&average<=30.5);
+});
+
+test("competent command resolves an ebbing campaign inside the terminal window",()=>{
+  assert.equal(TERMINAL_RESOLUTION_DAY,24);
+  const plan=[["tempo","surge"],["statecraft","backchannel"],["production","eyes"],["industry","maintenance"],["training-standard","specialist"],["desertion","rations"],["supply","shadow"],["casualty-politics","public-mourning"]];
+  const terminal=[];
+  for(let seed=1;seed<=6;seed++)for(const theater of THEATERS){
+    let state=initialState({seed:seed*7919,theater:theater.id});
+    while(state.status==="active"){
+      const opportunity=opportunityForState(state);if(opportunity)state=commitOpportunity(state,opportunity.responses[0]);
+      for(const [familyId,choiceId] of plan){
+        if(state.actions<=1)break;
+        const family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),next=commit(state,family,choice);
+        if(next!==state)state=next;
+      }
+      const situation=situationForState(state);let best=null,bestScore=-Infinity;
+      for(const id of situation.maneuvers){
+        const maneuver=MANEUVERS.find(item=>item.id===id),range=projectOperationRange(state,maneuver),chance=maneuverChance(state,maneuver);
+        const movement=chance*range.success.groundMovement+(1-chance)*range.failure.groundMovement;
+        const losses=chance*range.success.friendlyLosses+(1-chance)*range.failure.friendlyLosses;
+        const score=movement-losses/200000;
+        if(score>bestScore){bestScore=score;best=maneuver;}
+      }
+      state=resolve(commitManeuver(state,best));
+    }
+    terminal.push(state);
+  }
+  const victories=terminal.filter(state=>state.status==="victory"),defeats=terminal.filter(state=>state.status==="defeat");
+  assert.ok(victories.length>=terminal.length*.5);
+  assert.ok(terminal.every(state=>state.day-1>=TERMINAL_RESOLUTION_DAY&&state.day-1<=30));
+  const victoryAverage=victories.reduce((total,state)=>total+state.day-1,0)/victories.length;
+  const defeatAverage=defeats.reduce((total,state)=>total+state.day-1,0)/defeats.length;
+  assert.ok(victoryAverage>=26&&victoryAverage<=29);
+  assert.ok(defeatAverage>=28&&defeatAverage<=30);
 });
 
 test("diplomatic actions coexist, retain separate expiries, and leave an effects report",()=>{

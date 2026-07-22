@@ -151,7 +151,8 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const frontageDemand=textFactor(situation.terrain,{ridge:52000,corridor:44000,basin:68000,lowland:60000,river:36000},56000);
     const terrainFactor=textFactor(situation.terrain,{ridge:.82,corridor:.9,basin:1.04,lowland:1,river:.76});
     const groundFactor=textFactor(situation.ground,{mined:.72,flooded:.68,saturated:.79,rubble:.84,dry:1.04,cratered:.86});
-    let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06})-(state.adversaryLedger?.networkInterference??0);if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
+    const networkPostureAdjustment=state.networkPosture==="broadcast"?.14:state.networkPosture==="dark"?-.12:.04;
+    let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06})+networkPostureAdjustment-(state.adversaryLedger?.networkInterference??0);if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
     const supplyFactor=textFactor(situation.supply,{interdicted:.73,rationed:.82,adequate:1,secure:1.08})/Math.max(.85,context.tempoSupply*.82)*context.directorSupplyConversion;
     const intelligenceFactor=clamp(.72+state.intelligence/150-(state.adversaryLedger?.deceptionPenalty??0),.68,1.26);
     const readinessFactor=state.readiness/100,equipmentFactor=state.equipment/100;
@@ -186,7 +187,8 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const enemyLossRate=.011*Math.sqrt(forceRatio)*(.9+Math.max(-.25,context.tempoPressure+maneuverPressure)*.18)*enemyLossBand;
     const enemyLosses=Math.max(0,Math.round(enemyCommitted*clamp(enemyLossRate,.004,.05)));
     const forceRatioPressure=clamp((forceRatio-.45)*.55,-.22,.42),intelligencePressure=(state.intelligence-42)/180,shortagePressure=-shortagePenalty;
-    const basePressure=(maneuver?0:NO_ACTION_DAILY_FRONT_LOSS)+(context.tempoPressure-.35)*.45+atrocities;
+    const networkTempoPressure=maneuver?(state.networkPosture==="broadcast"?.25:state.networkPosture==="dark"?-.08:.12):0;
+    const basePressure=(maneuver?0:NO_ACTION_DAILY_FRONT_LOSS)+(context.tempoPressure-.35)*.45+networkTempoPressure+atrocities;
     const enemyPressureDeviation=(state.adversaryLedger?.pressure??.35)-.35;
     const groundMovement=basePressure+maneuverPressure*1.5+forceRatioPressure+intelligencePressure+shortagePressure+context.directorFriendlyPressure-context.directorEnemyPressure-enemyPressureDeviation;
     const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/state.deployable*100).toFixed(1)}% of deployable force)`,`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence; margin ${margin>=0?"+":""}${(margin*100).toFixed(1)} points`,`${outcomeBand.toUpperCase()} outcome band selected from the stored margin`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];

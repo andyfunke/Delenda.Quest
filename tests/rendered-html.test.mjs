@@ -62,6 +62,26 @@ test("diplomacy separates foreign actors from diplomatic actions",async()=>{
   assert.doesNotMatch(panel,/<nav>/);
 });
 
+test("daily brief is a second renderer over the same convergence substrate",async()=>{
+  const[page,briefing,convergence,css]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/convergence.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  assert.match(page,/interfaceMode===\"briefing\"/);
+  assert.match(page,/commitConvergence/);
+  assert.match(page,/DAILY BRIEF/);
+  for(const domain of ["PRIMARY · OPERATIONAL","SITUATIONAL · DOMESTIC","SITUATIONAL · NETWORK"]){
+    assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  }
+  assert.match(briefing,/GENERATED FROM THE ACTIVE SECTOR GRAPH/);
+  assert.match(convergence,/CONVERGENCE_MATRIX_VERSION="convergence-v1"/);
+  assert.match(convergence,/domesticSpines:PromptSpine\[\]/);
+  assert.match(convergence,/networkSpines:PromptSpine\[\]/);
+  assert.match(css,/\.briefing-ui/);
+});
+
 test("dashboard uses plain operational headings and the established minimum type size",async()=>{
   const[page,css,account]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
