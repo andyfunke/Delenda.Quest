@@ -4,9 +4,12 @@ export type Module = "dashboard" | "campaign" | "national" | "military" | "diplo
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
 export type Tone = "good" | "warn" | "bad";
+export type Theater = "lowland" | "ridge" | "industrial" | "river";
+export type CampaignConfig = { seed:number; archetype:string; adversaryPersonality:string; theater:Theater };
 export const DAILY_ORDERS = 3;
 
 export type GameState = {
+  saveVersion:number; campaignId:string; campaignSeed:number; stateArchetype:string; adversaryPersonality:string; theater:Theater;
   day: number; actions: number; status: "active" | "victory" | "defeat";
   population: number; workforce: number; armed: number; deployable: number;
   voluntary: number; forced: number; queue: number; training: number; duration: number; quality: number;
@@ -46,6 +49,7 @@ export type Maneuver = {
 
 export type Situation = {
   id: string; sector: string; headline: string; briefing: string; question: string;
+  theater:Theater;
   terrain: string; ground: string; network: string; supply: string; intelligence: string;
   windowHours: number; quote: string; attribution: string; maneuvers: string[];
 };
@@ -54,6 +58,33 @@ export type DoctrineStage = { id: string; label: string; cost: number; descripti
 export type DoctrineVector = { id: string; label: string; authority: string; quote: string; forbidden?: boolean; stages: DoctrineStage[] };
 
 const c = (id: string, label: string, flavor: string, exact: string[], risk: string[], extra: Partial<Choice> = {}): Choice => ({ id, label, flavor, exact, risk, ...extra });
+
+export type CampaignArchetype = { id:string; label:string; difficulty:string; brief:string; quote:string; modifiers:string[] };
+export type AdversaryPersonality = { id:string; label:string; difficulty:string; brief:string; doctrine:string; modifiers:string[] };
+export type TheaterDefinition = { id:Theater; label:string; brief:string; pressure:string; quote:string };
+
+export const STATE_ARCHETYPES:CampaignArchetype[]=[
+  {id:"siege-state",label:"The Siege State",difficulty:"SEVERE",brief:"The magazines were filled by starving everything that could object. You inherit shells, coercive capacity, and a population already familiar with the word temporary.",quote:"A city under siege eventually learns that every door is military infrastructure.",modifiers:["Munitions stock +38,000","Legitimacy -6","Resistance +8","Materiel Condition -4"]},
+  {id:"industrial-republic",label:"The Industrial Republic",difficulty:"STANDARD",brief:"The factories still answer the bell. The army does not. Your state can replace machines faster than it can explain why men should enter them.",quote:"The furnace votes continuously. Its ballot is output.",modifiers:["Workforce +650,000","Materiel Condition +10","Equipment Coverage +4","Deployable Force -32,000","Treasury +18 B"]},
+  {id:"conscription-directorate",label:"The Conscription Directorate",difficulty:"HARD",brief:"The state solved its manpower shortage by declaring that nobody possessed a private future. The induction system is full. The country is not persuaded.",quote:"Universal obligation is the cleanest phrase ever applied to a crowded train.",modifiers:["Armed Forces +60,000","Forced Intake +12,000/day","Training Queue +50,000","Training Quality -8","Legitimacy -9","Resistance +10"]},
+  {id:"mercantile-compact",label:"The Mercantile Compact",difficulty:"STANDARD",brief:"Credit, access, and discretion have kept the front supplied. None of them belong to you. Every foreign delivery arrives with a second manifest.",quote:"A neutral port is an alliance priced by the hour.",modifiers:["Treasury +95 B","Foreign Aid Pipelines +10","Dependency +18","Munitions stock -25,000","Armed Forces -45,000"]},
+  {id:"officer-regency",label:"The Officer Regency",difficulty:"HARD",brief:"The army administers the state because the state could no longer administer the army. Staff work is excellent. Consent has been postponed without a return date.",quote:"When the general staff becomes the government, every shortage becomes an order.",modifiers:["Readiness +12","Intelligence +14","Equipment Coverage +5","Voluntary Intake -3,000/day","Legitimacy -4","Resistance +3"]},
+  {id:"ruined-federation",label:"The Ruined Federation",difficulty:"EXTREME",brief:"Several capitals still issue stationery. Only one still issues ammunition. You begin with experienced observers, broken transport, and a front already inside the old border.",quote:"A federation ends twice: first in law, then at the last functioning depot.",modifiers:["Population -1,800,000","Workforce -1,000,000","Front -2.0 km","Materiel Condition -15","Equipment Coverage -12","Treasury -80 B","Insight Points +90"]},
+];
+
+export const ADVERSARY_PERSONALITIES:AdversaryPersonality[]=[
+  {id:"attritional",label:"The Exhaustion Staff",difficulty:"HARD",brief:"It treats time as a weapons system and accepts ugly exchange ratios whenever your replacements are worse.",doctrine:"Mass, fire schedules, replacement depth",modifiers:["Enemy Force +65,000","Enemy Munitions +35,000","Enemy Munitions Output +4,000/day","Enemy Readiness -4","Sustained pressure and reinforcement increase"]},
+  {id:"adaptive",label:"The Pattern Directorate",difficulty:"HARD",brief:"It records repetition as confession. Reusing a maneuver teaches the enemy twice as quickly and changes the countermeasure package.",doctrine:"Observation, deception, countermeasure cycling",modifiers:["Enemy adaptation accrues 2 levels per repeated maneuver","Each level reduces Execution Confidence by 1.5%","Deception and network interference improve"]},
+  {id:"opportunist",label:"The Counterstroke School",difficulty:"SEVERE",brief:"It preserves force until your line becomes locally embarrassed, then converts the embarrassment into a larger problem.",doctrine:"Concentration, exploitation, pursuit",modifiers:["Enemy Force -20,000","Enemy Readiness +8","Enemy Equipment +6","Counterstrokes gain pressure and lethality"]},
+  {id:"cautious",label:"The Preservation Command",difficulty:"STANDARD",brief:"It would rather keep a good army than win a bad afternoon. Ground comes slowly; equipment and readiness do not.",doctrine:"Defense in depth, reconstitution, denial",modifiers:["Enemy Force -15,000","Enemy Readiness +10","Enemy Equipment +8","Enemy pressure reduced","Enemy reconstitution threshold increased"]},
+];
+
+export const THEATERS:TheaterDefinition[]=[
+  {id:"lowland",label:"The Lowland Corridor",brief:"Open ground, saturated roads, long artillery sightlines, and too few alternate routes. Supply is visible because everything is visible.",pressure:"Maneuver and supply conversion",quote:"The plain provides no cover from arithmetic."},
+  {id:"ridge",label:"The Ridge System",brief:"Prepared heights, obstacle belts, narrow passages, and observation that survives every failed assault.",pressure:"Frontage, mines, and assault geometry",quote:"High ground is merely a casualty advantage with a view."},
+  {id:"industrial",label:"The Industrial Basin",brief:"Factories, rail cuts, worker districts, buried cable, and structures sturdy enough to become fortifications by accident.",pressure:"Networks, rubble, and civilian allocation",quote:"A factory district produces weapons even after production stops."},
+  {id:"river",label:"The River Principalities",brief:"Locks, levees, ferries, drowned approaches, and crossings that make every operational plan depend on a civil engineer.",pressure:"Engineering, weather, and crossing custody",quote:"A river is a border that submits daily revisions."},
+];
 
 export const FAMILIES: Family[] = [
   { id: "production", module: "national", category: "Industrial Command", label: "Set Production Target", brief: "Put the marginal factory, worker, and shipment behind one arm of the war machine.", lock: 2, choices: [
@@ -170,9 +201,18 @@ export const MANEUVERS: Maneuver[] = [
 ];
 
 export const SITUATIONS: Situation[] = [
-  { id: "kesh", sector: "Kesh Corridor", headline: "The Kesh Corridor Cannot Remain Open", briefing: "Enemy fires have interdicted the northern road and severed two command relays. The 18th Formation can still reach the salient through Kesh, but the corridor will become untenable before the day resolves.", question: "Where should the reserve be spent?", terrain: "Cratered lowland", ground: "Saturated", network: "Intermittent", supply: "Interdicted", intelligence: "Estimated // 78%", windowHours: 11, quote: "A corridor exists only because somebody maintains it.", attribution: "Oren Hale, Command Network Authority", maneuvers: ["reinforce", "interdict", "route", "abandon", "exploit"] },
-  { id: "thorne-line", sector: "Thorne Line", headline: "The Wire Is Intact and the Timetable Is Not", briefing: "Three assault waves have reached the obstacle belt without opening a vehicle lane. Enemy reserves are moving behind the ridge. A breach attempted after dusk will lose artillery observation and gain nothing else.", question: "What should cross first?", terrain: "Prepared ridge", ground: "Mined", network: "Degraded", supply: "Adequate", intelligence: "Observed // 84%", windowHours: 8, quote: "The minefield is defeated only when someone crosses it.", attribution: "Col. Aris Thorne, Lectures on Assault Geometry", maneuvers: ["breach", "interdict", "network", "abandon", "exploit"] },
-  { id: "hollow-net", sector: "Hollow Relay District", headline: "The Army Beyond the Relay Is Armed, At Least", briefing: "The eastern formation has not acknowledged an order in ninety-three minutes. Reconnaissance sees movement but cannot classify its direction. Every new instruction must now be carried across contested ground.", question: "Which uncertainty receives the army?", terrain: "Industrial basin", ground: "Dry", network: "Severed", supply: "Rationed", intelligence: "Contradictory // 49%", windowHours: 6, quote: "The map is obedient only where the network holds.", attribution: "Oren Hale, Command Network Authority", maneuvers: ["network", "reinforce", "route", "abandon", "exploit"] },
+  { id: "kesh", theater:"lowland", sector: "Kesh Corridor", headline: "The Kesh Corridor Cannot Remain Open", briefing: "Enemy fires have interdicted the northern road and severed two command relays. The 18th Formation can still reach the salient through Kesh, but the corridor will become untenable before the day resolves.", question: "Where should the reserve be spent?", terrain: "Cratered lowland", ground: "Saturated", network: "Intermittent", supply: "Interdicted", intelligence: "Estimated // 78%", windowHours: 11, quote: "A corridor exists only because somebody maintains it.", attribution: "Oren Hale, Command Network Authority", maneuvers: ["reinforce", "interdict", "route", "abandon", "exploit"] },
+  { id: "vell-plain", theater:"lowland", sector:"Vell Plain", headline:"The Vell Plain Has Finished Concealing the Army", briefing:"Defoliation, fire, and two weeks without rain have removed the last visual argument for surprise. Enemy observation covers every lateral road. A mobile reserve can still cross, provided it accepts being counted before it arrives.", question:"Which movement is worth revealing?", terrain:"Open lowland", ground:"Dry", network:"Intermittent", supply:"Adequate", intelligence:"Observed // 81%", windowHours:9, quote:"Concealment ends before movement does.", attribution:"Field Circular 8, Movement Under Observation", maneuvers:["interdict","route","network","reinforce","exploit"] },
+  { id: "ossuary-mile", theater:"lowland", sector:"Ossuary Mile", headline:"The Road Is Passable Because the Wrecks Mark Its Edges", briefing:"Recovery crews opened a single lane through the abandoned transport column. The enemy has not fired on it since dawn, which the artillery staff considers more alarming than fire.", question:"Do you use the road before its silence is explained?", terrain:"Cratered lowland corridor", ground:"Saturated", network:"Degraded", supply:"Interdicted", intelligence:"Inferred // 57%", windowHours:7, quote:"A road without traffic is either useless or ranged.", attribution:"Quartermaster Vale, The Last Serviceable Route", maneuvers:["route","interdict","reinforce","abandon","network"] },
+  { id: "thorne-line", theater:"ridge", sector: "Thorne Line", headline: "The Wire Is Intact and the Timetable Is Not", briefing: "Three assault waves have reached the obstacle belt without opening a vehicle lane. Enemy reserves are moving behind the ridge. A breach attempted after dusk will lose artillery observation and gain nothing else.", question: "What should cross first?", terrain: "Prepared ridge", ground: "Mined", network: "Degraded", supply: "Adequate", intelligence: "Observed // 84%", windowHours: 8, quote: "The minefield is defeated only when someone crosses it.", attribution: "Col. Aris Thorne, Lectures on Assault Geometry", maneuvers: ["breach", "interdict", "network", "abandon", "exploit"] },
+  { id:"ash-spine", theater:"ridge", sector:"Ash Spine", headline:"Every Approach to the Height Has Acquired a Name", briefing:"The northern spur is called Pilgrim, the southern cut is called Mercy, and neither designation has improved survivability. Counterbattery radar places the enemy guns behind reverse slope positions.", question:"Which geometry receives the next formation?", terrain:"Prepared ridge", ground:"Mined and dry", network:"Intermittent", supply:"Rationed", intelligence:"Observed // 73%", windowHours:10, quote:"A named approach is one the casualty clerks already recognize.", attribution:"Col. Aris Thorne, Lectures on Assault Geometry", maneuvers:["breach","interdict","route","abandon","exploit"] },
+  { id:"varren-steps", theater:"ridge", sector:"Varren Steps", headline:"The Enemy Has Withdrawn Upward", briefing:"Forward positions are empty, heated, and mined. Thermal signatures show movement on the second ridge line while friendly patrols report no contact on the first. The vacant ground may be an invitation or an invoice.", question:"How much force enters an absence?", terrain:"Narrow ridge", ground:"Mined", network:"Degraded", supply:"Adequate", intelligence:"Contradictory // 52%", windowHours:6, quote:"An undefended position can still be occupied by intent.", attribution:"Pattern Analysis Note 44-C", maneuvers:["network","reinforce","breach","abandon","exploit"] },
+  { id: "hollow-net", theater:"industrial", sector: "Hollow Relay District", headline: "The Army Beyond the Relay Is Armed, At Least", briefing: "The eastern formation has not acknowledged an order in ninety-three minutes. Reconnaissance sees movement but cannot classify its direction. Every new instruction must now be carried across contested ground.", question: "Which uncertainty receives the army?", terrain: "Industrial basin", ground: "Dry", network: "Severed", supply: "Rationed", intelligence: "Contradictory // 49%", windowHours: 6, quote: "The map is obedient only where the network holds.", attribution: "Oren Hale, Command Network Authority", maneuvers: ["network", "reinforce", "route", "abandon", "exploit"] },
+  { id:"calder-foundry", theater:"industrial", sector:"Calder Foundry Belt", headline:"The Furnaces Are Cold and the Buildings Are Still Producing Casualties", briefing:"Enemy infantry occupies the annealing halls. Friendly guns cannot distinguish the foundry roof from the worker shelters behind it. The rail spur remains usable for one direction of traffic.", question:"Which part of the city remains infrastructure?", terrain:"Industrial basin", ground:"Rubble and dry", network:"Intermittent", supply:"Adequate", intelligence:"Observed // 69%", windowHours:12, quote:"A factory becomes a fortress when output is measured in delay.", attribution:"Industrial Defense Memorandum 12", maneuvers:["network","breach","interdict","route","abandon"] },
+  { id:"blackglass-yards", theater:"industrial", sector:"Blackglass Rail Yards", headline:"Nine Trains Are Waiting for One Surviving Switch", briefing:"Munitions, replacements, fuel, and evacuees occupy the same rail fan. Enemy drones have identified the switch house. Dispatch can move one priority consist before the next strike window.", question:"What reaches the front, and what remains to be counted?", terrain:"Industrial corridor", ground:"Cratered and dry", network:"Degraded", supply:"Interdicted", intelligence:"Observed // 88%", windowHours:5, quote:"A timetable is command authority printed on cheaper paper.", attribution:"Rail Custody Board, Emergency Schedule", maneuvers:["interdict","network","route","reinforce","abandon"] },
+  { id:"dalca-crossing", theater:"river", sector:"Dalca Crossing", headline:"The Bridge Exists in Three Incompatible Reports", briefing:"Aerial imagery shows the center span down. Engineers report a maintenance catwalk intact. The retreating battalion reports armor crossing east to west, which would require a bridge no other observer can find.", question:"Which report receives the reserve?", terrain:"River crossing corridor", ground:"Flooded", network:"Degraded", supply:"Interdicted", intelligence:"Contradictory // 46%", windowHours:7, quote:"A crossing is not a structure. It is a temporary monopoly on both banks.", attribution:"Engineer Directorate, River Operations", maneuvers:["network","route","interdict","reinforce","abandon"] },
+  { id:"neme-locks", theater:"river", sector:"Neme Locks", headline:"The Lock Gates Can Deny the Valley Once", briefing:"Civil engineers can release the upper pool and drown the eastern approaches. The same act will destroy the service road, three villages, and the only heavy crossing within sixty kilometers.", question:"When does terrain become expendable?", terrain:"River lock corridor", ground:"Saturated", network:"Intermittent", supply:"Adequate", intelligence:"Observed // 75%", windowHours:9, quote:"Hydrology is artillery with a civilian chain of custody.", attribution:"Director Sera Neme, Flood Control Authority", maneuvers:["route","abandon","interdict","reinforce","exploit"] },
+  { id:"charnel-ford", theater:"river", sector:"Charnel Ford", headline:"The Ford Is Shallow Enough to Cross and Deep Enough to Lose Everything", briefing:"Night reconnaissance marked a vehicle path through the current. Dawn rain has moved every marker downstream. Enemy fires are searching the western bank while the assault group waits under camouflage that will not survive full light.", question:"What is the price of the far bank before noon?", terrain:"Open river crossing", ground:"Flooded and mined", network:"Intermittent", supply:"Rationed", intelligence:"Estimated // 62%", windowHours:5, quote:"The far bank is always closer on a staff map.", attribution:"Field Circular 19, Forced Passage", maneuvers:["breach","route","interdict","abandon","exploit"] },
 ];
 
 export const DOCTRINES: DoctrineVector[] = [
@@ -217,23 +257,59 @@ export const DOCTRINES: DoctrineVector[] = [
   ]},
 ];
 
-export const initialState = (): GameState => ({
-  day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
-  voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
-  trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
-  readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
-  front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
-  target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,diplomacyLedger:null,
-  actors:[
-    {id:"orison",name:"Orison Compact",role:"ally",interest:"Keep the western line active without entering it",trust:62,leverage:38,dependency:24,obligation:31,aidPipeline:22,sanctionsExposure:8,betrayalRisk:.18},
-    {id:"vey",name:"Vey Port Authority",role:"neutral",interest:"Preserve transit revenue and legal neutrality",trust:47,leverage:44,dependency:18,obligation:9,aidPipeline:11,sanctionsExposure:14,betrayalRisk:.27},
-    {id:"kestrel",name:"Kestrel Exchange",role:"broker",interest:"Monetize scarcity without becoming attributable",trust:34,leverage:57,dependency:12,obligation:4,aidPipeline:7,sanctionsExposure:29,betrayalRisk:.49},
-    {id:"cineric",name:"Cineric Directorate",role:"rival",interest:"Isolate the state before defeating its field army",trust:11,leverage:52,dependency:5,obligation:0,aidPipeline:0,sanctionsExposure:21,betrayalRisk:.67},
-  ],
-  adversary:{force:590000,readiness:61,equipment:68,munitions:138000,munitionsOutput:16800,munitionsUse:19200,doctrine:0,objective:"Kesh Corridor",posture:"Methodical Pressure",productionTarget:"Replacement Equipment",countermeasure:"Seed False Dispositions",maneuverCounts:{},adaptation:{},lastOrders:[],estimateBias:1},adversaryLedger:null,
-  production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
-  active: {}, locks: {}, scheduled: [], unlocked: ["drone-war"], decisions: [], reports: [{ day: 1, title: "Third Division Will Exhaust Its Ready Reserve Before Dusk", body: "At the present rate of expenditure, 4,218 additional soldiers will be lost before Day 1 resolves. The Kesh corridor remains open. Munitions coverage has fallen below six days. Two training cohorts will arrive too late to replace the morning’s losses.", tone: "warn", epigraph: "The purpose of a reserve is not to remain intact." }],
-});
+export const DEFAULT_CAMPAIGN:CampaignConfig={seed:1729,archetype:"industrial-republic",adversaryPersonality:"adaptive",theater:"lowland"};
+const validTheater=(value:unknown):value is Theater=>THEATERS.some(x=>x.id===value);
+export const sanitizeSeed=(value:number)=>Math.max(1,Math.min(2_147_483_647,Math.abs(Math.trunc(Number.isFinite(value)?value:DEFAULT_CAMPAIGN.seed))));
+
+const applyArchetype=(s:GameState,id:string)=>{
+  if(id==="siege-state"){s.production.munitions.stock+=38000;s.legitimacy-=6;s.resistance+=8;s.materiel-=4;}
+  if(id==="industrial-republic"){s.workforce+=650000;s.materiel+=10;s.equipment+=4;s.deployable-=32000;s.treasury+=18;}
+  if(id==="conscription-directorate"){s.armed+=60000;s.deployable+=22000;s.forced+=12000;s.queue+=50000;s.quality-=8;s.legitimacy-=9;s.resistance+=10;}
+  if(id==="mercantile-compact"){s.treasury+=95;s.dependency+=18;s.production.munitions.stock-=25000;s.armed-=45000;s.deployable-=45000;s.actors.forEach(a=>{if(a.role!=="rival")a.aidPipeline+=10;});}
+  if(id==="officer-regency"){s.readiness+=12;s.intelligence+=14;s.equipment+=5;s.voluntary-=3000;s.legitimacy-=4;s.resistance+=3;}
+  if(id==="ruined-federation"){s.population-=1800000;s.workforce-=1000000;s.front-=2;s.materiel-=15;s.equipment-=12;s.treasury-=80;s.doctrine+=90;s.doctrineEarned+=90;}
+};
+
+const applyAdversaryPersonality=(s:GameState,id:string)=>{
+  const a=s.adversary;
+  if(id==="attritional"){a.force+=65000;a.munitions+=35000;a.munitionsOutput+=4000;a.readiness-=4;a.posture="Methodical Exhaustion";}
+  if(id==="adaptive"){a.doctrine+=4;a.posture="Pattern Analysis";}
+  if(id==="opportunist"){a.force-=20000;a.readiness+=8;a.equipment+=6;a.posture="Counterstroke Reserve";}
+  if(id==="cautious"){a.force-=15000;a.readiness+=10;a.equipment+=8;a.posture="Defense in Depth";}
+  s.enemy=a.force;
+};
+
+export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
+  const config:CampaignConfig={
+    seed:sanitizeSeed(input.seed??DEFAULT_CAMPAIGN.seed),
+    archetype:STATE_ARCHETYPES.some(x=>x.id===input.archetype)?input.archetype!:DEFAULT_CAMPAIGN.archetype,
+    adversaryPersonality:ADVERSARY_PERSONALITIES.some(x=>x.id===input.adversaryPersonality)?input.adversaryPersonality!:DEFAULT_CAMPAIGN.adversaryPersonality,
+    theater:validTheater(input.theater)?input.theater:DEFAULT_CAMPAIGN.theater,
+  };
+  const s:GameState={
+    saveVersion:1,campaignId:`DQ-${config.seed.toString(36).toUpperCase().padStart(6,"0")}-${config.theater.slice(0,3).toUpperCase()}`,campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
+    day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
+    voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
+    trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
+    readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
+    front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
+    target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,diplomacyLedger:null,
+    actors:[
+      {id:"orison",name:"Orison Compact",role:"ally",interest:"Keep the active line consuming enemy attention without entering it",trust:62,leverage:38,dependency:24,obligation:31,aidPipeline:22,sanctionsExposure:8,betrayalRisk:.18},
+      {id:"vey",name:"Vey Port Authority",role:"neutral",interest:"Preserve transit revenue and legal neutrality",trust:47,leverage:44,dependency:18,obligation:9,aidPipeline:11,sanctionsExposure:14,betrayalRisk:.27},
+      {id:"kestrel",name:"Kestrel Exchange",role:"broker",interest:"Monetize scarcity without becoming attributable",trust:34,leverage:57,dependency:12,obligation:4,aidPipeline:7,sanctionsExposure:29,betrayalRisk:.49},
+      {id:"cineric",name:"Cineric Directorate",role:"rival",interest:"Isolate the state before defeating its field army",trust:11,leverage:52,dependency:5,obligation:0,aidPipeline:0,sanctionsExposure:21,betrayalRisk:.67},
+    ],
+    adversary:{force:590000,readiness:61,equipment:68,munitions:138000,munitionsOutput:16800,munitionsUse:19200,doctrine:0,objective:"Unclassified",posture:"Methodical Pressure",productionTarget:"Replacement Equipment",countermeasure:"Seed False Dispositions",maneuverCounts:{},adaptation:{},lastOrders:[],estimateBias:1},adversaryLedger:null,
+    production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
+    active: {}, locks: {}, scheduled: [], unlocked: ["drone-war"], decisions: [], reports: [],
+  };
+  applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);
+  const situation=situationForState(s);s.adversary.objective=situation.sector;
+  const archetype=STATE_ARCHETYPES.find(x=>x.id===config.archetype)!;
+  s.reports=[{day:1,title:`${situation.sector} Will Consume the First Available Reserve`,body:`${situation.briefing} At opening strength, ${s.deployable.toLocaleString()} soldiers are deployable and Munitions coverage is ${(s.production.munitions.stock/Math.max(1,s.production.munitions.use)).toFixed(1)} days. Three orders may be issued before the first resolution.`,tone:"warn",epigraph:archetype.quote}];
+  return s;
+};
 
 const clone = (state: GameState): GameState => JSON.parse(JSON.stringify(state));
 const add = (state: GameState, delta: Delta = {}) => Object.entries(delta).forEach(([key, value]) => { (state[key as NumberKey] as number) += value as number; });
@@ -244,6 +320,28 @@ const normalize = (s: GameState) => {
 const hash = (text: string) => { let h = 2166136261; for (let i=0;i<text.length;i++) { h ^= text.charCodeAt(i); h = Math.imul(h,16777619); } return (h>>>0)/4294967295; };
 
 export const situationForDay = (day: number) => SITUATIONS[(day - 1) % SITUATIONS.length];
+export const situationForState = (state:Pick<GameState,"campaignSeed"|"theater"|"day">) => {
+  const theater=validTheater(state.theater)?state.theater:DEFAULT_CAMPAIGN.theater;
+  const pool=SITUATIONS.filter(x=>x.theater===theater);
+  const seed=sanitizeSeed(state.campaignSeed??DEFAULT_CAMPAIGN.seed);
+  const offset=Math.floor(hash(`${seed}:${theater}:opening`)*pool.length);
+  const stride=hash(`${seed}:${theater}:stride`)>.5?2:1;
+  return pool[(offset+(Math.max(1,state.day)-1)*stride)%pool.length]??SITUATIONS[0];
+};
+
+export const restoreCampaignState=(value:unknown):GameState|null=>{
+  if(!value||typeof value!=="object")return null;const candidate=value as Partial<GameState>;
+  const theater=validTheater(candidate.theater)?candidate.theater:DEFAULT_CAMPAIGN.theater;
+  const base=initialState({seed:candidate.campaignSeed,archetype:candidate.stateArchetype,adversaryPersonality:candidate.adversaryPersonality,theater});
+  if(typeof candidate.day!=="number"||typeof candidate.deployable!=="number"||typeof candidate.production!=="object")return null;
+  const state:GameState={...base,...candidate,saveVersion:1,campaignSeed:sanitizeSeed(candidate.campaignSeed??base.campaignSeed),theater,
+    production:{...base.production,...candidate.production},adversary:{...base.adversary,...candidate.adversary,maneuverCounts:{...base.adversary.maneuverCounts,...candidate.adversary?.maneuverCounts},adaptation:{...base.adversary.adaptation,...candidate.adversary?.adaptation}},
+    actors:Array.isArray(candidate.actors)?candidate.actors:base.actors,trainingCohorts:Array.isArray(candidate.trainingCohorts)?candidate.trainingCohorts:base.trainingCohorts,
+    decisions:Array.isArray(candidate.decisions)?candidate.decisions:base.decisions,reports:Array.isArray(candidate.reports)&&candidate.reports.length?candidate.reports:base.reports,scheduled:Array.isArray(candidate.scheduled)?candidate.scheduled:base.scheduled,
+    unlocked:Array.isArray(candidate.unlocked)?candidate.unlocked:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
+    active:candidate.active??base.active,locks:candidate.locks??base.locks,affinityProofs:candidate.affinityProofs??base.affinityProofs};
+  normalize(state);return state;
+};
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
 export const maneuverChance = (s: GameState, m: Maneuver) => {
   const intelligence = (s.intelligence - 42) * .002;
@@ -268,7 +366,7 @@ export const commit = (state: GameState, family: Family, choice: Choice) => {
 export const commitManeuver = (state: GameState, maneuver: Maneuver) => {
   if (state.actions < 1 || state.status !== "active" || state.maneuver) return state;
   const s = clone(state); s.maneuver = maneuver.id; s.actions -= 1; s.readiness += maneuver.readiness ?? 0; s.reciprocity += maneuver.reciprocity ?? 0;
-  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situationForDay(s.day).sector}`, choice: maneuver.label }); normalize(s); return s;
+  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situationForState(s).sector}`, choice: maneuver.label }); normalize(s); return s;
 };
 
 export const unlockDoctrine = (state: GameState, stageId: string) => {
@@ -297,23 +395,23 @@ export const liveProjection = (s: GameState, fraction: number) => {
 
 export const projectProduction = (s:GameState) => executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],maneuverMultiplier:maneuverById(s.maneuver)?.supply??1}).ledger;
 export const projectForceGeneration = (s:GameState) => executeCircuit(forceGenerationCircuit,s,{preview:true}).ledger;
-const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForDay(s.day);const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(s.tempo);const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(operationsCircuit,s,{situation,maneuver,roll,confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages}).ledger;};
-export const projectOperations = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => operationProjection(s,maneuver,hash(`${s.day}:${situationForDay(s.day).id}:${maneuver?.id??"standing"}`));
+const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForState(s);const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(s.tempo);const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(operationsCircuit,s,{situation,maneuver,roll,confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages}).ledger;};
+export const projectOperations = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => operationProjection(s,maneuver,hash(`${s.campaignSeed}:${s.day}:${situationForState(s).id}:${maneuver?.id??"standing"}`));
 export const projectOperationRange = (s:GameState,maneuver:Maneuver) => ({success:operationProjection(s,maneuver,0),failure:operationProjection(s,maneuver,1)});
 export const projectDomestic = (s:GameState) => {const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(domesticCircuit,s,{friendlyLosses:estimateDay(s).casualty,shortages}).ledger;};
 export const projectDiplomacy = (s:GameState) => executeCircuit(diplomacyCircuit,s,{}).ledger;
-export const projectAdversary = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => executeCircuit(adversaryCircuit,s,{roll:hash(`${s.day}:adversary:${maneuver?.id??"standing"}`),situation:situationForDay(s.day),playerManeuver:maneuver}).ledger;
+export const projectAdversary = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation:situationForState(s),playerManeuver:maneuver}).ledger;
 
 export const resolve = (state: GameState) => {
-  if (state.status !== "active") return state; const s = clone(state); const situation = situationForDay(s.day); const maneuver = maneuverById(s.maneuver);
+  if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const maneuver = maneuverById(s.maneuver);
   const arrivals = s.scheduled.filter((x) => x.day <= s.day); s.scheduled = s.scheduled.filter((x) => x.day > s.day); arrivals.forEach((x) => add(s, x.delta));
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
   const diplomacyResult=executeCircuit(diplomacyCircuit,s,{});Object.assign(s,diplomacyResult.state);s.diplomacyLedger=diplomacyResult.ledger;
-  const adversaryResult=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});Object.assign(s,adversaryResult.state);s.adversaryLedger=adversaryResult.ledger;
+  const adversaryResult=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});Object.assign(s,adversaryResult.state);s.adversaryLedger=adversaryResult.ledger;
   const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const maneuverSupply = maneuver?.supply ?? 1;
   const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,maneuverMultiplier:maneuverSupply});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
   const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
-  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:hash(`${s.day}:${situation.id}:${maneuver?.id??"standing"}`),confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move}=operationResult.ledger;
+  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:hash(`${s.campaignSeed}:${s.day}:${situation.id}:${maneuver?.id??"standing"}`),confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move}=operationResult.ledger;
   const desert=estimateDay(s); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion;s.adversary.force=Math.max(0,s.adversary.force-enemyLoss);s.enemy=Math.round(s.adversary.force*s.adversary.estimateBias); s.population-=Math.round(losses*.72);
   s.front+=move;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${enemyLoss.toLocaleString()} enemy losses // ${move>=0?"+":""}${move.toFixed(1)} km`,reward:doctrineGain});}

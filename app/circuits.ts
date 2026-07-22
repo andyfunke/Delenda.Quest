@@ -138,9 +138,9 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
   resolve(input,context){
     const state:GameState=JSON.parse(JSON.stringify(input)); const {situation,maneuver}=context;
     const committed=Math.min(state.deployable,maneuver?.commitment??Math.round(state.deployable*.52));
-    const frontageDemand=textFactor(situation.terrain,{ridge:52000,corridor:44000,basin:68000,lowland:60000},56000);
-    const terrainFactor=textFactor(situation.terrain,{ridge:.82,corridor:.9,basin:1.04,lowland:1});
-    const groundFactor=textFactor(situation.ground,{mined:.72,saturated:.79,dry:1.04,cratered:.86});
+    const frontageDemand=textFactor(situation.terrain,{ridge:52000,corridor:44000,basin:68000,lowland:60000,river:36000},56000);
+    const terrainFactor=textFactor(situation.terrain,{ridge:.82,corridor:.9,basin:1.04,lowland:1,river:.76});
+    const groundFactor=textFactor(situation.ground,{mined:.72,flooded:.68,saturated:.79,rubble:.84,dry:1.04,cratered:.86});
     let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06})-(state.adversaryLedger?.networkInterference??0);if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
     const supplyFactor=textFactor(situation.supply,{interdicted:.73,rationed:.82,adequate:1,secure:1.08})/Math.max(.85,context.tempoSupply*.82);
     const intelligenceFactor=clamp(.72+state.intelligence/150-(state.adversaryLedger?.deceptionPenalty??0),.68,1.26);
@@ -155,7 +155,7 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const maneuverPressure=maneuver?(succeeded?maneuver.successPressure:maneuver.failurePressure):0;
     const shortagePenalty=context.shortages*.18;
     const doctrineCasualty=maneuver?.id==="breach"&&state.unlocked.includes("suppression")?.92:1;
-    const friendlyLosses=Math.round((4200+state.day*38)*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,saturated:1.08,dry:.94})/Math.max(.55,forceRatio));
+    const friendlyLosses=Math.round((4200+state.day*38)*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,flooded:1.18,saturated:1.08,rubble:1.1,dry:.94})/Math.max(.55,forceRatio));
     const atrocities=(state.unlocked.includes("gas")?.25:0)+(state.unlocked.includes("mines")?.12:0);
     const enemyLosses=Math.max(0,Math.round((3600+state.day*31)*forceRatio*(.8+(context.tempoPressure+maneuverPressure+atrocities)*.3)));
     const forceRatioPressure=(forceRatio-1)*1.5,intelligencePressure=(state.intelligence-42)/120,shortagePressure=-shortagePenalty;
@@ -212,18 +212,22 @@ export const diplomacyCircuit:Circuit<GameState,DiplomacyLedger,Record<string,ne
 export const adversaryCircuit:Circuit<GameState,AdversaryLedger,AdversaryContext>={
   id:"adversary",
   resolve(input,context){
-    const state:GameState=JSON.parse(JSON.stringify(input));const a:AdversaryState=state.adversary;
-    if(context.playerManeuver){const id=context.playerManeuver.id;a.maneuverCounts[id]=(a.maneuverCounts[id]??0)+1;if(a.maneuverCounts[id]>1)a.adaptation[id]=clamp((a.adaptation[id]??0)+1,0,8);}
+    const state:GameState=JSON.parse(JSON.stringify(input));const a:AdversaryState=state.adversary;const personality=state.adversaryPersonality??"adaptive";
+    if(context.playerManeuver){const id=context.playerManeuver.id;a.maneuverCounts[id]=(a.maneuverCounts[id]??0)+1;if(a.maneuverCounts[id]>1)a.adaptation[id]=clamp((a.adaptation[id]??0)+(personality==="adaptive"?2:1),0,8);}
     const repeated=Object.entries(a.maneuverCounts).sort((x,y)=>y[1]-x[1])[0]?.[0]??"standing";
-    let posture="Methodical Pressure";if(a.readiness<48)posture="Reconstitute Behind the Line";else if(state.front>3)posture="Local Counterstroke";else if(state.front<-5)posture="Exploit the Withdrawal";else if(context.roll<.22)posture="Concentrated Assault";
+    let posture="Methodical Pressure";const reconstitutionFloor=personality==="cautious"?65:48;if(a.readiness<reconstitutionFloor)posture="Reconstitute Behind the Line";else if(state.front>3)posture="Local Counterstroke";else if(state.front<-5)posture="Exploit the Withdrawal";else if(context.roll<(personality==="opportunist"?.34:.22))posture="Concentrated Assault";
     const productionTarget=a.munitions/Math.max(1,a.munitionsUse)<4?"Munitions Recovery":repeated==="interdict"||repeated==="network"?"Signal Denial":"Replacement Equipment";
     const countermeasure=repeated==="breach"?"Deepen Obstacle Belt":repeated==="interdict"?"Displace Batteries":repeated==="network"?"Attack Relay Custody":repeated==="exploit"?"Disperse Rear Echelons":repeated==="reinforce"?"Pre-Register Corridors":"Seed False Dispositions";
     let pressure=.35,powerFactor=1,networkInterference=0,deceptionPenalty=.02,friendlyLossFactor=1,readinessChange=0,equipmentChange=0,useFactor=1;
     if(posture==="Reconstitute Behind the Line"){pressure=.05;powerFactor=.9;readinessChange=2.4;equipmentChange=.8;useFactor=.65;}if(posture==="Local Counterstroke"){pressure=.7;powerFactor=1.12;readinessChange=-1.5;friendlyLossFactor=1.1;useFactor=1.3;}if(posture==="Exploit the Withdrawal"){pressure=.85;powerFactor=1.16;readinessChange=-2;friendlyLossFactor=1.13;useFactor=1.4;}if(posture==="Concentrated Assault"){pressure=1.05;powerFactor=1.2;readinessChange=-2.6;friendlyLossFactor=1.18;useFactor=1.55;}
     if(countermeasure==="Attack Relay Custody")networkInterference=.11;if(countermeasure==="Pre-Register Corridors")friendlyLossFactor+=.08;if(countermeasure==="Seed False Dispositions")deceptionPenalty=.1;if(countermeasure==="Deepen Obstacle Belt"&&context.playerManeuver?.id==="breach")friendlyLossFactor+=.12;if(countermeasure==="Displace Batteries"&&context.playerManeuver?.id==="interdict")powerFactor+=.08;
+    if(personality==="attritional"){pressure+=.18;friendlyLossFactor+=.06;useFactor+=.18;}
+    if(personality==="adaptive"){deceptionPenalty+=.03;if(countermeasure==="Attack Relay Custody")networkInterference+=.04;}
+    if(personality==="opportunist"&&posture!=="Methodical Pressure"&&posture!=="Reconstitute Behind the Line"){pressure+=.22;powerFactor+=.08;friendlyLossFactor+=.05;}
+    if(personality==="cautious"){pressure=Math.max(0,pressure-.15);powerFactor+=.05;readinessChange+=.6;}
     a.posture=posture;a.productionTarget=productionTarget;a.countermeasure=countermeasure;a.objective=context.situation.sector;a.readiness=clamp(a.readiness+readinessChange,20,100);a.equipment=clamp(a.equipment+equipmentChange,20,100);
     const munitionsOpening=a.munitions;const munitionsOutput=Math.round(a.munitionsOutput*(productionTarget==="Munitions Recovery"?1.28:1));const munitionsUse=Math.round(a.munitionsUse*useFactor);a.munitions=Math.max(0,a.munitions+munitionsOutput-munitionsUse);if(productionTarget==="Replacement Equipment")a.equipment=clamp(a.equipment+.9,20,100);
-    const doctrineGain=Math.max(1,Math.round(pressure*4));a.doctrine+=doctrineGain;const reinforcement=Math.round(6800+a.doctrine*5);a.force+=reinforcement;
+    const doctrineGain=Math.max(1,Math.round(pressure*4));a.doctrine+=doctrineGain;const reinforcement=Math.round((6800+a.doctrine*5)*(personality==="attritional"?1.18:personality==="cautious"?.9:1));a.force+=reinforcement;
     const orders=[`OPERATIONS // ${posture}`,`PRODUCTION // ${productionTarget}`,`COUNTERMEASURE // ${countermeasure}`];a.lastOrders=orders;const intelConfidence=clamp(state.intelligence,10,95);const visible=intelConfidence>=65?3:intelConfidence>=35?2:1;const observedOrders=orders.slice(0,visible);const estimateBias=.92+context.roll*.16;a.estimateBias=estimateBias;const estimatedForce=Math.round(a.force*estimateBias);const uncertainty=(100-intelConfidence)/160;const estimateLow=Math.round(estimatedForce*(1-uncertainty)),estimateHigh=Math.round(estimatedForce*(1+uncertainty));state.enemy=estimatedForce;state.adversary=a;
     const signalText:string[]=[];if(a.munitions<munitionsUse*2)signalText.push("Enemy munitions signature indicates critical coverage.");if(a.adaptation[repeated]>=4)signalText.push(`Enemy adaptation against ${repeated} has become operationally material.`);if(posture==="Concentrated Assault")signalText.push("Enemy formation density indicates a concentrated assault order.");
     return{state,ledger:{day:state.day,objective:a.objective,posture,productionTarget,countermeasure,orders,observedOrders,hiddenOrders:3-visible,pressure,powerFactor,networkInterference,deceptionPenalty,friendlyLossFactor,reinforcement,munitionsOpening,munitionsOutput,munitionsUse,munitionsClosing:a.munitions,doctrineGain,actualForce:a.force,estimatedForce,estimateLow,estimateHigh,intelConfidence,adaptation:{...a.adaptation},signals:signalText},signals:signalText.map((message,i)=>({severity:i===2?"critical":"warning",code:`adversary.${i}`,message}))};
