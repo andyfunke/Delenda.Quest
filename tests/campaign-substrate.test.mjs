@@ -4,7 +4,8 @@ import test from "node:test";
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, SITUATIONS,
-  THEATERS, auditCampaignSubstrate, commit, commitManeuver, initialState,
+  THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
+  commitOpportunity, describeGroundMovement, initialState, opportunityForState,
   outcomeBandForMargin, projectOperations, resolve, situationForState, FAMILIES,
 }=rules;
 
@@ -100,6 +101,41 @@ test("same seed and orders replay to identical campaign state",()=>{
     return state;
   };
   assert.deepEqual(play(),play());
+});
+
+test("targets of opportunity are deterministic and do not spend a strategic order",()=>{
+  const state=initialState({seed:88031,theater:"river"});
+  const packet=opportunityForState(state),again=opportunityForState(state);
+  assert.deepEqual(packet,again);
+  const response=packet.responses[0],beforeActions=state.actions;
+  const committed=commitOpportunity(state,response);
+  assert.equal(committed.actions,beforeActions);
+  assert.equal(committed.opportunityCommitment.responseId,response.id);
+  const next=resolve(committed);
+  assert.equal(next.opportunityHistory.length,1);
+  assert.equal(next.opportunityHistory[0].opportunityId,packet.id);
+});
+
+test("diplomatic actions coexist, retain separate expiries, and leave an effects report",()=>{
+  const state=initialState({seed:4409});
+  const supply=FAMILIES.find(family=>family.id==="supply"),statecraft=FAMILIES.find(family=>family.id==="statecraft");
+  const credit=supply.choices.find(choice=>choice.id==="credit"),summit=statecraft.choices.find(choice=>choice.id==="summit");
+  let current=commit(commit(state,supply,credit),statecraft,summit);
+  assert.equal(activeDiplomacyForState(current).length,2);
+  assert.notEqual(current.activeDiplomacy[0].expiresDay,current.activeDiplomacy[1].expiresDay);
+  current=resolve(current);
+  assert.match(current.reports[0].body,/Foreign delivery:/);
+  current=resolve(resolve(resolve(current)));
+  assert.equal(current.day,5);
+  assert.equal(activeDiplomacyForState(current).some(action=>action.choiceId==="summit"),false);
+  assert.equal(activeDiplomacyForState(current).some(action=>action.choiceId==="credit"),true);
+});
+
+test("sub-threshold ground movement is reported as a stall",()=>{
+  const movement=describeGroundMovement(.012);
+  assert.equal(movement.title,"The Front Stalled");
+  assert.match(movement.sentence,/stalled/i);
+  assert.doesNotMatch(movement.sentence,/0\.0/);
 });
 
 test("bounded campaign sweep remains finite across seeds and theaters",()=>{

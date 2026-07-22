@@ -5,10 +5,8 @@ import {
   ADVERSARY_PERSONALITIES,
   STATE_ARCHETYPES,
   THEATERS,
-  directorForState,
   initialState,
   sanitizeSeed,
-  situationForState,
   type CampaignConfig,
   type GameState,
   type Theater,
@@ -24,7 +22,7 @@ export function CampaignSetup({current,hasSave,seedOverride,onStart,onResume,onC
   onStart:(config:CampaignConfig)=>void;onResume:()=>void;onClose:()=>void;
 }){
   const[config,setConfig]=useState<CampaignConfig>({
-    seed:sanitizeSeed(seedOverride??current.campaignSeed),
+    seed:sanitizeSeed(seedOverride??randomSeed()),
     archetype:current.stateArchetype,
     adversaryPersonality:current.adversaryPersonality,
     theater:current.theater,
@@ -33,15 +31,14 @@ export function CampaignSetup({current,hasSave,seedOverride,onStart,onResume,onC
   const archetype=STATE_ARCHETYPES.find(x=>x.id===config.archetype)!;
   const adversary=ADVERSARY_PERSONALITIES.find(x=>x.id===config.adversaryPersonality)!;
   const theater=THEATERS.find(x=>x.id===config.theater)!;
-  const sequence=[1,2,3].map(day=>{const state={...preview,day};return{situation:situationForState(state),director:directorForState(state)}});
   const set=<K extends keyof CampaignConfig>(key:K,value:CampaignConfig[K])=>setConfig(old=>({...old,[key]:value}));
   return <div className="campaign-setup os-window" role="dialog" aria-modal="true" aria-labelledby="campaign-generator-title">
-    <div className="os-titlebar"><span>NEW CAMPAIGN // DETERMINISTIC GENERATOR</span><b>{preview.campaignId}</b></div>
+    <div className="os-titlebar"><span>NEW CAMPAIGN</span><b>CONFIGURE OPENING STATE</b></div>
     <button className="campaign-setup-close" aria-label="Close campaign generator" onClick={onClose}>×</button>
     <header>
-      <span className="eyebrow">CAMPAIGN GENERATOR // THE SAME SEED REPRODUCES THE SAME WAR</span>
+      <span className="eyebrow">CAMPAIGN GENERATOR // OPENING CONDITIONS</span>
       <h2 id="campaign-generator-title">Select the state that will be spent.</h2>
-      <p>Theater chooses the situation corpus. State archetype changes your opening ledger. Enemy system changes how the opposition learns and prosecutes the war. <a className="campaign-help-link" href="?wiki=campaign-seed" target="_blank" rel="noreferrer">CAMPAIGN GENERATION RULE ↗</a></p>
+      <p>Theater changes the operational problems you face. State archetype changes your opening ledger. Enemy system changes how the opposition learns and prosecutes the war.</p>
     </header>
     <div className="campaign-generator-layout">
       <nav className="campaign-config-tree" aria-label="Campaign parameters">
@@ -65,15 +62,6 @@ export function CampaignSetup({current,hasSave,seedOverride,onStart,onResume,onC
         <section className="campaign-opening-ledger">
           <h3>OPENING AUTHORITY</h3>
           <div><small>DEPLOYABLE</small><b>{preview.deployable.toLocaleString()}</b></div><div><small>READINESS</small><b>{preview.readiness.toFixed(0)}%</b></div><div><small>EQUIPMENT</small><b>{preview.equipment.toFixed(0)}%</b></div><div><small>MUNITIONS</small><b>{preview.production.munitions.stock.toLocaleString()}</b></div><div><small>LEGITIMACY</small><b>{preview.legitimacy.toFixed(0)}%</b></div><div><small>ENEMY FORCE</small><b>{preview.enemy.toLocaleString()}</b></div>
-        </section>
-        <section className="campaign-sequence">
-          <h3>FIRST THREE DAILY SITUATIONS + STRATEGIC CONDITIONS // FIXED BY THIS SEED</h3>
-          {sequence.map((x,i)=><div key={`${x.situation.id}-${x.director.event.id}-${i}`}><span>DAY {i+1}</span><b>{x.situation.sector}</b><small>{x.situation.headline} // CONDITION: {x.director.event.label}</small></div>)}
-        </section>
-        <section className="campaign-seed-control">
-          <div><label htmlFor="campaign-seed">CAMPAIGN SEED <a href="?wiki=campaign-seed" target="_blank" rel="noreferrer">?</a></label><small>Paste a friend&apos;s seed to reproduce theater rotation and contingent resolution.</small></div>
-          <input id="campaign-seed" inputMode="numeric" min="1" max="2147483647" type="number" value={config.seed} onChange={e=>set("seed",sanitizeSeed(Number(e.target.value)))}/>
-          <button onClick={()=>set("seed",randomSeed())}>RANDOMIZE</button>
         </section>
       </article>
     </div>
