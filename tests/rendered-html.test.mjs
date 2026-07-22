@@ -62,3 +62,21 @@ test("dashboard uses plain operational headings and the established minimum type
   assert.doesNotMatch(css,/\b6px\b/);
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
 });
+
+test("social metagame keeps power separate and issues portable campaign records",async()=>{
+  const[account,setup,records,recordPage]=await Promise.all([
+    readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/CampaignSetup.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../db/campaign-records.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/record/[slug]/page.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(account,/Service Record/);
+  assert.match(account,/Existing players and newly registered players count identically/);
+  assert.match(records,/FRIEND_BONUS_PER_CONNECTION=5/);
+  assert.match(records,/FRIEND_BONUS_CAP=10/);
+  assert.match(records,/friendMultiplier/);
+  assert.match(recordPage,/CAMPAIGN COMMAND CERTIFICATE/);
+  assert.match(recordPage,/decisionComparisons/);
+  assert.match(recordPage,/SIMULATION ACCOMPLISHMENT/);
+  assert.doesNotMatch(setup,/Select the state|THEATER <a|STATE ARCHETYPE|ADVERSARY SYSTEM|campaign-config-tree/i);
+});

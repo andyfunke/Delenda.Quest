@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://delenda-quest.andrew-i-funke.chatgpt.site"),
   title: "DELENDA.QUEST",
   description: "A browser-based grand campaign of daily orders and compounding consequences.",
   other: {

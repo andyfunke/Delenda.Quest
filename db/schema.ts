@@ -8,6 +8,37 @@ export const users=sqliteTable("users",{
   lastSeenAt:integer("last_seen_at").notNull(),
 });
 
+export const campaignRecords=sqliteTable("campaign_records",{
+  id:text("id").primaryKey(),
+  ownerEmail:text("owner_email").notNull(),
+  publicSlug:text("public_slug").notNull(),
+  pseudonym:text("pseudonym").notNull(),
+  campaignKey:text("campaign_key").notNull(),
+  campaignId:text("campaign_id").notNull(),
+  campaignSeed:integer("campaign_seed").notNull(),
+  theater:text("theater").notNull(),
+  archetype:text("archetype").notNull(),
+  adversary:text("adversary").notNull(),
+  contentVersion:text("content_version").notNull(),
+  scoringVersion:text("scoring_version").notNull(),
+  outcome:text("outcome",{enum:["victory","defeat"]}).notNull(),
+  days:integer("days").notNull(),
+  campaignScore:integer("campaign_score").notNull(),
+  baseUberscore:integer("base_uberscore").notNull(),
+  friendCount:integer("friend_count").notNull(),
+  friendMultiplier:integer("friend_multiplier").notNull(),
+  uberscoreEarned:integer("uberscore_earned").notNull(),
+  forcePreserved:integer("force_preserved").notNull(),
+  frontMillimeters:integer("front_millimeters").notNull(),
+  decisions:text("decisions").notNull(),
+  completedAt:integer("completed_at").notNull(),
+},table=>[
+  uniqueIndex("campaign_records_public_slug_unique").on(table.publicSlug),
+  index("campaign_records_owner_idx").on(table.ownerEmail),
+  index("campaign_records_campaign_idx").on(table.campaignKey),
+  index("campaign_records_score_idx").on(table.campaignScore),
+]);
+
 export const friendships=sqliteTable("friendships",{
   id:text("id").primaryKey(),
   userA:text("user_a").notNull(),

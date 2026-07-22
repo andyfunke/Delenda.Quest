@@ -1,0 +1,150 @@
+import { and, desc, eq, or } from "drizzle-orm";
+import type { ChatGPTUser } from "../app/chatgpt-auth";
+import { getDb } from "./index";
+import { campaignRecords, friendships } from "./schema";
+import { ensureAccount } from "./accounts";
+
+export const SCORING_VERSION="dq-score-v1";
+export const FRIEND_BONUS_PER_CONNECTION=5;
+export const FRIEND_BONUS_CAP=10;
+
+export type RecordedDecision={
+  decisionId:string;
+  decisionLabel:string;
+  choiceId:string;
+  choiceLabel:string;
+};
+
+export type CampaignRecordSubmission={
+  submissionId:string;
+  campaignId:string;
+  campaignSeed:number;
+  theater:string;
+  archetype:string;
+  adversary:string;
+  contentVersion:string;
+  outcome:"victory"|"defeat";
+  days:number;
+  deployable:number;
+  openingDeployable:number;
+  front:number;
+  legitimacy:number;
+  resistance:number;
+  readiness:number;
+  decisions:RecordedDecision[];
+  completedAt:number;
+};
+
+type StoredRecord=typeof campaignRecords.$inferSelect;
+
+const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
+const clean=(value:unknown,max=100)=>typeof value==="string"?value.trim().replace(/[^a-zA-Z0-9 .:_/-]+/g,"").slice(0,max):"";
+const cleanId=(value:unknown,max=100)=>clean(value,max).toLowerCase().replace(/[^a-z0-9:_/-]+/g,"-").replace(/^-+|-+$/g,"");
+const number=(value:unknown,min:number,max:number)=>clamp(Number.isFinite(Number(value))?Number(value):min,min,max);
+const token=()=>crypto.randomUUID().replaceAll("-","").slice(0,12).toUpperCase();
+const digest=async(value:string)=>{
+  const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes)).map(byte=>byte.toString(16).padStart(2,"0")).join("");
+};
+
+const parseDecisions=(value:string):RecordedDecision[]=>{
+  try{
+    const rows=JSON.parse(value) as unknown;
+    if(!Array.isArray(rows))return[];
+    return rows.filter((row):row is RecordedDecision=>!!row&&typeof row==="object"&&typeof (row as RecordedDecision).decisionId==="string"&&typeof (row as RecordedDecision).choiceId==="string");
+  }catch{return[]}
+};
+
+const publicPseudonym=async(email:string)=>`COMMANDER ${((await digest(`delenda:pseudonym:${email}`)).slice(0,6)).toUpperCase()}`;
+const campaignKeyFor=(input:CampaignRecordSubmission)=>[cleanId(input.contentVersion,30),Math.trunc(number(input.campaignSeed,1,2_147_483_647)),cleanId(input.theater,30),cleanId(input.archetype,50),cleanId(input.adversary,50)].join(":");
+
+const scoresFor=(input:CampaignRecordSubmission,friendCount:number)=>{
+  const preservation=clamp(input.deployable/Math.max(1,input.openingDeployable),0,1.25);
+  const outcomeBase=input.outcome==="victory"?4_800:1_200;
+  const territorial=clamp(Math.round((input.front+3.4)*240),-2_000,3_000);
+  const force=Math.round(preservation*2_000);
+  const civil=Math.round(number(input.legitimacy,0,100)*10+(100-number(input.resistance,0,100))*7);
+  const readiness=Math.round(number(input.readiness,0,100)*5);
+  const tempo=clamp(1_000-Math.round(number(input.days,1,365)*35),-800,965);
+  const campaignScore=clamp(outcomeBase+territorial+force+civil+readiness+tempo,0,10_000);
+  const baseUberscore=Math.round(campaignScore/10);
+  const friendMultiplier=100+Math.min(FRIEND_BONUS_CAP,friendCount)*FRIEND_BONUS_PER_CONNECTION;
+  const uberscoreEarned=Math.round(baseUberscore*friendMultiplier/100);
+  return{campaignScore,baseUberscore,friendMultiplier,uberscoreEarned,forcePreserved:Math.round(preservation*1000)};
+};
+
+const friendCountFor=async(email:string)=>{
+  const db=await getDb();
+  const rows=await db.select({id:friendships.id}).from(friendships).where(or(eq(friendships.userA,email),eq(friendships.userB,email)));
+  return rows.length;
+};
+
+const sanitizeSubmission=(input:CampaignRecordSubmission):CampaignRecordSubmission=>({
+  submissionId:cleanId(input.submissionId,100),campaignId:clean(input.campaignId,100),campaignSeed:Math.trunc(number(input.campaignSeed,1,2_147_483_647)),
+  theater:cleanId(input.theater,30),archetype:cleanId(input.archetype,50),adversary:cleanId(input.adversary,50),contentVersion:cleanId(input.contentVersion,30),
+  outcome:input.outcome==="victory"?"victory":"defeat",days:Math.trunc(number(input.days,1,365)),deployable:Math.round(number(input.deployable,0,10_000_000)),openingDeployable:Math.round(number(input.openingDeployable,1,10_000_000)),
+  front:number(input.front,-100,100),legitimacy:number(input.legitimacy,0,100),resistance:number(input.resistance,0,100),readiness:number(input.readiness,0,100),completedAt:Math.trunc(number(input.completedAt,1,Date.now()+86_400_000)),
+  decisions:(Array.isArray(input.decisions)?input.decisions:[]).slice(0,240).map(row=>({decisionId:cleanId(row.decisionId,100),decisionLabel:clean(row.decisionLabel,120),choiceId:cleanId(row.choiceId,100),choiceLabel:clean(row.choiceLabel,120)})).filter(row=>row.decisionId&&row.choiceId),
+});
+
+export async function createCampaignRecord(user:ChatGPTUser,raw:CampaignRecordSubmission){
+  const db=await getDb(),email=await ensureAccount(user),input=sanitizeSubmission(raw);
+  if(!input.submissionId||!input.campaignId||!input.theater||!input.contentVersion)throw new Error("Campaign record is incomplete.");
+  const id=await digest(`delenda:record:${email}:${input.submissionId}`);
+  const existing=(await db.select().from(campaignRecords).where(eq(campaignRecords.id,id)).limit(1))[0];
+  if(existing)return decorateRecord(existing,await cohortFor(existing));
+  const friendCount=await friendCountFor(email),scores=scoresFor(input,friendCount),publicSlug=token(),campaignKey=campaignKeyFor(input),pseudonym=await publicPseudonym(email);
+  await db.insert(campaignRecords).values({id,ownerEmail:email,publicSlug,pseudonym,campaignKey,campaignId:input.campaignId,campaignSeed:input.campaignSeed,theater:input.theater,archetype:input.archetype,adversary:input.adversary,contentVersion:input.contentVersion,scoringVersion:SCORING_VERSION,outcome:input.outcome,days:input.days,...scores,friendCount,frontMillimeters:Math.round(input.front*1000),decisions:JSON.stringify(input.decisions),completedAt:input.completedAt}).onConflictDoNothing();
+  const record=(await db.select().from(campaignRecords).where(eq(campaignRecords.id,id)).limit(1))[0];
+  if(!record)throw new Error("Campaign record could not be issued.");
+  return decorateRecord(record,await cohortFor(record));
+}
+
+async function cohortFor(record:StoredRecord){
+  const db=await getDb();
+  const cohort=await db.select().from(campaignRecords).where(and(eq(campaignRecords.campaignKey,record.campaignKey),eq(campaignRecords.scoringVersion,record.scoringVersion)));
+  return cohort;
+}
+
+const decisionComparisons=(record:StoredRecord,cohort:StoredRecord[])=>{
+  const own=parseDecisions(record.decisions);
+  return own.map(decision=>{
+    const choices=new Map<string,{choiceId:string;choiceLabel:string;count:number}>();let encountered=0;
+    for(const candidate of cohort){
+      const match=parseDecisions(candidate.decisions).find(row=>row.decisionId===decision.decisionId);
+      if(!match)continue;encountered++;
+      const current=choices.get(match.choiceId)??{choiceId:match.choiceId,choiceLabel:match.choiceLabel,count:0};current.count++;choices.set(match.choiceId,current);
+    }
+    return{...decision,encountered,choices:[...choices.values()].sort((a,b)=>b.count-a.count).map(choice=>({...choice,percent:encountered?Math.round(choice.count/encountered*100):0}))};
+  });
+};
+
+const decorateRecord=(record:StoredRecord,cohort:StoredRecord[])=>({
+  id:record.id,publicSlug:record.publicSlug,pseudonym:record.pseudonym,campaignId:record.campaignId,campaignKey:record.campaignKey,campaignSeed:record.campaignSeed,theater:record.theater,archetype:record.archetype,adversary:record.adversary,contentVersion:record.contentVersion,scoringVersion:record.scoringVersion,outcome:record.outcome,days:record.days,campaignScore:record.campaignScore,baseUberscore:record.baseUberscore,friendCount:record.friendCount,friendMultiplier:record.friendMultiplier/100,uberscoreEarned:record.uberscoreEarned,forcePreserved:record.forcePreserved/10,front:record.frontMillimeters/1000,completedAt:record.completedAt,
+  campaignRank:1+cohort.filter(item=>item.campaignScore>record.campaignScore).length,cohortSize:cohort.length,decisionComparisons:decisionComparisons(record,cohort),
+});
+
+async function globalStandings(){
+  const db=await getDb(),rows=await db.select({ownerEmail:campaignRecords.ownerEmail,uberscoreEarned:campaignRecords.uberscoreEarned}).from(campaignRecords);
+  const totals=new Map<string,number>();for(const row of rows)totals.set(row.ownerEmail,(totals.get(row.ownerEmail)??0)+row.uberscoreEarned);
+  return[...totals.entries()].sort((a,b)=>b[1]-a[1]);
+}
+
+export async function serviceRecordFor(user:ChatGPTUser){
+  const db=await getDb(),email=await ensureAccount(user),rows=await db.select().from(campaignRecords).where(eq(campaignRecords.ownerEmail,email)).orderBy(desc(campaignRecords.completedAt));
+  const standings=await globalStandings(),uberscore=rows.reduce((sum,row)=>sum+row.uberscoreEarned,0),globalRank=Math.max(1,standings.findIndex(([owner])=>owner===email)+1),decorated=[];
+  for(const row of rows)decorated.push(decorateRecord(row,await cohortFor(row)));
+  return{uberscore,globalRank,commanderCount:standings.length,records:decorated};
+}
+
+export async function publicCampaignRecord(slug:string){
+  const db=await getDb(),record=(await db.select().from(campaignRecords).where(eq(campaignRecords.publicSlug,clean(slug,30))).limit(1))[0];
+  if(!record)return null;
+  const cohort=await cohortFor(record),standings=await globalStandings(),ownerRows=await db.select({uberscoreEarned:campaignRecords.uberscoreEarned}).from(campaignRecords).where(eq(campaignRecords.ownerEmail,record.ownerEmail)),uberscore=ownerRows.reduce((sum,row)=>sum+row.uberscoreEarned,0),globalRank=Math.max(1,standings.findIndex(([owner])=>owner===record.ownerEmail)+1);
+  return{...decorateRecord(record,cohort),uberscore,globalRank,commanderCount:standings.length};
+}
+
+export async function campaignChallenge(slug:string){
+  const record=await publicCampaignRecord(slug);if(!record)return null;
+  return{campaignSeed:record.campaignSeed,theater:record.theater,archetype:record.archetype,adversary:record.adversary,campaignId:record.campaignId,challenger:record.pseudonym,publicSlug:record.publicSlug};
+}
