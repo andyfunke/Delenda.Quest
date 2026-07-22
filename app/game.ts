@@ -9,6 +9,7 @@ import {
 } from "./campaign-substrate";
 import { composeWarDispatch } from "./war-dispatch";
 import { OPPORTUNITY_CATEGORY_LABELS, OPPORTUNITY_SPINES, type OpportunityCategory } from "./opportunity-corpus";
+import { SUB_MISSION_CONTENT_VERSION, SUB_MISSION_SCHEMA_VERSION, compileSubMissionDocket, subMissionArchetypeById, subMissionFrameById, type DailySubMissionDocket, type SubMissionDomain, type SubMissionHistoryRecord } from "./submission-schema";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -43,6 +44,21 @@ export type OpportunityHistoryRecord = {
 };
 export type ActiveDiplomacyAction = { familyId:string; choiceId:string; startedDay:number; expiresDay:number };
 
+export type StrategicSnapshot = {
+  day:number;front:number;armed:number;deployable:number;readiness:number;equipment:number;materiel:number;
+  treasury:number;legitimacy:number;resistance:number;dependency:number;intelligence:number;desertionPressure:number;
+};
+
+export type DailyResolutionRecord = {
+  schemaVersion:1;resolvedDay:number;phaseId:CampaignPhaseId;eventId:string;sector:string;blueprintId:string;
+  opening:StrategicSnapshot;closing:StrategicSnapshot;
+  orders:{used:number;unused:number;maneuverId:string|null;directives:Array<{familyId?:string;choiceId?:string;family:string;choice:string;domain?:SubMissionDomain;missionId?:string}>};
+  operations:OperationsLedger;production:ProductionLedger;forceGeneration:ForceGenerationLedger;domestic:DomesticLedger;diplomacy:DiplomacyLedger;
+  adversaryObserved:{estimatedForce:number;estimateLow:number;estimateHigh:number;observedOrders:string[];hiddenOrders:number;signals:string[]};
+  personnel:{combatLosses:number;desertionAttempts:number;retained:number;intercepted:number;netDesertion:number;effectiveGraduates:number;deployableAssigned:number};
+  outcome:{groundMovement:number;outcomeBand:OutcomeBand;doctrineGain:number;factsCreated:string[]};
+};
+
 export type GameState = {
   saveVersion:number; contentPackVersion:string; campaignId:string; campaignSeed:number; stateArchetype:string; adversaryPersonality:string; theater:Theater;
   day: number; actions: number; status: "active" | "victory" | "defeat";
@@ -52,16 +68,17 @@ export type GameState = {
   readiness: number; equipment: number; materiel: number; treasury: number; legitimacy: number; resistance: number;
   dependency: number; intelligence: number; front: number; enemy: number;
   doctrine: number; doctrineEarned: number; doctrineWinAwards: { day:number; action:string; verified:string; reward:number }[]; affinityProofs: Record<string,number>; atrocityExposure: number; reciprocity: number; desertionPressure: number;
-  deserters: number; intercepted: number; patrolCommitment: number;
+  deserters: number; retained: number; intercepted: number; patrolCommitment: number;
   target: Resource | "balanced"; pendingTarget: Resource | "balanced" | null; tempo: Tempo; networkPosture:NetworkPosture; maneuver: string | null;
   maintenanceDebt: number; productionLedger: ProductionLedger | null; operationsLedger:OperationsLedger|null; domesticLedger:DomesticLedger|null; diplomacyLedger:DiplomacyLedger|null;actors:DiplomaticActor[];adversary:AdversaryState;adversaryLedger:AdversaryLedger|null;
   production: Record<Resource, { allocation: number; stock: number; output: number; use: number }>;
   active: Record<string, string>; locks: Record<string, number>; scheduled: Scheduled[];
   activeDiplomacy:ActiveDiplomacyAction[];
-  unlocked: string[]; decisions: { day: number; family: string; choice: string }[];
+  unlocked: string[]; decisions: { day: number; family: string; choice: string; familyId?:string; choiceId?:string; domain?:SubMissionDomain; missionId?:string; resolutionTicket?:string }[];
   eventHistory:{day:number;phase:string;event:string;eventId:string;trigger:string}[];
   opportunityCommitment:OpportunityCommitment|null; opportunityHistory:OpportunityHistoryRecord[];
   theaterSectors:TheaterSector[]; operationalFacts:OperationalFact[]; situationHistory:SituationHistoryRecord[]; currentSituation:CompiledSituation|null;
+  currentSubMissions:DailySubMissionDocket|null;subMissionHistory:SubMissionHistoryRecord[];resolutionHistory:DailyResolutionRecord[];
   reports: { day: number; title: string; body: string; tone: Tone; epigraph?: string }[];
 };
 
@@ -208,10 +225,10 @@ export const FAMILIES: Family[] = [
     c("wave", "Human Wave", "The state has identified the shortest route between population and terrain.", ["Soldier attrition multiplier: 2.1", "Supply use multiplier: 1.2", "Legitimacy: -3", "Doctrine: +5"], ["Front movement: -0.5 to +3.2 km"], { tempo: "human-wave", delta: { legitimacy: -3 }, doctrine: 5 }),
   ]},
   { id: "desertion", module: "military", category: "Personnel Sustainment", label: "Process Desertion", brief: "Decide whether absence is a personnel problem, a police problem, or a truth problem.", lock: 2, choices: [
-    c("amnesty", "Issue Limited Amnesty", "Return is permitted once. The record is not erased.", ["Desertion pressure: -8", "Legitimacy: +2", "Readiness: -1"], ["Returned personnel: 12% to 28% of confirmed deserters"], { delta: { desertionPressure: -8, legitimacy: 2, readiness: -1 } }),
-    c("patrols", "Establish Desertion Patrols", "The rear acquires a front of its own.", ["Patrol commitment: +4,800", "Resistance: +4", "Treasury: -2.0 B per day"], ["Interception: 35% to 62% of new deserters"], { delta: { patrolCommitment: 4800, resistance: 4 }, tick: { treasury: -2 } }),
-    c("stations", "Seal Rail Stations", "Mobility has been reclassified as evidence.", ["Desertion pressure: -4", "Workforce: -9,000", "Resistance: +6"], ["Civilian throughput loss: 4% to 9%"], { delta: { desertionPressure: -4, workforce: -9000, resistance: 6 } }),
-    c("rations", "Guarantee Family Rations", "The household is secured behind the formation.", ["Desertion pressure: -6", "Legitimacy: +3", "Treasury: -3.0 B per day"], ["Voluntary return: 8% to 19%"], { delta: { desertionPressure: -6, legitimacy: 3 }, tick: { treasury: -3 } }),
+    c("amnesty", "Issue Limited Amnesty", "Return is permitted once. The record is not erased.", ["Desertion pressure: -8", "Legitimacy: +2", "Readiness: -1", "Retains 22% of new flight attempts while active"], ["The remaining 78% still requires interception or leaves the force"], { delta: { desertionPressure: -8, legitimacy: 2, readiness: -1 } }),
+    c("patrols", "Establish Desertion Patrols", "The rear acquires a front of its own.", ["Patrol commitment: +4,800 once", "Intercepts 65% of new flight attempts after retention", "Resistance: +4", "Treasury: -2.0 B per day"], ["4,800 personnel become unavailable to frontline operations"], { delta: { patrolCommitment: 4800, resistance: 4 }, tick: { treasury: -2 } }),
+    c("stations", "Seal Rail Stations", "Mobility has been reclassified as evidence.", ["Desertion pressure: -4", "Retains 12% of new flight attempts while active", "Workforce: -9,000", "Resistance: +6"], ["Civilian throughput loss: 4% to 9%"], { delta: { desertionPressure: -4, workforce: -9000, resistance: 6 } }),
+    c("rations", "Guarantee Family Rations", "The household is secured behind the formation.", ["Desertion pressure: -6", "Retains 35% of new flight attempts while active", "Legitimacy: +3", "Treasury: -3.0 B per day"], ["Combined with established patrols, net flight can reach zero"], { delta: { desertionPressure: -6, legitimacy: 3 }, tick: { treasury: -3 } }),
     c("reclassify", "Reclassify Missing as Casualties", "The ledger has restored discipline without locating a man.", ["Reported desertions: -2,000", "Legitimacy: -2", "Doctrine: +2"], ["Audit exposure: 14% to 31%"], { delta: { deserters: -2000, legitimacy: -2 }, doctrine: 2 }),
   ]},
   { id:"home-front",module:"national",category:"Home Front",label:"Govern Civil Allocation",brief:"Decide which households absorb scarcity and whether administrative order still deserves civilian cooperation.",lock:3,choices:[
@@ -262,6 +279,16 @@ export const FAMILIES: Family[] = [
     c("broadcast","Rebroadcast on Compromised Frequencies","Restore command tempo by accepting that the enemy will learn the shape of the traffic.",["Network conversion: +14%","Readiness: +2","Intelligence: -4"],["Enemy pattern analysis accelerates while this posture remains active"],{networkPosture:"broadcast",delta:{readiness:2,intelligence:-4},doctrine:2}),
     c("dark","Go Dark and Run Couriers","Preserve the order picture by replacing bandwidth with distance, delay, and exposed messengers.",["Network conversion: -12%","Intelligence: +5","Equipment Coverage: +1"],["Operational execution slows while interception risk falls"],{networkPosture:"dark",delta:{intelligence:5,equipment:1}}),
     c("distributed","Distribute Autonomous Relays","Spend equipment to keep the network usable without concentrating its signature.",["Network conversion: +4%","Equipment Coverage: -2","Readiness: +1","Intelligence: +1"],["No single relay restores full command tempo; no single loss collapses it"],{networkPosture:"distributed",delta:{equipment:-2,readiness:1,intelligence:1}}),
+  ]},
+  {id:"network-authentication",module:"military",category:"Command Network",label:"Authenticate Orders",brief:"Choose which combination of time, local authority, equipment, and classification can prove that an order deserves obedience.",lock:2,choices:[
+    c("triple-challenge","Enforce Triple Challenge","An order must survive three independent questions even when the answer arrives after the opportunity.",["Authentication shield: +9%","Network conversion: -5%","Readiness: -2","Intelligence: +4"],["A valid order may expire before its final challenge clears"],{delta:{readiness:-2,intelligence:4}}),
+    c("delegated-keys","Delegate Formation Keys","Local commanders receive enough cryptographic authority to move before headquarters can agree.",["Network conversion: +8%","Readiness: +2","Equipment Coverage: -2"],["Compromised formation keys expose a larger autonomous cell"],{delta:{readiness:2,equipment:-2}}),
+    c("rolling-codes","Fund Rolling Code Windows","The state purchases speed and secrecy with key material, technicians, and a permanently recurring bill.",["Network conversion: +3%","Intelligence: +2","Treasury: -6.0 B"],["Synchronization failure isolates formations outside the update window"],{delta:{intelligence:2,treasury:-6}}),
+  ]},
+  {id:"network-custody",module:"military",category:"Command Network",label:"Control Signal Custody",brief:"Decide where authoritative orders, keys, and archives survive when the physical network does not.",lock:3,choices:[
+    c("central-archive","Centralize the Order Archive","Headquarters preserves one complete truth and accepts the delay required to consult it.",["Authentication shield: +6%","Intelligence: +5","Network conversion: -4%","Readiness: -1"],["Destruction or isolation of the archive becomes a single-point failure"],{delta:{intelligence:5,readiness:-1}}),
+    c("field-custody","Issue Field Custody Kits","Formations carry their own keys, seals, and decision records into the same terrain that destroys radios.",["Network conversion: +5%","Readiness: +2","Equipment Coverage: -3"],["Captured kits disclose local command provenance"],{delta:{readiness:2,equipment:-3}}),
+    c("burn-after-use","Authorize Disposable Keys","Every useful message destroys the credential that proved it, preserving secrecy at the cost of continuity.",["Authentication shield: +4%","Intelligence: +2","Equipment Coverage: -1"],["No surviving archive can reconstruct an order after execution"],{delta:{intelligence:2,equipment:-1}}),
   ]},
   {id:"foreign-intelligence",module:"diplomacy",category:"Intelligence Exchange",label:"Trade Foreign Intelligence",brief:"Acquire classification by deciding which foreign dependency, fiscal cost, or secret exposure will carry it.",lock:3,choices:[
     c("fused-exchange","Enter a Fused Intelligence Exchange","Receive the broadest foreign picture and accept that future estimates will depend on its continued arrival.",["Intelligence: +8","Dependency: +7","Legitimacy: +1"],["Foreign filtering becomes part of the national estimate"],{delta:{intelligence:8,dependency:7,legitimacy:1},duration:5}),
@@ -375,12 +402,12 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     theater:validTheater(input.theater)?input.theater:DEFAULT_CAMPAIGN.theater,
   };
   const s:GameState={
-    saveVersion:3,contentPackVersion:CONTENT_PACK_VERSION,campaignId:`DQ-${config.seed.toString(36).toUpperCase().padStart(6,"0")}-${config.theater.slice(0,3).toUpperCase()}`,campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
+    saveVersion:4,contentPackVersion:CONTENT_PACK_VERSION,campaignId:`DQ-${config.seed.toString(36).toUpperCase().padStart(6,"0")}-${config.theater.slice(0,3).toUpperCase()}`,campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
     day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
     voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
     trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
     readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
-    front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
+    front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, retained:0, intercepted: 0, patrolCommitment: 0,
     target: "balanced", pendingTarget: null, tempo: "methodical", networkPosture:"distributed", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,diplomacyLedger:null,
     actors:[
       {id:"orison",name:"Orison Compact",role:"ally",interest:"Keep the active line consuming enemy attention without entering it",trust:62,leverage:38,dependency:24,obligation:31,aidPipeline:22,sanctionsExposure:8,betrayalRisk:.18},
@@ -391,9 +418,10 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     adversary:{force:590000,readiness:61,equipment:68,munitions:138000,munitionsOutput:16800,munitionsUse:19200,doctrine:0,objective:"Unclassified",posture:"Methodical Pressure",productionTarget:"Replacement Equipment",countermeasure:"Seed False Dispositions",maneuverCounts:{},adaptation:{},lastOrders:[],estimateBias:1},adversaryLedger:null,
     production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
     active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],
-    theaterSectors:initialTheaterSectors(config.theater),operationalFacts:initialOperationalFacts(config.theater),situationHistory:[],currentSituation:null,reports: [],
+    theaterSectors:initialTheaterSectors(config.theater),operationalFacts:initialOperationalFacts(config.theater),situationHistory:[],currentSituation:null,
+    currentSubMissions:null,subMissionHistory:[],resolutionHistory:[],reports: [],
   };
-  applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);s.currentSituation=compileSituationForState(s);
+  applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);
   const situation=situationForState(s),director=directorForState(s);s.adversary.objective=situation.sector;
   const archetype=STATE_ARCHETYPES.find(x=>x.id===config.archetype)!;
   s.reports=[{day:1,title:`${situation.sector} Will Consume the First Available Reserve`,body:`${situation.briefing}\n\n${director.event.brief} The field army enters the sector with a serviceable reserve and arsenals able to sustain immediate operations. By dusk, headquarters must decide where to mass force and what to leave exposed.`,tone:"warn",epigraph:archetype.quote}];
@@ -404,7 +432,7 @@ const clone = (state: GameState): GameState => JSON.parse(JSON.stringify(state))
 const add = (state: GameState, delta: Delta = {}) => Object.entries(delta).forEach(([key, value]) => { (state[key as NumberKey] as number) += value as number; });
 const normalize = (s: GameState) => {
   ["readiness","equipment","materiel","legitimacy","resistance","dependency","intelligence","quality","atrocityExposure","reciprocity","desertionPressure","maintenanceDebt"].forEach((key) => { (s[key as NumberKey] as number) = Math.max(0, Math.min(100, s[key as NumberKey] as number)); });
-  s.deployable = Math.max(0, Math.min(s.armed, Math.round(s.deployable))); s.queue = Math.max(0, Math.round(s.queue)); s.training = Math.max(1000, Math.round(s.training)); s.duration = Math.max(2, Math.min(12, Math.round(s.duration))); s.deserters = Math.max(0, Math.round(s.deserters));
+  s.deployable = Math.max(0, Math.min(s.armed, Math.round(s.deployable))); s.queue = Math.max(0, Math.round(s.queue)); s.training = Math.max(1000, Math.round(s.training)); s.duration = Math.max(2, Math.min(12, Math.round(s.duration))); s.deserters = Math.max(0, Math.round(s.deserters));s.retained=Math.max(0,Math.round(s.retained??0));s.intercepted=Math.max(0,Math.round(s.intercepted));
 };
 const hash = (text: string) => { let h = 2166136261; for (let i=0;i<text.length;i++) { h ^= text.charCodeAt(i); h = Math.imul(h,16777619); } return (h>>>0)/4294967295; };
 
@@ -561,12 +589,36 @@ const rewriteLegacyMorningReport=(state:GameState)=>{
   state.reports[0]={...latest,...dispatch,epigraph:event?.quote??latest.epigraph};
 };
 
+const recordObject=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==="object";
+const finiteNumber=(value:unknown)=>typeof value==="number"&&Number.isFinite(value);
+const stringArray=(value:unknown)=>Array.isArray(value)&&value.every(item=>typeof item==="string");
+const nullableString=(value:unknown)=>value===null||typeof value==="string";
+const pressureBandValue=(value:unknown)=>value==="watch"||value==="active"||value==="cascade";
+const validSubMissionReference=(value:unknown,domain:SubMissionDomain)=>{
+  if(!recordObject(value)||value.domain!==domain||typeof value.archetypeId!=="string"||subMissionArchetypeById(value.archetypeId)?.domain!==domain||typeof value.frameId!=="string"||subMissionFrameById(value.frameId)?.archetypeId!==value.archetypeId)return false;
+  const rendered=value.rendered,anchor=value.operationalAnchor;
+  return typeof value.realizationId==="string"&&typeof value.contentId==="string"&&pressureBandValue(value.pressureBand)&&typeof value.category==="string"&&finiteNumber(value.selectionScore)&&finiteNumber(value.candidateCount)&&typeof value.selectionBasis==="string"&&stringArray(value.evidence)&&typeof value.resolutionTicket==="string"&&typeof value.stateFingerprint==="string"&&recordObject(rendered)&&typeof rendered.title==="string"&&typeof rendered.brief==="string"&&typeof rendered.question==="string"&&typeof rendered.authority==="string"&&stringArray(rendered.aliases)&&recordObject(anchor)&&typeof anchor.sector==="string"&&typeof anchor.problemClass==="string"&&typeof anchor.headline==="string"&&Array.isArray(value.convergence);
+};
+const validSubMissionHistoryRecord=(value:unknown):value is SubMissionHistoryRecord=>{
+  if(!recordObject(value)||(value.domain!=="domestic"&&value.domain!=="network")||!finiteNumber(value.day)||typeof value.archetypeId!=="string"||subMissionArchetypeById(value.archetypeId)?.domain!==value.domain||typeof value.frameId!=="string"||subMissionFrameById(value.frameId)?.archetypeId!==value.archetypeId)return false;
+  return typeof value.realizationId==="string"&&typeof value.contentId==="string"&&pressureBandValue(value.pressureBand)&&typeof value.category==="string"&&typeof value.resolutionTicket==="string"&&nullableString(value.optionId)&&nullableString(value.familyId)&&nullableString(value.choiceId)&&(value.outcome==="issued"||value.outcome==="lapsed");
+};
+const validResolutionHistoryRecord=(value:unknown):value is DailyResolutionRecord=>{
+  if(!recordObject(value)||value.schemaVersion!==1||!finiteNumber(value.resolvedDay)||typeof value.sector!=="string"||!recordObject(value.opening)||!recordObject(value.closing))return false;
+  const orders=value.orders,operations=value.operations,production=value.production,forceGeneration=value.forceGeneration,domestic=value.domestic,diplomacy=value.diplomacy,observed=value.adversaryObserved,personnel=value.personnel,outcome=value.outcome;
+  if(!recordObject(orders)||!finiteNumber(orders.used)||!finiteNumber(orders.unused)||!nullableString(orders.maneuverId)||!Array.isArray(orders.directives)||!orders.directives.every(item=>recordObject(item)&&typeof item.family==="string"&&typeof item.choice==="string"))return false;
+  if(!recordObject(operations)||typeof operations.succeeded!=="boolean"||!finiteNumber(operations.enemyLosses)||!recordObject(production)||!Array.isArray(production.lines)||!production.lines.every(line=>recordObject(line)&&typeof line.resource==="string"&&finiteNumber(line.net)))return false;
+  if(!recordObject(forceGeneration)||!recordObject(domestic)||!finiteNumber(domestic.legitimacyChange)||!finiteNumber(domestic.resistanceChange)||!recordObject(diplomacy))return false;
+  if(!recordObject(observed)||!stringArray(observed.observedOrders)||!stringArray(observed.signals)||!recordObject(personnel)||!["combatLosses","desertionAttempts","retained","intercepted","netDesertion","effectiveGraduates","deployableAssigned"].every(field=>finiteNumber(personnel[field])))return false;
+  return recordObject(outcome)&&finiteNumber(outcome.groundMovement)&&typeof outcome.outcomeBand==="string"&&finiteNumber(outcome.doctrineGain)&&stringArray(outcome.factsCreated);
+};
+
 export const restoreCampaignState=(value:unknown):GameState|null=>{
   if(!value||typeof value!=="object")return null;const candidate=value as Partial<GameState>;
   const theater=validTheater(candidate.theater)?candidate.theater:DEFAULT_CAMPAIGN.theater;
   const base=initialState({seed:candidate.campaignSeed,archetype:candidate.stateArchetype,adversaryPersonality:candidate.adversaryPersonality,theater});
   if(typeof candidate.day!=="number"||typeof candidate.deployable!=="number"||typeof candidate.production!=="object")return null;
-  const state:GameState={...base,...candidate,saveVersion:3,contentPackVersion:CONTENT_PACK_VERSION,campaignSeed:sanitizeSeed(candidate.campaignSeed??base.campaignSeed),theater,
+  const state:GameState={...base,...candidate,saveVersion:4,contentPackVersion:CONTENT_PACK_VERSION,campaignSeed:sanitizeSeed(candidate.campaignSeed??base.campaignSeed),theater,
     production:{...base.production,...candidate.production},adversary:{...base.adversary,...candidate.adversary,maneuverCounts:{...base.adversary.maneuverCounts,...candidate.adversary?.maneuverCounts},adaptation:{...base.adversary.adaptation,...candidate.adversary?.adaptation}},
     actors:Array.isArray(candidate.actors)?candidate.actors:base.actors,trainingCohorts:Array.isArray(candidate.trainingCohorts)?candidate.trainingCohorts:base.trainingCohorts,
     decisions:Array.isArray(candidate.decisions)?candidate.decisions:base.decisions,eventHistory:Array.isArray(candidate.eventHistory)?candidate.eventHistory:base.eventHistory,reports:Array.isArray(candidate.reports)&&candidate.reports.length?candidate.reports:base.reports,scheduled:Array.isArray(candidate.scheduled)?candidate.scheduled:base.scheduled,
@@ -575,23 +627,42 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     theaterSectors:Array.isArray(candidate.theaterSectors)&&candidate.theaterSectors.length?candidate.theaterSectors:base.theaterSectors,
     operationalFacts:Array.isArray(candidate.operationalFacts)?candidate.operationalFacts:base.operationalFacts,
     situationHistory:Array.isArray(candidate.situationHistory)?candidate.situationHistory:base.situationHistory,currentSituation:candidate.currentSituation??null,
+    currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
+    resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs};
-  normalize(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
-export const maneuverChance = (s: GameState, m: Maneuver, director:CampaignDirector=directorForState(s)) => {
-  const intelligence = (s.intelligence - 42) * .002;
-  const readiness = (s.readiness - 64) * .0015;
-  const equipment = (s.equipment - 71) * .0015;
-  const shortages = Object.values(s.production).filter(line => line.stock < line.use * 2).length * -.03;
-  const fieldProof = Math.min(.08,(s.affinityProofs[m.vector]??0)*.02);
-  const doctrine=(m.id==="interdict"&&s.unlocked.includes("long-range")?.09:0)+(m.id==="breach"&&s.unlocked.includes("forced-passage")?.12:0)+(m.id==="network"&&s.unlocked.includes("relay-discipline")?.06:0);const adaptation=-Math.min(.12,(s.adversary?.adaptation[m.id]??0)*.015);
-  return Math.max(.05, Math.min(.95, m.success + intelligence + readiness + equipment + shortages + fieldProof + doctrine + adaptation + director.modifiers.confidence));
+export type ManeuverChanceTerm={id:string;label:string;points:number;conceptId:string};
+export const explainManeuverChance = (s:GameState,m:Maneuver,director:CampaignDirector=directorForState(s)) => {
+  const doctrine=(m.id==="interdict"&&s.unlocked.includes("long-range")?.09:0)+(m.id==="breach"&&s.unlocked.includes("forced-passage")?.12:0)+(m.id==="network"&&s.unlocked.includes("relay-discipline")?.06:0);
+  const terms:ManeuverChanceTerm[]=[
+    {id:"base",label:"Maneuver base",points:m.success*100,conceptId:"execution-confidence"},
+    {id:"intelligence",label:"Intelligence",points:(s.intelligence-42)*.2,conceptId:"intelligence"},
+    {id:"readiness",label:"Readiness",points:(s.readiness-64)*.15,conceptId:"readiness"},
+    {id:"equipment",label:"Equipment",points:(s.equipment-71)*.15,conceptId:"equipment-coverage"},
+    {id:"shortages",label:"Supply shortages",points:Object.values(s.production).filter(line=>line.stock<line.use*2).length*-3,conceptId:"lines-below-two-days"},
+    {id:"proofs",label:`Field proofs // ${s.affinityProofs[m.vector]??0}`,points:Math.min(8,(s.affinityProofs[m.vector]??0)*2),conceptId:"execution-confidence"},
+    {id:"doctrine",label:"Internalized doctrine",points:doctrine*100,conceptId:"execution-confidence"},
+    {id:"adaptation",label:`Enemy adaptation // ${s.adversary?.adaptation[m.id]??0}`,points:-Math.min(12,(s.adversary?.adaptation[m.id]??0)*1.5),conceptId:"enemy-adaptation"},
+    {id:"condition",label:`Campaign condition // ${director.event.label}`,points:director.modifiers.confidence*100,conceptId:"campaign-synopsis"},
+  ];
+  const unclamped=terms.reduce((total,term)=>total+term.points,0)/100;
+  return{terms,unclamped,result:Math.max(.05,Math.min(.95,unclamped)),clamp:[.05,.95] as const};
 };
+export const maneuverChance = (s: GameState, m: Maneuver, director:CampaignDirector=directorForState(s)) => explainManeuverChance(s,m,director).result;
 export const doctrineStage = (id: string) => DOCTRINES.flatMap((v) => v.stages.map((stage,index) => ({ vector:v,stage,index }))).find((x) => x.stage.id === id);
 
+export const directiveRejection=(state:GameState,family:Family,choice:Choice)=>{
+  if(state.actions<1)return "No daily orders remain.";
+  if(state.status!=="active")return `The campaign is ${state.status}.`;
+  if((state.locks[family.id]??0)>state.day)return `${family.label} remains locked until Day ${state.locks[family.id]}.`;
+  if(family.id==="desertion"&&choice.id==="patrols"&&state.patrolCommitment>=4800)return "The authorized 4,800-person patrol screen is already established.";
+  return null;
+};
+
 export const commit = (state: GameState, family: Family, choice: Choice) => {
-  if (state.actions < 1 || state.status !== "active" || (state.locks[family.id] ?? 0) > state.day) return state;
+  if(directiveRejection(state,family,choice))return state;
   const s = clone(state); add(s, choice.delta);
   if (choice.delay) s.scheduled.push({ day: s.day + choice.delay.days, source: choice.label, delta: choice.delay.delta });
   if (choice.target) s.pendingTarget = choice.target;
@@ -599,7 +670,7 @@ export const commit = (state: GameState, family: Family, choice: Choice) => {
   if (choice.networkPosture) s.networkPosture = choice.networkPosture;
   s.active[family.id] = choice.id;
   if(family.module==="diplomacy")s.activeDiplomacy.push({familyId:family.id,choiceId:choice.id,startedDay:s.day,expiresDay:s.day+diplomacyDurationFor(family.id,choice)});
-  s.locks[family.id] = s.day + family.lock; s.actions -= 1; s.decisions.unshift({ day: s.day, family: family.label, choice: choice.label }); normalize(s); return s;
+  s.locks[family.id] = s.day + family.lock; s.actions -= 1; s.decisions.unshift({ day: s.day, family: family.label, choice: choice.label, familyId:family.id, choiceId:choice.id }); normalize(s); return s;
 };
 
 export const maneuverOrderRejection=(state:GameState,maneuver:Maneuver)=>{
@@ -613,7 +684,7 @@ export const maneuverOrderRejection=(state:GameState,maneuver:Maneuver)=>{
 export const commitManeuver = (state: GameState, maneuver: Maneuver) => {
   if(maneuverOrderRejection(state,maneuver))return state;
   const s = clone(state); s.maneuver = maneuver.id; s.actions -= 1; add(s,maneuver.ownedDelta);s.readiness += maneuver.readiness ?? 0; s.reciprocity += maneuver.reciprocity ?? 0;
-  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situationForState(s).sector}`, choice: maneuver.label }); normalize(s); return s;
+  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situationForState(s).sector}`, choice: maneuver.label, familyId:"main-campaign", choiceId:maneuver.id }); normalize(s); return s;
 };
 
 export const opportunityResponseRejection=(state:GameState,response:OpportunityResponse)=>{
@@ -688,16 +759,21 @@ export const estimateDay = (s: GameState, director:CampaignDirector=directorForS
   const maneuver = maneuverById(s.maneuver); const [,tempoSupply] = tempoProfile(s.tempo);
   const casualty = projectOperations(s,maneuver??null).friendlyLosses;
   const desertion = Math.round((260 + s.desertionPressure * 31 + s.forced * .018) * (s.reciprocity < 45 ? 1.25 : 1) * director.modifiers.desertion);
-  const intercepted = Math.min(desertion, Math.round(desertion * Math.min(.62, s.patrolCommitment / 9000)));
-  return { casualty, desertion, intercepted, netDesertion: desertion - intercepted, supply: tempoSupply * (maneuver?.supply ?? 1) * director.modifiers.supplyUse };
+  const retentionRate=s.active.desertion==="rations"?.35:s.active.desertion==="amnesty"?.22:s.active.desertion==="stations"?.12:0;
+  const patrolRate=Math.min(.65,s.patrolCommitment/7200);
+  const retained=Math.min(desertion,Math.round(desertion*retentionRate));
+  const intercepted=Math.min(desertion-retained,Math.round(desertion*patrolRate));
+  return { casualty, desertion, retained, intercepted, netDesertion: Math.max(0,desertion-retained-intercepted), retentionRate, patrolRate, supply: tempoSupply * (maneuver?.supply ?? 1) * director.modifiers.supplyUse };
 };
 
 export const liveProjection = (s: GameState, fraction: number) => {
-  const f = Math.max(0, Math.min(1, fraction)); const estimate = estimateDay(s); const director=directorForState(s); const losses = Math.floor(estimate.casualty * f); const deserted = Math.floor(estimate.desertion * f); const intercepted = Math.floor(estimate.intercepted * f); const netDesertion = deserted - intercepted;
+  const f = Math.max(0, Math.min(1, fraction)); const estimate = estimateDay(s); const director=directorForState(s); const losses = Math.floor(estimate.casualty * f);
+  const rollCall=(total:number)=>total<=0?0:Math.min(total,Math.max(1,Math.round(total*.06))+Math.floor(Math.max(0,total-Math.max(1,Math.round(total*.06)))*f));
+  const deserted=rollCall(estimate.desertion);const retained=Math.min(deserted,Math.round(deserted*estimate.retentionRate));const intercepted=Math.min(deserted-retained,Math.round(deserted*estimate.patrolRate));const netDesertion=Math.max(0,deserted-retained-intercepted);
   const production: Record<Resource,number> = { munitions:0,armor:0,flight:0,drones:0 };
   const projected=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],resourceUse:maneuverById(s.maneuver)?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance});
   projected.ledger.lines.forEach(line=>production[line.resource]=Math.max(0,Math.round(line.opening+line.net*f)));
-  return { losses, deserted, intercepted, netDesertion, deployable: Math.max(0, s.deployable - losses - netDesertion), armed: Math.max(0,s.armed-losses-netDesertion), production };
+  return { losses, deserted, retained, intercepted, netDesertion, deployable: Math.max(0, s.deployable - losses - netDesertion), armed: Math.max(0,s.armed-losses-netDesertion), production };
 };
 
 export const projectProduction = (s:GameState) => {const director=directorForState(s);return executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],resourceUse:maneuverById(s.maneuver)?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance}).ledger;};
@@ -733,8 +809,13 @@ export const describeGroundMovement=(value:number)=>{
   return{title:value>0?`The Line Moved ${amount} Forward`:`The Line Fell Back ${amount}`,sentence:`The front moved ${amount} ${direction}.`,display:`${value>0?"+":"−"}${amount}`};
 };
 
+const strategicSnapshot=(state:GameState):StrategicSnapshot=>({
+  day:state.day,front:state.front,armed:state.armed,deployable:state.deployable,readiness:state.readiness,equipment:state.equipment,materiel:state.materiel,
+  treasury:state.treasury,legitimacy:state.legitimacy,resistance:state.resistance,dependency:state.dependency,intelligence:state.intelligence,desertionPressure:state.desertionPressure,
+});
+
 export const resolve = (state: GameState) => {
-  if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const maneuver = maneuverById(s.maneuver)??null; const director=directorForState(s);
+  if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const maneuver = maneuverById(s.maneuver)??null; const director=directorForState(s);const opening=strategicSnapshot(s);const docket=s.currentSubMissions?.day===s.day?s.currentSubMissions:compileSubMissionDocket(s,s.subMissionHistory);
   const arrivals = s.scheduled.filter((x) => x.day <= s.day); s.scheduled = s.scheduled.filter((x) => x.day > s.day); arrivals.forEach((x) => add(s, x.delta));
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); if(f?.module==="diplomacy")return;const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
   const opportunityResult=resolveLegacyOpportunityForDay(s);
@@ -745,18 +826,21 @@ export const resolve = (state: GameState) => {
   const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
   const immediateOpportunityPressure=opportunityResult.pressure?0:s.opportunityHistory.find(record=>record.day===s.day)?.friendlyPressure??0;
   const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"),confidence:maneuver?maneuverChance(s,maneuver,director):1,tempoCasualty,tempoSupply:tempoSupply*maneuverSupply,tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityResult.pressure+immediateOpportunityPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move,outcomeBand,margin}=operationResult.ledger;
-  const desert=estimateDay(s,director); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion;s.adversary.force=Math.max(0,s.adversary.force-enemyLoss);s.enemy=Math.round(s.adversary.force*s.adversary.estimateBias); s.population-=Math.round(losses*.72);
+  const desert=estimateDay(s,director); s.deserters+=desert.desertion;s.retained+=desert.retained; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion;s.adversary.force=Math.max(0,s.adversary.force-enemyLoss);s.enemy=Math.round(s.adversary.force*s.adversary.estimateBias); s.population-=Math.round(losses*.72);
   s.front+=move;if(maneuver?.id==="network"&&succeeded)s.intelligence+=3;const aftermath=resolveSituationAftermath(s,situation,maneuver?.id??null,outcomeBand,margin,move);s.theaterSectors=aftermath.theaterSectors;s.operationalFacts=aftermath.operationalFacts;s.situationHistory=aftermath.situationHistory;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${fmtStrategic(enemyLoss)} enemy losses // ${describeGroundMovement(move).display}`,reward:doctrineGain});}
   s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000+director.modifiers.treasury;const domesticResult=executeCircuit(domesticCircuit,s,{friendlyLosses:losses,shortages,directorLegitimacy:director.modifiers.legitimacy,directorResistance:director.modifiers.resistance});Object.assign(s,domesticResult.state);s.domesticLedger=domesticResult.ledger;
   const opportunityOutcome=s.opportunityHistory[0]?.day===s.day?s.opportunityHistory[0].outcome:null;
   const dispatch=composeWarDispatch({sector:situation.sector,maneuverLabel:maneuver?.label??null,conditionBrief:director.event.brief,outcomeBand,movement:move,friendlyLosses:losses,enemyLosses:enemyLoss,committed:operationResult.ledger.committed,forceRatio:operationResult.ledger.forceRatio,adversary:adversaryResult.ledger,diplomacy:diplomacyResult.ledger,domestic:domesticResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,desertionAttempted:desert.desertion,doctrineGain,aftermath:aftermath.createdFacts,opportunityOutcome});
   s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,trigger:director.trigger});
+  const todayDirectives=s.decisions.filter(decision=>decision.day===s.day);
+  for(const domain of ["domestic","network"] as const){const mission=docket[domain];const issued=todayDirectives.find(decision=>decision.domain===domain&&decision.missionId===mission.contentId);s.subMissionHistory.unshift({day:s.day,domain,archetypeId:mission.archetypeId,frameId:mission.frameId,realizationId:mission.realizationId,contentId:mission.contentId,category:mission.category,pressureBand:mission.pressureBand,resolutionTicket:mission.resolutionTicket,optionId:issued?.choiceId??null,familyId:issued?.familyId??null,choiceId:issued?.choiceId??null,outcome:issued?"issued":"lapsed"});}
+  const closing=strategicSnapshot(s);s.resolutionHistory.unshift({schemaVersion:1,resolvedDay:s.day,phaseId:director.phase.id,eventId:director.event.id,sector:situation.sector,blueprintId:situation.blueprintId,opening,closing,orders:{used:DAILY_ORDERS-s.actions,unused:s.actions,maneuverId:maneuver?.id??null,directives:todayDirectives.map(decision=>({familyId:decision.familyId,choiceId:decision.choiceId,family:decision.family,choice:decision.choice,domain:decision.domain,missionId:decision.missionId}))},operations:operationResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,domestic:domesticResult.ledger,diplomacy:diplomacyResult.ledger,adversaryObserved:{estimatedForce:adversaryResult.ledger.estimatedForce,estimateLow:adversaryResult.ledger.estimateLow,estimateHigh:adversaryResult.ledger.estimateHigh,observedOrders:[...adversaryResult.ledger.observedOrders],hiddenOrders:adversaryResult.ledger.hiddenOrders,signals:[...adversaryResult.ledger.signals]},personnel:{combatLosses:losses,desertionAttempts:desert.desertion,retained:desert.retained,intercepted:desert.intercepted,netDesertion:desert.netDesertion,effectiveGraduates:forceResult.ledger.effectiveGraduates,deployableAssigned:forceResult.ledger.deployableAssigned},outcome:{groundMovement:move,outcomeBand,doctrineGain,factsCreated:aftermath.createdFacts.map(fact=>fact.id)}});
   s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, ...dispatch, epigraph:director.event.quote });
   const resolvedDay=s.day-1,terminalResolutionOpen=resolvedDay>=TERMINAL_RESOLUTION_DAY;
   if((terminalResolutionOpen&&s.front>=12)||(s.day>30&&s.front>0))s.status="victory";
   if((terminalResolutionOpen&&s.front<=-12)||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
-  normalize(s);s.currentSituation=compileSituationForState(s);s.adversary.objective=s.currentSituation.sector;return s;
+  normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);s.adversary.objective=s.currentSituation.sector;return s;
 };
 
 export const fmt = (n: number, full=false) => full?Math.round(n).toLocaleString():new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(n);

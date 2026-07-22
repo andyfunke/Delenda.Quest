@@ -6,7 +6,7 @@ const {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
+  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -21,7 +21,7 @@ test("every theater opens with a stored graph-backed Situation Packet",()=>{
   for(const theater of THEATERS){
     const state=initialState({seed:2049,theater:theater.id});
     const situation=situationForState(state);
-    assert.equal(state.saveVersion,3);
+    assert.equal(state.saveVersion,4);
     assert.equal(state.contentPackVersion,CONTENT_PACK_VERSION);
     assert.equal(state.theaterSectors.length,6);
     assert.equal(situation.day,1);
@@ -169,9 +169,26 @@ test("the force report uses one local personnel chain and one disclosed effectiv
   assert.ok(operation.enemyCommitted>operation.enemyCommittedLow);
   assert.ok(operation.enemyCommitted<operation.enemyCommittedHigh);
   assert.equal(operation.friendlyPower,operation.effectiveCommitted);
-  assert.equal(operation.forceRatio,Math.max(.35,Math.min(1.8,operation.friendlyPower/operation.enemyPower)));
+  assert.equal(operation.forceRatio,operation.friendlyPower/operation.enemyPower);
+  assert.equal(operation.boundedForceRatio,Math.max(.35,Math.min(1.8,operation.forceRatio)));
   assert.ok(operation.friendlyConditionFactor>=.42&&operation.friendlyConditionFactor<=1.08);
   assert.ok(operation.enemyConditionFactor>=.45&&operation.enemyConditionFactor<=1.08);
+});
+
+test("desertion is nonzero by default and zero must be earned through disclosed retention plus patrols",()=>{
+  let state=initialState({seed:8801,theater:"lowland"});const desertion=FAMILIES.find(family=>family.id==="desertion"),patrols=desertion.choices.find(choice=>choice.id==="patrols"),rations=desertion.choices.find(choice=>choice.id==="rations");
+  const opening=estimateDay(state);assert.ok(opening.desertion>0);assert.ok(opening.netDesertion>0);assert.equal(opening.retained,0);assert.equal(opening.intercepted,0);
+  state=commit(state,desertion,patrols);assert.equal(state.patrolCommitment,4800);assert.ok(projectOperations(state).operationallyAvailable<state.deployable);assert.match(directiveRejection(state,desertion,patrols),/locked/);
+  state=resolve(state);state=resolve(state);assert.match(directiveRejection(state,desertion,patrols),/already established/);state=commit(state,desertion,rations);const mitigated=estimateDay(state);
+  assert.ok(mitigated.desertion>0);assert.ok(mitigated.retained>0);assert.ok(mitigated.intercepted>0);assert.equal(mitigated.netDesertion,0);
+});
+
+test("restoration rejects malformed saved sub-mission dockets and preserves resolution history",()=>{
+  let state=initialState({seed:99173,theater:"industrial"});state=resolve(state);const restored=restoreCampaignState(structuredClone(state));assert.equal(restored.resolutionHistory.length,1);
+  const malformed=structuredClone(state);malformed.currentSubMissions.domestic.archetypeId="missing-archetype";const repaired=restoreCampaignState(malformed);assert.notEqual(repaired.currentSubMissions.domestic.archetypeId,"missing-archetype");assert.doesNotThrow(()=>rules.situationForState(repaired));
+  const missingFrame=structuredClone(state);missingFrame.currentSubMissions.domestic.frameId="missing-frame";const reframed=restoreCampaignState(missingFrame);assert.notEqual(reframed.currentSubMissions.domestic.frameId,"missing-frame");
+  const missingEvidence=structuredClone(state);delete missingEvidence.currentSubMissions.network.evidence;const regenerated=restoreCampaignState(missingEvidence);assert.ok(Array.isArray(regenerated.currentSubMissions.network.evidence));assert.ok(regenerated.currentSubMissions.network.rendered.title);
+  const malformedHistory=structuredClone(state);delete malformedHistory.resolutionHistory[0].adversaryObserved;const filtered=restoreCampaignState(malformedHistory);assert.equal(filtered.resolutionHistory.length,0);
 });
 
 test("first-day loss exposure is daily while an inert command loses at the thirty-day horizon",()=>{

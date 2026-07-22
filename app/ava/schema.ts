@@ -1,6 +1,33 @@
 export type AvaModule = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 
-export type AvaEntityKind = "module" | "metric" | "maneuver" | "directive";
+export type AvaEntityKind = "campaign"|"module"|"domain"|"mission"|"sector"|"phase"|"event"|"operational-fact"|"metric"|"resource"|"maneuver"|"directive-family"|"directive"|"foreign-actor"|"sub-mission-option"|"opportunity"|"opportunity-response"|"doctrine-vector"|"doctrine-stage"|"active-effect"|"scheduled-effect"|"lock"|"intelligence-claim"|"resolution-record"|"campaign-record";
+export type AvaReportTopic = "overview"|"daily-brief"|"operations"|"losses"|"personnel"|"retrospective"|"production"|"resources"|"projection"|"domestic"|"network"|"military"|"diplomacy"|"doctrine"|"intelligence"|"adversary"|"effects"|"decision-ledger"|"opportunities"|"service-record";
+
+export type AvaActionRef =
+  | {kind:"maneuver";maneuverId:string}
+  | {kind:"directive";familyId:string;choiceId:string;actorId?:string}
+  | {kind:"sub-mission";domain:"domestic"|"network";missionId:string;optionId:string;resolutionTicket:string}
+  | {kind:"opportunity-response";opportunityId:string;responseId:string}
+  | {kind:"doctrine-stage";vectorId:string;stageId:string}
+  | {kind:"resolve-day"};
+
+export type AvaActionDescriptor={
+  id:string;handle:string;label:string;aliases:string[];kind:AvaActionRef["kind"];action:AvaActionRef;
+  domain?:"main"|"domestic"|"network";parentLabel:string;available:boolean;rejection?:string;
+  orderCost:number;insightCost?:number;owned:string[];contingent:string[];summary:string;
+};
+
+export type AvaPlan={id:string;stateRevision:string;actions:AvaActionRef[];orderCost:number;insightCost:number};
+export type AvaConfirmation={id:string;stateRevision:string;plan:AvaPlan;purpose:"issue-plan"|"resolve-day"|"opportunity"|"doctrine"};
+
+export type AvaReportCard = {
+  topic:AvaReportTopic;title:string;direct:string;flavor:string;
+  calculation:{equation:string;rows:Array<{label:string;value:string;tone?:"gain"|"loss"|"neutral";conceptId?:string}>};
+  history:{resolvedDays:number;requestedDays?:number;observedOrders:number;observations:string[]};
+  recommendation:string;
+  links:Array<{id:string;label:string}>;
+  commands:string[];
+};
 
 export type AvaEntity = {
   id: string;
@@ -8,6 +35,8 @@ export type AvaEntity = {
   label: string;
   aliases?: string[];
   parentId?: string;
+  handle?:string;
+  action?:AvaActionRef;
 };
 
 export type AvaInstruction =
@@ -15,13 +44,24 @@ export type AvaInstruction =
   | { kind: "ORDERS" }
   | { kind: "HELP"; subject?: string }
   | { kind: "STATUS" }
-  | { kind: "REPORT"; scope: AvaModule | "current" }
+  | { kind: "ADVISE" }
+  | { kind:"LIST";scope?:string }
+  | { kind: "REPORT"; topic:AvaReportTopic; days?:number; scope?: AvaModule | "current" }
   | { kind: "EXPLAIN"; entity: AvaEntity; facet: "meaning" | "effects" | "levers" | "calculus" }
   | { kind: "OPEN"; module: AvaModule }
   | { kind: "SELECT"; entity: AvaEntity }
-  | { kind: "FORECAST"; entity?: AvaEntity }
+  | { kind:"STAGE";entities:AvaEntity[] }
+  | { kind:"UNSTAGE";entities:AvaEntity[] }
+  | { kind:"SHOW_PLAN" }
+  | { kind:"ISSUE_PLAN" }
+  | { kind:"ISSUE";entities:AvaEntity[] }
+  | { kind: "FORECAST"; entity?: AvaEntity; plan?:boolean }
   | { kind: "COMPARE"; entities: [AvaEntity, AvaEntity] }
   | { kind: "CLEAR" }
+  | { kind:"CLEAR_PLAN" }
+  | { kind:"CONFIRM";token?:string }
+  | { kind:"CANCEL" }
+  | { kind:"MORE"|"LESS"|"REPEAT"|"IDENTITY"|"GRATITUDE"|"FRUSTRATION" }
   | { kind: "COMMIT"; entity?: AvaEntity }
   | { kind: "RESOLVE_DAY" };
 
@@ -53,24 +93,38 @@ export type AvaCommandHelp = {
 
 export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
   { command:"HELLO",purpose:"Open the command channel and receive the shortest useful orientation.",examples:["hello","hi Ava","are you there"],mutates:false },
-  { command:"ORDERS",purpose:"List remaining order capacity, the staged order, and authorized campaign maneuvers.",examples:["orders","what are my orders","orders available"],mutates:false },
+  { command:"ORDERS",purpose:"List remaining capacity, staged actions, and all three sealed campaign missions.",examples:["orders","what are my orders","orders available"],mutates:false },
+  { command:"MISSIONS",purpose:"List Main Campaign, Domestic Front, Command Network, and any active opportunity with stable day-scoped handles.",examples:["missions","list available actions","what can I issue"],mutates:false },
+  { command:"LIST [SCOPE]",purpose:"Enumerate registered Production, Military, Diplomacy, Doctrine, directive, opportunity, or all-system actions.",examples:["list production","list doctrine","list all"],mutates:false },
   { command:"STATUS",purpose:"Summarize the campaign condition and orders still requiring command.",examples:["status","how are we doing","command situation"],mutates:false },
-  { command:"REPORT [SYSTEM]",purpose:"Produce the authoritative report for the current or named command system.",examples:["report","production report","report diplomacy"],mutates:false },
+  { command:"ADVISE",purpose:"Answer what to do next with authored situation text, live calculus, accumulated intelligence, and a bounded recommendation.",examples:["what should I do","recommend a next move","where do I start"],mutates:false },
+  { command:"REPORT [SYSTEM]",purpose:"Produce a layered authoritative report for the current or named command system.",examples:["report","produce a report on production","domestic report"],mutates:false },
+  { command:"DAILY BRIEF",purpose:"Report Main, Domestic, and Network missions with their live evidence and order handles.",examples:["daily brief","brief me","produce a daily briefing"],mutates:false },
+  { command:"REPORT LOSSES [WINDOW]",purpose:"Aggregate casualties, flight, replacement, enemy loss, and movement across recorded resolved days.",examples:["report losses over the last 5 days","casualties past three days"],mutates:false },
+  { command:"RETROSPECTIVE [WINDOW]",purpose:"Review orders, outcomes, movement, doctrine, and observed enemy behavior.",examples:["retrospective","five day after action report"],mutates:false },
+  { command:"PROJECTION",purpose:"Project the next resolution across operations, production, personnel, and domestic state.",examples:["projection","what happens next","produce an outlook"],mutates:false },
   { command:"EXPLAIN [SUBJECT]",purpose:"Reveal a metric's meaning, effects, calculus, or controllable levers.",examples:["explain intelligence","what affects readiness","how do I improve supply"],mutates:false },
   { command:"OPEN [MODULE]",purpose:"Navigate to a command surface.",examples:["open campaign","go to doctrine","show production"],mutates:false },
-  { command:"SELECT [ORDER]",purpose:"Stage an authorized maneuver or open a directive for review.",examples:["select reinforce the salient","prepare methodical advance"],mutates:false },
+  { command:"SELECT [ORDER]",purpose:"Stage one currently registered action for forecast, comparison, or later issue.",examples:["select M2","prepare methodical advance"],mutates:false },
+  { command:"STAGE [HANDLES]",purpose:"Build an atomic order packet from one or more listed action handles.",examples:["stage M2 D1 N3","stage guarantee family rations"],mutates:false },
+  { command:"UNSTAGE [HANDLES]",purpose:"Remove one or more actions from the staged packet without changing campaign state.",examples:["unstage D1","remove N2 from plan"],mutates:false },
+  { command:"PLAN",purpose:"Show the staged packet, costs, owned effects, contingencies, and current state binding.",examples:["plan","show plan","forecast plan"],mutates:false },
   { command:"FORECAST [ORDER]",purpose:"Project disclosed same-day effects without issuing an order.",examples:["forecast","forecast exploit the gap"],mutates:false },
-  { command:"COMPARE [A] WITH [B]",purpose:"Compare two authorized maneuvers.",examples:["compare hold the line with local surge"],mutates:false },
-  { command:"ISSUE ORDER",purpose:"Issue the uniquely staged maneuver after validation.",examples:["issue order","commit selection","do it"],mutates:true },
+  { command:"COMPARE [A] WITH [B]",purpose:"Compare any two currently registered actions, including sub-mission and directive tradeoffs.",examples:["compare M1 M2","compare D1 D3"],mutates:false },
+  { command:"ISSUE ORDER",purpose:"Preflight a named or uniquely staged action and create a state-bound confirmation.",examples:["issue M2","commit selection","do it"],mutates:true },
+  { command:"ISSUE PLAN",purpose:"Preflight the staged packet and create a state-bound confirmation.",examples:["issue plan","commit plan"],mutates:true },
+  { command:"CONFIRM [TOKEN]",purpose:"Execute the one pending mutation only if the authoritative state has not changed.",examples:["confirm","confirm C-11-A43E20","yes do it"],mutates:true },
+  { command:"CANCEL",purpose:"Discard the pending confirmation without changing campaign state.",examples:["cancel","never mind"],mutates:false },
   { command:"CLEAR SELECTION",purpose:"Clear the currently staged Ava decision.",examples:["clear selection","cancel that"],mutates:false },
   { command:"RESOLVE DAY",purpose:"Open final day-resolution confirmation.",examples:["resolve day","end the day"],mutates:true },
+  { command:"MORE / LESS",purpose:"Change terminal disclosure depth without changing campaign state.",examples:["more detail","less","go deeper"],mutates:false },
   { command:"HELP [COMMAND]",purpose:"Open this command manual.",examples:["help","help forecast"],mutates:false },
 ];
 
 // This is also the future LLM tool contract. A language model may emit these
 // objects later, but it never bypasses the deterministic validator or executor.
 export const AVA_INSTRUCTION_SCHEMA = {
-  version:"delenda.quest.ava.instruction.v1",
+  version:"delenda.quest.ava.instruction.v3",
   intents:AVA_COMMAND_HELP.map(item=>item.command.split(" ")[0]),
   execution:"fail-closed",
   rawPromptStorage:false,

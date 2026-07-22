@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { CONCEPTS } from "./concepts";
 import {
   FAMILIES,
   activeDiplomacyForState,
@@ -12,12 +11,7 @@ import {
   type Family,
   type GameState,
 } from "./game";
-import { openWikiApplet } from "./wiki-events";
-
-function Concept({id,children}:{id:string;children:React.ReactNode}){
-  const c=CONCEPTS[id];
-  return <span className="term" role="button" tabIndex={0} onClick={()=>openWikiApplet(id)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")openWikiApplet(id)}}>{children}<span className="term-tip"><b>{c.label}</b><span>{c.definition}</span>{c.normal&&<em>NORMAL // {c.normal}</em>}<strong>CONSEQUENCE // {c.consequence}</strong><button onClick={e=>{e.stopPropagation();openWikiApplet(id)}}>OPEN WIKI APPLET</button><a href={`?wiki=${id}`} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}>OPEN EXTERNALLY ↗</a></span></span>;
-}
+import { ConceptBubblette as Concept } from "./Bubblette";
 
 const actorKey:Record<string,string>={orison:"Orison",vey:"Vey",kestrel:"Kestrel",cineric:"Cineric"};
 const adverseTerms=["dependency","enemy strength","atrocity","sanctions","betrayal","leverage"];

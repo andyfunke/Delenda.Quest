@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { openWikiApplet } from "./wiki-events";
+import { Bubblette } from "./Bubblette";
 
 type AccountSnapshot={
   authenticated:boolean;
@@ -18,7 +18,7 @@ type ServiceRecordEntry={
 };
 type ServiceRecord={uberscore:number;globalRank:number;commanderCount:number;records:ServiceRecordEntry[]};
 
-function AccountTerm({id,label,summary}:{id:string;label:string;summary:string}){return <span className="account-term" role="button" tabIndex={0} onClick={()=>openWikiApplet(id)} onKeyDown={event=>{if(event.key==="Enter"||event.key===" ")openWikiApplet(id)}}>{label}<span><b>{label}</b><small>{summary}</small><em>OPEN FIELD MANUAL →</em></span></span>}
+function AccountTerm({id,label,summary}:{id:string;label:string;summary:string}){return <Bubblette id={id} title={label} summary={summary} className="account-term">{label}</Bubblette>}
 
 export function AccountPage({onNewCampaign}:{onNewCampaign:()=>void}){
   const[data,setData]=useState<AccountSnapshot|null>(null);

@@ -15,18 +15,45 @@ test("daily convergence compiles one operational, domestic, and network problem"
   assert.equal(new Set(left.network.options.map(option=>option.id)).size,3);
 });
 
-test("the generative overlay has authored breadth and a stable matrix version",()=>{
-  assert.deepEqual(rules.convergenceMatrixAudit(),{domestic:8,network:8,version:"convergence-v1"});
-  const domestic=new Set(),network=new Set();
+test("the enumerated overlay separates mechanical archetypes from authored content frames",()=>{
+  assert.deepEqual(rules.convergenceMatrixAudit(),{domestic:12,network:12,version:"sub-missions-v3",contentVersion:"sub-mission-content-v1",optionRefs:72,domesticFrames:48,networkFrames:48,totalFrames:96,realizationLayers:72,compiledVariants:288});
+  assert.deepEqual(rules.validateSubMissionRegistry(),[]);
+  assert.equal(new Set(rules.SUB_MISSION_FRAMES.map(frame=>frame.id)).size,96);
+  for(const archetype of [...rules.DOMESTIC_SUB_MISSIONS,...rules.NETWORK_SUB_MISSIONS]){
+    const frames=rules.SUB_MISSION_FRAMES.filter(frame=>frame.archetypeId===archetype.id);
+    assert.equal(frames.length,4,`${archetype.id} should own four indivisible content frames`);
+    assert.equal(archetype.options.length,3);
+    assert.ok(archetype.convergence.length>=1);
+    for(const ref of archetype.options){
+      const family=rules.FAMILIES.find(item=>item.id===ref.familyId);
+      assert.ok(family?.choices.some(choice=>choice.id===ref.choiceId),`${archetype.id} references ${ref.familyId}/${ref.choiceId}`);
+    }
+  }
+  const domesticArchetypes=new Set(),networkArchetypes=new Set(),domesticFrames=new Set(),networkFrames=new Set();
   const profiles=[
     {},{queue:0,training:100000,quality:35},{desertionPressure:90,queue:0},{legitimacy:18,queue:0},{resistance:82,queue:0},{treasury:5,queue:0},{materiel:24,queue:0},{queue:0,training:100000},
   ];
   for(let seed=1;seed<=20;seed++)for(let day=1;day<=30;day++)for(const profile of profiles){
     const state=rules.initialState({seed:seed*7919,theater:"industrial"});Object.assign(state,profile);state.day=day;state.currentSituation=null;
-    const packet=rules.compileConvergence(state);domestic.add(packet.domestic.id);network.add(packet.network.id);
+    const packet=rules.compileConvergence(state);domesticArchetypes.add(packet.domestic.archetypeId);networkArchetypes.add(packet.network.archetypeId);domesticFrames.add(packet.domestic.frameId);networkFrames.add(packet.network.frameId);
+    for(const prompt of [packet.domestic,packet.network]){
+      assert.match(prompt.id,new RegExp(`^${prompt.domain}\\.${prompt.archetypeId}\\.${prompt.frameId}\\.${prompt.realizationId}$`));
+      assert.ok(prompt.operationalAnchor.sector);
+      assert.ok(prompt.convergence.every(edge=>edge.summary.includes(prompt.operationalAnchor.sector)));
+    }
   }
-  assert.ok(domestic.size>=6);
-  assert.ok(network.size>=6);
+  assert.equal(domesticArchetypes.size,12);assert.equal(networkArchetypes.size,12);
+  assert.equal(domesticFrames.size,48);assert.equal(networkFrames.size,48);
+});
+
+test("a campaign consumes enumerated frames without exact-copy repetition",()=>{
+  let state=rules.initialState({seed:99173,theater:"lowland"});const seen={domestic:new Set(),network:new Set()};
+  while(state.status==="active"){
+    const packet=rules.compileConvergence(state);
+    for(const domain of ["domestic","network"]){assert.ok(!seen[domain].has(packet[domain].id),`${domain} repeated ${packet[domain].id}`);seen[domain].add(packet[domain].id)}
+    state=rules.resolve(state);
+  }
+  assert.ok(seen.domestic.size>=27);assert.ok(seen.network.size>=27);
 });
 
 test("one briefing issue packet consumes the same three authoritative orders",()=>{
@@ -38,7 +65,17 @@ test("one briefing issue packet consumes the same three authoritative orders",()
   assert.equal(result.state.decisions.length,3);
   assert.equal(result.state.maneuver,before.maneuvers[0]);
   assert.equal(rules.situationForState(result.state).resolutionTicket,before.resolutionTicket);
-  assert.notEqual(result.state.networkPosture,state.networkPosture);
+  assert.equal(result.state.active[network.family.id],network.choice.id);
+  const tagged=result.state.decisions.filter(decision=>decision.domain);
+  assert.equal(tagged.length,2);assert.ok(tagged.every(decision=>decision.missionId&&decision.resolutionTicket));
+});
+
+test("daily sub-missions remain sealed through same-day orders and rotate only after resolution",()=>{
+  const state=rules.initialState({seed:7219,theater:"ridge"}),before=rules.compileConvergence(state),option=before.domestic.options[0];
+  const committed=rules.commitConvergence(state,{domesticId:option.id}).state,afterCommit=rules.compileConvergence(committed);
+  assert.equal(afterCommit.domestic.id,before.domestic.id);assert.equal(afterCommit.domestic.stateFingerprint,before.domestic.stateFingerprint);assert.equal(afterCommit.domestic.resolutionTicket,before.domestic.resolutionTicket);
+  const next=rules.resolve(committed),afterResolve=rules.compileConvergence(next);
+  assert.equal(afterResolve.day,2);assert.notEqual(afterResolve.domestic.resolutionTicket,before.domestic.resolutionTicket);assert.notEqual(afterResolve.domestic.id,before.domestic.id);assert.notEqual(afterResolve.network.id,before.network.id);assert.equal(next.subMissionHistory.length,2);assert.equal(next.subMissionHistory.find(record=>record.domain==="domestic").outcome,"issued");assert.equal(next.subMissionHistory.find(record=>record.domain==="network").outcome,"lapsed");
 });
 
 test("network and foreign-intelligence options are tradeoffs rather than scalar upgrades",()=>{

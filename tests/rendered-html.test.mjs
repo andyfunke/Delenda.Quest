@@ -70,16 +70,34 @@ test("daily brief is a second renderer over the same convergence substrate",asyn
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
   assert.match(page,/interfaceMode===\"briefing\"/);
-  assert.match(page,/commitConvergence/);
+  assert.match(page,/executeAvaPlan/);
+  assert.match(page,/buildAvaPlan/);
   assert.match(page,/DAILY BRIEF/);
-  for(const domain of ["PRIMARY · OPERATIONAL","SITUATIONAL · DOMESTIC","SITUATIONAL · NETWORK"]){
+  for(const domain of ["PRIMARY · MAIN CAMPAIGN","SITUATIONAL · DOMESTIC","SITUATIONAL · NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
   assert.match(briefing,/GENERATED FROM THE ACTIVE SECTOR GRAPH/);
-  assert.match(convergence,/CONVERGENCE_MATRIX_VERSION="convergence-v1"/);
-  assert.match(convergence,/domesticSpines:PromptSpine\[\]/);
-  assert.match(convergence,/networkSpines:PromptSpine\[\]/);
+  assert.match(convergence,/CONVERGENCE_MATRIX_VERSION=SUB_MISSION_SCHEMA_VERSION/);
+  assert.match(briefing,/TheaterGeometry/);
+  assert.doesNotMatch(briefing,/openModule/);
+  assert.doesNotMatch(briefing,/openManual/);
+  assert.match(briefing,/modern-dialog-scrim/);
+  assert.match(briefing,/focusFamilyId/);
+  assert.match(briefing,/briefing-open-manual/);
+  assert.match(page,/resolveDay=\{advance\}/);
+  assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
+});
+
+test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
+  const[page,css,manual,reports,schema]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8"),readFile(new URL("../app/FieldManual.tsx",import.meta.url),"utf8"),readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),readFile(new URL("../app/submission-schema.ts",import.meta.url),"utf8"),
+  ]);
+  for(const label of ["MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"])assert.match(page,new RegExp(label));
+  assert.match(schema,/DOMESTIC_SUB_MISSIONS/);assert.match(schema,/NETWORK_SUB_MISSIONS/);assert.match(schema,/sub-missions-v3/);assert.match(schema,/SUB_MISSION_CONTENT_VERSION/);
+  assert.match(css,/\.bubblette\.pinned>/);assert.match(css,/min-height:0!important/);
+  assert.match(manual,/Depends on/);assert.match(manual,/Used by/);assert.match(manual,/usedBy/);
+  assert.match(page,/AvaReportView/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
 });
 
 test("dashboard uses plain operational headings and the established minimum type size",async()=>{

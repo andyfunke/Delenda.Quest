@@ -30,9 +30,9 @@ export type ForceGenerationLedger = {
 };
 export type ForceGenerationContext = { preview?:boolean };
 export type OperationsLedger = {
-  day:number; sector:string; maneuver:string; committed:number; commitmentShare:number; frontageDemand:number; frontageSaturation:number;
+  day:number; sector:string; maneuver:string; operationallyAvailable:number;patrolCommitment:number;committed:number; commitmentShare:number; frontageDemand:number; frontageSaturation:number;
   terrainFactor:number; groundFactor:number; networkFactor:number; supplyFactor:number; intelligenceFactor:number;
-  readinessFactor:number; equipmentFactor:number; friendlyConditionFactor:number; effectiveCommitted:number; friendlyPower:number; enemyCommitted:number; enemyCommittedLow:number; enemyCommittedHigh:number; enemyCommitmentShare:number; enemyConditionFactor:number; enemyPower:number; forceRatio:number;
+  readinessFactor:number; equipmentFactor:number; friendlyConditionFactor:number; effectiveCommitted:number; friendlyPower:number; enemyCommitted:number; enemyCommittedLow:number; enemyCommittedHigh:number; enemyCommitmentShare:number; enemyConditionFactor:number; enemyPower:number; forceRatio:number;boundedForceRatio:number;
   executionConfidence:number; resolutionRoll:number; margin:number; outcomeBand:OutcomeBand; succeeded:boolean; friendlyLosses:number; lossRate:number; enemyLosses:number;
   basePressure:number; maneuverPressure:number; forceRatioPressure:number; intelligencePressure:number; shortagePressure:number; groundMovement:number;
   evidence:string[];
@@ -143,18 +143,31 @@ export const forceGenerationCircuit:Circuit<GameState,ForceGenerationLedger,Forc
 };
 
 const textFactor=(value:string,table:Record<string,number>,fallback=1)=>Object.entries(table).find(([key])=>value.toLowerCase().includes(key))?.[1]??fallback;
+const networkPolicyProfile=(state:GameState)=>{
+  const authentication=state.active["network-authentication"],custody=state.active["network-custody"];
+  let conversion=0,interferenceShield=0,classification=0;
+  if(authentication==="triple-challenge"){conversion-=.05;interferenceShield+=.09;classification+=.02;}
+  if(authentication==="delegated-keys"){conversion+=.08;interferenceShield+=.01;}
+  if(authentication==="rolling-codes"){conversion+=.03;interferenceShield+=.05;classification+=.01;}
+  if(custody==="central-archive"){conversion-=.04;interferenceShield+=.06;classification+=.02;}
+  if(custody==="field-custody"){conversion+=.05;interferenceShield+=.02;}
+  if(custody==="burn-after-use"){interferenceShield+=.04;classification+=.01;}
+  return{conversion,interferenceShield,classification};
+};
 export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsContext>={
   id:"operations",
   resolve(input,context){
     const state:GameState=JSON.parse(JSON.stringify(input)); const {situation,maneuver}=context;
-    const committed=Math.min(state.deployable,maneuver?.commitment??Math.round(state.deployable*.52));
+    const operationallyAvailable=Math.max(0,state.deployable-state.patrolCommitment);
+    const committed=Math.min(operationallyAvailable,maneuver?.commitment??Math.round(operationallyAvailable*.52));
     const frontageDemand=textFactor(situation.terrain,{ridge:52000,corridor:44000,basin:68000,lowland:60000,river:36000},56000);
     const terrainFactor=textFactor(situation.terrain,{ridge:.82,corridor:.9,basin:1.04,lowland:1,river:.76});
     const groundFactor=textFactor(situation.ground,{mined:.72,flooded:.68,saturated:.79,rubble:.84,dry:1.04,cratered:.86});
     const networkPostureAdjustment=state.networkPosture==="broadcast"?.14:state.networkPosture==="dark"?-.12:.04;
-    let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06})+networkPostureAdjustment-(state.adversaryLedger?.networkInterference??0);if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
+    const networkPolicy=networkPolicyProfile(state);const hostileInterference=Math.max(0,(state.adversaryLedger?.networkInterference??0)-networkPolicy.interferenceShield);
+    let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06})+networkPostureAdjustment+networkPolicy.conversion-hostileInterference;if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
     const supplyFactor=textFactor(situation.supply,{interdicted:.73,rationed:.82,adequate:1,secure:1.08})/Math.max(.85,context.tempoSupply*.82)*context.directorSupplyConversion;
-    const intelligenceFactor=clamp(.72+state.intelligence/150-(state.adversaryLedger?.deceptionPenalty??0),.68,1.26);
+    const intelligenceFactor=clamp(.72+state.intelligence/150+networkPolicy.classification-(state.adversaryLedger?.deceptionPenalty??0),.68,1.26);
     const readinessFactor=state.readiness/100,equipmentFactor=state.equipment/100;
     const frontageSaturation=committed/frontageDemand;
     const congestionFactor=frontageSaturation>1.35?clamp(1-(frontageSaturation-1.35)*.22,.68,1):1;
@@ -171,7 +184,7 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const enemyCommittedHigh=Math.max(enemyCommittedLow,(state.adversaryLedger?.deployedHigh??assessedForward*1.2)*sectorEnemyShare);
     const enemyConditionFactor=clamp(enemyReadiness*.34+enemyEquipment*.26+terrainFactor*.1+groundFactor*.1+.82*.1+.86*.1,.45,1.08);
     const enemyPower=Math.max(1,enemyCommitted*enemyConditionFactor*(state.adversaryLedger?.powerFactor??1));
-    const forceRatio=clamp(friendlyPower/enemyPower,.35,1.8);
+    const forceRatio=friendlyPower/enemyPower,boundedForceRatio=clamp(forceRatio,.35,1.8);
     const margin=maneuver?context.confidence-context.roll:0;
     const outcomeBand=outcomeBandForMargin(margin);
     const succeeded=outcomeBand==="clean"||outcomeBand==="executed";
@@ -180,20 +193,20 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const shortagePenalty=context.shortages*.18;
     const doctrineCasualty=maneuver?.id==="breach"&&state.unlocked.includes("suppression")?.92:1;
     const lossBandFactor=outcomeBand==="clean" ? .88 : outcomeBand==="executed" ? 1 : outcomeBand==="disrupted" ? 1.12 : 1.28;
-    const dailyLossRate=.014*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*context.directorCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,flooded:1.18,saturated:1.08,rubble:1.1,dry:.94})*lossBandFactor/Math.sqrt(Math.max(.35,forceRatio));
+    const dailyLossRate=.014*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*context.directorCasualty*(state.adversaryLedger?.friendlyLossFactor??1)*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,flooded:1.18,saturated:1.08,rubble:1.1,dry:.94})*lossBandFactor/Math.sqrt(boundedForceRatio);
     const friendlyLosses=Math.round(committed*clamp(dailyLossRate,.006,.075));
     const atrocities=(state.unlocked.includes("gas")?.25:0)+(state.unlocked.includes("mines")?.12:0);
     const enemyLossBand=outcomeBand==="clean" ? 1.15 : outcomeBand==="executed" ? 1 : outcomeBand==="disrupted" ? .72 : .45;
-    const enemyLossRate=.011*Math.sqrt(forceRatio)*(.9+Math.max(-.25,context.tempoPressure+maneuverPressure)*.18)*enemyLossBand;
+    const enemyLossRate=.011*Math.sqrt(boundedForceRatio)*(.9+Math.max(-.25,context.tempoPressure+maneuverPressure)*.18)*enemyLossBand;
     const enemyLosses=Math.max(0,Math.round(enemyCommitted*clamp(enemyLossRate,.004,.05)));
-    const forceRatioPressure=clamp((forceRatio-.45)*.55,-.22,.42),intelligencePressure=(state.intelligence-42)/180,shortagePressure=-shortagePenalty;
+    const forceRatioPressure=clamp((boundedForceRatio-.45)*.55,-.22,.42),intelligencePressure=(state.intelligence-42)/180,shortagePressure=-shortagePenalty;
     const networkTempoPressure=maneuver?(state.networkPosture==="broadcast"?.25:state.networkPosture==="dark"?-.08:.12):0;
     const basePressure=(maneuver?0:NO_ACTION_DAILY_FRONT_LOSS)+(context.tempoPressure-.35)*.45+networkTempoPressure+atrocities;
     const enemyPressureDeviation=(state.adversaryLedger?.pressure??.35)-.35;
     const groundMovement=basePressure+maneuverPressure*1.5+forceRatioPressure+intelligencePressure+shortagePressure+context.directorFriendlyPressure-context.directorEnemyPressure-enemyPressureDeviation;
-    const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/state.deployable*100).toFixed(1)}% of deployable force)`,`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence; margin ${margin>=0?"+":""}${(margin*100).toFixed(1)} points`,`${outcomeBand.toUpperCase()} outcome band selected from the stored margin`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];
+    const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/Math.max(1,operationallyAvailable)*100).toFixed(1)}% of operationally available force; ${state.patrolCommitment.toLocaleString()} assigned to desertion patrols)`,`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence; margin ${margin>=0?"+":""}${(margin*100).toFixed(1)} points`,`${outcomeBand.toUpperCase()} outcome band selected from the stored margin`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];
     const signals:CircuitSignal[]=[];if(frontageSaturation>1.35)signals.push({severity:"warning",code:"operations.frontage.congestion",message:"Committed force exceeds useful frontage and loses conversion efficiency."});if(networkFactor<.8)signals.push({severity:"critical",code:"operations.network.severed",message:"Command network sharply reduces committed-force conversion."});if(supplyFactor<.8)signals.push({severity:"critical",code:"operations.supply.interdicted",message:"Supply condition constrains operational power."});
-    return{state,signals,ledger:{day:state.day,sector:situation.sector,maneuver:maneuver?.label??"Standing Tempo",committed,commitmentShare:committed/Math.max(1,state.deployable),frontageDemand,frontageSaturation,terrainFactor,groundFactor,networkFactor,supplyFactor,intelligenceFactor,readinessFactor,equipmentFactor,friendlyConditionFactor,effectiveCommitted,friendlyPower,enemyCommitted,enemyCommittedLow,enemyCommittedHigh,enemyCommitmentShare,enemyConditionFactor,enemyPower,forceRatio,executionConfidence:context.confidence,resolutionRoll:context.roll,margin,outcomeBand,succeeded,friendlyLosses,lossRate:friendlyLosses/Math.max(1,committed),enemyLosses,basePressure,maneuverPressure,forceRatioPressure,intelligencePressure,shortagePressure,groundMovement,evidence}};
+    return{state,signals,ledger:{day:state.day,sector:situation.sector,maneuver:maneuver?.label??"Standing Tempo",operationallyAvailable,patrolCommitment:state.patrolCommitment,committed,commitmentShare:committed/Math.max(1,operationallyAvailable),frontageDemand,frontageSaturation,terrainFactor,groundFactor,networkFactor,supplyFactor,intelligenceFactor,readinessFactor,equipmentFactor,friendlyConditionFactor,effectiveCommitted,friendlyPower,enemyCommitted,enemyCommittedLow,enemyCommittedHigh,enemyCommitmentShare,enemyConditionFactor,enemyPower,forceRatio,boundedForceRatio,executionConfidence:context.confidence,resolutionRoll:context.roll,margin,outcomeBand,succeeded,friendlyLosses,lossRate:friendlyLosses/Math.max(1,committed),enemyLosses,basePressure,maneuverPressure,forceRatioPressure,intelligencePressure,shortagePressure,groundMovement,evidence}};
   }
 };
 

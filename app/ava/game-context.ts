@@ -1,5 +1,7 @@
-import { FAMILIES, GameState, MANEUVERS, situationForState } from "../game";
+import { GameState, situationForState } from "../game";
+import { compileConvergence } from "../convergence";
 import type { AvaEntity } from "./schema";
+import { enumerateAvaActions } from "./runtime";
 
 const metric=(id:string,label:string,aliases:string[]=[]):AvaEntity=>({id,kind:"metric",label,aliases});
 
@@ -24,9 +26,16 @@ export const AVA_METRICS:AvaEntity[]=[
   metric("network","Network",["communications","command network"]),
 ];
 
-export const avaEntitiesForState=(state:GameState):AvaEntity[]=>{
-  const authorized=new Set(situationForState(state).maneuvers);
-  const maneuvers=MANEUVERS.filter(item=>authorized.has(item.id)).map<AvaEntity>(item=>({id:item.id,kind:"maneuver",label:item.label,aliases:[item.vector]}));
-  const directives=FAMILIES.flatMap(family=>family.choices.map<AvaEntity>(choice=>({id:choice.id,kind:"directive",label:choice.label,aliases:[`${family.label} ${choice.label}`],parentId:family.id})));
-  return[...AVA_METRICS,...maneuvers,...directives];
+const actionKind=(kind:ReturnType<typeof enumerateAvaActions>[number]["kind"]):AvaEntity["kind"]=>kind==="maneuver"?"maneuver":kind==="directive"?"directive":kind==="sub-mission"?"sub-mission-option":kind==="opportunity-response"?"opportunity-response":kind==="doctrine-stage"?"doctrine-stage":"event";
+
+export const avaEntitiesForState=(state:GameState,opportunityFraction=0):AvaEntity[]=>{
+  const situation=situationForState(state),packet=compileConvergence(state),actions=enumerateAvaActions(state,opportunityFraction);
+  const actionEntities=actions.map<AvaEntity>(descriptor=>({id:descriptor.id,kind:actionKind(descriptor.kind),label:descriptor.label,aliases:[descriptor.handle,...descriptor.aliases],parentId:descriptor.parentLabel,handle:descriptor.handle,action:descriptor.action}));
+  const modules:AvaEntity[]=["dashboard","campaign","national","military","diplomacy","doctrine","account","wiki"].map(id=>({id,kind:"module",label:id[0].toUpperCase()+id.slice(1)}));
+  const missions:AvaEntity[]=[packet.domestic,packet.network].map(prompt=>({id:prompt.id,kind:"mission",label:prompt.title,aliases:[prompt.archetypeId,prompt.frameId,...prompt.aliases],parentId:prompt.domain}));
+  const actors=state.actors.map<AvaEntity>(actor=>({id:actor.id,kind:"foreign-actor",label:actor.name,aliases:[actor.role,actor.interest]}));
+  const resources=Object.keys(state.production).map<AvaEntity>(id=>({id,kind:"resource",label:id[0].toUpperCase()+id.slice(1)}));
+  const sectors=state.theaterSectors.filter(sector=>sector.theater===state.theater).map<AvaEntity>(sector=>({id:sector.id,kind:"sector",label:sector.name,aliases:[sector.terrain]}));
+  const facts=state.operationalFacts.map<AvaEntity>(fact=>({id:fact.id,kind:"operational-fact",label:fact.id.replaceAll("_"," "),parentId:fact.sectorId??undefined}));
+  return[...AVA_METRICS,...modules,...missions,...actors,...resources,...sectors,...facts,{id:situation.blueprintId,kind:"mission",label:situation.headline,aliases:[situation.sector,situation.problemClass],parentId:"main"},...actionEntities];
 };
