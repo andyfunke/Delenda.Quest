@@ -59,7 +59,7 @@ test("dashboard uses plain operational headings and the established minimum type
     assert.match(page,new RegExp(`title="${heading}"`));
   }
   assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
-  assert.doesNotMatch(css,/\b6px\b/);
+  assert.doesNotMatch(css,/(?:font-size|font):[^;}]*\b6px\b/);
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
 });
 
