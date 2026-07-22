@@ -88,7 +88,7 @@ const directiveDescriptor = (
     aliases: [choice.label, `${family.label} ${choice.label}`, choice.id],
     kind: "directive",
     action: { kind: "directive", familyId: family.id, choiceId: choice.id },
-    parentLabel: `${moduleLabel} // ${family.category} // ${family.label}`,
+    parentLabel: `${moduleLabel} / ${family.category} / ${family.label}`,
     available: !rejection,
     rejection: rejection ?? undefined,
     orderCost: 1,
@@ -117,7 +117,7 @@ export const enumerateAvaActions = (
       kind: "maneuver",
       action: { kind: "maneuver", maneuverId: id },
       domain: "main",
-      parentLabel: `Main Campaign // ${situation.sector}`,
+      parentLabel: `Main Campaign / ${situation.sector}`,
       available: !rejection,
       rejection: rejection ?? undefined,
       orderCost: 1,
@@ -150,13 +150,13 @@ export const enumerateAvaActions = (
           resolutionTicket: prompt.resolutionTicket,
         },
         domain,
-        parentLabel: `${domain === "domestic" ? "Domestic Front" : "Command Network"} // ${prompt.title}`,
+        parentLabel: `${domain === "domestic" ? "Domestic Front" : "Command Network"} / ${prompt.title}`,
         available: convergenceOptionAvailable(state, option),
         rejection: rejection ?? undefined,
         orderCost: 1,
         owned: [...option.choice.exact],
         contingent: [...option.choice.risk],
-        summary: `${option.choice.flavor} WHY TODAY // ${prompt.convergence.map((edge) => edge.summary).join(" ")}`,
+        summary: `${option.choice.flavor} WHY TODAY: ${prompt.convergence.map((edge) => edge.summary).join(" ")}`,
       });
     });
   FAMILIES.flatMap((family) =>
@@ -186,7 +186,7 @@ export const enumerateAvaActions = (
           opportunityId: opportunity.packet!.id,
           responseId: response.id,
         },
-        parentLabel: `Target of Opportunity // ${opportunity.packet!.label}`,
+        parentLabel: `Target of Opportunity / ${opportunity.packet!.label}`,
         available: !rejection,
         rejection: rejection ?? undefined,
         orderCost: 0,
@@ -225,7 +225,7 @@ export const enumerateAvaActions = (
           vectorId: vector.id,
           stageId: stage.id,
         },
-        parentLabel: `Doctrine // ${vector.label}`,
+        parentLabel: `Doctrine / ${vector.label}`,
         available: !rejection,
         rejection: rejection ?? undefined,
         orderCost: 0,
@@ -467,8 +467,8 @@ export const executeAvaConfirmation = (
 
 export const renderAvaAction = (descriptor: AvaActionDescriptor) =>
   [
-    `[${descriptor.handle}] ${descriptor.label.toUpperCase()} // ${descriptor.available ? "AVAILABLE" : `LOCKED // ${descriptor.rejection}`}`,
+    `[${descriptor.handle}] ${descriptor.label.toUpperCase()} · ${descriptor.available ? "AVAILABLE" : `LOCKED: ${descriptor.rejection}`}`,
     descriptor.summary,
-    ...descriptor.owned.map((line) => `OWNED // ${line}`),
-    ...descriptor.contingent.map((line) => `CONTINGENT // ${line}`),
+    ...descriptor.owned.map((line) => `OWNED: ${line}`),
+    ...descriptor.contingent.map((line) => `CONTINGENT: ${line}`),
   ].join("\n");

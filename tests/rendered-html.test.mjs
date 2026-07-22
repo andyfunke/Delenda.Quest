@@ -99,12 +99,44 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(page,/SubMissionReadout/);assert.match(page,/NETWORK POSTURE/);assert.match(page,/STRIKE RISK/);
   assert.match(css,/\.bubblette\.pinned\s*>\s*\.bubblette-panel/);assert.match(css,/min-height:\s*0\s*!important/);
   assert.match(css,/position:\s*fixed/);assert.match(css,/translate\(-50%,\s*-50%\)/);
-  assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/detail\.control \?\? detailConcept\?\.control/);
+  assert.ok(css.lastIndexOf("Final semantic cascade guard")>css.lastIndexOf("Shared pinned inspection graph"),"the pale content and type authority must be the final cascade block");
+  assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);assert.match(bubblette,/setActiveId\(rootCatalogId\)/);
+  assert.equal((bubblette.match(/openWikiApplet\(/g)??[]).length,1,"only the explicit Field Manual action may leave a bubblette");
   assert.match(manual,/Depends on/);assert.match(manual,/Used by/);assert.match(manual,/usedBy/);
   assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
   assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
   assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
+});
+
+test("campaign navigation, military reinforcement, Doctrine inspection, and text roles remain player-facing",async()=>{
+  const[page,briefing,bubblette,css,concepts,terminal,voice,avaRenderer]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../app/concepts.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/terminal.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/voice.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/AvaTextRenderer.tsx",import.meta.url),"utf8"),
+  ]);
+  const readout=page.slice(page.indexOf("function SubMissionReadout"),page.indexOf("function DoctrineConfirm"));
+  const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
+  assert.doesNotMatch(campaign,/campaign-mission-context|OPERATIONAL CONVERGENCE|MISSION TICKET|CONTENT FRAME|matrixVersion|frameId|realizationId|mechanical archetype/i);
+  assert.match(readout,/FRONT-LINE CONSEQUENCE/);
+  assert.match(readout,/WHY THIS ORDER EXISTS TODAY/);
+  for(const label of ["EFFECTIVE GRADUATES","FIELD-EQUIPPED GRADUATES","HELD IN REPLACEMENT RESERVE","READINESS GATE","DEPLOYABLE REINFORCEMENTS"])assert.match(page,new RegExp(label));
+  assert.doesNotMatch(concepts,/equipment assignment → reserve or deployable formation/i);
+  assert.match(page,/BATTLEFIELD EFFECT/);assert.doesNotMatch(page,/DETERMINISTIC EFFECT/);
+  assert.doesNotMatch(briefing,/EXACT RUNTIME EFFECT/);assert.match(briefing,/BATTLEFIELD EFFECT/);
+  const doctrineSurface=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));
+  assert.doesNotMatch(page,/\sdisabled=\{!prior\}/);assert.doesNotMatch(doctrineSurface,/\sdisabled=\{!available\}/);
+  assert.doesNotMatch(doctrineSurface,/aria-disabled/);
+  assert.match(bubblette,/bubblette-pinned/);assert.match(bubblette,/setActiveId\(relatedId\)/);assert.match(bubblette,/FIELD APPLETTE \/\/ PINNED/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);
+  assert.match(page,/if \(interfaceMode === "briefing"\)[\s\S]{0,180}briefing-open-manual/);
+  assert.match(css,/background:\s*#fffde8/);assert.match(css,/--type-display/);assert.match(css,/--type-body:\s*400 18px/);assert.match(css,/--type-data/);
+  assert.match(terminal,/voiceCueForInstruction/);assert.match(voice,/FIELD NOTE \/ \$\{opening\.label\}/);assert.doesNotMatch(voice,/responseTopic/);
+  assert.match(avaRenderer,/explicitLoss/);assert.match(avaRenderer,/explicitGain/);assert.doesNotMatch(avaRenderer,/line\.includes\(["']\+["']\)|line\.includes\(["']−["']\)/);
 });
 
 test("the reference tactical plate and munitions stockpile label are preserved exactly",async()=>{

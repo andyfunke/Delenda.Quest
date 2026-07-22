@@ -52,7 +52,7 @@ test("the extended report registry covers every terminal information surface",()
 test("new reports preserve authority boundaries and exact ledger values",()=>{
   const state=resolvedState(4),production=game.projectProduction(state),adversary=game.projectAdversary(state),personnel=game.estimateDay(state),force=game.projectForceGeneration(state);
   const resources=reports.buildAvaReport({kind:"REPORT",topic:"resources",days:3,scope:"current"},state);
-  assert.equal(row(resources,"MUNITIONS COVERAGE"),`${production.lines.find(line=>line.resource==="munitions").coverage.toFixed(1)} DAYS // ${production.lines.find(line=>line.resource==="munitions").status.toUpperCase()}`);
+  assert.equal(row(resources,"MUNITIONS COVERAGE"),`${production.lines.find(line=>line.resource==="munitions").coverage.toFixed(1)} DAYS · ${production.lines.find(line=>line.resource==="munitions").status.toUpperCase()}`);
   const people=reports.buildAvaReport({kind:"REPORT",topic:"personnel",days:3,scope:"current"},state);
   assert.equal(row(people,"NET FLIGHT"),`−${game.fmt(personnel.netDesertion,true)}`);
   assert.equal(row(people,"PROJECTED NET DEPLOYABLE"),`${force.deployableAssigned-personnel.casualty-personnel.netDesertion>=0?"+":"−"}${Math.abs(force.deployableAssigned-personnel.casualty-personnel.netDesertion).toFixed(0)}`);
@@ -65,16 +65,16 @@ test("new reports preserve authority boundaries and exact ledger values",()=>{
 
 test("report narration is topic-bounded and contains no implementation vocabulary",()=>{
   const state=resolvedState(2),battlefield=game.situationForState(state).headline;
-  for(const topic of ["production","domestic","diplomacy","personnel","resources","service-record"]){
+  for(const topic of ["production","domestic","diplomacy","personnel","resources","network","opportunities","service-record"]){
     const report=reports.buildAvaReport({kind:"REPORT",topic,scope:"current"},state),text=[report.flavor,report.direct,report.recommendation,...report.history.observations,...report.calculation.rows.flatMap(item=>[item.label,item.value])].join(" ");
     assert.doesNotMatch(report.flavor,new RegExp(battlefield.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),`${topic} must not inherit unrelated battlefield prose`);
-    assert.doesNotMatch(text,/GAMESTATE|CONTENT VERSION|SESSION CONTEXT|runtime effect|exact substrate|present in this save|public slug/i,topic);
+    assert.doesNotMatch(text,/GAMESTATE|CONTENT VERSION|SESSION CONTEXT|runtime effect|exact substrate|present in this save|public slug|deterministic|compiler|schema version|selection evidence|\bconvergence\b/i,topic);
   }
 });
 
 test("daily brief enumerates all three convergent fronts",()=>{
   const report=reports.buildAvaReport({kind:"REPORT",topic:"daily-brief",scope:"campaign"},resolvedState(2)),labels=report.calculation.rows.map(item=>item.label);
   assert.ok(labels.includes("MAIN CAMPAIGN"));assert.ok(labels.includes("DOMESTIC FRONT"));assert.ok(labels.includes("COMMAND NETWORK"));
-  assert.ok(labels.some(label=>label.startsWith("M1 //")));assert.ok(labels.some(label=>label.startsWith("D1 //")));assert.ok(labels.some(label=>label.startsWith("N1 //")));
+  assert.ok(labels.some(label=>label.startsWith("M1 /")));assert.ok(labels.some(label=>label.startsWith("D1 /")));assert.ok(labels.some(label=>label.startsWith("N1 /")));
   assert.doesNotMatch(report.history.observations.join(" "),/deterministic rotation|seeded tie/i);
 });

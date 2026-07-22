@@ -4,7 +4,6 @@ import {
   MANEUVERS,
   activeDiplomacyForState,
   coverage,
-  directorForState,
   estimateDay,
   fmt,
   maneuverChance,
@@ -19,6 +18,7 @@ import {
 } from "../game";
 import { compileConvergence } from "../convergence";
 import type { AvaInstruction, AvaReportCard, AvaReportTopic } from "./schema";
+import { avaReportOpening as flavor } from "./voice";
 
 type ReportInstruction =
   | Extract<AvaInstruction, { kind: "REPORT" }>
@@ -37,52 +37,6 @@ const observed = (state: GameState, days = state.resolutionHistory.length) =>
     (sum, record) => sum + record.adversaryObserved.observedOrders.length,
     0,
   );
-const flavor = (state: GameState, topic: AvaReportTopic) => {
-  const situation = situationForState(state),
-    director = directorForState(state),
-    production = projectProduction(state),
-    force = projectForceGeneration(state);
-  switch (topic) {
-    case "losses":
-    case "personnel":
-      return `The field rolls are being reconciled against replacements, retained personnel, and flight. ${fmt(state.deployable, true)} remain deployable.`;
-    case "retrospective":
-    case "decision-ledger":
-      return `The command ledger preserves what was ordered, what lapsed, and what the field returned. Intent that never became an order is not counted.`;
-    case "production":
-    case "resources":
-      return `${production.target.toUpperCase()} has priority at the works. ${production.shortages} production line${production.shortages === 1 ? " is" : "s are"} in critical coverage.`;
-    case "projection":
-      return `The projection holds the current docket still and carries its disclosed effects through tonight's ledgers.`;
-    case "domestic":
-      return `Civil authority is measuring a legitimacy of ${state.legitimacy.toFixed(0)} against resistance of ${state.resistance.toFixed(0)}. Neither number is morale alone.`;
-    case "network":
-      return `Signals discipline is converting the current network posture into field command under hostile interference.`;
-    case "intelligence":
-    case "adversary":
-      return `${situation.headline}. Collection has classified ${state.intelligence.toFixed(0)} percent of the present picture; the remainder stays uncertain.`;
-    case "effects":
-      return `Standing orders, delayed arrivals, and expiring diplomatic commitments are being read in the order they will touch the position.`;
-    case "opportunities":
-      return `Forward watchers have no separate opening to report beyond the current command docket.`;
-    case "service-record":
-      return state.status === "active"
-        ? `The campaign ledger remains open. No permanent record can be struck while today's command is unresolved.`
-        : `The campaign ledger is closed and ready for the records office.`;
-    case "diplomacy":
-      return `${state.actors.length} foreign ledgers remain open. Trust, leverage, dependency, and betrayal exposure are being carried separately.`;
-    case "doctrine":
-      return `${state.doctrine} Insight Point${state.doctrine === 1 ? " is" : "s are"} available; principles matter only when their stated field effect meets a present constraint.`;
-    case "military":
-      return `${fmt(force.effectiveGraduates, true)} effective graduates are projected against the force presently available for assignment.`;
-    case "daily-brief":
-      return `${situation.headline}. ${director.event.brief}`;
-    case "operations":
-    case "overview":
-    default:
-      return `${situation.headline}. ${director.event.brief}`;
-  }
-};
 const historyLayer = (
   state: GameState,
   records: GameState["resolutionHistory"],
@@ -125,7 +79,7 @@ function lossesReport(state: GameState, requested = 5): AvaReportCard {
     movement = sum((record) => record.outcome.groundMovement);
   return {
     topic: "losses",
-    title: `Loss report // last ${requested} days`,
+    title: `Loss report / last ${requested} days`,
     direct: `${fmt(combat, true)} combat losses and ${fmt(net, true)} net desertions are recorded across ${records.length} available resolved day${records.length === 1 ? "" : "s"}.`,
     flavor: flavor(state, "losses"),
     calculation: {
@@ -224,7 +178,7 @@ function retrospectiveReport(state: GameState, requested = 5): AvaReportCard {
   ].slice(0, 4);
   return {
     topic: "retrospective",
-    title: `Command retrospective // ${requested}-day window`,
+    title: `Command retrospective / ${requested}-day window`,
     direct: `${orders} orders were issued, ${unused} lapsed, and ${wins} of ${maneuvers.length} issued maneuvers met their execution threshold.`,
     flavor: flavor(state, "retrospective"),
     calculation: {
@@ -298,7 +252,7 @@ function productionReport(state: GameState, requested = 5): AvaReportCard {
     );
   const lines = projection.lines.map((line) => ({
     label: line.resource.toUpperCase(),
-    value: `${line.net >= 0 ? "+" : ""}${fmt(line.net, true)} NEXT // ${line.coverage.toFixed(1)} DAYS`,
+    value: `${line.net >= 0 ? "+" : ""}${fmt(line.net, true)} NEXT · ${line.coverage.toFixed(1)} DAYS`,
     tone:
       line.status === "critical"
         ? ("loss" as const)
@@ -318,7 +272,7 @@ function productionReport(state: GameState, requested = 5): AvaReportCard {
       rows: [
         ...lines,
         {
-          label: `MUNITIONS NET // ${records.length} DAYS`,
+          label: `MUNITIONS NET / ${records.length} DAYS`,
           value: fmt(historicalNet("munitions"), true),
           tone: historicalNet("munitions") >= 0 ? "gain" : "loss",
           conceptId: "munitions",
@@ -364,7 +318,7 @@ function projectionReport(state: GameState): AvaReportCard {
     history = recent(state, 5);
   return {
     topic: "projection",
-    title: `Projection // Day ${state.day} resolution`,
+    title: `Projection / Day ${state.day} resolution`,
     direct: `Standing state projects ${fmt(personnel.casualty, true)} combat losses, ${fmt(personnel.netDesertion, true)} net flight, and ${signed(operation.groundMovement)} km before the day closes.`,
     flavor: flavor(state, "projection"),
     calculation: {
@@ -489,13 +443,13 @@ function domesticReport(state: GameState, requested = 5): AvaReportCard {
           conceptId: "legitimacy",
         },
         {
-          label: `RECORDED LEGITIMACY // ${records.length}D`,
+          label: `RECORDED LEGITIMACY / ${records.length}D`,
           value: signed(legitimacy),
           tone: legitimacy >= 0 ? "gain" : "loss",
           conceptId: "legitimacy",
         },
         {
-          label: `RECORDED RESISTANCE // ${records.length}D`,
+          label: `RECORDED RESISTANCE / ${records.length}D`,
           value: signed(resistance),
           tone: resistance <= 0 ? "gain" : "loss",
           conceptId: "resistance",
@@ -541,7 +495,7 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
     );
   return {
     topic: "operations",
-    title: `Operations report // ${situation.sector}`,
+    title: `Operations report / ${situation.sector}`,
     direct: `${operation.maneuver} commits ${fmt(operation.committed, true)} local personnel at a literal ${operation.forceRatio.toFixed(2)} effective-force ratio and projects ${signed(operation.groundMovement)} km.`,
     flavor: flavor(state, "operations"),
     calculation: {
@@ -565,7 +519,7 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
         },
         {
           label: "ASSESSED ENEMY LOCAL",
-          value: `${fmt(operation.enemyCommitted, true)} // ${fmt(operation.enemyCommittedLow, true)}–${fmt(operation.enemyCommittedHigh, true)}`,
+          value: `${fmt(operation.enemyCommitted, true)} · ${fmt(operation.enemyCommittedLow, true)}–${fmt(operation.enemyCommittedHigh, true)}`,
           conceptId: "enemy-forward-deployment",
         },
         {
@@ -630,16 +584,16 @@ function networkReport(state: GameState, requested = 5): AvaReportCard {
     issued = history.filter((record) => record.outcome === "issued").length;
   const optionRows: AvaReportCard["calculation"]["rows"] = packet.options.map(
     (option, index) => ({
-      label: `N${index + 1} // ${option.choice.label.toUpperCase()}`,
-      value: `${option.family.label} // ${option.choice.exact.join("; ")}`,
+      label: `N${index + 1} / ${option.choice.label.toUpperCase()}`,
+      value: `${option.family.label} · ${option.choice.exact.join("; ")}`,
       conceptId: "command-network",
     }),
   );
   return {
     topic: "network",
-    title: `Command Network // ${packet.title}`,
+    title: `Command Network / ${packet.title}`,
     direct: `${packet.pressureBand.toUpperCase()} network pressure is active under ${state.networkPosture.toUpperCase()} posture; the current local conversion factor is ${operation.networkFactor.toFixed(2)}.`,
-    flavor: `${packet.brief} ${packet.operationalAnchor.headline}`,
+    flavor: flavor(state, "network"),
     calculation: {
       equation:
         "sector network condition + network posture + authentication/custody policy − hostile interference = operational network conversion",
@@ -667,7 +621,7 @@ function networkReport(state: GameState, requested = 5): AvaReportCard {
         },
         {
           label: "ACTIVE NETWORK MISSION",
-          value: `${packet.category} // ${packet.title}`,
+          value: `${packet.category} · ${packet.title}`,
           conceptId: packet.archetypeId,
         },
         ...optionRows,
@@ -675,8 +629,8 @@ function networkReport(state: GameState, requested = 5): AvaReportCard {
     },
     history: historyLayer(state, records, requested, [
       `${issued} of ${history.length} recorded Network missions received an order.`,
-      ...packet.evidence.map((item) => `Selection evidence: ${item}.`),
-      `Convergence: ${packet.convergence.map((edge) => edge.summary).join(" ")}`,
+      ...packet.evidence.map((item) => `Field evidence: ${item}.`),
+      `Front-line consequence: ${packet.convergence.map((edge) => edge.summary).join(" ")}`,
     ]),
     recommendation:
       operation.networkFactor < 0.8
@@ -730,7 +684,7 @@ function intelligenceReport(state: GameState, requested = 5): AvaReportCard {
         },
         {
           label: "ASSESSED LOCAL DEPLOYMENT",
-          value: `${fmt(adversary.deployedEstimate, true)} // ${fmt(adversary.deployedLow, true)}–${fmt(adversary.deployedHigh, true)}`,
+          value: `${fmt(adversary.deployedEstimate, true)} · ${fmt(adversary.deployedLow, true)}–${fmt(adversary.deployedHigh, true)}`,
           conceptId: "enemy-forward-deployment",
         },
         {
@@ -796,12 +750,12 @@ function adversaryReport(state: GameState, requested = 5): AvaReportCard {
       rows: [
         {
           label: "THEATER ESTIMATE",
-          value: `${fmt(adversary.estimatedForce, true)} // ${fmt(adversary.estimateLow, true)}–${fmt(adversary.estimateHigh, true)}`,
+          value: `${fmt(adversary.estimatedForce, true)} · ${fmt(adversary.estimateLow, true)}–${fmt(adversary.estimateHigh, true)}`,
           conceptId: "enemy-forward-deployment",
         },
         {
           label: "LOCAL DEPLOYMENT ESTIMATE",
-          value: `${fmt(adversary.deployedEstimate, true)} // ${(adversary.deploymentShare * 100).toFixed(0)}% SHARE`,
+          value: `${fmt(adversary.deployedEstimate, true)} · ${(adversary.deploymentShare * 100).toFixed(0)}% SHARE`,
           conceptId: "enemy-forward-deployment",
         },
         {
@@ -999,7 +953,7 @@ function resourcesReport(state: GameState, requested = 5): AvaReportCard {
       rows: production.lines.flatMap((line) => [
         {
           label: line.resource.toUpperCase(),
-          value: `OPEN ${fmt(line.opening, true)} // +${fmt(line.output, true)} // −${fmt(line.use, true)} // CLOSE ${fmt(line.closing, true)}`,
+          value: `OPEN ${fmt(line.opening, true)} · +${fmt(line.output, true)} · −${fmt(line.use, true)} · CLOSE ${fmt(line.closing, true)}`,
           tone:
             line.status === "critical"
               ? ("loss" as const)
@@ -1009,7 +963,7 @@ function resourcesReport(state: GameState, requested = 5): AvaReportCard {
         },
         {
           label: `${line.resource.toUpperCase()} COVERAGE`,
-          value: `${line.coverage.toFixed(1)} DAYS // ${line.status.toUpperCase()}`,
+          value: `${line.coverage.toFixed(1)} DAYS · ${line.status.toUpperCase()}`,
           tone:
             line.status === "critical"
               ? ("loss" as const)
@@ -1095,21 +1049,21 @@ function effectsReport(state: GameState, requested = 5): AvaReportCard {
     },
     ...standing.map((item) => ({
       label: item.family.label.toUpperCase(),
-      value: `${item.choice.label} // ${item.choice.exact.join("; ")}`,
+      value: `${item.choice.label} · ${item.choice.exact.join("; ")}`,
       conceptId: `directive-${slug(item.choice.label)}`,
     })),
     ...diplomacy.map((item) => ({
-      label: `DIPLOMACY // ${item.choice.label.toUpperCase()}`,
-      value: `THROUGH DAY ${item.action.expiresDay - 1} // ${item.choice.exact.join("; ")}`,
+      label: `DIPLOMACY / ${item.choice.label.toUpperCase()}`,
+      value: `THROUGH DAY ${item.action.expiresDay - 1} · ${item.choice.exact.join("; ")}`,
       conceptId: "diplomatic-trust",
     })),
     ...locks.map(([familyId, until]) => ({
-      label: `LOCK // ${(FAMILIES.find((item) => item.id === familyId)?.label ?? familyId).toUpperCase()}`,
+      label: `LOCK / ${(FAMILIES.find((item) => item.id === familyId)?.label ?? familyId).toUpperCase()}`,
       value: `AVAILABLE DAY ${until}`,
       conceptId: "actions",
     })),
     ...scheduled.map((item) => ({
-      label: `SCHEDULED // ${item.source.toUpperCase()}`,
+      label: `SCHEDULED / ${item.source.toUpperCase()}`,
       value: `DAY ${item.day}`,
       conceptId: "resolution",
     })),
@@ -1164,26 +1118,26 @@ function opportunitiesReport(state: GameState, requested = 5): AvaReportCard {
   const rows: AvaReportCard["calculation"]["rows"] = [
     {
       label: "TODAY'S OPPORTUNITY DOCKET",
-      value: packet ? `${packet.label} // ${packet.sector}` : "NONE SCHEDULED",
+      value: packet ? `${packet.label} · ${packet.sector}` : "NONE SCHEDULED",
       conceptId: "target-of-opportunity",
     },
     {
       label: "TODAY'S RESULT",
       value: today
-        ? `${today.outcome.toUpperCase()} // ${today.response}`
+        ? `${today.outcome.toUpperCase()} · ${today.response}`
         : packet
-          ? "UNRESOLVED // CLOCK WINDOW REQUIRED"
+          ? "UNRESOLVED: CLOCK WINDOW REQUIRED"
           : "NOT APPLICABLE",
       conceptId: "target-of-opportunity",
     },
     {
-      label: `RECORDED // ${requested}D`,
-      value: `${history.length} OCCURRED // ${exploited} EXPLOITED`,
+      label: `RECORDED / ${requested}D`,
+      value: `${history.length} OCCURRED · ${exploited} EXPLOITED`,
       conceptId: "target-of-opportunity",
     },
     ...(packet?.responses.map((response, index) => ({
-      label: `X${index + 1} // ${response.label.toUpperCase()}`,
-      value: `${Math.round(response.chance * 100)}% // ${response.exact.join("; ")} // ${response.contingent.join("; ")}`,
+      label: `X${index + 1} / ${response.label.toUpperCase()}`,
+      value: `${Math.round(response.chance * 100)}% · ${response.exact.join("; ")} · ${response.contingent.join("; ")}`,
       conceptId: "target-of-opportunity",
     })) ?? []),
   ];
@@ -1193,9 +1147,7 @@ function opportunitiesReport(state: GameState, requested = 5): AvaReportCard {
     direct: packet
       ? `${packet.label} is scheduled for Day ${state.day} at ${packet.sector}. This report does not establish whether its clock window is presently open.`
       : `No target of opportunity is scheduled for Day ${state.day}.`,
-    flavor: packet
-      ? `${packet.headline}. ${packet.individual}. ${packet.brief}`
-      : flavor(state, "opportunities"),
+    flavor: flavor(state, "opportunities"),
     calculation: {
       equation:
         "sealed campaign sequence + day → occurrence; command clock → open window; selected response → immediate result",
@@ -1204,7 +1156,7 @@ function opportunitiesReport(state: GameState, requested = 5): AvaReportCard {
     history: historyLayer(state, records, requested, [
       ...history.map(
         (record) =>
-          `Day ${record.day}: ${record.response} // ${record.outcome} // ${record.report}`,
+          `Day ${record.day}: ${record.response} · ${record.outcome} · ${record.report}`,
       ),
     ]),
     recommendation: today
@@ -1248,7 +1200,7 @@ function decisionLedgerReport(state: GameState, requested = 5): AvaReportCard {
       ...decisions.slice(0, 24).map((decision) => {
         const family = FAMILIES.find((item) => item.id === decision.familyId);
         return {
-          label: `DAY ${decision.day} // ${(decision.domain ?? decision.family).toUpperCase()}`,
+          label: `DAY ${decision.day} / ${(decision.domain ?? decision.family).toUpperCase()}`,
           value: decision.choice,
           conceptId: family ? `issue-${slug(family.label)}` : "actions",
         };
@@ -1256,7 +1208,7 @@ function decisionLedgerReport(state: GameState, requested = 5): AvaReportCard {
     ];
   return {
     topic: "decision-ledger",
-    title: `Decision ledger // ${requested}-day window`,
+    title: `Decision ledger / ${requested}-day window`,
     direct: `${decisions.length} decisions are recorded from Day ${startDay} through Day ${state.day}; ${resolved} orders have resolved and ${lapsed} order slots lapsed in the available historical rows.`,
     flavor: flavor(state, "decision-ledger"),
     calculation: {
@@ -1384,55 +1336,55 @@ function dailyBriefReport(state: GameState): AvaReportCard {
     },
     {
       label: "MAIN CAMPAIGN",
-      value: `${packet.operational.sector} // ${packet.operational.question}`,
+      value: `${packet.operational.sector} · ${packet.operational.question}`,
       conceptId: "campaign-synopsis",
     },
     ...maneuvers.map((maneuver, index) => ({
-      label: `M${index + 1} // ${maneuver.label.toUpperCase()}`,
-      value: `${Math.round(maneuverChance(state, maneuver) * 100)}% CONFIDENCE // ${fmt(projectOperations(state, maneuver).committed, true)} COMMITTED`,
+      label: `M${index + 1} / ${maneuver.label.toUpperCase()}`,
+      value: `${Math.round(maneuverChance(state, maneuver) * 100)}% CONFIDENCE · ${fmt(projectOperations(state, maneuver).committed, true)} COMMITTED`,
       conceptId: `maneuver-${slug(maneuver.label)}`,
     })),
     {
       label: "DOMESTIC FRONT",
-      value: `${packet.domestic.pressureBand.toUpperCase()} // ${packet.domestic.title} // ${packet.domestic.question}`,
+      value: `${packet.domestic.pressureBand.toUpperCase()} · ${packet.domestic.title} · ${packet.domestic.question}`,
       conceptId: packet.domestic.archetypeId,
     },
     ...packet.domestic.options.map((option, index) => ({
-      label: `D${index + 1} // ${option.choice.label.toUpperCase()}`,
+      label: `D${index + 1} / ${option.choice.label.toUpperCase()}`,
       value: option.choice.exact.join("; "),
       conceptId: packet.domestic.archetypeId,
     })),
     {
       label: "COMMAND NETWORK",
-      value: `${packet.network.pressureBand.toUpperCase()} // ${packet.network.title} // ${packet.network.question}`,
+      value: `${packet.network.pressureBand.toUpperCase()} · ${packet.network.title} · ${packet.network.question}`,
       conceptId: packet.network.archetypeId,
     },
     ...packet.network.options.map((option, index) => ({
-      label: `N${index + 1} // ${option.choice.label.toUpperCase()}`,
+      label: `N${index + 1} / ${option.choice.label.toUpperCase()}`,
       value: option.choice.exact.join("; "),
       conceptId: packet.network.archetypeId,
     })),
     {
       label: "PROJECTED CLOSE",
-      value: `${fmt(personnel.casualty, true)} LOSSES // ${fmt(personnel.netDesertion, true)} NET FLIGHT // ${signed(operation.groundMovement)} KM`,
+      value: `${fmt(personnel.casualty, true)} LOSSES · ${fmt(personnel.netDesertion, true)} NET FLIGHT · ${signed(operation.groundMovement)} KM`,
       conceptId: "resolution",
     },
     {
       label: "PRODUCTION / DOMESTIC",
-      value: `${production.shortages} CRITICAL LINES // LEGITIMACY ${signed(domestic.legitimacyChange)} // RESISTANCE ${signed(domestic.resistanceChange)}`,
+      value: `${production.shortages} CRITICAL LINES · LEGITIMACY ${signed(domestic.legitimacyChange)} · RESISTANCE ${signed(domestic.resistanceChange)}`,
       conceptId: "legitimacy",
     },
     {
       label: "OPPORTUNITY DOCKET",
       value: opportunity
-        ? `${opportunity.label} // ASK MISSIONS FOR THE LIVE WINDOW`
+        ? `${opportunity.label} · ASK MISSIONS FOR THE LIVE WINDOW`
         : "NONE SCHEDULED",
       conceptId: "target-of-opportunity",
     },
   ];
   return {
     topic: "daily-brief",
-    title: `Daily command brief // Day ${state.day}`,
+    title: `Daily command brief / Day ${state.day}`,
     direct: `Three convergent fronts are open: ${packet.operational.sector}, ${packet.domestic.title}, and ${packet.network.title}. ${state.actions} of ${DAILY_ORDERS} orders remain.`,
     flavor: flavor(state, "daily-brief"),
     calculation: {
@@ -1526,7 +1478,7 @@ function overviewReport(
     direct = `${state.activeDiplomacy.length} actions are active across ${state.actors.length} foreign actors. Dependency is ${state.dependency.toFixed(0)} and intelligence is ${state.intelligence.toFixed(0)}.`;
     rows = state.actors.map((actor) => ({
       label: actor.name.toUpperCase(),
-      value: `TRUST ${actor.trust.toFixed(0)} // LEVERAGE ${actor.leverage.toFixed(0)} // RISK ${Math.round(actor.betrayalRisk * 100)}%`,
+      value: `TRUST ${actor.trust.toFixed(0)} · LEVERAGE ${actor.leverage.toFixed(0)} · RISK ${Math.round(actor.betrayalRisk * 100)}%`,
       conceptId: "diplomatic-trust",
     }));
     recommendation =
@@ -1663,7 +1615,7 @@ function adviceReport(state: GameState): AvaReportCard {
     daysSpent = state.resolutionHistory.length;
   return {
     topic: "overview",
-    title: "Ava // command recommendation",
+    title: "Ava / command recommendation",
     direct: `Do this next: ${primary.label}.`,
     flavor: `${flavor(state, "overview")} The recommendation is derivative, not decisive.`,
     calculation: {

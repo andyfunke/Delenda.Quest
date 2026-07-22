@@ -3,12 +3,20 @@
 import { terminalBlocks, type AvaTextBlockKind } from "./ava/text-schema";
 
 const evidence = /^\[([^\]]+)\]\s*(.*)$/;
+const explicitLoss =
+  /^(?:\[(?:LOSS|WARNING|LOCKED|REJECTED)\]\s*|(?:REJECTION|ORDER REJECTED|CONFIRM REJECTED|RESOLUTION REJECTED|STAGE REJECTED|COMPARE REJECTED|WARNING|COLLAPSE|DEFEAT|LOSS):)|·\s*LOCKED:/i;
+const explicitGain =
+  /^(?:\[(?:GAIN|SUCCESS|EXECUTED)\]\s*|(?:ORDER ENTERED|RECEIPT|VICTORY|GAIN):)|·\s*AVAILABLE\s*$/i;
+
 const lineTone = (line: string) =>
-  /REJECTED|LOCKED|WARNING|COLLAPSE|LOSS|−/.test(line)
+  explicitLoss.test(line)
     ? "loss"
-    : /EXECUTED|AVAILABLE|RETAINED|GRADUATE|\+/.test(line)
+    : explicitGain.test(line)
       ? "gain"
       : "neutral";
+
+const displayTitle = (title?: string) =>
+  title?.replace(/^FIELD NOTE\s*\/{1,2}\s*/i, "FIELD NOTE / ");
 
 function AvaLine({ line }: { line: string }) {
   const tagged = line.match(evidence);
@@ -16,16 +24,17 @@ function AvaLine({ line }: { line: string }) {
     return (
       <p className={`ava-line ${lineTone(line)}`}>
         <span className="ava-evidence">{tagged[1]}</span>
+        {" "}
         {tagged[2]}
       </p>
     );
-  const divider = line.indexOf(" // ");
-  if (divider > 0 && divider < 48)
+  const binding = line.match(/^([A-Z][A-Z0-9 '\-()/]{1,46}):\s+(.+)$/);
+  if (binding)
     return (
       <p className={`ava-line ${lineTone(line)}`}>
-        <strong>{line.slice(0, divider)}</strong>
-        <span aria-hidden="true"> // </span>
-        {line.slice(divider + 4)}
+        <strong>{binding[1]}</strong>
+        <span aria-hidden="true">: </span>
+        {binding[2]}
       </p>
     );
   return <p className={`ava-line ${lineTone(line)}`}>{line}</p>;
@@ -35,17 +44,20 @@ export function AvaTextRenderer({ text }: { text: string }) {
   const blocks = terminalBlocks(text);
   return (
     <div className="ava-prose">
-      {blocks.map((block, index) => (
-        <section
-          className={`ava-text-block ${block.kind as AvaTextBlockKind}`}
-          key={`${block.title ?? block.kind}-${index}`}
-        >
-          {block.title ? <h3>{block.title}</h3> : null}
-          {block.lines.map((line, lineIndex) => (
-            <AvaLine line={line} key={`${line}-${lineIndex}`} />
-          ))}
-        </section>
-      ))}
+      {blocks.map((block, index) => {
+        const title = displayTitle(block.title);
+        return (
+          <section
+            className={`ava-text-block ${block.kind as AvaTextBlockKind}`}
+            key={`${title ?? block.kind}-${index}`}
+          >
+            {title ? <h3>{title}</h3> : null}
+            {block.lines.map((line, lineIndex) => (
+              <AvaLine line={line} key={`${line}-${lineIndex}`} />
+            ))}
+          </section>
+        );
+      })}
     </div>
   );
 }

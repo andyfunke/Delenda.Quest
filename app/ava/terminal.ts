@@ -1,4 +1,5 @@
 import {
+  FAMILIES,
   MANEUVERS,
   coverage,
   directorForState,
@@ -34,9 +35,12 @@ import {
   type AvaConfirmation,
   type AvaEntity,
   type AvaInstruction,
+  type AvaModule,
   type AvaReportCard,
+  type AvaReportTopic,
 } from "./schema";
 import { createAvaTextFrame, renderAvaTextFrame } from "./text-schema";
+import { voiceAvaResponse, type AvaVoiceCue } from "./voice";
 
 export type AvaDetail = "glance" | "standard" | "deep";
 export type AvaTerminalSession = {
@@ -69,18 +73,20 @@ const finalize = (
   session: AvaTerminalSession,
   text: string,
   extra: Partial<Omit<AvaTerminalResult, "state" | "session" | "text">> = {},
-): AvaTerminalResult => ({
-  state,
-  session: { ...session, lastText: text },
-  text,
-  ...extra,
-  executed: extra.executed ?? false,
-});
+): AvaTerminalResult => {
+  return {
+    state,
+    session: { ...session, lastText: text },
+    text,
+    ...extra,
+    executed: extra.executed ?? false,
+  };
+};
 const listed = (actions: AvaActionDescriptor[]) =>
   actions
     .map(
       (item) =>
-        `[${item.handle}] ${item.label} // ${item.available ? "AVAILABLE" : `LOCKED: ${item.rejection}`}`,
+        `[${item.handle}] ${item.label} · ${item.available ? "AVAILABLE" : `LOCKED: ${item.rejection}`}`,
     )
     .join("\n");
 const actionEntities = (
@@ -94,23 +100,23 @@ const reportText = (
   report: AvaReportCard,
   detail: AvaDetail = "standard",
 ) => {
-  const context = `FIELD CONTEXT\n${report.title}\n${report.flavor}`,
+  const context = `SITUATION\n${report.title}`,
     answer = `ANSWER\n${report.direct}`,
     judgment = `JUDGMENT\n${report.recommendation}`,
-    grammar = `GRAMMAR\n${report.commands.join("\n")}`;
+    grammar = `GRAMMAR\n${report.commands.map((command) => `> ${command}`).join("\n")}`;
   if (detail === "glance")
     return [context, answer, judgment, grammar].join("\n\n");
   const standard = [
     context,
     answer,
-    `CALCULATION\n${report.calculation.equation}\n${report.calculation.rows.map((row) => `${row.label} // ${row.value}`).join("\n")}`,
+    `CALCULATION\n${report.calculation.equation}\n${report.calculation.rows.map((row) => `${row.label}: ${row.value}`).join("\n")}`,
     `CUMULATIVE INTELLIGENCE\n${report.history.observations.join("\n")}`,
     judgment,
   ];
   if (detail === "deep")
     standard.push(
-      `DEPENDENCIES\n${report.links.map((link) => `${link.label.toUpperCase()} // ${link.id}`).join("\n") || "No further causal dependency is declared."}`,
-      `LEDGER SCOPE\nRESOLVED DAYS // ${report.history.resolvedDays}\nREQUESTED DAYS // ${report.history.requestedDays ?? "ALL AVAILABLE"}\nOBSERVED ENEMY ORDERS // ${report.history.observedOrders}`,
+      `DEPENDENCIES\n${report.links.map((link) => link.label.toUpperCase()).join("\n") || "No further causal dependency is declared."}`,
+      `LEDGER SCOPE\nRESOLVED DAYS: ${report.history.resolvedDays}\nREQUESTED DAYS: ${report.history.requestedDays ?? "ALL AVAILABLE"}\nOBSERVED ENEMY ORDERS: ${report.history.observedOrders}`,
     );
   return [...standard, grammar].join("\n\n");
 };
@@ -154,13 +160,13 @@ const missionText = (state: GameState, fraction: number) => {
     );
   return [
     "MISSIONS [SEALED D+0]",
-    `MAIN CAMPAIGN // ${packet.operational.sector}\n${packet.operational.question}\n${listed(main)}`,
-    `DOMESTIC FRONT // ${packet.domestic.title} // ${packet.domestic.pressureBand.toUpperCase()}\n${packet.domestic.question}\nWHY TODAY // ${packet.domestic.convergence.map((edge) => edge.summary).join(" ")}\n${listed(domestic)}`,
-    `COMMAND NETWORK // ${packet.network.title} // ${packet.network.pressureBand.toUpperCase()}\n${packet.network.question}\nWHY TODAY // ${packet.network.convergence.map((edge) => edge.summary).join(" ")}\n${listed(network)}`,
+    `MAIN CAMPAIGN / ${packet.operational.sector}\n${packet.operational.question}\n${listed(main)}`,
+    `DOMESTIC FRONT / ${packet.domestic.title}\nPRESSURE: ${packet.domestic.pressureBand.toUpperCase()}\n${packet.domestic.question}\nWHY TODAY: ${packet.domestic.convergence.map((edge) => edge.summary).join(" ")}\n${listed(domestic)}`,
+    `COMMAND NETWORK / ${packet.network.title}\nPRESSURE: ${packet.network.pressureBand.toUpperCase()}\n${packet.network.question}\nWHY TODAY: ${packet.network.convergence.map((edge) => edge.summary).join(" ")}\n${listed(network)}`,
     opportunity.length
       ? `TARGET OF OPPORTUNITY\n${listed(opportunity)}`
-      : "TARGET OF OPPORTUNITY // NONE ACTIVE",
-    "COMMANDS\nstage M2 D1 N3\nforecast M2\ncompare M2 M4\nissue plan",
+      : "TARGET OF OPPORTUNITY: NONE ACTIVE",
+    "COMMANDS\n> stage M2 D1 N3\n> forecast M2\n> compare M2 M4\n> issue plan",
   ].join("\n\n");
 };
 
@@ -170,16 +176,16 @@ const planText = (
   fraction: number,
 ) => {
   if (!session.plan.length)
-    return "PLAN // EMPTY\nUse MISSIONS, then STAGE one or more handles.";
+    return "PLAN: EMPTY\nUse MISSIONS, then STAGE one or more handles.";
   const plan = buildAvaPlan(state, session.plan, fraction),
     descriptors = plan.actions
       .map((action) => descriptorForAction(state, action, fraction))
       .filter((item): item is AvaActionDescriptor => !!item);
   return [
-    `PLAN // ${plan.id} // SEALED TO CURRENT COMMAND LEDGER`,
-    `COST // ${plan.orderCost} ORDERS // ${plan.insightCost} INSIGHT`,
+    `PLAN: ${plan.id} · SEALED TO CURRENT COMMAND LEDGER`,
+    `COST: ${plan.orderCost} ORDERS · ${plan.insightCost} INSIGHT`,
     ...descriptors.map(renderAvaAction),
-    "COMMANDS\nforecast plan\nissue plan\nclear plan",
+    "COMMANDS\n> forecast plan\n> issue plan\n> clear plan",
   ].join("\n\n");
 };
 
@@ -206,7 +212,7 @@ const diffText = (before: GameState, after: GameState) =>
         delta = next - value;
       return delta
         ? [
-            `${key.toUpperCase()} // ${value.toFixed(1)} → ${next.toFixed(1)} // ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`,
+            `${key.toUpperCase()}: ${value.toFixed(1)} → ${next.toFixed(1)} · CHANGE: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`,
           ]
         : [];
     })
@@ -221,7 +227,7 @@ const forecastText = (
   if (!action) {
     const operation = projectOperations(state),
       personnel = estimateDay(state);
-    return `STANDING PROJECTION [PROJECTED D+0]\nFriendly loss ${fmt(personnel.casualty, true)} // net flight ${fmt(personnel.netDesertion, true)} // ground ${operation.groundMovement >= 0 ? "+" : ""}${operation.groundMovement.toFixed(1)} km.`;
+    return `STANDING PROJECTION [PROJECTED D+0]\nFriendly loss ${fmt(personnel.casualty, true)} · net flight ${fmt(personnel.netDesertion, true)} · ground ${operation.groundMovement >= 0 ? "+" : ""}${operation.groundMovement.toFixed(1)} km.`;
   }
   const descriptor = descriptorForAction(state, action, fraction);
   if (!descriptor)
@@ -233,7 +239,7 @@ const forecastText = (
   const preview = executeAvaAction(state, action, fraction);
   return preview.executed
     ? `${renderAvaAction(descriptor)}\n\nDECLARED CHANGE [PROJECTED]\n${diffText(state, preview.state)}`
-    : `${renderAvaAction(descriptor)}\n\nREJECTION // ${preview.rejection}`;
+    : `${renderAvaAction(descriptor)}\n\nREJECTION: ${preview.rejection}`;
 };
 
 const forecastPlanText = (
@@ -242,7 +248,7 @@ const forecastPlanText = (
   fraction: number,
 ) => {
   if (!session.plan.length)
-    return "PLAN FORECAST REJECTED // no actions are staged.";
+    return "PLAN FORECAST REJECTED: no actions are staged.";
   const descriptors = session.plan
     .map((action) => descriptorForAction(state, action, fraction))
     .filter((item): item is AvaActionDescriptor => !!item);
@@ -251,7 +257,7 @@ const forecastPlanText = (
       action.kind === "resolve-day" || action.kind === "opportunity-response",
   );
   const contract = [
-    `PLAN FORECAST // ${session.plan.length} ACTIONS // ${descriptors.reduce((sum, item) => sum + item.orderCost, 0)} ORDERS`,
+    `PLAN FORECAST: ${session.plan.length} ACTIONS · ${descriptors.reduce((sum, item) => sum + item.orderCost, 0)} ORDERS`,
     ...descriptors.map(renderAvaAction),
   ].join("\n\n");
   if (sealed)
@@ -260,7 +266,7 @@ const forecastPlanText = (
     preview = executeAvaPlan(state, plan, fraction);
   return preview.executed
     ? `${contract}\n\nDECLARED PACKET CHANGE [PROJECTED]\n${diffText(state, preview.state)}`
-    : `${contract}\n\nORDER REJECTED // ${preview.rejection}`;
+    : `${contract}\n\nORDER REJECTED: ${preview.rejection}`;
 };
 
 const confirmationText = (
@@ -272,11 +278,11 @@ const confirmationText = (
     .map((action) => descriptorForAction(state, action, fraction))
     .filter((item): item is AvaActionDescriptor => !!item);
   return [
-    `ORDER AWAITING CONFIRMATION // ${confirmation.id} // ${confirmation.purpose.toUpperCase()}`,
-    "LEDGER SEAL // THIS ORDER EXPIRES IF THE POSITION CHANGES",
-    `COST // ${confirmation.plan.orderCost} ORDERS // ${confirmation.plan.insightCost} INSIGHT`,
+    `ORDER AWAITING CONFIRMATION / ${confirmation.id} · PURPOSE: ${confirmation.purpose.toUpperCase()}`,
+    "LEDGER SEAL: THIS ORDER EXPIRES IF THE POSITION CHANGES",
+    `COST: ${confirmation.plan.orderCost} ORDERS · ${confirmation.plan.insightCost} INSIGHT`,
     ...descriptors.map(renderAvaAction),
-    `TYPE CONFIRM ${confirmation.id} TO ENTER THE ORDER\nTYPE CANCEL TO RETURN WITHOUT ISSUING`,
+    `GRAMMAR\n> confirm ${confirmation.id}\n> cancel`,
   ].join("\n\n");
 };
 
@@ -319,6 +325,12 @@ const conceptIdForEntity = (id: string) =>
     front: "pressure",
   })[id] ?? id;
 
+const familyLabel = (familyId?: string) =>
+  familyId
+    ? (FAMILIES.find((family) => family.id === familyId)?.label ??
+      "RELATED COMMAND FAMILY")
+    : undefined;
+
 const explainText = (
   state: GameState,
   entity: AvaEntity,
@@ -360,7 +372,7 @@ const explainText = (
       ? concept.consequence
       : facet === "levers"
         ? concept.control
-          ? `${concept.control.label} is the direct control. Open ${concept.control.module.toUpperCase()}${concept.control.family ? ` / ${concept.control.family.toUpperCase()}` : ""}.`
+          ? `${concept.control.label} is the direct control. Open ${concept.control.module.toUpperCase()}${concept.control.family ? ` / ${familyLabel(concept.control.family)?.toUpperCase()}` : ""}.`
           : "No direct control is indexed. Change one of the named dependencies instead."
         : facet === "calculus"
           ? `${calculation.equation}. ${calculation.result}.`
@@ -369,26 +381,26 @@ const explainText = (
     `CALCULATION\n${calculation.title}\n${calculation.equation}`,
     ...calculation.rows.map(
       (row) =>
-        `${row.label} // ${row.value}${row.tone === "gain" ? " [+]" : row.tone === "loss" ? " [−]" : ""}`,
+        `${row.tone === "gain" ? "[GAIN] " : row.tone === "loss" ? "[LOSS] " : ""}${row.label}: ${row.value}`,
     ),
-    `RESULT // ${calculation.result}`,
+    `RESULT: ${calculation.result}`,
   ].join("\n");
   const control = concept?.control
-    ? `${concept.control.label} // ${concept.control.module.toUpperCase()}${concept.control.family ? ` / ${concept.control.family.toUpperCase()}` : ""}`
-    : "NO DIRECT CONTROL // USE A DEPENDENCY BELOW";
+    ? `${concept.control.label}: ${concept.control.module.toUpperCase()}${concept.control.family ? ` / ${familyLabel(concept.control.family)?.toUpperCase()}` : ""}`
+    : "NO DIRECT CONTROL: USE A DEPENDENCY BELOW";
   const dependencies = concept?.related.length
     ? concept.related
-        .map((id) => `${CONCEPTS[id]?.label ?? id} // ${id}`)
+        .map((id) => CONCEPTS[id]?.label ?? "Related field condition")
         .join("\n")
     : "No indexed dependencies.";
   const commandScope = concept?.control?.module;
   return [
-    `FIELD CONTEXT\n${entity.label}${value === undefined ? "" : ` // ${typeof value === "number" ? value.toFixed(1) : String(value)}`}`,
+    `FIELD CONTEXT\n${entity.label}${value === undefined ? "" : `: ${typeof value === "number" ? value.toFixed(1) : String(value)}`}`,
     `ANSWER\n${answer}`,
     facet === "calculus" ? calculationBlock : null,
     `CONTROL\n${control}`,
     `DEPENDENCIES\n${dependencies}`,
-    `GRAMMAR\n${concept?.control ? `open ${concept.control.module}` : `explain ${concept?.related[0] ?? entity.label}`}${commandScope && commandScope !== "campaign" ? `\nlist ${commandScope === "national" ? "production" : commandScope}` : "\nmissions"}\nexplain ${entity.label} calculus`,
+    `GRAMMAR\n> ${concept?.control ? `open ${concept.control.module}` : `explain ${CONCEPTS[concept?.related[0] ?? ""]?.label ?? entity.label}`}${commandScope && commandScope !== "campaign" ? `\n> list ${commandScope === "national" ? "production" : commandScope}` : "\n> missions"}\n> explain ${entity.label} calculus`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -433,9 +445,9 @@ const accumulatedIntel = (state: GameState) => {
     )[0],
     latest = records[0];
   return [
-    `[LEDGER D1–D${Math.max(0, state.day - 1)}] ${records.length} resolved days // ${orders.length} enemy orders observed.`,
+    `[LEDGER D1–D${Math.max(0, state.day - 1)}] ${records.length} resolved days · ${orders.length} enemy orders observed.`,
     recurring
-      ? `[INFERRED] Most persistent observed pattern: ${recurring[0]} // ${recurring[1]} observations.`
+      ? `[INFERRED] Most persistent observed pattern: ${recurring[0]} · ${recurring[1]} observations.`
       : "[UNKNOWN] No enemy order pattern exists before the first resolution.",
     adaptation && adaptation[1] > 0
       ? `[STATE] Enemy adaptation is highest against ${adaptation[0]} at ${adaptation[1].toFixed(0)} / 8.`
@@ -455,13 +467,13 @@ const adviceText = (state: GameState, fraction: number) => {
   if (state.status !== "active")
     return {
       report,
-      text: `${report.direct}\n\n${accumulatedIntel(state)}\n\nCOMMANDS\nretrospective\nservice record report`,
+      text: `${report.direct}\n\n${accumulatedIntel(state)}\n\nCOMMANDS\n> retrospective\n> service record report`,
     };
   if (state.actions === 0) {
     const resolution = catalog.find((item) => item.kind === "resolve-day");
     return {
       report,
-      text: `The orders are closed. Review the projection, then stage ${resolution ? `[${resolution.handle}] ${resolution.label}` : "day resolution"}.\n\n${accumulatedIntel(state)}\n\nCOMMANDS\nprojection\nresolve day`,
+      text: `The orders are closed. Review the projection, then stage ${resolution ? `[${resolution.handle}] ${resolution.label}` : "day resolution"}.\n\n${accumulatedIntel(state)}\n\nCOMMANDS\n> projection\n> resolve day`,
     };
   }
   const candidates = catalog
@@ -499,7 +511,7 @@ const adviceText = (state: GameState, fraction: number) => {
   if (!primary)
     return {
       report,
-      text: `${report.direct}\n\nNo legal order remains under the present constraints.\n\nGRAMMAR\nstatus\nlist all`,
+      text: `${report.direct}\n\nNo legal order remains under the present constraints.\n\nGRAMMAR\n> status\n> list all`,
     };
   const d = primary.descriptor,
     a = alternative?.descriptor,
@@ -516,16 +528,16 @@ const adviceText = (state: GameState, fraction: number) => {
       `RECOMMENDATION\n${recommendation}`,
       `WHY IT RANKS FIRST\n[STATE] ${situation.question}\n[PROJECTED D+0] ${mechanic}`,
       `CUMULATIVE INTELLIGENCE\n${accumulatedIntel(state)}`,
-      `OWNED SACRIFICE\n${d.owned.join(" // ") || "No immediate ledger change is attached."}\nCONTINGENT EXPOSURE\n${d.contingent.join(" // ") || "No contingent exposure is attached."}`,
+      `OWNED SACRIFICE\n${d.owned.join(" · ") || "No immediate ledger change is attached."}\nCONTINGENT EXPOSURE\n${d.contingent.join(" · ") || "No contingent exposure is attached."}`,
       a
         ? `NEAREST ALTERNATIVE\n[${a.handle}] ${a.label}. It ranks behind the recommendation under the default survival-to-victory objective; compare it if your objective differs.`
         : "NEAREST ALTERNATIVE\nNo second executable candidate is present.",
-      `COMMANDS\nforecast ${d.handle}${a ? `\ncompare ${d.handle} ${a.handle}` : ""}\nstage ${d.handle}\nmissions`,
+      `COMMANDS\n> forecast ${d.handle}${a ? `\n> compare ${d.handle} ${a.handle}` : ""}\n> stage ${d.handle}\n> missions`,
     ].join("\n\n"),
   };
 };
 
-export function runAvaInstruction(
+function executeAvaInstruction(
   state: GameState,
   session: AvaTerminalSession,
   instruction: AvaInstruction,
@@ -610,7 +622,7 @@ export function runAvaInstruction(
       session,
       withHeader(
         state,
-        `COMMAND GRAMMAR${instruction.subject ? ` // ${instruction.subject.toUpperCase()}` : ""}\n\n${(rows.length ? rows : AVA_COMMAND_HELP).map((item) => `${item.command}\n${item.purpose}\nTRY // ${item.examples.join(" // ")}`).join("\n\n")}`,
+        `COMMAND GRAMMAR${instruction.subject ? ` / ${instruction.subject.toUpperCase()}` : ""}\n\n${(rows.length ? rows : AVA_COMMAND_HELP).map((item) => `${item.command}\n${item.purpose}\nTRY: ${item.examples.map((example) => `> ${example}`).join(" · ")}`).join("\n\n")}`,
       ),
     );
   }
@@ -620,7 +632,7 @@ export function runAvaInstruction(
       session,
       withHeader(
         state,
-        `${state.actions} ORDERS REMAIN // ${session.plan.length} ACTIONS STAGED\n\n${missionText(state, opportunityFraction)}`,
+        `ORDERS REMAIN: ${state.actions} · ACTIONS STAGED: ${session.plan.length}\n\n${missionText(state, opportunityFraction)}`,
       ),
     );
   if (instruction.kind === "LIST") {
@@ -639,7 +651,7 @@ export function runAvaInstruction(
       session,
       withHeader(
         state,
-        `${instruction.scope.toUpperCase()} // ${actions.length} CURRENT ACTIONS\n\n${listed(actions) || "No action in this scope is present in the current docket."}\n\nGRAMMAR\nforecast <handle>\nstage <handle>\nexplain <handle>`,
+        `${instruction.scope.toUpperCase()}: ${actions.length} CURRENT ACTIONS\n\n${listed(actions) || "No action in this scope is present in the current docket."}\n\nGRAMMAR\n> forecast <handle>\n> stage <handle>\n> explain <handle>`,
       ),
     );
   }
@@ -738,7 +750,7 @@ export function runAvaInstruction(
         session,
         withHeader(
           state,
-          `STAGE REJECTED // ${invalid.label}\n${invalid.rejection}`,
+          `STAGE REJECTED: ${invalid.label}\n${invalid.rejection}`,
         ),
         { rejection: invalid.rejection },
       );
@@ -748,7 +760,7 @@ export function runAvaInstruction(
       next,
       withHeader(
         state,
-        `STAGED // ${actions.map((action) => descriptorForAction(state, action, opportunityFraction)?.label ?? actionKey(action)).join("; ")}\n\n${planText(state, next, opportunityFraction)}`,
+        `STAGED: ${actions.map((action) => descriptorForAction(state, action, opportunityFraction)?.label ?? actionKey(action)).join("; ")}\n\n${planText(state, next, opportunityFraction)}`,
       ),
     );
   }
@@ -761,7 +773,7 @@ export function runAvaInstruction(
       next,
       withHeader(
         state,
-        `UNSTAGED // ${instruction.entities.map((entity) => entity.handle ?? entity.label).join("; ")}\n\n${planText(state, next, opportunityFraction)}`,
+        `UNSTAGED: ${instruction.entities.map((entity) => entity.handle ?? entity.label).join("; ")}\n\n${planText(state, next, opportunityFraction)}`,
       ),
     );
   }
@@ -770,7 +782,7 @@ export function runAvaInstruction(
     return finalize(
       state,
       next,
-      withHeader(state, "PLAN CLEARED // no campaign state changed."),
+      withHeader(state, "PLAN CLEARED: no campaign state changed."),
     );
   }
   if (instruction.kind === "SHOW_PLAN")
@@ -806,7 +818,7 @@ export function runAvaInstruction(
         session,
         withHeader(
           state,
-          "COMPARE REJECTED // one or both references are stale.",
+          "COMPARE REJECTED: one or both references are stale.",
         ),
         { rejection: "stale-reference" },
       );
@@ -834,7 +846,7 @@ export function runAvaInstruction(
         return finalize(
           state,
           session,
-          withHeader(state, `CONFIRM REJECTED // ${result.rejection}`),
+          withHeader(state, `CONFIRM REJECTED: ${result.rejection}`),
           { rejection: result.rejection },
         );
       const confirmation = session.confirmation,
@@ -844,7 +856,7 @@ export function runAvaInstruction(
         next,
         withHeader(
           result.state,
-          `ORDER ENTERED // ${confirmation.id}\n${result.receipt.join("\n")}`,
+          `ORDER ENTERED: ${confirmation.id}\n${result.receipt.join("\n")}`,
         ),
         { executed: true },
       );
@@ -859,7 +871,7 @@ export function runAvaInstruction(
       return finalize(
         state,
         session,
-        withHeader(state, "ISSUE REJECTED // no action is staged or named."),
+        withHeader(state, "ISSUE REJECTED: no action is staged or named."),
         { rejection: "empty-plan" },
       );
     const plan = buildAvaPlan(state, actions, opportunityFraction),
@@ -868,7 +880,7 @@ export function runAvaInstruction(
       return finalize(
         state,
         session,
-        withHeader(state, `ORDER REJECTED // ${preflight.rejection}`),
+        withHeader(state, `ORDER REJECTED: ${preflight.rejection}`),
         { rejection: preflight.rejection },
       );
     const purpose: AvaConfirmation["purpose"] = actions.some(
@@ -897,7 +909,7 @@ export function runAvaInstruction(
       return finalize(
         state,
         session,
-        withHeader(state, `RESOLUTION REJECTED // ${preflight.rejection}`),
+        withHeader(state, `RESOLUTION REJECTED: ${preflight.rejection}`),
         { rejection: preflight.rejection },
       );
     const confirmation = stageAvaConfirmation(state, plan, "resolve-day"),
@@ -922,7 +934,7 @@ export function runAvaInstruction(
       next,
       withHeader(
         state,
-        "PENDING ORDER CANCELLED // no campaign state changed.",
+        "PENDING ORDER CANCELLED: no campaign state changed.",
       ),
     );
   }
@@ -934,7 +946,7 @@ export function runAvaInstruction(
         session,
         withHeader(
           state,
-          "CONFIRM REJECTED // no order is awaiting confirmation.",
+          "CONFIRM REJECTED: no order is awaiting confirmation.",
         ),
         { rejection: "no-confirmation" },
       );
@@ -945,7 +957,7 @@ export function runAvaInstruction(
       return finalize(
         state,
         session,
-        withHeader(state, `CONFIRM REJECTED // expected ${confirmation.id}.`),
+        withHeader(state, `CONFIRM REJECTED: expected ${confirmation.id}.`),
         { rejection: "token-mismatch" },
       );
     const result = executeAvaConfirmation(
@@ -957,7 +969,7 @@ export function runAvaInstruction(
       return finalize(
         state,
         session,
-        withHeader(state, `CONFIRM REJECTED // ${result.rejection}`),
+        withHeader(state, `CONFIRM REJECTED: ${result.rejection}`),
         { rejection: result.rejection },
       );
     const next = { ...initialAvaTerminalSession(), detail: session.detail };
@@ -966,7 +978,7 @@ export function runAvaInstruction(
       next,
       withHeader(
         result.state,
-        `ORDER ENTERED // ${confirmation.id}\n${result.receipt.join("\n")}`,
+        `ORDER ENTERED: ${confirmation.id}\n${result.receipt.join("\n")}`,
       ),
       { executed: true },
     );
@@ -980,4 +992,136 @@ export function runAvaInstruction(
     ),
     { rejection: "unsupported" },
   );
+}
+
+const topicForModule = (module: AvaModule): AvaReportTopic =>
+  ({
+    dashboard: "overview",
+    campaign: "operations",
+    national: "production",
+    military: "personnel",
+    diplomacy: "diplomacy",
+    doctrine: "doctrine",
+    account: "service-record",
+    wiki: "overview",
+  } satisfies Record<AvaModule, AvaReportTopic>)[module];
+
+const topicForScope = (scope?: string): AvaReportTopic => {
+  if (scope === "production") return "production";
+  if (scope === "military") return "personnel";
+  if (scope === "diplomacy") return "diplomacy";
+  if (scope === "doctrine") return "doctrine";
+  if (scope === "opportunities") return "opportunities";
+  return "operations";
+};
+
+const topicForEntity = (entity: AvaEntity): AvaReportTopic => {
+  if (entity.action?.kind === "doctrine-stage" || entity.kind === "doctrine-vector")
+    return "doctrine";
+  if (entity.action?.kind === "opportunity-response" || entity.kind === "opportunity")
+    return "opportunities";
+  if (entity.action?.kind === "sub-mission")
+    return entity.action.domain === "network" ? "network" : "domestic";
+  if (entity.kind === "foreign-actor") return "diplomacy";
+  if (/loss|casual|desert/i.test(entity.id)) return "losses";
+  if (/production|munition|materiel|treasury|resource|supply/i.test(entity.id))
+    return "production";
+  if (/network|signal|relay|authentication|custody/i.test(entity.id))
+    return "network";
+  if (/intelligence|enemy-order/i.test(entity.id)) return "intelligence";
+  if (/legitimacy|resistance|domestic|workforce/i.test(entity.id))
+    return "domestic";
+  if (/doctrine|insight/i.test(entity.id)) return "doctrine";
+  if (/diplom|foreign|treaty|actor/i.test(entity.id)) return "diplomacy";
+  if (/personnel|armed|training|equipment|deployable|readiness/i.test(entity.id))
+    return "personnel";
+  return "operations";
+};
+
+const voiceCueForInstruction = (
+  instruction: AvaInstruction,
+  result: AvaTerminalResult,
+  previous: AvaTerminalSession,
+): AvaVoiceCue => {
+  if (result.rejection) return { mode: "rejection" };
+  if (result.executed) return { mode: "receipt" };
+  if (result.session.confirmation && result.session.confirmation !== previous.confirmation)
+    return { mode: "confirmation" };
+
+  switch (instruction.kind) {
+    case "GREETING":
+      return { mode: "orientation" };
+    case "IDENTITY":
+      return { mode: "identity" };
+    case "HELP":
+      return { mode: "grammar" };
+    case "GRATITUDE":
+      return { mode: "acknowledgment" };
+    case "FRUSTRATION":
+      return { mode: "correction" };
+    case "MORE":
+    case "LESS":
+      return { mode: "detail" };
+    case "REPORT":
+      return { topic: instruction.topic };
+    case "STATUS":
+      return { topic: "overview", label: "STATUS" };
+    case "ADVISE":
+      return { topic: "operations", label: "JUDGMENT" };
+    case "ORDERS":
+      return { topic: "operations", label: "ORDERS" };
+    case "LIST":
+      return { topic: topicForScope(instruction.scope), label: instruction.scope?.toUpperCase() ?? "MISSIONS" };
+    case "OPEN":
+      return { topic: topicForModule(instruction.module) };
+    case "EXPLAIN":
+      return { topic: topicForEntity(instruction.entity) };
+    case "FORECAST":
+      return { topic: "projection" };
+    case "COMPARE":
+      return { topic: "projection", label: "COMPARISON" };
+    case "SELECT":
+    case "STAGE":
+    case "UNSTAGE":
+    case "SHOW_PLAN":
+    case "CLEAR":
+    case "CLEAR_PLAN":
+      return { mode: "plan" };
+    case "CANCEL":
+      return { mode: "acknowledgment", label: "ORDER WITHHELD" };
+    case "REPEAT":
+      return { topic: "overview" };
+    case "ISSUE":
+    case "ISSUE_PLAN":
+    case "COMMIT":
+    case "CONFIRM":
+    case "RESOLVE_DAY":
+      return { topic: "operations" };
+    default:
+      return { topic: "overview" };
+  }
+};
+
+export function runAvaInstruction(
+  state: GameState,
+  session: AvaTerminalSession,
+  instruction: AvaInstruction,
+  opportunityFraction = 0,
+): AvaTerminalResult {
+  const result = executeAvaInstruction(
+      state,
+      session,
+      instruction,
+      opportunityFraction,
+    ),
+    voiced = voiceAvaResponse(
+      result.state,
+      result.text,
+      voiceCueForInstruction(instruction, result, session),
+    );
+  return {
+    ...result,
+    text: voiced,
+    session: { ...result.session, lastText: voiced },
+  };
 }

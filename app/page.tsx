@@ -43,7 +43,11 @@ import {
   restoreCampaignState,
   situationForState,
 } from "./game";
-import { CONCEPTS, calculationFor } from "./concepts";
+import {
+  CONCEPTS,
+  calculationFor,
+  replacementReserveForProjection,
+} from "./concepts";
 import { OperationsPacket } from "./OperationsPacket";
 import { DomesticStatePanel } from "./DomesticStatePanel";
 import { DiplomacyPanel } from "./DiplomacyPanel";
@@ -65,6 +69,7 @@ import {
   runAvaInstruction,
   type AvaTerminalSession,
 } from "./ava/terminal";
+import { voiceAvaResponse } from "./ava/voice";
 import {
   installInteractionTelemetry,
   recordAvaTelemetry,
@@ -192,7 +197,7 @@ const metricInfo = (metric: Metric, s: GameState, live: Live) =>
     equipment: [
       "Equipment Coverage",
       `${s.equipment.toFixed(0)}%`,
-      "formations equipped",
+      "field requirement equipped",
       "The share of weapons, vehicles, radios, and support equipment assigned and serviceable.",
       [
         `Armor stock: ${fmt(live.production.armor, true)}`,
@@ -417,8 +422,7 @@ function DoctrineControlPanel({
                   return (
                     <button
                       aria-pressed={selected}
-                      className={selected ? "selected" : ""}
-                      disabled={!prior}
+                      className={`${selected ? "selected" : ""} ${!prior ? "unresearchable" : ""}`}
                       onClick={() => {
                         setSelectedVector(v.id);
                         setSelectedStage((current) =>
@@ -477,7 +481,7 @@ function DoctrineControlPanel({
                 </div>
               </dl>
               <section className="doctrine-effect">
-                <b>DETERMINISTIC EFFECT</b>
+                <b>BATTLEFIELD EFFECT</b>
                 <p>{stage.effect}</p>
                 <small>
                   OUTPUT // {stage.output ?? "Operational Procedure"}
@@ -491,7 +495,13 @@ function DoctrineControlPanel({
                 disabled={!available}
                 onClick={() => select(vector, stage)}
               >
-                {unlocked ? "ALREADY INTERNALIZED" : "REVIEW AND INTERNALIZE →"}
+                {unlocked
+                  ? "ALREADY INTERNALIZED"
+                  : !prereq
+                    ? `INTERNALIZE ${vector.stages[index - 1]?.label.toUpperCase()} FIRST`
+                    : s.doctrine < stage.cost
+                      ? `${stage.cost - s.doctrine} MORE INSIGHT REQUIRED`
+                      : "REVIEW AND INTERNALIZE →"}
               </button>
               <div className="win-ledger">
                 <h3>VERIFIED WIN INSIGHT LEDGER</h3>
@@ -533,13 +543,13 @@ const GLOSSARY: Record<
 > = {
   "ava-command-interface": {
     summary:
-      "A deterministic command compiler that translates bounded player language into validated game instructions.",
-    body: "Ava normalizes the command, resolves an intent and typed entity, compiles a canonical instruction, validates it against authoritative campaign state, and only then executes or stages it. Ambiguous or invalid mutations fail closed. V1 uses no language model. Raw Ava prompts are not retained in telemetry.",
+      "Ava's command channel for reports, explanation, planning, and validated orders.",
+    body: "Ava recognizes the campaign's named systems, current order handles, reports, comparisons, projections, and confirmation phrases. She asks for clarification when a command could touch more than one target and never enters an order without preserving its exact terms for confirmation. Raw Ava prompts are not retained in telemetry.",
     related: ["Ava Telemetry", "Actions", "Campaign Autosave"],
   },
   "ava-telemetry": {
     summary:
-      "Aggregate evidence about how Ava's deterministic command compiler performs.",
+      "Aggregate evidence about how Ava's command interpretation performs.",
     body: "Ava telemetry records the compiled intent, execution or clarification outcome, failure class, parser rule, module, token-count band, and unresolved-token count. It does not store the player's raw command, account identity, cookies, advertising identifiers, or cross-site history.",
     related: ["Ava Command Interface", "Site Telemetry", "Privacy"],
   },
@@ -553,19 +563,19 @@ const GLOSSARY: Record<
     summary:
       "ALT UX is an alternate renderer over the same authoritative campaign state.",
     body: "ALT UX changes information hierarchy, not game logic. Its Operational, Domestic, and Network selections call the same command functions, consume the same three orders, enter the same decision ledger, and resolve through the same campaign circuits as Command Windows. Interface preference is stored locally and may be changed at any time.",
-    related: ["Convergence Matrix", "Actions", "Campaign Situation Substrate"],
+    related: ["Three-Front Command Docket", "Actions", "Campaign Situation Substrate"],
   },
-  "convergence-matrix": {
+  "three-front-command-docket": {
     summary:
-      "The deterministic daily compiler for one Operational, one Domestic, and one Network problem.",
-    body: "Convergence v1 contains eight authored Domestic spines and eight authored Network spines. Live pressure, queue, legitimacy, resistance, materiel, treasury, intelligence, network posture, adversary behavior, theater condition, day, and campaign seed select the daily pair. Each option resolves to an existing typed directive. The overlay generates context; it does not invent effects.",
+      "The daily command plan for one Operational, one Domestic, and one Network problem.",
+    body: "The Three-Front Command Docket contains twelve Domestic and twelve Network mission families. Ninety-six authored incidents each have three campaign-time realizations, producing 288 distinct situations before the current field evidence is bound. Every response names its direct cost, contingent exposure, and route into the main front.",
     related: ["Alt UX Interface", "Network Posture", "Owned Effects"],
   },
   "network-posture": {
     summary:
       "The current trade between command speed, transmission secrecy, and relay redundancy.",
     body: "Broadcast restores the most command tempo while reducing Intelligence security. Going dark increases Intelligence and preserves equipment while lowering network conversion and operational tempo. Distributed relays spend Equipment for moderate conversion and resilience. Each posture remains active until replaced and affects the Operations Circuit directly.",
-    related: ["Command Network", "Convergence Matrix", "Intelligence"],
+    related: ["Command Network", "Three-Front Command Docket", "Intelligence"],
   },
   "foreign-intelligence": {
     summary:
@@ -604,7 +614,7 @@ const GLOSSARY: Record<
   },
   "exact-campaign-challenge": {
     summary: "A friend link that issues the same sealed campaign conditions.",
-    body: "The challenge reuses the opening state, campaign seed, theater, adversary system, hidden opportunity schedule, reinforcement sequence, and deterministic resolution law of the originating record. The challenger receives no technical seed or construction controls. Their own decisions create the divergence, and comparisons remain hidden until completion.",
+    body: "The challenge reuses the opening state, campaign seed, theater, adversary system, hidden opportunity schedule, reinforcement sequence, and fixed resolution law of the originating record. The challenger receives no technical seed or construction controls. Their own decisions create the divergence, and comparisons remain hidden until completion.",
     related: ["Campaign Record", "Campaign Seed", "Decision Comparison"],
   },
   "linkedin-certificate": {
@@ -631,7 +641,7 @@ const GLOSSARY: Record<
   },
   doctrine: {
     summary: "Institutional insight extracted from observed risk and failure.",
-    body: "Doctrine is spent to internalize principles along Doctrine vectors. Risky directives and maneuvers generate insight when observation survives. Doctrine changes deterministic equations and unlocks further stages.",
+    body: "Doctrine is spent to internalize principles along Doctrine vectors. Risky directives and maneuvers generate insight when observation survives. Doctrine changes battlefield rules and unlocks further stages.",
     related: ["Doctrine Vector", "Observation Survival", "Risk Class"],
   },
   readiness: {
@@ -641,14 +651,14 @@ const GLOSSARY: Record<
     related: ["Deployable Force", "Equipment Coverage", "Operational Tempo"],
   },
   resolution: {
-    summary: "The deterministic end-of-day state transition.",
+    summary: "The authoritative end-of-day reckoning.",
     body: "Resolution applies scheduled arrivals, active policies, production, recruitment, combat, desertion, Doctrine observation, public reaction, and front movement in a fixed order. Seeded contingent events are resolved here, never by narrative text.",
     related: ["Owned Effects", "Contingent Effects", "Butcher's Bill"],
   },
   "campaign-situation-substrate": {
     summary:
-      "The deterministic compiler that turns persistent theater state into one stored daily operational problem.",
-    body: "The substrate evaluates authored blueprint gates against theater geometry, operational bands, active facts, recent history, and the day's Strategic Condition. Eligible problems receive an urgency, fit, novelty, and seeded tie-break score. The winning Situation Packet is stored for the entire day so inspection and preparatory orders cannot reroll it.",
+      "The campaign process that turns persistent theater state into one stored daily operational problem.",
+    body: "Headquarters weighs authored battlefield conditions against theater geometry, active facts, recent history, and the day's Strategic Condition. The chosen Situation Packet is stored for the entire day so inspection and preparatory orders cannot change it.",
     related: [
       "Situation Gate",
       "Operational Fact",
@@ -668,7 +678,7 @@ const GLOSSARY: Record<
   },
   "resolution-ticket": {
     summary:
-      "The stored deterministic identity used to resolve one daily Situation Packet.",
+      "The sealed identity used to resolve one daily Situation Packet.",
     body: "The ticket is derived from content-pack version, campaign seed, day, blueprint, and target sector. Maneuver identity is added when the result is calculated. Preview and final resolution use the same ticket, preventing reloads, screen changes, or Ava from rerolling the day.",
     related: ["Campaign Seed", "Outcome Margin", "Resolution"],
   },
@@ -705,7 +715,7 @@ const GLOSSARY: Record<
   },
   "outcome-margin": {
     summary:
-      "Execution Confidence minus the sealed deterministic resolution roll.",
+      "Execution Confidence minus sealed field friction.",
     body: "Margin selects one of four result bands: Clean Execution at +20 points or better; Executed With Friction from 0 through +19.9; Disrupted below 0 through −20; Operational Collapse worse than −20. The band scales pressure, losses, and persistent aftermath. Positive bands count as verified wins.",
     related: ["Execution Confidence", "Resolution Ticket", "Operational Fact"],
   },
@@ -733,7 +743,7 @@ const GLOSSARY: Record<
     related: ["Readiness", "Equipment Coverage", "Net Flight Today"],
   },
   "equipment-coverage": {
-    summary: "Share of field formations with serviceable assigned equipment.",
+    summary: "Share of the field requirement covered by serviceable assigned equipment.",
     body: "Equipment Coverage multiplies Deployable Force in effective-force calculation. Casualties and shortages reduce it; industrial and external-supply directives can restore it.",
     related: ["Deployable Force", "Materiel Condition", "Production"],
   },
@@ -755,7 +765,7 @@ const GLOSSARY: Record<
     related: ["Contingent Effects", "Resolution", "Rotation Lock"],
   },
   "contingent-effects": {
-    summary: "Bounded outcomes not known until deterministic resolution.",
+    summary: "Bounded outcomes not known until day resolution.",
     body: "Contingent Effects disclose their range or success probability before commitment. Campaign seed and authoritative state resolve them; Ava never chooses the result.",
     related: ["Owned Effects", "Success Estimate", "Resolution"],
   },
@@ -784,7 +794,7 @@ const GLOSSARY: Record<
   },
   "campaign-seed": {
     summary:
-      "The reproducible numeric key for a campaign's hidden deterministic sequence.",
+      "The reproducible numeric key for a campaign's hidden event sequence.",
     body: "The Campaign Seed selects the daily situation rotation and every contingent resolution roll. The same seed, theater, state archetype, adversary system, orders, and authoritative state reproduce the same outcomes. The seed does not replace player choice; it makes uncertainty auditable.",
     related: ["Resolution", "Contingent Effects", "Campaign Theater"],
   },
@@ -796,7 +806,7 @@ const GLOSSARY: Record<
   },
   "state-archetype": {
     summary:
-      "A deterministic opening-state package with explicit strengths and inherited liabilities.",
+      "A fixed opening-state package with explicit strengths and inherited liabilities.",
     body: "State Archetype changes opening population, force, production, treasury, legitimacy, dependency, or doctrine. Its listed effects are owned and exact. It does not alter the three-order daily budget.",
     related: ["Owned Effects", "Campaign Seed", "Actions"],
   },
@@ -814,7 +824,7 @@ const GLOSSARY: Record<
   },
   "campaign-event-director": {
     summary:
-      "The deterministic system that assigns every campaign day a war phase and one strategic condition.",
+      "The campaign authority that assigns every day a war phase and one strategic condition.",
     body: "The Director combines the current day band with a seed-selected condition. Phase and event modifiers are disclosed before orders and then applied to industrial output, supply use, casualties, desertion, execution confidence, front pressure, maintenance, treasury, legitimacy, or resistance. Critical state thresholds can replace the regular seeded condition with a Reactive Crisis.",
     related: [
       "Campaign Phase",
@@ -826,13 +836,13 @@ const GLOSSARY: Record<
   "campaign-phase": {
     summary:
       "A named campaign interval that changes the baseline cost of continuing the war.",
-    body: "Days 1–5 are Contact and Classification; 6–12 Operational Compression; 13–20 The Exhaustion Season; 21–30 Terminal Operations. Phase modifiers combine with the day's Strategic Condition and apply to the deterministic circuits at resolution.",
+    body: "Days 1–5 are Contact and Classification; 6–12 Operational Compression; 13–20 The Exhaustion Season; 21–30 Terminal Operations. Phase modifiers combine with the day's Strategic Condition and apply to the campaign ledgers at resolution.",
     related: ["Campaign Event Director", "Strategic Condition", "Resolution"],
   },
   "strategic-condition": {
     summary:
       "The disclosed daily event that changes one or more authoritative resolution factors.",
-    body: "A Strategic Condition is selected deterministically from the active Campaign Phase and Campaign Seed unless an eligible Reactive Crisis is active. The condition remains fixed for the day, its exact modifiers are visible before commitment, and the resolved event enters the Condition Ledger.",
+    body: "A Strategic Condition is selected reproducibly from the active Campaign Phase and Campaign Seed unless an eligible Reactive Crisis is active. The condition remains fixed for the day, its exact modifiers are visible before commitment, and the resolved event enters the Condition Ledger.",
     related: ["Campaign Event Director", "Campaign Phase", "Reactive Crisis"],
   },
   "reactive-crisis": {
@@ -918,34 +928,21 @@ function Term({
   id: keyof typeof GLOSSARY;
   children: React.ReactNode;
 }) {
-  const [pinned, setPinned] = useState(false);
   const g = GLOSSARY[id];
-  const toggle = () => setPinned((value) => !value);
   return (
-    <span
-      className={`term ${pinned ? "pinned" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-expanded={pinned}
-      onClick={toggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggle();
-        }
-      }}
+    <Bubblette
+      id={id}
+      title={String(children)}
+      summary={g.summary}
+      className="term inline-concept-bubblette"
+      details={[{ label: "FIELD CONSEQUENCE", value: g.body }]}
+      related={g.related.map((label) => ({
+        id: conceptSlug(label),
+        label,
+      }))}
     >
       {children}
-      <span className="term-tip" onClick={(e) => e.stopPropagation()}>
-        <b>{children}</b>
-        <span>{g.summary}</span>
-        <button onClick={() => openWikiApplet(id)}>OPEN WIKI APPLET</button>
-        <a href={`/manual/${id}`} target="_blank" rel="noreferrer">
-          OPEN EXTERNALLY ↗
-        </a>
-        <button onClick={() => setPinned(false)}>UNPIN</button>
-      </span>
-    </span>
+    </Bubblette>
   );
 }
 function RegistryConcept({
@@ -955,54 +952,23 @@ function RegistryConcept({
   id: string;
   children: React.ReactNode;
 }) {
-  const [pinned, setPinned] = useState(false);
   const c = CONCEPTS[id];
   if (!c) return <span>{children}</span>;
-  const toggle = () => setPinned((value) => !value);
   return (
-    <span
-      className={`term ${pinned ? "pinned" : ""}`}
-      data-semantic="CONCEPT"
-      role="button"
-      tabIndex={0}
-      aria-expanded={pinned}
-      onClick={toggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggle();
-        }
-      }}
+    <Bubblette
+      id={id}
+      title={c.label}
+      summary={c.definition}
+      className="term inline-concept-bubblette"
+      details={[
+        ...(c.normal
+          ? [{ label: "NORMAL", value: c.normal, conceptId: id }]
+          : []),
+        { label: "CONSEQUENCE", value: c.consequence, conceptId: id },
+      ]}
     >
       {children}
-      <span className="term-tip" onClick={(e) => e.stopPropagation()}>
-        <b>{c.label}</b>
-        <span>{c.definition}</span>
-        {c.normal && <em>NORMAL // {c.normal}</em>}
-        <strong>CONSEQUENCE // {c.consequence}</strong>
-        {c.control && (
-          <button
-            onClick={() => {
-              if (c.control?.family)
-                window.dispatchEvent(
-                  new CustomEvent("open-family", { detail: c.control.family }),
-                );
-              else
-                window.dispatchEvent(
-                  new CustomEvent("open-module", { detail: c.control?.module }),
-                );
-            }}
-          >
-            CONTROL // {c.control.label} →
-          </button>
-        )}
-        <button onClick={() => openWikiApplet(id)}>OPEN WIKI APPLET</button>
-        <a href={`/manual/${id}`} target="_blank" rel="noreferrer">
-          OPEN EXTERNALLY ↗
-        </a>
-        <button onClick={() => setPinned(false)}>UNPIN</button>
-      </span>
-    </span>
+    </Bubblette>
   );
 }
 const conceptSlug = (x: string) =>
@@ -1019,39 +985,38 @@ function WikiConcept({
   label: string;
   qualifier?: string;
 }) {
-  const [pinned, setPinned] = useState(false);
-  const toggle = () => setPinned((value) => !value);
+  const concept = CONCEPTS[id],
+    glossary = GLOSSARY[id];
   return (
-    <span
-      className={`concept-link ${pinned ? "pinned" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-expanded={pinned}
-      onClick={toggle}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggle();
-        }
-      }}
+    <Bubblette
+      id={id}
+      title={label}
+      summary={
+        concept?.definition ??
+        glossary?.summary ??
+        `Doctrine classification associated with ${label}.`
+      }
+      className="concept-link inline-concept-bubblette"
+      details={[
+        ...(qualifier ? [{ label: "CLASS", value: qualifier }] : []),
+        ...(concept
+          ? [
+              {
+                label: "CONSEQUENCE",
+                value: concept.consequence,
+                conceptId: id,
+              },
+            ]
+          : glossary
+            ? [{ label: "FIELD CONSEQUENCE", value: glossary.body }]
+            : []),
+      ]}
     >
       <span>
         {qualifier && <small>{qualifier}</small>}
         {label}
       </span>
-      <span className="term-tip" onClick={(e) => e.stopPropagation()}>
-        <b>{label}</b>
-        <span>
-          {GLOSSARY[id]?.summary ??
-            `Doctrine classification associated with ${label}. Open its field-manual entry for provenance, effects, and related Techs.`}
-        </span>
-        <button onClick={() => openWikiApplet(id)}>OPEN WIKI APPLET</button>
-        <a href={`/manual/${id}`} target="_blank" rel="noreferrer">
-          OPEN EXTERNALLY ↗
-        </a>
-        <button onClick={() => setPinned(false)}>UNPIN</button>
-      </span>
-    </span>
+    </Bubblette>
   );
 }
 function ReportDatum({
@@ -1170,7 +1135,7 @@ function EffectLine({ text, s }: { text: string; s: GameState }) {
         <Bubblette
           id="casualty-exposure"
           title="Loss Exposure"
-          summary="The disclosed friendly-loss envelope across deterministic result bands."
+          summary="The disclosed friendly-loss envelope across possible result bands."
           details={[
             {
               label: "LOW",
@@ -1464,7 +1429,7 @@ function Dashboard({
         <section className="command-geometry">
           <Heading
             title={`${s.theater.toUpperCase()} Theater Geometry`}
-            note="Live tactical state // same substrate as Alt UX"
+            note="Live tactical state // shared with Alt UX"
           />
           <TheaterGeometry s={s} variant="command" />
         </section>
@@ -1823,7 +1788,8 @@ function ProductionCircuit({ s }: { s: GameState }) {
 }
 
 function ForceGenerationCircuit({ s }: { s: GameState }) {
-  const f = projectForceGeneration(s);
+  const f = projectForceGeneration(s),
+    replacementReserve = replacementReserveForProjection(f);
   return (
     <section className="force-circuit">
       <header>
@@ -1844,8 +1810,8 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
           <b>{fmt(f.reservesClosing, true)}</b>
         </div>
       </header>
-      <div className="force-pipeline">
-        <div>
+      <div className="force-human-flow">
+        <div className="force-stage">
           <Term id="training-queue">RECRUITMENT</Term>
           <b>+{fmt(f.grossIntake, true)}</b>
           <small>
@@ -1854,39 +1820,68 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
           </small>
         </div>
         <i>→</i>
-        <div>
+        <div className="force-stage">
           <Term id="training-capacity">INDUCTION</Term>
           <b>{fmt(f.admitted, true)}</b>
           <small>{fmt(f.queueClosing, true)} remain queued</small>
         </div>
         <i>→</i>
-        <div>
-          <RegistryConcept id="training-cohort">COHORTS</RegistryConcept>
+        <div className="force-stage">
+          <RegistryConcept id="training-cohort">
+            TRAINING COHORTS
+          </RegistryConcept>
           <b>{f.cohortsClosing}</b>
           <small>{f.graduatingCohorts} mature today</small>
         </div>
         <i>→</i>
-        <div>
-          <RegistryConcept id="graduates">GRADUATES</RegistryConcept>
+        <div className="force-stage">
+          <RegistryConcept id="graduates">
+            EFFECTIVE GRADUATES
+          </RegistryConcept>
           <b>{fmt(f.effectiveGraduates, true)}</b>
           <small>
             {fmt(f.rawGraduates, true)} raw at {s.quality.toFixed(0)}% standard
           </small>
         </div>
-        <i>→</i>
-        <div>
-          <RegistryConcept id="equipment-assignment">EQUIPMENT</RegistryConcept>
-          <b>{fmt(f.equipmentAssigned, true)}</b>
-          <small>{fmt(f.reserveAssigned, true)} held for materiel</small>
+      </div>
+      <div className="force-assignment">
+        <header>
+          <small>ASSIGNMENT GATE</small>
+          <b>GRADUATES REMAIN PEOPLE; KIT AND READINESS DECIDE WHERE THEY SERVE</b>
+        </header>
+        <div className="force-assignment-branches">
+          <div>
+            <RegistryConcept id="equipment-assignment">
+              FIELD-EQUIPPED GRADUATES
+            </RegistryConcept>
+            <b>{fmt(f.equipmentAssigned, true)}</b>
+            <small>PERSONNEL ISSUED SERVICEABLE FIELD KIT</small>
+          </div>
+          <div>
+            <RegistryConcept id="replacement-reserve">
+              HELD IN REPLACEMENT RESERVE
+            </RegistryConcept>
+            <b>{fmt(replacementReserve, true)}</b>
+            <small>ALL EFFECTIVE GRADUATES NOT DEPLOYED TODAY</small>
+          </div>
+          <div>
+            <RegistryConcept id="readiness">READINESS GATE</RegistryConcept>
+            <b>{s.readiness.toFixed(0)}%</b>
+            <small>SHARE OF EQUIPPED GRADUATES READY FOR FIELD DUTY</small>
+          </div>
+          <div>
+            <Term id="deployable-force">RESERVE RECALLED</Term>
+            <b>+{fmt(f.reserveReleased, true)}</b>
+            <small>EXPERIENCED PERSONNEL RETURNED TO FIELD DUTY</small>
+          </div>
         </div>
-        <i>→</i>
-        <div>
-          <Term id="deployable-force">FORMATIONS</Term>
-          <b>+{fmt(f.deployableAssigned, true)}</b>
-          <small>
-            {fmt(f.reserveReleased, true)} recalled from reserve //{" "}
-            {fmt(f.deployableClosing, true)} deployable
-          </small>
+        <div className="force-assignment-result">
+          <span>→</span>
+          <div>
+            <Term id="deployable-force">DEPLOYABLE REINFORCEMENTS</Term>
+            <b>+{fmt(f.deployableAssigned, true)}</b>
+            <small>{fmt(f.deployableClosing, true)} TOTAL DEPLOYABLE AFTER ASSIGNMENT</small>
+          </div>
         </div>
       </div>
       <footer>
@@ -2390,7 +2385,7 @@ function WikiPage({ article }: { article: string }) {
         <span className="eyebrow">DELENDA.QUEST FIELD MANUAL</span>
         <h1>Campaign Wiki</h1>
         <p>
-          Authoritative definitions for the deterministic substrate. If a number
+          Authoritative definitions for campaign systems. If a number
           changes the war, its rule belongs here.
         </p>
       </header>
@@ -2440,7 +2435,7 @@ function WikiPage({ article }: { article: string }) {
             })}
           </ul>
           <footer>
-            LAST VERIFIED // DETERMINISTIC RULESET V0.4 // CAMPAIGN SUBSTRATE V1
+            LAST VERIFIED // CAMPAIGN RULESET V0.4 // SITUATION SYSTEM V1
           </footer>
         </article>
       </div>
@@ -2972,7 +2967,7 @@ function SubMissionReadout({
             // {option.choice.label.toUpperCase()}
           </b>
         </div>
-        <span>HOVER TO GLANCE // CLICK TO PIN // APPLETTE IS EXPLICIT</span>
+        <span>SELECT ANY FIELD TO TRACE ITS CAUSE</span>
       </header>
       <section className="operations-brief">
         <div>
@@ -3023,7 +3018,7 @@ function SubMissionReadout({
         value={option.choice.label.toUpperCase()}
         note={
           preview.executed
-            ? "PROJECTED THROUGH LIVE STATE"
+            ? "ESTIMATED FROM CURRENT POSITION"
             : "CURRENTLY UNAVAILABLE"
         }
         details={[
@@ -3073,45 +3068,33 @@ function SubMissionReadout({
               value: String(s.actions),
               conceptId: "actions",
             },
-            {
-              label: "MISSION TICKET",
-              value: prompt.resolutionTicket,
-              conceptId: "resolution",
-            },
           ]}
           control={{ label: "Open Campaign", module: "campaign" }}
         />
         <CampaignInspectCell
           id={isDomestic ? "legitimacy" : "command-network"}
-          label="OPERATIONAL CONVERGENCE"
-          value={`${prompt.convergence[0]?.source ?? prompt.domain} → ${prompt.convergence[0]?.target ?? "campaign"}`.toUpperCase()}
+          label="FRONT-LINE CONSEQUENCE"
+          value={prompt.operationalAnchor.sector.toUpperCase()}
           note={
             prompt.convergence[0]?.summary ?? prompt.operationalAnchor.headline
           }
-          details={prompt.convergence.map((edge) => ({
-            label: edge.via.toUpperCase(),
-            value: `${edge.source} → ${edge.target} // ${edge.summary}`,
+          details={prompt.convergence.map((edge, index) => ({
+            label: `CONSEQUENCE ${index + 1}`,
+            value: edge.summary,
             conceptId: edge.target,
           }))}
           control={{ label: "Open Campaign", module: "campaign" }}
         />
         <CampaignInspectCell
           id="resolution"
-          label="ROTATION"
-          value="SEALED FOR TODAY"
-          note={`${prompt.frameId.toUpperCase()} // ${prompt.realizationId.toUpperCase()}`}
-          details={[
-            {
-              label: "CONTENT FRAME",
-              value: prompt.frameId,
-              conceptId: prompt.id,
-            },
-            {
-              label: "NEXT ROTATION",
-              value: `AFTER DAY ${prompt.rotatesAfterDay} RESOLUTION`,
-              conceptId: "resolution",
-            },
-          ]}
+          label="WHY THIS ORDER EXISTS TODAY"
+          value={prompt.pressureBand.toUpperCase()}
+          note={prompt.evidence[0] ?? prompt.operationalAnchor.headline}
+          details={prompt.evidence.map((line, index) => ({
+            label: `FIELD EVIDENCE ${index + 1}`,
+            value: line,
+            conceptId: prompt.id,
+          }))}
           control={{ label: "Open Campaign", module: "campaign" }}
         />
       </div>
@@ -3182,19 +3165,8 @@ function CampaignPage({
     <section className={`tree-group campaign-submenu ${prompt.domain}`}>
       <header className="tree-group-heading">
         <span>{label}</span>
-        <small>
-          {prompt.pressureBand.toUpperCase()} PRESSURE //{" "}
-          {prompt.category.toUpperCase()}
-        </small>
+        <small>{prompt.options.length} RESPONSES</small>
       </header>
-      <div className="campaign-mission-context">
-        <b>{prompt.title}</b>
-        <span>{prompt.question}</span>
-        <small>
-          {prompt.authority} // ANCHORED TO{" "}
-          {prompt.operationalAnchor.sector.toUpperCase()}
-        </small>
-      </div>
       {prompt.options.map((option) => {
         const rejection = directiveRejection(s, option.family, option.choice);
         return (
@@ -3225,10 +3197,8 @@ function CampaignPage({
       </header>
       <section className="os-window campaign-workspace">
         <div className="os-titlebar">
-          <span>CAMPAIGN CONTROL // THREE CONVERGENT FRONTS</span>
-          <b>
-            DAY {s.day} // {packet.matrixVersion.toUpperCase()}
-          </b>
+          <span>CAMPAIGN ORDERS // THREE FRONTS</span>
+          <b>DAY {s.day} // {s.actions} ORDERS REMAIN</b>
         </div>
         <section className="module-report">
           <ReportDatum
@@ -3360,15 +3330,13 @@ function CampaignPage({
                 {subOption.domain === "domestic"
                   ? "DOMESTIC FRONT"
                   : "COMMAND NETWORK"}{" "}
-                // {subPrompt.category.toUpperCase()} //{" "}
-                {subPrompt.frameId.toUpperCase()} //{" "}
-                {subOption.choice.label.toUpperCase()}
+                // {subPrompt.category.toUpperCase()} // {subOption.choice.label.toUpperCase()}
               </div>
               <h2>{subOption.choice.label}</h2>
               <WikiConcept
                 id={subPrompt.archetypeId}
                 label={subPrompt.authority}
-                qualifier={`${subPrompt.pressureBand.toUpperCase()} PRESSURE // SEALED DAILY SUB-MISSION`}
+                qualifier={`${subPrompt.pressureBand.toUpperCase()} PRESSURE // TODAY'S ORDER`}
               />
               <p>{subOption.choice.flavor}</p>
               <SubMissionReadout s={s} prompt={subPrompt} option={subOption} />
@@ -3412,17 +3380,15 @@ function CampaignPage({
             <article className="menu-inspector maneuver-detail no-decision">
               <b>NO CAMPAIGN ELEMENT SELECTED</b>
               <p>
-                Select Main Campaign, Domestic Front, or Command Network. Each
-                sub-mission compiles one of 96 enumerated content frames through
-                a pressure-scored mechanical archetype, binds live evidence, and
-                declares its operational convergence before resolution.
+                Select a front on the left, then inspect one response here. The
+                report will show its price, its evidence, and how it reaches the
+                battlefield before you issue it.
               </p>
             </article>
           )}
         </div>
         <footer className="os-status">
-          MAIN CAMPAIGN FIRST // ENUMERATED DOMESTIC + NETWORK CONTENT ROTATES
-          AT RESOLUTION // ONE SUBSTRATE // ONE ORDER BUDGET
+          SELECT A FRONT // INSPECT A RESPONSE // ISSUE FROM ONE DAILY ORDER POOL
         </footer>
       </section>
     </div>
@@ -3500,7 +3466,7 @@ function MetricDrawer({
     <Overlay close={close}>
       <aside className="drawer metric-drawer">
         <Close onClick={close} />
-        <span className="eyebrow">Deterministic state inspection</span>
+        <span className="eyebrow">Authoritative state inspection</span>
         <h2>{label}</h2>
         <strong className="bigvalue">{value}</strong>
         <em className="status">{status}</em>
@@ -3869,8 +3835,14 @@ export default function Home() {
         setPage("wiki");
       }
     };
-    const wikiAppletEvent = (e: Event) =>
-      openManualApplet((e as CustomEvent<string>).detail);
+    const wikiAppletEvent = (e: Event) => {
+      const article = (e as CustomEvent<string>).detail;
+      if (interfaceMode === "briefing")
+        window.dispatchEvent(
+          new CustomEvent("briefing-open-manual", { detail: article }),
+        );
+      else openManualApplet(article);
+    };
     const familyEvent = (e: Event) => {
       const hit = FAMILIES.find(
         (f) => f.id === (e as CustomEvent<string>).detail,
@@ -4152,7 +4124,11 @@ export default function Home() {
         ...m,
         {
           who: "AVA",
-          text: `COMMAND NOT UNDERSTOOD\n${result.prompt}${candidates}\n\nGRAMMAR\nhelp\nmissions`,
+          text: voiceAvaResponse(
+            s,
+            `COMMAND NOT UNDERSTOOD\n${result.prompt}${candidates}\n\nGRAMMAR\nhelp\nmissions`,
+            { mode: "rejection", label: "CLARIFICATION" },
+          ),
         },
       ]);
       return;
@@ -4465,7 +4441,12 @@ export default function Home() {
           </div>
           <div className="messages">
             {messages.map((m, i) => (
-              <div className={m.who === "YOU" ? "you" : ""} key={i}>
+              <div
+                aria-live={m.who === "AVA" ? "polite" : undefined}
+                className={m.who === "YOU" ? "you" : ""}
+                key={i}
+                role={m.who === "AVA" ? "status" : undefined}
+              >
                 <span>{m.who}</span>
                 <div className="message-body">
                   {m.who === "YOU" ? (
@@ -4599,7 +4580,7 @@ export default function Home() {
                 <p>
                   Signals officers reconstructed a forty-minute gap in the
                   interdiction cycle. Intelligence increases by one in the
-                  campaign record. The report is deterministic; the seal was
+                  campaign record. The report is reproducible; the seal was
                   only theater.
                 </p>
                 <button onClick={() => setDispatch(null)}>FILE DISPATCH</button>

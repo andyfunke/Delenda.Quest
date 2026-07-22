@@ -27,6 +27,29 @@ const run=(raw,state,session=newSession(),fraction=0)=>terminal.runAvaInstructio
   fraction,
 );
 
+test("every Ava response opens with ruthless state-bound and instruction-bounded field voice",()=>{
+  const state=newState();
+  const expected=new Map([
+    ["hello","ORIENTATION"],
+    ["who are you","IDENTITY"],
+    ["help","GRAMMAR"],
+    ["missions","MISSIONS"],
+    ["report production","PRODUCTION"],
+    ["report losses over the last 5 days","LOSSES"],
+    ["where do I influence execution confidence","OPERATIONS"],
+    ["explain execution confidence calculus","OPERATIONS"],
+    ["forecast M1","PROJECTION"],
+    ["open production","PRODUCTION"],
+    ["thanks","ACKNOWLEDGMENT"],
+  ]);
+  for(const [command,topic] of expected){
+    const result=run(command,state);
+    assert.match(result.text,new RegExp(`^FIELD NOTE / ${topic}\\n\\S`));
+    assert.doesNotMatch(result.text,/deterministic|runtime effect|compiler|content frame|schema version/i);
+  }
+  assert.notEqual(run("report production",state).text.split("\n")[1],run("report losses over the last 5 days",state).text.split("\n")[1]);
+});
+
 const firstAvailable=(state,kind,fraction=0,domain)=>{
   const descriptor=runtime.enumerateAvaActions(state,fraction).find(item=>
     item.kind===kind&&item.available&&(domain===undefined||item.domain===domain)
@@ -76,8 +99,8 @@ test("a Main/Domestic/Network packet stages without mutating campaign state",()=
   assert.equal(staged.executed,false);
   assert.equal(staged.session.plan.length,3);
   assert.deepEqual(staged.session.plan.map(runtime.actionKey),descriptors.map(item=>runtime.actionKey(item.action)));
-  assert.match(staged.text,/PLAN \/\/ P-/);
-  assert.match(staged.text,/COST \/\/ 3 ORDERS/);
+  assert.match(staged.text,/PLAN: P-/);
+  assert.match(staged.text,/COST: 3 ORDERS/);
 });
 
 test("ISSUE PLAN preflights, state-bound confirmation executes, and terminal matches direct controller",()=>{
@@ -89,7 +112,7 @@ test("ISSUE PLAN preflights, state-bound confirmation executes, and terminal mat
   assert.ok(issued.session.confirmation);
   assert.equal(issued.session.confirmation.stateRevision,runtime.avaStateRevision(initial));
   assert.match(issued.text,/ORDER AWAITING CONFIRMATION/);
-  assert.match(issued.text,/TYPE CONFIRM/);
+  assert.match(issued.text,/> confirm C-/i);
 
   const directPlan=runtime.buildAvaPlan(initial,staged.session.plan);
   const direct=runtime.executeAvaPlan(initial,directPlan);
@@ -137,6 +160,8 @@ test("MORE and LESS materially change report disclosure depth",()=>{
   const state=newState();
   const deepMode=run("more detail",state),deepReport=run("report production",state,deepMode.session);
   assert.match(deepReport.text,/DEPENDENCIES/);assert.match(deepReport.text,/LEDGER SCOPE/);assert.match(deepReport.text,/CALCULATION/);
+  assert.doesNotMatch(deepReport.text,/industrial-throughput|production-flow|resource-coverage/i,"deep reports must print human labels, not internal slugs");
+  assert.doesNotMatch(deepReport.text,/ \/\/ /,"Ava must use the declared text punctuation grammar");
   const glanceMode=run("less",state,deepReport.session),glanceReport=run("report production",state,glanceMode.session);
   assert.doesNotMatch(glanceReport.text,/DEPENDENCIES|LEDGER SCOPE|CALCULATION|CUMULATIVE INTELLIGENCE/);
   assert.match(glanceReport.text,/ANSWER/);assert.match(glanceReport.text,/JUDGMENT/);assert.match(glanceReport.text,/GRAMMAR/);

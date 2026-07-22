@@ -12,6 +12,12 @@
   --bad: #c93527;
   --mono: var(--font-geist-mono), "IBM Plex Mono", "Courier New", monospace;
   --serif: Georgia, "Times New Roman", serif;
+  --ui: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --type-display: 700 38px/1.02 var(--serif);
+  --type-heading: 800 15px/1.25 var(--ui);
+  --type-body: 400 14px/1.55 var(--ui);
+  --type-data: 500 12px/1.45 var(--mono);
+  --type-label: 800 10px/1.3 var(--mono);
 }
 * {
   box-sizing: border-box;
@@ -23,7 +29,7 @@ body {
   color: var(--ink);
 }
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--ui);
   background-image: linear-gradient(
     rgba(23, 24, 21, 0.035) 1px,
     transparent 1px
@@ -5167,6 +5173,282 @@ body {
     right: auto;
     width: min(360px, 82vw);
   }
+}
+
+/* Semantic information hierarchy: black frames authority; paper carries content. */
+.module-report {
+  background: #ece9df;
+  color: var(--ink);
+}
+.module-report > div {
+  background: #fff;
+  border-color: #aaa;
+}
+.module-report > div:nth-child(even) {
+  background: #f1eee5;
+}
+.module-report small {
+  color: #5f625b;
+}
+.module-report b {
+  color: #171815;
+}
+.operations-summary,
+.operations-conclusions,
+.observed-intent {
+  background: #f7f4eb;
+  color: #171815;
+}
+.operations-summary > :nth-child(even),
+.operations-conclusions > :nth-child(even) {
+  background: #ebe7dc;
+}
+.observed-intent {
+  border-color: #999;
+}
+.operations-summary .operation-inspect > small,
+.operations-summary .operation-inspect > span,
+.operations-conclusions .operation-inspect > small,
+.operations-conclusions .operation-inspect > span,
+.observed-intent > small,
+.observed-intent > span {
+  color: #5d6059;
+}
+.doctrine-inspector .doctrine-effect {
+  background: #f7f4eb;
+  border: 1px solid #8b8b83;
+  color: #171815;
+  padding: 0 16px 16px;
+}
+.doctrine-effect > b {
+  background: #171815;
+  color: #f1efe6;
+  display: block;
+  margin: 0 -16px 14px;
+  padding: 9px 16px;
+}
+.doctrine-effect > small {
+  color: #5f625b;
+}
+.doctrine-tree button.unresearchable,
+.modern-doctrine-grid button.unresearchable {
+  color: #656860;
+  cursor: pointer;
+  opacity: 0.72;
+}
+.doctrine-tree button.unresearchable:hover,
+.modern-doctrine-grid button.unresearchable:hover {
+  opacity: 1;
+}
+.desertion-control > div {
+  background: #f7f4eb;
+  border-color: #aaa;
+  color: #171815;
+}
+.desertion-control > div:nth-child(even) {
+  background: #ebe7dc;
+}
+.desertion-control .term {
+  color: #171815;
+}
+.diplomacy-workspace > article,
+.active-diplomacy-report {
+  background: #f7f4eb;
+  color: #171815;
+}
+.active-diplomacy-report > header {
+  background: #171815;
+  color: #fff;
+}
+.active-diplomacy-report article:nth-child(even) {
+  background: #ebe7dc;
+}
+.active-diplomacy-report article em {
+  color: #17643d;
+}
+.domestic-transition {
+  background: #f7f4eb;
+  color: #171815;
+}
+.domestic-transition > div:nth-child(even) {
+  background: #ebe7dc;
+}
+.domestic-transition .term {
+  color: #171815;
+}
+
+/* The reinforcement circuit keeps people, equipment, and assignment distinct. */
+.force-circuit {
+  background: #171815;
+}
+.force-human-flow {
+  align-items: stretch;
+  background: #f7f4eb;
+  border-bottom: 1px solid #888;
+  border-top: 1px solid #555;
+  color: #171815;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(135px, 1fr) 28px) minmax(160px, 1fr);
+  overflow-x: auto;
+}
+.force-human-flow > .force-stage {
+  min-height: 112px;
+  padding: 15px 13px;
+}
+.force-human-flow > .force-stage:nth-of-type(even) {
+  background: #ebe7dc;
+}
+.force-human-flow > i {
+  align-self: center;
+  color: #8e3b2d;
+  font: 800 18px var(--mono);
+  text-align: center;
+}
+.force-human-flow .term,
+.force-human-flow .inline-concept-bubblette,
+.force-assignment .term,
+.force-assignment .inline-concept-bubblette {
+  color: #171815;
+  font: var(--type-label);
+}
+.force-human-flow b,
+.force-assignment b {
+  font: 800 18px/1.2 var(--mono);
+  margin: 9px 0;
+}
+.force-human-flow small,
+.force-assignment small {
+  color: #5f625b;
+  font: var(--type-label);
+}
+.force-assignment {
+  background: #fff;
+  color: #171815;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(0, 2fr) minmax(190px, 0.9fr);
+}
+.force-assignment > header {
+  background: #ebe7dc;
+  border-right: 1px solid #999;
+  padding: 14px;
+}
+.force-assignment > header b {
+  font: 800 12px/1.45 var(--ui);
+}
+.force-assignment-branches {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(145px, 1fr));
+}
+.force-assignment-branches > div {
+  border-bottom: 1px solid #aaa;
+  border-right: 1px solid #aaa;
+  padding: 13px;
+}
+.force-assignment-branches > div:nth-child(2),
+.force-assignment-branches > div:nth-child(3) {
+  background: #f1eee5;
+}
+.force-assignment-result {
+  align-items: center;
+  background: #e7ebd5;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  padding: 14px 12px;
+}
+.force-assignment-result > span {
+  color: #17643d;
+  font: 900 20px var(--mono);
+}
+@media (max-width: 900px) {
+  .force-human-flow {
+    grid-template-columns: repeat(7, minmax(140px, auto));
+  }
+  .force-assignment {
+    grid-template-columns: 1fr;
+  }
+  .force-assignment > header {
+    border-bottom: 1px solid #999;
+    border-right: 0;
+  }
+}
+
+/* One applette model: a pale glance becomes a centered relationship navigator. */
+.inline-concept-bubblette {
+  display: inline;
+}
+.bubblette-panel {
+  background: #ffffe1;
+  border: 1px solid #171815;
+  box-shadow: 4px 4px 0 #171815;
+  top: calc(100% + 1px);
+}
+.bubblette-panel > header {
+  background: #ffffe1;
+  border-bottom: 1px solid #171815;
+  color: #171815;
+}
+.bubblette-panel > header small,
+.bubblette-panel > header b,
+.bubblette-panel > header button {
+  color: #171815;
+}
+.bubblette:not(.pinned) > .bubblette-panel {
+  max-width: 360px;
+  min-width: 260px;
+}
+.bubblette:not(.pinned) > .bubblette-panel dl,
+.bubblette:not(.pinned) > .bubblette-panel .bubblette-actions,
+.bubblette:not(.pinned) > .bubblette-panel nav,
+.bubblette:not(.pinned) > .bubblette-panel > header button {
+  display: none;
+}
+.bubblette.pinned > .bubblette-panel {
+  box-shadow: 8px 8px 0 #171815;
+}
+.bubblette-actions button,
+.bubblette-panel nav button {
+  background: #fff;
+}
+
+/* Ava's hierarchy is semantic: voice, prose, calculation, command grammar. */
+.message-body {
+  max-width: 72ch;
+}
+.ava.terminal-full .message-body {
+  max-width: 80ch;
+}
+.ava-text-block h3 {
+  font: var(--type-label);
+}
+.ava-text-block p {
+  font: var(--type-data);
+}
+.ava-text-block.narrative p {
+  color: #ded6c7;
+  font: 400 17px/1.52 var(--serif);
+  letter-spacing: 0.005em;
+}
+.ava-text-block.direct p {
+  font: 650 15px/1.55 var(--ui);
+}
+.ava-text-block.recommendation p {
+  font: 700 14px/1.55 var(--ui);
+}
+.ava-text-block.grammar p {
+  font: 500 11px/1.62 var(--mono);
+}
+.ava-player-line {
+  font: 500 12px/1.65 var(--mono) !important;
+}
+.ava.terminal-full .ava-text-block p {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.ava.terminal-full .ava-text-block.narrative p {
+  font: 400 19px/1.5 var(--serif);
+}
+.ava.terminal-full .ava-text-block.direct p {
+  font: 650 16px/1.55 var(--ui);
 }
 
 .force-circuit {
@@ -10523,4 +10805,264 @@ small,
   .theater-plate svg {
     min-width: 640px;
   }
+}
+
+/*
+ * Final semantic cascade guard.
+ * Keep this block at the actual EOF so legacy component rules cannot restore
+ * black content fields or collapse Ava's textual hierarchy.
+ */
+:root {
+  --muted: #50534c;
+  --type-display: 700 38px/1.08 var(--serif);
+  --type-heading: 700 20px/1.3 var(--ui);
+  --type-body: 400 18px/1.55 var(--ui);
+  --type-data: 500 16px/1.55 var(--mono);
+  --type-grammar: 500 15px/1.6 var(--mono);
+  --type-label: 800 13px/1.35 var(--mono);
+  --ava-text: #e5e9e1;
+  --ava-muted: #a9b0a6;
+  --ava-cyan: #83cbd0;
+  --ava-green: #add795;
+  --ava-red: #f28b82;
+  --ava-amber: #efb76c;
+}
+
+.module-report {
+  background: #ece9df;
+  color: var(--ink);
+}
+.module-report > div {
+  background: #fff;
+  border-color: #aaa;
+}
+.module-report > div:nth-child(even) {
+  background: #f1eee5;
+}
+.module-report small {
+  color: #50534c;
+  font: var(--type-label);
+}
+.module-report b {
+  color: var(--ink);
+  font: 700 16px/1.45 var(--mono);
+}
+.operations-summary,
+.operations-conclusions,
+.observed-intent,
+.doctrine-inspector .doctrine-effect,
+.desertion-control > div,
+.diplomacy-workspace > article,
+.active-diplomacy-report,
+.domestic-transition {
+  background: #f7f4eb;
+  color: var(--ink);
+}
+.operations-summary > :nth-child(even),
+.operations-conclusions > :nth-child(even),
+.desertion-control > div:nth-child(even),
+.active-diplomacy-report article:nth-child(even),
+.domestic-transition > div:nth-child(even) {
+  background: #ebe7dc;
+}
+.active-diplomacy-report > header,
+.doctrine-effect > b {
+  background: var(--ink);
+  color: #f4f1e8;
+}
+.active-diplomacy-report > header b {
+  color: #f4f1e8;
+}
+.active-diplomacy-report article small,
+.active-diplomacy-report article b,
+.active-diplomacy-report article p,
+.desertion-control .term,
+.domestic-transition .term {
+  color: var(--ink);
+}
+.active-diplomacy-report article em {
+  color: #17643d;
+}
+
+.bubblette-panel,
+.bubblette-panel > header {
+  background: #fffde8;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.bubblette-panel > header {
+  border-bottom: 1px solid var(--ink);
+}
+.bubblette-panel > header small,
+.bubblette-panel > header b,
+.bubblette-panel > header button {
+  color: var(--ink);
+}
+.bubblette-panel > header small,
+.bubblette-panel dt,
+.bubblette-panel nav > small {
+  font: var(--type-label);
+}
+.bubblette-panel > header b {
+  font: 700 16px/1.35 var(--mono);
+}
+.bubblette-panel > p {
+  color: var(--ink);
+  font: var(--type-body);
+}
+.bubblette-panel dd {
+  color: var(--ink);
+  font: var(--type-data);
+}
+.bubblette-panel dt button,
+.bubblette-panel nav button {
+  color: #0047b3;
+}
+.bubblette-actions button,
+.bubblette-panel nav button {
+  font: 700 14px/1.35 var(--mono);
+}
+
+.message-body,
+.ava.terminal-full .message-body {
+  max-width: 72ch;
+}
+.ava-player-line {
+  color: var(--ava-muted) !important;
+  font: var(--type-data) !important;
+}
+.ava-text-block {
+  border-left-color: #4d544d;
+  padding: 11px 0 13px 16px;
+}
+.ava-text-block + .ava-text-block {
+  margin-top: 8px;
+}
+.ava-text-block h3 {
+  color: var(--ava-muted);
+  font: var(--type-label);
+  letter-spacing: 0.12em;
+}
+.ava-text-block p,
+.ava.terminal-full .ava-text-block p {
+  color: var(--ava-text);
+  font: var(--type-body);
+}
+.ava-text-block.narrative p,
+.ava.terminal-full .ava-text-block.narrative p {
+  color: #e4dccd;
+  font: 400 20px/1.5 var(--serif);
+  font-style: normal;
+  letter-spacing: 0.005em;
+}
+.ava-text-block.direct p,
+.ava.terminal-full .ava-text-block.direct p,
+.ava-text-block.recommendation p,
+.ava.terminal-full .ava-text-block.recommendation p {
+  color: var(--ava-text);
+  font: 650 18px/1.55 var(--ui);
+}
+.ava-text-block.calculation p,
+.ava-text-block.intelligence p,
+.ava-text-block.options p,
+.ava-text-block.confirmation p,
+.ava-text-block.receipt p,
+.ava-text-block.dependency p,
+.ava.terminal-full .ava-text-block.calculation p,
+.ava.terminal-full .ava-text-block.intelligence p,
+.ava.terminal-full .ava-text-block.options p,
+.ava.terminal-full .ava-text-block.confirmation p,
+.ava.terminal-full .ava-text-block.receipt p,
+.ava.terminal-full .ava-text-block.dependency p {
+  font: var(--type-data);
+}
+.ava-text-block.grammar p,
+.ava.terminal-full .ava-text-block.grammar p {
+  color: var(--ava-cyan);
+  font: var(--type-grammar);
+}
+.ava-text-block.direct,
+.ava-text-block.calculation {
+  border-left-color: var(--ava-cyan);
+}
+.ava-text-block.grammar {
+  border-left-color: var(--ava-cyan);
+}
+.ava-text-block.direct h3,
+.ava-text-block.calculation h3,
+.ava-text-block.grammar h3 {
+  color: var(--ava-cyan);
+}
+.ava-text-block.narrative {
+  border-left-color: var(--ava-amber);
+}
+.ava-text-block.narrative h3 {
+  color: var(--ava-amber);
+}
+.ava-text-block.intelligence,
+.ava-text-block.receipt {
+  border-left-color: var(--ava-green);
+}
+.ava-text-block.intelligence h3,
+.ava-text-block.receipt h3,
+.ava-line.gain,
+.ava.terminal-full .ava-line.gain {
+  color: var(--ava-green);
+}
+.ava-text-block.recommendation,
+.ava-text-block.confirmation {
+  border-left-color: var(--ava-amber);
+}
+.ava-text-block.recommendation h3,
+.ava-text-block.confirmation h3 {
+  color: var(--ava-amber);
+}
+.ava-text-block.options,
+.ava-text-block.dependency {
+  border-left-color: #6e766d;
+}
+.ava-text-block.warning {
+  border-left-color: var(--ava-red);
+}
+.ava-text-block.warning h3,
+.ava-text-block.warning p,
+.ava.terminal-full .ava-text-block.warning p,
+.ava-line.loss,
+.ava.terminal-full .ava-line.loss {
+  color: var(--ava-red);
+}
+.ava-line.neutral,
+.ava.terminal-full .ava-line.neutral {
+  color: var(--ava-text);
+}
+.ava-line strong,
+.messages .ava-evidence {
+  color: var(--ava-cyan) !important;
+  font: 700 16px/1.55 var(--mono) !important;
+  letter-spacing: 0.02em;
+}
+.ava form input {
+  font: var(--type-data);
+}
+.ava footer,
+.ava header small,
+.ava-state span,
+.messages > div > span,
+.ava form label,
+.ava-window-controls button {
+  color: var(--ava-muted);
+  font: var(--type-label) !important;
+}
+
+.briefing-ui {
+  --b-faint: #98a096;
+  --b-red: #ef7f75;
+}
+.system-notice {
+  color: var(--ava-text);
+  font: 500 15px/1.5 var(--mono);
+}
+.system-notice span {
+  color: var(--ava-muted);
+  font: var(--type-label);
 }

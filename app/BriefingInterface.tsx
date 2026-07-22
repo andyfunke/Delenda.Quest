@@ -169,7 +169,7 @@ function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
       <div className="campaign-mission-context">
         <small>
           {prompt.category.toUpperCase()} // {prompt.pressureBand.toUpperCase()}{" "}
-          PRESSURE // {prompt.realizationId.toUpperCase()}
+          PRESSURE
         </small>
         <b>{prompt.question}</b>
         <span>
@@ -185,17 +185,14 @@ function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
               <li key={line}>{line}</li>
             ))}
           </ul>
-          <small>{prompt.selectionBasis}</small>
         </section>
         <section>
-          <h3>Operational convergence</h3>
+          <h3>How this reaches the front</h3>
           <p>{prompt.operationalAnchor.headline}</p>
           <ul>
-            {prompt.convergence.map((edge) => (
+            {prompt.convergence.map((edge, index) => (
               <li key={`${edge.source}-${edge.via}-${edge.target}`}>
-                <b>
-                  {edge.source} → {edge.via} → {edge.target}
-                </b>
+                <b>CONSEQUENCE {index + 1}</b>
                 <span>{edge.summary}</span>
               </li>
             ))}
@@ -203,8 +200,7 @@ function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
         </section>
       </div>
       <button className="opportunity-manual" onClick={showMissionEntry}>
-        FIELD MANUAL // {prompt.frameId.toUpperCase()} //{" "}
-        {prompt.realizationId.toUpperCase()} →
+        FIELD MANUAL // {prompt.title.toUpperCase()} →
       </button>
     </section>
   );
@@ -477,11 +473,10 @@ function DoctrineSurface({
               const unlocked = s.unlocked.includes(stage.id),
                 prior =
                   index === 0 ||
-                  s.unlocked.includes(vector.stages[index - 1].id),
-                available = !unlocked && prior && s.doctrine >= stage.cost;
+                  s.unlocked.includes(vector.stages[index - 1].id);
               return (
                 <button
-                  disabled={!available}
+                  className={!prior ? "unresearchable" : ""}
                   onClick={() => select(vector, stage)}
                   key={stage.id}
                 >
@@ -701,9 +696,7 @@ function DailySurface({
           </p>
           <blockquote>
             “The day is one problem expressed through several institutions.”
-            <cite>
-              CONVERGENCE SCHEMA // {packet.matrixVersion.toUpperCase()}
-            </cite>
+            <cite>AVA // PATTERN ANALYSIS DIRECTORATE</cite>
           </blockquote>
         </header>
         <div className="briefing-decision-stack">
@@ -931,7 +924,7 @@ function DailySurface({
         </div>
       </section>
       <footer className="briefing-footer">
-        <span>DELENDA QUEST // ONE SUBSTRATE // TWO COMMAND INTERFACES</span>
+        <span>DELENDA QUEST // ONE CAMPAIGN // TWO COMMAND INTERFACES</span>
         <button disabled={s.status !== "active"} onClick={resolveDay}>
           RESOLVE DAY {s.day} →
         </button>
@@ -982,7 +975,28 @@ export function BriefingInterface({
     [doctrineConfirm, setDoctrineConfirm] = useState<{
       vector: DoctrineVector;
       stage: DoctrineStage;
-    } | null>(null);
+    } | null>(null),
+    doctrineStageIndex = doctrineConfirm
+      ? doctrineConfirm.vector.stages.findIndex(
+          (stage) => stage.id === doctrineConfirm.stage.id,
+        )
+      : -1,
+    doctrinePriorStage =
+      doctrineConfirm && doctrineStageIndex > 0
+        ? doctrineConfirm.vector.stages[doctrineStageIndex - 1]
+        : null,
+    doctrineUnlocked = doctrineConfirm
+      ? s.unlocked.includes(doctrineConfirm.stage.id)
+      : false,
+    doctrinePrerequisiteMet =
+      !!doctrineConfirm &&
+      (doctrineStageIndex === 0 ||
+        (!!doctrinePriorStage && s.unlocked.includes(doctrinePriorStage.id))),
+    doctrineAvailable =
+      !!doctrineConfirm &&
+      !doctrineUnlocked &&
+      doctrinePrerequisiteMet &&
+      s.doctrine >= doctrineConfirm.stage.cost;
   const navigate = (module: string, family?: string) => {
     setFocusFamilyId(family);
     setSurface(surfaceFor(module));
@@ -1047,7 +1061,7 @@ export function BriefingInterface({
     onSurfaceChange(moduleBySurface[surface]);
   }, [surface, onSurfaceChange]);
   const confirmDoctrine = () => {
-    if (!doctrineConfirm) return;
+    if (!doctrineConfirm || !doctrineAvailable) return;
     selectDoctrine(doctrineConfirm.vector, doctrineConfirm.stage);
     setDoctrineConfirm(null);
   };
@@ -1136,7 +1150,7 @@ export function BriefingInterface({
             aria-label={`Resolve Day ${s.day}`}
           >
             <small>RESOLUTION // DAY {s.day}</small>
-            <h2>Release the day to the deterministic ledger?</h2>
+            <h2>Release the day to resolution?</h2>
             <p>
               {s.maneuver
                 ? `${maneuverById(s.maneuver)?.label} resolves against ${situationForState(s).sector}. `
@@ -1183,7 +1197,7 @@ export function BriefingInterface({
             <p>{doctrineConfirm.stage.description}</p>
             <dl>
               <div>
-                <dt>EXACT RUNTIME EFFECT</dt>
+                <dt>BATTLEFIELD EFFECT</dt>
                 <dd>{doctrineConfirm.stage.effect}</dd>
               </div>
               <div>
@@ -1193,16 +1207,37 @@ export function BriefingInterface({
                   {s.doctrine - doctrineConfirm.stage.cost} REMAINS
                 </dd>
               </div>
+              <div>
+                <dt>STATUS</dt>
+                <dd>
+                  {doctrineUnlocked
+                    ? "INTERNALIZED"
+                    : !doctrinePrerequisiteMet
+                      ? `${doctrinePriorStage?.label.toUpperCase() ?? "PRIOR PRINCIPLE"} REQUIRED FIRST`
+                      : s.doctrine < doctrineConfirm.stage.cost
+                        ? `${doctrineConfirm.stage.cost - s.doctrine} MORE INSIGHT REQUIRED`
+                        : "AVAILABLE"}
+                </dd>
+              </div>
             </dl>
             <div>
               <button onClick={() => setDoctrineConfirm(null)}>
                 RETURN TO DOCTRINE
               </button>
-              <button className="primary" onClick={confirmDoctrine}>
-                {doctrineConfirm.vector.forbidden
-                  ? "AUTHORIZE PROHIBITED METHOD"
-                  : "INTERNALIZE PRINCIPLE"}{" "}
-                →
+              <button
+                className="primary"
+                disabled={!doctrineAvailable}
+                onClick={confirmDoctrine}
+              >
+                {doctrineUnlocked
+                  ? "ALREADY INTERNALIZED"
+                  : !doctrinePrerequisiteMet
+                    ? "PRIOR PRINCIPLE REQUIRED"
+                    : s.doctrine < doctrineConfirm.stage.cost
+                      ? "INSUFFICIENT INSIGHT"
+                      : doctrineConfirm.vector.forbidden
+                        ? "AUTHORIZE PROHIBITED METHOD →"
+                        : "INTERNALIZE PRINCIPLE →"}
               </button>
             </div>
           </section>

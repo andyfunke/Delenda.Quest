@@ -26,7 +26,7 @@ export function CampaignDirectorPanel({s,compact=false}:{s:GameState;compact?:bo
         <div className="director-trigger"><span>SELECTION BASIS</span><b>{director.trigger}</b><a href="?wiki=campaign-event-director" target="_blank" rel="noreferrer">HOW THE DIRECTOR SELECTS CONDITIONS ↗</a></div>
       </article>
       <div className="director-effects">
-        <section><h3>AUTHORITATIVE EFFECTS // EXACT</h3>{director.event.exact.map(effect=><a href={`?wiki=event-${slug(director.event.label)}`} target="_blank" rel="noreferrer" title="This modifier is applied by the deterministic resolution circuit." key={effect}>{effect}</a>)}</section>
+        <section><h3>AUTHORITATIVE EFFECTS // EXACT</h3>{director.event.exact.map(effect=><a href={`?wiki=event-${slug(director.event.label)}`} target="_blank" rel="noreferrer" title="This modifier is applied at day resolution." key={effect}>{effect}</a>)}</section>
         <section><h3>CONTINGENT EXPOSURE // DISCLOSED</h3>{director.event.risk.map(risk=><a href={`?wiki=event-${slug(director.event.label)}`} target="_blank" rel="noreferrer" title="This is an exposed risk, not a guaranteed additional state change." key={risk}>{risk}</a>)}</section>
       </div>
     </div>
