@@ -5,6 +5,14 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // DELENDA.QUEST deliberately uses bureaucratic `//` separators as visible interface copy.
+      "react/jsx-no-comment-textnodes": "off",
+      // Browser command-continuity hydration is intentionally synchronized from localStorage.
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
