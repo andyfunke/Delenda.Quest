@@ -36,6 +36,9 @@ export type OperationsLedger = {
 export type OperationsContext = { situation:Situation; maneuver:Maneuver|null; roll:number; confidence:number; tempoCasualty:number; tempoSupply:number; tempoPressure:number; shortages:number };
 export type DomesticLedger = {day:number;legitimacyOpening:number;resistanceOpening:number;casualtyBurden:number;forcedIntakeBurden:number;shortageBurden:number;atrocityBurden:number;fiscalBurden:number;policyLegitimacy:number;policyResistance:number;legitimacyChange:number;resistanceChange:number;desertionPressureChange:number;legitimacyClosing:number;resistanceClosing:number;strikeRisk:number;collapseRisk:number;signals:string[]};
 export type DomesticContext = {friendlyLosses:number;shortages:number};
+export type DiplomaticActor = {id:string;name:string;role:"ally"|"neutral"|"rival"|"broker";interest:string;trust:number;leverage:number;dependency:number;obligation:number;aidPipeline:number;sanctionsExposure:number;betrayalRisk:number};
+export type DiplomacyActorLedger = DiplomaticActor & {trustChange:number;leverageChange:number;dependencyChange:number;munitionsDelivered:number;treasuryDelivered:number;intelligenceDelivered:number};
+export type DiplomacyLedger = {day:number;actors:DiplomacyActorLedger[];totalMunitions:number;totalTreasury:number;totalIntelligence:number;totalSanctionsDrag:number;highestBetrayalRisk:number;signals:string[]};
 
 const resources:Resource[]=["munitions","armor","flight","drones"];
 const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,drones:12.6};
@@ -178,6 +181,28 @@ export const domesticCircuit:Circuit<GameState,DomesticLedger,DomesticContext>={
     const signalText:string[]=[];if(strikeRisk>.5)signalText.push("Industrial strike preparation exceeds the containment threshold.");if(collapseRisk>.35)signalText.push("State continuity is entering a non-linear failure band.");if(casualtyBurden>1)signalText.push("Daily casualty publication exceeds the legitimacy absorption rate.");
     const signals:CircuitSignal[]=signalText.map((message,i)=>({severity:i===1?"critical":"warning",code:`domestic.${i}`,message}));
     return{state,signals,ledger:{day:state.day,legitimacyOpening,resistanceOpening,casualtyBurden,forcedIntakeBurden,shortageBurden,atrocityBurden,fiscalBurden,policyLegitimacy,policyResistance,legitimacyChange,resistanceChange,desertionPressureChange,legitimacyClosing:state.legitimacy,resistanceClosing:state.resistance,strikeRisk,collapseRisk,signals:signalText}};
+  }
+};
+
+export const diplomacyCircuit:Circuit<GameState,DiplomacyLedger,Record<string,never>>={
+  id:"diplomacy",
+  resolve(input){
+    const state:GameState=JSON.parse(JSON.stringify(input));state.actors=state.actors??[];const signals:string[]=[];
+    const actors=state.actors.map(actor=>{const opening={...actor};let trustChange=(50-actor.trust)*.015,leverageChange=-actor.leverage*.01,dependencyChange=-actor.dependency*.004;
+      const supply=state.active.supply,statecraft=state.active.statecraft,treaty=state.active.treaties,sanctions=state.active.sanctions,obligation=state.active["alliance-obligations"];
+      if(actor.id==="orison"){if(supply==="credit"){trustChange+=1.2;dependencyChange+=.8;leverageChange+=.5;}if(treaty==="mutual-defense"){trustChange+=2;dependencyChange+=.7;actor.obligation=Math.min(100,actor.obligation+2);}if(treaty==="intel-pact"){trustChange+=1;actor.aidPipeline=Math.min(100,actor.aidPipeline+.7);}if(obligation==="send-munitions"){trustChange+=2.4;leverageChange+=1.5;}if(obligation==="accept-liaison"){trustChange+=1.3;dependencyChange+=1;}if(obligation==="refuse-call"){trustChange-=4;leverageChange-=2;}if(obligation==="request-corps"){dependencyChange+=2;actor.obligation=Math.max(0,actor.obligation-3);}}
+      if(actor.id==="vey"){if(supply==="port"){trustChange+=1.5;dependencyChange+=1.4;leverageChange+=.8;}if(supply==="transit"){trustChange+=1;dependencyChange+=.5;}if(treaty==="transit-treaty"){trustChange+=2;actor.aidPipeline=Math.min(100,actor.aidPipeline+1);}if(sanctions==="secondary-sanctions"){trustChange-=2.5;actor.sanctionsExposure+=2;}}
+      if(actor.id==="kestrel"){if(supply==="shadow"){trustChange+=.7;dependencyChange+=1.6;actor.sanctionsExposure+=1.5;}if(treaty==="secret-annex"){trustChange+=1.2;leverageChange+=2;actor.betrayalRisk+=1.5;}}
+      if(actor.id==="cineric"){if(statecraft==="summit"){trustChange+=1.2;leverageChange-=.5;}if(statecraft==="backchannel"){trustChange+=.8;leverageChange+=.5;}if(statecraft==="ultimatum"){trustChange-=2;leverageChange+=1.5;}if(statecraft==="denial"){trustChange-=.8;leverageChange+=.7;}if(treaty==="nonaggression"){trustChange+=1.8;leverageChange-=.8;}if(sanctions==="total-embargo"){trustChange-=3;leverageChange+=2;actor.sanctionsExposure+=3;}if(sanctions==="targeted-controls"){trustChange-=1.4;leverageChange+=1;actor.sanctionsExposure+=1.5;}if(sanctions==="humanitarian-exemption"){trustChange+=.5;leverageChange-=.3;}if(sanctions==="lift-sanctions"){trustChange+=2.5;leverageChange-=2;actor.sanctionsExposure=Math.max(0,actor.sanctionsExposure-4);}}
+      actor.trust=clamp(actor.trust+trustChange,0,100);actor.leverage=clamp(actor.leverage+leverageChange,0,100);actor.dependency=clamp(actor.dependency+dependencyChange,0,100);actor.sanctionsExposure=clamp(actor.sanctionsExposure,0,100);actor.betrayalRisk=clamp((actor.dependency*.45+actor.leverage*.3+(100-actor.trust)*.35+(actor.role==="broker"?12:0))/100,0,.95);
+      const deliveryFactor=actor.role==="rival"?0:actor.aidPipeline*(actor.trust/100)*(1-actor.betrayalRisk);const munitionsDelivered=Math.round(deliveryFactor*145),treasuryDelivered=deliveryFactor*.035,intelligenceDelivered=Math.round(deliveryFactor/18);
+      state.production.munitions.stock+=munitionsDelivered;state.treasury+=treasuryDelivered;state.intelligence+=intelligenceDelivered;
+      if(actor.betrayalRisk>.55)signals.push(`${actor.name} has entered a high betrayal-pressure band.`);if(actor.sanctionsExposure>35)signals.push(`${actor.name} is approaching sanctions isolation.`);
+      return{...actor,trustChange:actor.trust-opening.trust,leverageChange:actor.leverage-opening.leverage,dependencyChange:actor.dependency-opening.dependency,munitionsDelivered,treasuryDelivered,intelligenceDelivered};});
+    if(state.active["alliance-obligations"]==="send-munitions")state.production.munitions.stock=Math.max(0,state.production.munitions.stock-18000);if(state.active.sanctions==="total-embargo")state.enemy=Math.max(0,state.enemy-1200);if(state.active.sanctions==="targeted-controls")state.enemy=Math.max(0,state.enemy-650);if(state.active.sanctions==="lift-sanctions")state.enemy+=1800;
+    state.actors=actors.map(({trustChange:_,leverageChange:__,dependencyChange:___,munitionsDelivered:____,treasuryDelivered:_____,intelligenceDelivered:______,...actor})=>actor);const totalSanctionsDrag=actors.reduce((n,a)=>n+a.sanctionsExposure,0)/250;state.materiel-=totalSanctionsDrag;
+    const ledger={day:state.day,actors,totalMunitions:actors.reduce((n,a)=>n+a.munitionsDelivered,0),totalTreasury:actors.reduce((n,a)=>n+a.treasuryDelivered,0),totalIntelligence:actors.reduce((n,a)=>n+a.intelligenceDelivered,0),totalSanctionsDrag,highestBetrayalRisk:Math.max(0,...actors.map(a=>a.betrayalRisk)),signals};
+    return{state,ledger,signals:signals.map((message,i)=>({severity:i?"critical":"warning",code:`diplomacy.${i}`,message}))};
   }
 };
 
