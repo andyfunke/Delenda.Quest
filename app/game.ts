@@ -4,7 +4,7 @@ export type Module = "dashboard" | "campaign" | "national" | "military" | "diplo
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
 export type Tone = "good" | "warn" | "bad";
-export const DAILY_ORDERS = 5;
+export const DAILY_ORDERS = 4;
 
 export type GameState = {
   day: number; actions: number; status: "active" | "victory" | "defeat";
