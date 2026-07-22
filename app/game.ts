@@ -1,10 +1,10 @@
-import { executeCircuit, forceGenerationCircuit, productionCircuit, type ForceGenerationLedger, type ProductionLedger, type TrainingCohort } from "./circuits";
+import { domesticCircuit, executeCircuit, forceGenerationCircuit, operationsCircuit, productionCircuit, type DomesticLedger, type ForceGenerationLedger, type OperationsLedger, type ProductionLedger, type TrainingCohort } from "./circuits";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
 export type Tone = "good" | "warn" | "bad";
-export const DAILY_ORDERS = 4;
+export const DAILY_ORDERS = 3;
 
 export type GameState = {
   day: number; actions: number; status: "active" | "victory" | "defeat";
@@ -16,7 +16,7 @@ export type GameState = {
   doctrine: number; doctrineEarned: number; doctrineWinAwards: { day:number; action:string; verified:string; reward:number }[]; affinityProofs: Record<string,number>; atrocityExposure: number; reciprocity: number; desertionPressure: number;
   deserters: number; intercepted: number; patrolCommitment: number;
   target: Resource | "balanced"; pendingTarget: Resource | "balanced" | null; tempo: Tempo; maneuver: string | null;
-  maintenanceDebt: number; productionLedger: ProductionLedger | null;
+  maintenanceDebt: number; productionLedger: ProductionLedger | null; operationsLedger:OperationsLedger|null; domesticLedger:DomesticLedger|null;
   production: Record<Resource, { allocation: number; stock: number; output: number; use: number }>;
   active: Record<string, string>; locks: Record<string, number>; scheduled: Scheduled[];
   unlocked: string[]; decisions: { day: number; family: string; choice: string }[];
@@ -40,7 +40,7 @@ export type Family = {
 
 export type Maneuver = {
   id: string; label: string; flavor: string; exact: string[]; risk: string[];
-  success: number; casualty: number; supply: number; successPressure: number; failurePressure: number;
+  success: number; casualty: number; supply: number; successPressure: number; failurePressure: number; commitment:number;
   doctrine: [number, number]; vector: string; readiness?: number; reciprocity?: number;
 };
 
@@ -113,6 +113,18 @@ export const FAMILIES: Family[] = [
     c("rations", "Guarantee Family Rations", "The household is secured behind the formation.", ["Desertion pressure: -6", "Legitimacy: +3", "Treasury: -3.0 B per day"], ["Voluntary return: 8% to 19%"], { delta: { desertionPressure: -6, legitimacy: 3 }, tick: { treasury: -3 } }),
     c("reclassify", "Reclassify Missing as Casualties", "The ledger has restored discipline without locating a man.", ["Reported desertions: -2,000", "Legitimacy: -2", "Doctrine: +2"], ["Audit exposure: 14% to 31%"], { delta: { deserters: -2000, legitimacy: -2 }, doctrine: 2 }),
   ]},
+  { id:"home-front",module:"national",category:"Home Front",label:"Govern Civil Allocation",brief:"Decide which households absorb scarcity and whether administrative order still deserves civilian cooperation.",lock:3,choices:[
+    c("ration-equally","Ration Equally","Scarcity becomes legitimate only when privilege is also hungry.",["Daily Legitimacy support: +1.2","Daily Resistance damping: -0.8","Treasury: -2.0 B per day"],["Black-market displacement: 4% to 9%"],{tick:{treasury:-2}}),
+    c("priority-industry","Prioritize Industrial Households","The furnace receives calories before the family receives an explanation.",["Production workforce preserved","Daily Legitimacy pressure: -0.8","Daily Resistance pressure: +1.4"],["Industrial output protected while strike risk rises"]),
+    c("curfew","Impose Night Curfew","The city will demonstrate tranquility by becoming empty.",["Daily Resistance damping: -1.1","Daily Legitimacy pressure: -1.5","Treasury: -1.0 B per day"],["Evasion and clandestine organization migrate indoors"],{tick:{treasury:-1}}),
+    c("local-councils","Delegate to Local Councils","The center retains authority by admitting where it has none.",["Daily Resistance damping: -1.5","Daily Legitimacy support: +0.7","Dependency: +1"],["Regional autonomy demands: 6% to 14%"],{delta:{dependency:1}}),
+  ]},
+  { id:"casualty-politics",module:"national",category:"Home Front",label:"Administer the Butcher's Bill",brief:"Choose how battlefield loss enters households, newspapers, ceremonies, and the state's remaining credibility.",lock:2,choices:[
+    c("publish-rolls","Publish the Rolls","The state names the dead because the households already have.",["Daily Legitimacy support: +0.8","Casualty totals remain exact","Intelligence: -1"],["Enemy battle-damage confidence improves 2% to 5%"],{delta:{intelligence:-1}}),
+    c("sealed-ledger","Seal the Ledger","Classification is applied to grief until grief becomes opposition.",["Daily Legitimacy pressure: -0.7","Daily Resistance pressure: +0.5","Enemy casualty intelligence reduced"],["Disclosure scandal: 12% to 24%"]),
+    c("public-mourning","Declare Public Mourning","Production stops long enough to prove the dead interrupted something.",["Daily Legitimacy support: +1.4","Treasury: -3.0 B","Materiel condition: -1"],["Casualty tolerance improves while output pauses"],{delta:{treasury:-3,materiel:-1}}),
+    c("victory-accounting","Report Exchange Ratios","Every coffin is accompanied by an estimate of enemy inconvenience.",["Daily Legitimacy pressure: -0.4","Daily Resistance pressure: +0.7","Intelligence: +1"],["Audit contradiction risk: 10% to 21%"],{delta:{intelligence:1}}),
+  ]},
   { id: "supply", module: "diplomacy", category: "External Supply", label: "Secure External Supply", brief: "Trade independence, access, or future policy for things that explode today.", lock: 4, choices: [
     c("credit", "Request Allied Credit", "The friendship has a floating rate.", ["Treasury: +20.0 B", "Dependency: +8", "Legitimacy: +1"], ["Repayment event: 12.0 to 28.0 B"], { delta: { treasury: 20, dependency: 8, legitimacy: 1 } }),
     c("port", "Lease Port Access", "Sovereignty will resume after the final automatic renewal.", ["Treasury: +12.0 B", "Materiel: +5 on Day +2", "Dependency: +12"], ["Blockade resistance: +8% to +18%"], { delta: { treasury: 12, dependency: 12 }, delay: { days: 2, delta: { materiel: 5 } } }),
@@ -128,13 +140,13 @@ export const FAMILIES: Family[] = [
 ];
 
 export const MANEUVERS: Maneuver[] = [
-  { id: "reinforce", label: "Reinforce the Salient", flavor: "The reserve enters through the route the enemy has already selected for fire.", exact: ["Commit 31,000 deployable soldiers", "Munitions use: +18%", "Readiness: -2"], risk: ["Hold probability: 68%", "Loss exposure: 5,000 to 11,000"], success: .68, casualty: 1.22, supply: 1.18, successPressure: .9, failurePressure: -.7, doctrine: [3,7], vector: "Force Reconstitution", readiness: -2 },
-  { id: "interdict", label: "Clear the Interdiction Zone", flavor: "Find the batteries by surviving long enough to make them fire twice.", exact: ["Commit Strategic Fires and Drone patrols", "Munitions use: +31%", "Drone use: +24%"], risk: ["Suppression probability: 47%", "Salient remains understrength during fires"], success: .47, casualty: .86, supply: 1.31, successPressure: 1.25, failurePressure: -.45, doctrine: [7,14], vector: "Strategic Fires" },
-  { id: "route", label: "Establish a Southern Route", flavor: "The engineer changes what the map permits while the infantry pays for the time.", exact: ["Withdraw 8,000 engineers and guards", "Materiel condition: -3", "Supply modifier begins tomorrow"], risk: ["Route completion: 54%", "Today’s front movement: -0.3 to -1.2 km"], success: .54, casualty: .72, supply: .8, successPressure: .15, failurePressure: -.8, doctrine: [6,12], vector: "Operational Engineering" },
-  { id: "abandon", label: "Abandon the Salient", flavor: "Preserve the formation. Reclassify the ground as an earlier misunderstanding.", exact: ["Casualty multiplier: 0.44", "Recover 3 Equipment", "Cede at least 0.8 km"], risk: ["Withdrawal cohesion: 76%", "Enemy pursuit may extend the loss to 2.4 km"], success: .76, casualty: .44, supply: .62, successPressure: -.8, failurePressure: -2.4, doctrine: [2,5], vector: "Force Reconstitution" },
-  { id: "exploit", label: "Exploit Their Concentration", flavor: "The mission begins where protection stops being guaranteed.", exact: ["Commit unprotected operators and mobile reserve", "Readiness: -5", "Minimum Doctrine observation: +14"], risk: ["Operational success: 18%", "Loss exposure: 9,000 to 21,000", "Observation survival: 71%"], success: .18, casualty: 1.65, supply: 1.16, successPressure: 3.2, failurePressure: -1.1, doctrine: [14,30], vector: "Assault Geometry", readiness: -5 },
-  { id: "breach", label: "Force the Wire", flavor: "The wire has done its work if the assault arrives one man at a time.", exact: ["Commit assault engineers", "Munitions use: +26%", "Doctrine observation: Assault Geometry"], risk: ["Breach probability: 33%", "Loss exposure: 7,000 to 16,000"], success: .33, casualty: 1.48, supply: 1.26, successPressure: 2.2, failurePressure: -.9, doctrine: [10,22], vector: "Assault Geometry" },
-  { id: "network", label: "Restore the Command Net", flavor: "Cut the fiber and every order must cross the ground again.", exact: ["Commit relay drones and signal companies", "Drone use: +32%", "Intelligence: +3 on success"], risk: ["Restoration probability: 61%", "Exposed signal losses: 1,000 to 4,000"], success: .61, casualty: .78, supply: .92, successPressure: .75, failurePressure: -.65, doctrine: [7,15], vector: "Networked Command" },
+  { id: "reinforce", commitment:31000, label: "Reinforce the Salient", flavor: "The reserve enters through the route the enemy has already selected for fire.", exact: ["Commit 31,000 deployable soldiers", "Munitions use: +18%", "Readiness: -2"], risk: ["Hold probability: 68%", "Loss exposure: 5,000 to 11,000"], success: .68, casualty: 1.22, supply: 1.18, successPressure: .9, failurePressure: -.7, doctrine: [3,7], vector: "Force Reconstitution", readiness: -2 },
+  { id: "interdict", commitment:24000, label: "Clear the Interdiction Zone", flavor: "Find the batteries by surviving long enough to make them fire twice.", exact: ["Commit Strategic Fires and Drone patrols", "Munitions use: +31%", "Drone use: +24%"], risk: ["Suppression probability: 47%", "Salient remains understrength during fires"], success: .47, casualty: .86, supply: 1.31, successPressure: 1.25, failurePressure: -.45, doctrine: [7,14], vector: "Strategic Fires" },
+  { id: "route", commitment:18000, label: "Establish a Southern Route", flavor: "The engineer changes what the map permits while the infantry pays for the time.", exact: ["Withdraw 8,000 engineers and guards", "Materiel condition: -3", "Supply modifier begins tomorrow"], risk: ["Route completion: 54%", "Today’s front movement: -0.3 to -1.2 km"], success: .54, casualty: .72, supply: .8, successPressure: .15, failurePressure: -.8, doctrine: [6,12], vector: "Operational Engineering" },
+  { id: "abandon", commitment:22000, label: "Abandon the Salient", flavor: "Preserve the formation. Reclassify the ground as an earlier misunderstanding.", exact: ["Casualty multiplier: 0.44", "Recover 3 Equipment", "Cede at least 0.8 km"], risk: ["Withdrawal cohesion: 76%", "Enemy pursuit may extend the loss to 2.4 km"], success: .76, casualty: .44, supply: .62, successPressure: -.8, failurePressure: -2.4, doctrine: [2,5], vector: "Force Reconstitution" },
+  { id: "exploit", commitment:46000, label: "Exploit Their Concentration", flavor: "The mission begins where protection stops being guaranteed.", exact: ["Commit unprotected operators and mobile reserve", "Readiness: -5", "Minimum Doctrine observation: +14"], risk: ["Operational success: 18%", "Loss exposure: 9,000 to 21,000", "Observation survival: 71%"], success: .18, casualty: 1.65, supply: 1.16, successPressure: 3.2, failurePressure: -1.1, doctrine: [14,30], vector: "Assault Geometry", readiness: -5 },
+  { id: "breach", commitment:38000, label: "Force the Wire", flavor: "The wire has done its work if the assault arrives one man at a time.", exact: ["Commit assault engineers", "Munitions use: +26%", "Doctrine observation: Assault Geometry"], risk: ["Breach probability: 33%", "Loss exposure: 7,000 to 16,000"], success: .33, casualty: 1.48, supply: 1.26, successPressure: 2.2, failurePressure: -.9, doctrine: [10,22], vector: "Assault Geometry" },
+  { id: "network", commitment:16000, label: "Restore the Command Net", flavor: "Cut the fiber and every order must cross the ground again.", exact: ["Commit relay drones and signal companies", "Drone use: +32%", "Intelligence: +3 on success"], risk: ["Restoration probability: 61%", "Exposed signal losses: 1,000 to 4,000"], success: .61, casualty: .78, supply: .92, successPressure: .75, failurePressure: -.65, doctrine: [7,15], vector: "Networked Command" },
 ];
 
 export const SITUATIONS: Situation[] = [
@@ -191,7 +203,7 @@ export const initialState = (): GameState => ({
   trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
   readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
   front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
-  target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null,
+  target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null, operationsLedger:null, domesticLedger:null,
   production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
   active: {}, locks: {}, scheduled: [], unlocked: ["drone-war"], decisions: [], reports: [{ day: 1, title: "Third Division Will Exhaust Its Ready Reserve Before Dusk", body: "At the present rate of expenditure, 4,218 additional soldiers will be lost before Day 1 resolves. The Kesh corridor remains open. Munitions coverage has fallen below six days. Two training cohorts will arrive too late to replace the morning’s losses.", tone: "warn", epigraph: "The purpose of a reserve is not to remain intact." }],
 });
@@ -212,7 +224,8 @@ export const maneuverChance = (s: GameState, m: Maneuver) => {
   const equipment = (s.equipment - 71) * .0015;
   const shortages = Object.values(s.production).filter(line => line.stock < line.use * 2).length * -.03;
   const fieldProof = Math.min(.08,(s.affinityProofs[m.vector]??0)*.02);
-  return Math.max(.05, Math.min(.95, m.success + intelligence + readiness + equipment + shortages + fieldProof));
+  const doctrine=(m.id==="interdict"&&s.unlocked.includes("long-range")?.09:0)+(m.id==="breach"&&s.unlocked.includes("forced-passage")?.12:0)+(m.id==="network"&&s.unlocked.includes("relay-discipline")?.06:0);
+  return Math.max(.05, Math.min(.95, m.success + intelligence + readiness + equipment + shortages + fieldProof + doctrine));
 };
 export const doctrineStage = (id: string) => DOCTRINES.flatMap((v) => v.stages.map((stage,index) => ({ vector:v,stage,index }))).find((x) => x.stage.id === id);
 
@@ -257,6 +270,10 @@ export const liveProjection = (s: GameState, fraction: number) => {
 
 export const projectProduction = (s:GameState) => executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],maneuverMultiplier:maneuverById(s.maneuver)?.supply??1}).ledger;
 export const projectForceGeneration = (s:GameState) => executeCircuit(forceGenerationCircuit,s,{preview:true}).ledger;
+const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForDay(s.day);const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(s.tempo);const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(operationsCircuit,s,{situation,maneuver,roll,confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages}).ledger;};
+export const projectOperations = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => operationProjection(s,maneuver,hash(`${s.day}:${situationForDay(s.day).id}:${maneuver?.id??"standing"}`));
+export const projectOperationRange = (s:GameState,maneuver:Maneuver) => ({success:operationProjection(s,maneuver,0),failure:operationProjection(s,maneuver,1)});
+export const projectDomestic = (s:GameState) => {const shortages=Object.values(s.production).filter(x=>x.stock<x.use*2).length;return executeCircuit(domesticCircuit,s,{friendlyLosses:estimateDay(s).casualty,shortages}).ledger;};
 
 export const resolve = (state: GameState) => {
   if (state.status !== "active") return state; const s = clone(state); const situation = situationForDay(s.day); const maneuver = maneuverById(s.maneuver);
@@ -265,17 +282,15 @@ export const resolve = (state: GameState) => {
   const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const maneuverSupply = maneuver?.supply ?? 1;
   const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,maneuverMultiplier:maneuverSupply});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
   const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
-  const power=s.deployable*s.readiness/100*s.equipment/100; const ratio=Math.max(.45,Math.min(1.7,power/Math.max(1,s.enemy*.52))); const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;
-  const successRoll=hash(`${s.day}:${situation.id}:${maneuver?.id ?? "standing"}`); const succeeded=maneuver?successRoll<maneuverChance(s,maneuver):true; const maneuverPressure=maneuver?(succeeded?maneuver.successPressure:maneuver.failurePressure):0;
-  const atrocities=(s.unlocked.includes("gas")?.25:0)+(s.unlocked.includes("mines")?.12:0); const losses=Math.round((4200+s.day*38)*tempoCasualty*(maneuver?.casualty??1)*(s.production.munitions.stock<42000?1.15:1)/Math.max(.6,ratio)); const enemyLoss=Math.round((3600+s.day*31)*ratio*(.8+(tempoPressure+maneuverPressure+atrocities)*.3));
+  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:hash(`${s.day}:${situation.id}:${maneuver?.id??"standing"}`),confidence:maneuver?maneuverChance(s,maneuver):1,tempoCasualty,tempoSupply,tempoPressure,shortages});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move}=operationResult.ledger;
   const desert=estimateDay(s); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion; s.enemy+=7900+s.day*55-enemyLoss; s.population-=Math.round(losses*.72);
-  const move=tempoPressure+maneuverPressure+atrocities+(ratio-1)*1.5+(s.intelligence-42)/120+(1-shortages*.18)*.25-.25; s.front+=move;
+  s.front+=move;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${enemyLoss.toLocaleString()} enemy losses // ${move>=0?"+":""}${move.toFixed(1)} km`,reward:doctrineGain});}
-  s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000; s.legitimacy-=losses/8500+s.atrocityExposure/180; s.resistance+=s.forced/28000-s.legitimacy/180; s.desertionPressure+=losses/4500+(s.readiness<45?3:0)-s.legitimacy/120;
+  s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000;const domesticResult=executeCircuit(domesticCircuit,s,{friendlyLosses:losses,shortages});Object.assign(s,domesticResult.state);s.domesticLedger=domesticResult.ledger;
   const resultTitle=maneuver?`${maneuver.label} ${succeeded?"Opened the Day":"Was Collected in Casualties"}`:(move>=0?`The Line Moved ${Math.abs(move).toFixed(1)} km Forward`:`The Line Fell Back ${Math.abs(move).toFixed(1)} km`);
   const doctrineText=doctrineGain?` ${doctrineGain} Insight Points were awarded for the verified battlefield result.`:" No Insight Points were awarded because the maneuver did not produce a verified win."; const desertText=` ${desert.desertion.toLocaleString()} deserted; ${desert.intercepted.toLocaleString()} were intercepted.`;
-  const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;const forceText=` ${forceResult.ledger.admitted.toLocaleString()} entered training; ${forceResult.ledger.effectiveGraduates.toLocaleString()} graduated, ${forceResult.ledger.deployableAssigned.toLocaleString()} reached deployable formations, and ${forceResult.ledger.reserveAssigned.toLocaleString()} entered reserve pending equipment; ${forceResult.ledger.reserveReleased.toLocaleString()} reservists returned to deployable formations.`;
-  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${forceText}${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
+  const operationsText=` Operational packet: ${operationResult.ledger.committed.toLocaleString()} committed, ${(operationResult.ledger.lossRate*100).toFixed(1)}% loss exposure, local force ratio ${operationResult.ledger.forceRatio.toFixed(2)}:1, resolution roll ${(operationResult.ledger.resolutionRoll*100).toFixed(1)} against ${(operationResult.ledger.executionConfidence*100).toFixed(1)} confidence.`;const domesticText=` Domestic state: Legitimacy ${domesticResult.ledger.legitimacyChange>=0?"+":""}${domesticResult.ledger.legitimacyChange.toFixed(1)}, Resistance ${domesticResult.ledger.resistanceChange>=0?"+":""}${domesticResult.ledger.resistanceChange.toFixed(1)}, strike risk ${(domesticResult.ledger.strikeRisk*100).toFixed(0)}%.`;const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;const forceText=` ${forceResult.ledger.admitted.toLocaleString()} entered training; ${forceResult.ledger.effectiveGraduates.toLocaleString()} graduated, ${forceResult.ledger.deployableAssigned.toLocaleString()} reached deployable formations, and ${forceResult.ledger.reserveAssigned.toLocaleString()} entered reserve pending equipment; ${forceResult.ledger.reserveReleased.toLocaleString()} reservists returned to deployable formations.`;
+  s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${operationsText}${domesticText}${forceText}${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
   if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s); return s;
 };
 

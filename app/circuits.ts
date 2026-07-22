@@ -1,4 +1,4 @@
-import type { GameState, Resource, Tempo } from "./game";
+import type { GameState, Maneuver, Resource, Situation, Tempo } from "./game";
 
 export type CircuitSignal = { severity:"nominal"|"warning"|"critical"; code:string; message:string };
 export type CircuitResult<S,L> = { state:S; ledger:L; signals:CircuitSignal[] };
@@ -25,6 +25,17 @@ export type ForceGenerationLedger = {
   reservesOpening:number; reservesClosing:number; deployableOpening:number; deployableClosing:number;
 };
 export type ForceGenerationContext = { preview?:boolean };
+export type OperationsLedger = {
+  day:number; sector:string; maneuver:string; committed:number; commitmentShare:number; frontageDemand:number; frontageSaturation:number;
+  terrainFactor:number; groundFactor:number; networkFactor:number; supplyFactor:number; intelligenceFactor:number;
+  readinessFactor:number; equipmentFactor:number; effectiveCommitted:number; friendlyPower:number; enemyPower:number; forceRatio:number;
+  executionConfidence:number; resolutionRoll:number; succeeded:boolean; friendlyLosses:number; lossRate:number; enemyLosses:number;
+  basePressure:number; maneuverPressure:number; forceRatioPressure:number; intelligencePressure:number; shortagePressure:number; groundMovement:number;
+  evidence:string[];
+};
+export type OperationsContext = { situation:Situation; maneuver:Maneuver|null; roll:number; confidence:number; tempoCasualty:number; tempoSupply:number; tempoPressure:number; shortages:number };
+export type DomesticLedger = {day:number;legitimacyOpening:number;resistanceOpening:number;casualtyBurden:number;forcedIntakeBurden:number;shortageBurden:number;atrocityBurden:number;fiscalBurden:number;policyLegitimacy:number;policyResistance:number;legitimacyChange:number;resistanceChange:number;desertionPressureChange:number;legitimacyClosing:number;resistanceClosing:number;strikeRisk:number;collapseRisk:number;signals:string[]};
+export type DomesticContext = {friendlyLosses:number;shortages:number};
 
 const resources:Resource[]=["munitions","armor","flight","drones"];
 const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,drones:12.6};
@@ -112,6 +123,61 @@ export const forceGenerationCircuit:Circuit<GameState,ForceGenerationLedger,Forc
     if(equipmentAssigned<effectiveGraduates*.75)signals.push({severity:"critical",code:"force.equipment.assignment",message:`Only ${Math.round(equipmentAssigned/Math.max(1,effectiveGraduates)*100)}% of graduates received field equipment.`});
     if(state.trainingCohorts.length===0)signals.push({severity:"warning",code:"force.cohorts.empty",message:"No training cohorts remain in the pipeline."});
     return{state,signals,ledger:{day:state.day,eligiblePopulation:Math.max(0,state.population-state.armed-state.workforce),voluntaryIntake,forcedIntake,grossIntake,queueOpening,admitted,queueClosing:state.queue,capacity:state.training,estimatedWaitDays,cohortsOpening,cohortsClosing:remaining.length,graduatingCohorts:graduating.length,rawGraduates,effectiveGraduates,equipmentDemand,equipmentAssigned,reserveAssigned,reserveReleased,deployableAssigned,reservesOpening,reservesClosing:state.reserves,deployableOpening,deployableClosing:state.deployable}};
+  }
+};
+
+const textFactor=(value:string,table:Record<string,number>,fallback=1)=>Object.entries(table).find(([key])=>value.toLowerCase().includes(key))?.[1]??fallback;
+export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsContext>={
+  id:"operations",
+  resolve(input,context){
+    const state:GameState=JSON.parse(JSON.stringify(input)); const {situation,maneuver}=context;
+    const committed=Math.min(state.deployable,maneuver?.commitment??Math.round(state.deployable*.52));
+    const frontageDemand=textFactor(situation.terrain,{ridge:52000,corridor:44000,basin:68000,lowland:60000},56000);
+    const terrainFactor=textFactor(situation.terrain,{ridge:.82,corridor:.9,basin:1.04,lowland:1});
+    const groundFactor=textFactor(situation.ground,{mined:.72,saturated:.79,dry:1.04,cratered:.86});
+    let networkFactor=textFactor(situation.network,{severed:.68,degraded:.82,intermittent:.9,restored:1.06});if(state.unlocked.includes("relay-discipline"))networkFactor=Math.max(networkFactor,.78);if(state.unlocked.includes("autonomous-command"))networkFactor=Math.max(networkFactor,.9);
+    const supplyFactor=textFactor(situation.supply,{interdicted:.73,rationed:.82,adequate:1,secure:1.08})/Math.max(.85,context.tempoSupply*.82);
+    const intelligenceFactor=clamp(.72+state.intelligence/150,.76,1.26);
+    const readinessFactor=state.readiness/100,equipmentFactor=state.equipment/100;
+    const frontageSaturation=committed/frontageDemand;
+    const congestionFactor=frontageSaturation>1.35?clamp(1-(frontageSaturation-1.35)*.22,.68,1):1;
+    const effectiveCommitted=committed*readinessFactor*equipmentFactor*terrainFactor*groundFactor*networkFactor*supplyFactor*intelligenceFactor*congestionFactor;
+    const supportPower=Math.max(0,state.deployable-committed)*.13*readinessFactor*equipmentFactor;
+    const friendlyPower=effectiveCommitted+supportPower,enemyPower=Math.max(1,state.enemy*.12);
+    const forceRatio=clamp(friendlyPower/enemyPower,.35,1.8);
+    const succeeded=maneuver?context.roll<context.confidence:true;
+    const maneuverPressure=maneuver?(succeeded?maneuver.successPressure:maneuver.failurePressure):0;
+    const shortagePenalty=context.shortages*.18;
+    const doctrineCasualty=maneuver?.id==="breach"&&state.unlocked.includes("suppression")?.92:1;
+    const friendlyLosses=Math.round((4200+state.day*38)*context.tempoCasualty*(maneuver?.casualty??1)*doctrineCasualty*(state.production.munitions.stock<42000?1.15:1)*textFactor(situation.ground,{mined:1.22,saturated:1.08,dry:.94})/Math.max(.55,forceRatio));
+    const atrocities=(state.unlocked.includes("gas")?.25:0)+(state.unlocked.includes("mines")?.12:0);
+    const enemyLosses=Math.max(0,Math.round((3600+state.day*31)*forceRatio*(.8+(context.tempoPressure+maneuverPressure+atrocities)*.3)));
+    const forceRatioPressure=(forceRatio-1)*1.5,intelligencePressure=(state.intelligence-42)/120,shortagePressure=-shortagePenalty;
+    const basePressure=context.tempoPressure+atrocities+.25;
+    const groundMovement=basePressure+maneuverPressure+forceRatioPressure+intelligencePressure+shortagePressure-.25;
+    const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/state.deployable*100).toFixed(1)}% of deployable force)`,`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];
+    const signals:CircuitSignal[]=[];if(frontageSaturation>1.35)signals.push({severity:"warning",code:"operations.frontage.congestion",message:"Committed force exceeds useful frontage and loses conversion efficiency."});if(networkFactor<.8)signals.push({severity:"critical",code:"operations.network.severed",message:"Command network sharply reduces committed-force conversion."});if(supplyFactor<.8)signals.push({severity:"critical",code:"operations.supply.interdicted",message:"Supply condition constrains operational power."});
+    return{state,signals,ledger:{day:state.day,sector:situation.sector,maneuver:maneuver?.label??"Standing Tempo",committed,commitmentShare:committed/Math.max(1,state.deployable),frontageDemand,frontageSaturation,terrainFactor,groundFactor,networkFactor,supplyFactor,intelligenceFactor,readinessFactor,equipmentFactor,effectiveCommitted,friendlyPower,enemyPower,forceRatio,executionConfidence:context.confidence,resolutionRoll:context.roll,succeeded,friendlyLosses,lossRate:friendlyLosses/Math.max(1,committed),enemyLosses,basePressure,maneuverPressure,forceRatioPressure,intelligencePressure,shortagePressure,groundMovement,evidence}};
+  }
+};
+
+export const domesticCircuit:Circuit<GameState,DomesticLedger,DomesticContext>={
+  id:"domestic-state",
+  resolve(input,context){
+    const state:GameState=JSON.parse(JSON.stringify(input));const legitimacyOpening=state.legitimacy,resistanceOpening=state.resistance;
+    const casualtyBurden=context.friendlyLosses/8500,forcedIntakeBurden=state.forced/28000,shortageBurden=context.shortages*.65,atrocityBurden=state.atrocityExposure/180,fiscalBurden=state.treasury<40?(40-state.treasury)/35:0;
+    let policyLegitimacy=0,policyResistance=0;const home=state.active["home-front"],casualties=state.active["casualty-politics"];
+    if(home==="ration-equally"){policyLegitimacy+=1.2;policyResistance-=.8;}if(home==="priority-industry"){policyLegitimacy-=.8;policyResistance+=1.4;}if(home==="curfew"){policyLegitimacy-=1.5;policyResistance-=1.1;}if(home==="local-councils"){policyLegitimacy+=.7;policyResistance-=1.5;}
+    if(casualties==="publish-rolls")policyLegitimacy+=.8;if(casualties==="sealed-ledger"){policyLegitimacy-=.7;policyResistance+=.5;}if(casualties==="public-mourning")policyLegitimacy+=1.4;if(casualties==="victory-accounting"){policyLegitimacy-=.4;policyResistance+=.7;}
+    const legitimacyChange=policyLegitimacy-casualtyBurden-shortageBurden-atrocityBurden-fiscalBurden;
+    const resistanceChange=policyResistance+forcedIntakeBurden+casualtyBurden*.35+shortageBurden*.7-Math.max(0,state.legitimacy-45)/180;
+    const desertionPressureChange=context.friendlyLosses/4500+(state.readiness<45?3:0)-state.legitimacy/120+Math.max(0,state.resistance-35)/30;
+    state.legitimacy+=legitimacyChange;state.resistance+=resistanceChange;state.desertionPressure+=desertionPressureChange;
+    const strikeRisk=clamp((state.resistance*1.15+(100-state.legitimacy)*.55+context.shortages*8)/150,0,.95);
+    const collapseRisk=clamp(((25-state.legitimacy)*2+Math.max(0,state.resistance-60)*1.4+Math.max(0,-state.treasury))/100,0,.95);
+    const signalText:string[]=[];if(strikeRisk>.5)signalText.push("Industrial strike preparation exceeds the containment threshold.");if(collapseRisk>.35)signalText.push("State continuity is entering a non-linear failure band.");if(casualtyBurden>1)signalText.push("Daily casualty publication exceeds the legitimacy absorption rate.");
+    const signals:CircuitSignal[]=signalText.map((message,i)=>({severity:i===1?"critical":"warning",code:`domestic.${i}`,message}));
+    return{state,signals,ledger:{day:state.day,legitimacyOpening,resistanceOpening,casualtyBurden,forcedIntakeBurden,shortageBurden,atrocityBurden,fiscalBurden,policyLegitimacy,policyResistance,legitimacyChange,resistanceChange,desertionPressureChange,legitimacyClosing:state.legitimacy,resistanceClosing:state.resistance,strikeRisk,collapseRisk,signals:signalText}};
   }
 };
 
