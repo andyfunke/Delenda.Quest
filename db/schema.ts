@@ -36,3 +36,29 @@ export const campaignPacks=sqliteTable("campaign_packs",{
   index("campaign_packs_owner_idx").on(table.ownerEmail),
   index("campaign_packs_access_idx").on(table.access),
 ]);
+
+export const telemetryCounters=sqliteTable("telemetry_counters",{
+  key:text("key").primaryKey(),
+  category:text("category",{enum:["page_view","element_interaction","ava_command"]}).notNull(),
+  subject:text("subject").notNull(),
+  context:text("context").notNull(),
+  count:integer("count").notNull().default(0),
+  updatedAt:integer("updated_at").notNull(),
+},table=>[
+  index("telemetry_counters_category_idx").on(table.category),
+  index("telemetry_counters_subject_idx").on(table.subject),
+]);
+
+export const campaignOutcomes=sqliteTable("campaign_outcomes",{
+  id:text("id").primaryKey(),
+  outcome:text("outcome",{enum:["victory","defeat"]}).notNull(),
+  days:integer("days").notNull(),
+  theater:text("theater").notNull(),
+  archetype:text("archetype").notNull(),
+  adversary:text("adversary").notNull(),
+  decisions:text("decisions").notNull(),
+  createdAt:integer("created_at").notNull(),
+},table=>[
+  index("campaign_outcomes_outcome_idx").on(table.outcome),
+  index("campaign_outcomes_theater_idx").on(table.theater),
+]);

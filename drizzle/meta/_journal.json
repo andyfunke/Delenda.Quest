@@ -15,6 +15,13 @@
       "when": 1784730473074,
       "tag": "0001_wealthy_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784738694809,
+      "tag": "0002_elite_big_bertha",
+      "breakpoints": true
     }
   ]
 }
