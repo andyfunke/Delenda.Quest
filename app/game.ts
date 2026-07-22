@@ -1,3 +1,5 @@
+import { executeCircuit, productionCircuit, type ProductionLedger } from "./circuits";
+
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
@@ -11,7 +13,8 @@ export type GameState = {
   dependency: number; intelligence: number; front: number; enemy: number;
   doctrine: number; doctrineEarned: number; doctrineWinAwards: { day:number; action:string; verified:string; reward:number }[]; affinityProofs: Record<string,number>; atrocityExposure: number; reciprocity: number; desertionPressure: number;
   deserters: number; intercepted: number; patrolCommitment: number;
-  target: Resource | "balanced"; tempo: Tempo; maneuver: string | null;
+  target: Resource | "balanced"; pendingTarget: Resource | "balanced" | null; tempo: Tempo; maneuver: string | null;
+  maintenanceDebt: number; productionLedger: ProductionLedger | null;
   production: Record<Resource, { allocation: number; stock: number; output: number; use: number }>;
   active: Record<string, string>; locks: Record<string, number>; scheduled: Scheduled[];
   unlocked: string[]; decisions: { day: number; family: string; choice: string }[];
@@ -52,11 +55,11 @@ const c = (id: string, label: string, flavor: string, exact: string[], risk: str
 
 export const FAMILIES: Family[] = [
   { id: "production", module: "national", category: "Industrial Command", label: "Set Production Target", brief: "Put the marginal factory, worker, and shipment behind one arm of the war machine.", lock: 2, choices: [
-    c("guns", "Feed the Guns", "The front consumes arithmetic by the trainload.", ["Munitions allocation becomes 46%", "Armor, Flight, and Drones become 18% each"], ["Front pressure: +0.2 to +0.8 km while coverage exceeds 3 days"], { target: "munitions" }),
-    c("steel", "Steel the Spearhead", "A tank is a factory learning to move.", ["Armor allocation becomes 46%", "Other production lines become 18% each"], ["Breakthrough chance: 14% to 29% at readiness above 65"], { target: "armor" }),
-    c("air", "Contest the Air", "Every quiet sky is merely unaccounted violence.", ["Flight allocation becomes 46%", "Other production lines become 18% each"], ["Enemy attrition reduction: 4% to 11% after two days"], { target: "flight" }),
-    c("eyes", "Automate the Horizon", "Cheap eyes first. Cheap explosives immediately after.", ["Drones allocation becomes 46%", "Other production lines become 18% each", "Intelligence: +3"], ["Targeting efficiency: +3% to +9%"], { target: "drones", delta: { intelligence: 3 }, doctrine: 2 }),
-    c("balance", "Balance the Ledger", "Nothing starves. Nothing arrives in decisive quantity.", ["All production allocations become 25%"], ["No breakthrough bonus; shortage risk falls 8% to 15%"], { target: "balanced" }),
+    c("guns", "Feed the Guns", "The front consumes arithmetic by the trainload.", ["Munitions allocation becomes 46% at resolution", "Armor, Flight, and Drones become 18% each", "Retooling output: -28% for the conversion day"], ["Front pressure: +0.2 to +0.8 km while coverage exceeds 3 days"], { target: "munitions" }),
+    c("steel", "Steel the Spearhead", "A tank is a factory learning to move.", ["Armor allocation becomes 46% at resolution", "Other production lines become 18% each", "Retooling output: -28% for the conversion day"], ["Breakthrough chance: 14% to 29% at readiness above 65"], { target: "armor" }),
+    c("air", "Contest the Air", "Every quiet sky is merely unaccounted violence.", ["Flight allocation becomes 46% at resolution", "Other production lines become 18% each", "Retooling output: -28% for the conversion day"], ["Enemy attrition reduction: 4% to 11% after two days"], { target: "flight" }),
+    c("eyes", "Automate the Horizon", "Cheap eyes first. Cheap explosives immediately after.", ["Drones allocation becomes 46% at resolution", "Other production lines become 18% each", "Retooling output: -28% for the conversion day", "Intelligence: +3"], ["Targeting efficiency: +3% to +9%"], { target: "drones", delta: { intelligence: 3 }, doctrine: 2 }),
+    c("balance", "Balance the Ledger", "Nothing starves. Nothing arrives in decisive quantity.", ["All production allocations become 25% at resolution", "Retooling output: -28% for the conversion day"], ["No breakthrough bonus; shortage risk falls 8% to 15%"], { target: "balanced" }),
   ]},
   { id: "industry", module: "national", category: "Industrial Command", label: "Organize Industry", brief: "Choose what factories optimize for when the requisition office stops pretending this is temporary.", lock: 4, choices: [
     c("war-economy", "Declare War Economy", "The civilian economy will be remembered fondly by survivors.", ["Treasury: -8.0 B", "Training capacity: +8,000 on Day +2", "Legitimacy: -2"], ["Military output: +8% to +14%"], { delta: { treasury: -8, legitimacy: -2 }, delay: { days: 2, delta: { training: 8000 } } }),
@@ -185,7 +188,7 @@ export const initialState = (): GameState => ({
   voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
   readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
   front: -3.4, enemy: 590000, doctrine: 0, doctrineEarned: 0, doctrineWinAwards: [], affinityProofs: {}, atrocityExposure: 0, reciprocity: 100, desertionPressure: 18, deserters: 0, intercepted: 0, patrolCommitment: 0,
-  target: "balanced", tempo: "methodical", maneuver: null,
+  target: "balanced", pendingTarget: null, tempo: "methodical", maneuver: null, maintenanceDebt: 22, productionLedger: null,
   production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
   active: {}, locks: {}, scheduled: [], unlocked: ["drone-war"], decisions: [], reports: [{ day: 1, title: "Third Division Will Exhaust Its Ready Reserve Before Dusk", body: "At the present rate of expenditure, 4,218 additional soldiers will be lost before Day 1 resolves. The Kesh corridor remains open. Munitions coverage has fallen below six days. Two training cohorts will arrive too late to replace the morning’s losses.", tone: "warn", epigraph: "The purpose of a reserve is not to remain intact." }],
 });
@@ -193,7 +196,7 @@ export const initialState = (): GameState => ({
 const clone = (state: GameState): GameState => JSON.parse(JSON.stringify(state));
 const add = (state: GameState, delta: Delta = {}) => Object.entries(delta).forEach(([key, value]) => { (state[key as NumberKey] as number) += value as number; });
 const normalize = (s: GameState) => {
-  ["readiness","equipment","materiel","legitimacy","resistance","dependency","intelligence","quality","atrocityExposure","reciprocity","desertionPressure"].forEach((key) => { (s[key as NumberKey] as number) = Math.max(0, Math.min(100, s[key as NumberKey] as number)); });
+  ["readiness","equipment","materiel","legitimacy","resistance","dependency","intelligence","quality","atrocityExposure","reciprocity","desertionPressure","maintenanceDebt"].forEach((key) => { (s[key as NumberKey] as number) = Math.max(0, Math.min(100, s[key as NumberKey] as number)); });
   s.deployable = Math.max(0, Math.min(s.armed, Math.round(s.deployable))); s.queue = Math.max(0, Math.round(s.queue)); s.training = Math.max(1000, Math.round(s.training)); s.duration = Math.max(2, Math.min(12, Math.round(s.duration))); s.deserters = Math.max(0, Math.round(s.deserters));
 };
 const hash = (text: string) => { let h = 2166136261; for (let i=0;i<text.length;i++) { h ^= text.charCodeAt(i); h = Math.imul(h,16777619); } return (h>>>0)/4294967295; };
@@ -214,7 +217,7 @@ export const commit = (state: GameState, family: Family, choice: Choice) => {
   if (state.actions < 1 || state.status !== "active" || (state.locks[family.id] ?? 0) > state.day) return state;
   const s = clone(state); add(s, choice.delta);
   if (choice.delay) s.scheduled.push({ day: s.day + choice.delay.days, source: choice.label, delta: choice.delay.delta });
-  if (choice.target) { s.target = choice.target; (Object.keys(s.production) as Resource[]).forEach((r) => s.production[r].allocation = choice.target === "balanced" ? 25 : r === choice.target ? 46 : 18); }
+  if (choice.target) s.pendingTarget = choice.target;
   if (choice.tempo) s.tempo = choice.tempo;
   s.active[family.id] = choice.id; s.locks[family.id] = s.day + family.lock; s.actions -= 1; s.decisions.unshift({ day: s.day, family: family.label, choice: choice.label }); normalize(s); return s;
 };
@@ -244,28 +247,31 @@ export const estimateDay = (s: GameState) => {
 export const liveProjection = (s: GameState, fraction: number) => {
   const f = Math.max(0, Math.min(1, fraction)); const estimate = estimateDay(s); const losses = Math.floor(estimate.casualty * f); const deserted = Math.floor(estimate.desertion * f); const intercepted = Math.floor(estimate.intercepted * f); const netDesertion = deserted - intercepted;
   const production: Record<Resource,number> = { munitions:0,armor:0,flight:0,drones:0 };
-  (Object.keys(s.production) as Resource[]).forEach((r) => production[r] = Math.max(0, Math.round(s.production[r].stock + (s.production[r].output - s.production[r].use * estimate.supply) * f)));
+  const projected=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],maneuverMultiplier:maneuverById(s.maneuver)?.supply??1});
+  projected.ledger.lines.forEach(line=>production[line.resource]=Math.max(0,Math.round(line.opening+line.net*f)));
   return { losses, deserted, intercepted, netDesertion, deployable: Math.max(0, s.deployable - losses - netDesertion), armed: Math.max(0,s.armed-losses-netDesertion), production };
 };
+
+export const projectProduction = (s:GameState) => executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],maneuverMultiplier:maneuverById(s.maneuver)?.supply??1}).ledger;
 
 export const resolve = (state: GameState) => {
   if (state.status !== "active") return state; const s = clone(state); const situation = situationForDay(s.day); const maneuver = maneuverById(s.maneuver);
   const arrivals = s.scheduled.filter((x) => x.day <= s.day); s.scheduled = s.scheduled.filter((x) => x.day > s.day); arrivals.forEach((x) => add(s, x.delta));
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
-  const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const condition = .72 + s.materiel / 250; const maneuverSupply = maneuver?.supply ?? 1;
-  const baseOut: Record<Resource,number> = { munitions:540,armor:2.55,flight:.74,drones:12.6 }; const baseUse: Record<Resource,number> = { munitions:21000,armor:74,flight:17,drones:355 };
-  (Object.keys(s.production) as Resource[]).forEach((r) => { const line=s.production[r]; line.output=Math.round(baseOut[r]*line.allocation*condition*(s.target===r?1.12:1)); line.use=Math.round(baseUse[r]*tempoSupply*maneuverSupply); line.stock=Math.max(0,line.stock+line.output-line.use); });
+  const [tempoCasualty,tempoSupply,tempoPressure] = tempoProfile(s.tempo); const maneuverSupply = maneuver?.supply ?? 1;
+  const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,maneuverMultiplier:maneuverSupply});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
   const intake=Math.max(0,s.voluntary+s.forced); s.workforce-=Math.round(intake*.64); s.queue+=intake; const admitted=Math.min(s.queue,s.training); s.queue-=admitted; const grads=Math.round(admitted/s.duration*Math.max(.35,(s.quality-20)/80));
   const power=s.deployable*s.readiness/100*s.equipment/100; const ratio=Math.max(.45,Math.min(1.7,power/Math.max(1,s.enemy*.52))); const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;
   const successRoll=hash(`${s.day}:${situation.id}:${maneuver?.id ?? "standing"}`); const succeeded=maneuver?successRoll<maneuverChance(s,maneuver):true; const maneuverPressure=maneuver?(succeeded?maneuver.successPressure:maneuver.failurePressure):0;
   const atrocities=(s.unlocked.includes("gas")?.25:0)+(s.unlocked.includes("mines")?.12:0); const losses=Math.round((4200+s.day*38)*tempoCasualty*(maneuver?.casualty??1)*(s.production.munitions.stock<42000?1.15:1)/Math.max(.6,ratio)); const enemyLoss=Math.round((3600+s.day*31)*ratio*(.8+(tempoPressure+maneuverPressure+atrocities)*.3));
   const desert=estimateDay(s); s.deserters+=desert.desertion; s.intercepted+=desert.intercepted; s.armed+=grads-losses-desert.netDesertion; s.deployable+=Math.max(0,grads-Math.round(losses*.16))-losses-desert.netDesertion; s.enemy+=7900+s.day*55-enemyLoss; s.population-=Math.round(losses*.72);
-  let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${enemyLoss.toLocaleString()} enemy losses // ${move>=0?"+":""}${move.toFixed(1)} km`,reward:doctrineGain});}
-  s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.materiel-=.35+tempoSupply*.25; s.treasury+=3.4-s.armed/185000; s.legitimacy-=losses/8500+s.atrocityExposure/180; s.resistance+=s.forced/28000-s.legitimacy/180; s.desertionPressure+=losses/4500+(s.readiness<45?3:0)-s.legitimacy/120;
   const move=tempoPressure+maneuverPressure+atrocities+(ratio-1)*1.5+(s.intelligence-42)/120+(1-shortages*.18)*.25-.25; s.front+=move;
+  let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${enemyLoss.toLocaleString()} enemy losses // ${move>=0?"+":""}${move.toFixed(1)} km`,reward:doctrineGain});}
+  s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000; s.legitimacy-=losses/8500+s.atrocityExposure/180; s.resistance+=s.forced/28000-s.legitimacy/180; s.desertionPressure+=losses/4500+(s.readiness<45?3:0)-s.legitimacy/120;
   const resultTitle=maneuver?`${maneuver.label} ${succeeded?"Opened the Day":"Was Collected in Casualties"}`:(move>=0?`The Line Moved ${Math.abs(move).toFixed(1)} km Forward`:`The Line Fell Back ${Math.abs(move).toFixed(1)} km`);
   const doctrineText=doctrineGain?` ${doctrineGain} Insight Points were awarded for the verified battlefield result.`:" No Insight Points were awarded because the maneuver did not produce a verified win."; const desertText=` ${desert.desertion.toLocaleString()} deserted; ${desert.intercepted.toLocaleString()} were intercepted.`;
-  s.day+=1; s.actions=3; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. ${grads.toLocaleString()} recruits graduated. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
+  const productionText=` Production closed with ${productionResult.ledger.shortages} critical line${productionResult.ledger.shortages===1?"":"s"}; maintenance debt is ${productionResult.ledger.maintenanceDebtAfter.toFixed(0)}.`;
+  s.day+=1; s.actions=3; s.maneuver=null; s.reports.unshift({ day:s.day, title:resultTitle, body:`${losses.toLocaleString()} soldiers were lost. ${grads.toLocaleString()} recruits graduated. The front moved ${move>=0?"+":""}${move.toFixed(1)} km.${productionText}${desertText}${doctrineText}`, tone:move>.6?"good":move<-.4?"bad":"warn", epigraph:maneuver?`Experience is waste until it is made transmissible.`:`The map is never empty. It contains roads not yet cut, fields not yet denied, and men not yet counted.` });
   if(s.front>=12||(s.day>30&&s.front>0))s.status="victory"; if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat"; normalize(s); return s;
 };
 
