@@ -45,6 +45,7 @@ test("campaign UI keeps one deferred report and consistent order language", asyn
   assert.match(packet,/label="EFFECTIVE FORCE RATIO"/);
   assert.match(packet,/label:"FRONTAGE"/);
   assert.doesNotMatch(packet,/label="FRONTAGE"/);
+  assert.doesNotMatch(packet,/AUTHORIZED MANEUVERS|CONNECTED SYSTEMS/);
   for(const id of ["terrain-conversion","ground-condition","command-network","operational-supply","intelligence"]){
     assert.match(packet,new RegExp(`id:"${id}"`));
   }
@@ -100,8 +101,9 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(css,/\.bubblette\.pinned\s*>\s*\.bubblette-panel/);assert.match(css,/min-height:\s*0\s*!important/);
   assert.match(css,/position:\s*fixed/);assert.match(css,/translate\(-50%,\s*-50%\)/);
   assert.ok(css.lastIndexOf("Final semantic cascade guard")>css.lastIndexOf("Shared pinned inspection graph"),"the pale content and type authority must be the final cascade block");
-  assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);assert.match(bubblette,/setActiveId\(rootCatalogId\)/);
-  assert.equal((bubblette.match(/openWikiApplet\(/g)??[]).length,1,"only the explicit Field Manual action may leave a bubblette");
+  assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);assert.match(bubblette,/details\.slice\(0, 4\)/);
+  assert.doesNotMatch(bubblette,/activeId|CONNECTED SYSTEMS|setActiveId/);
+  assert.ok((bubblette.match(/openWikiApplet\(/g)??[]).length<=2,"only explicit detail and Field Manual actions may leave a bubblette");
   assert.match(manual,/Depends on/);assert.match(manual,/Used by/);assert.match(manual,/usedBy/);
   assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
@@ -132,11 +134,26 @@ test("campaign navigation, military reinforcement, Doctrine inspection, and text
   const doctrineSurface=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));
   assert.doesNotMatch(page,/\sdisabled=\{!prior\}/);assert.doesNotMatch(doctrineSurface,/\sdisabled=\{!available\}/);
   assert.doesNotMatch(doctrineSurface,/aria-disabled/);
-  assert.match(bubblette,/bubblette-pinned/);assert.match(bubblette,/setActiveId\(relatedId\)/);assert.match(bubblette,/FIELD APPLETTE \/\/ PINNED/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);
+  assert.match(bubblette,/bubblette-pinned/);assert.doesNotMatch(bubblette,/setActiveId|relatedId|CONNECTED SYSTEMS/);assert.match(bubblette,/FIELD APPLETTE \/\/ PINNED/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);
   assert.match(page,/if \(interfaceMode === "briefing"\)[\s\S]{0,180}briefing-open-manual/);
   assert.match(css,/background:\s*#fffde8/);assert.match(css,/--type-display/);assert.match(css,/--type-body:\s*400 18px/);assert.match(css,/--type-data/);
   assert.match(terminal,/voiceCueForInstruction/);assert.match(voice,/FIELD NOTE \/ \$\{opening\.label\}/);assert.doesNotMatch(voice,/responseTopic/);
   assert.match(avaRenderer,/explicitLoss/);assert.match(avaRenderer,/explicitGain/);assert.doesNotMatch(avaRenderer,/line\.includes\(["']\+["']\)|line\.includes\(["']−["']\)/);
+});
+
+test("bubblettes, Military hover geometry, and foreign actor choices preserve their information roles",async()=>{
+  const[css,bubblette,packet]=await Promise.all([
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/OperationsPacket.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(css,/\.maneuver-detail\s*>\s*dl/);
+  assert.match(css,/\.force-human-flow\s*\{[\s\S]*?overflow:\s*visible/);
+  assert.match(css,/\.diplomacy-command-rail\s+\.foreign-actor-menu\s*\{\s*background:\s*#fff/);
+  assert.match(css,/\.foreign-actor-menu[\s\S]*button:not\(\.tree-group-heading\)[\s\S]*background:\s*#fff/);
+  assert.match(css,/\.bubblette-panel\s+dl\s*\{[\s\S]*?display:\s*block[\s\S]*?grid-template-columns:\s*none/);
+  assert.match(bubblette,/CLICK TO PIN/);
+  assert.doesNotMatch(packet,/AUTHORIZED MANEUVERS|CONNECTED SYSTEMS/);
 });
 
 test("the reference tactical plate and munitions stockpile label are preserved exactly",async()=>{

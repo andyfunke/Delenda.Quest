@@ -3,7 +3,7 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
+  BLUEPRINT_RULES, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
   directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
@@ -140,6 +140,12 @@ test("the opportunity corpus is rare, unique, timed, and wiki-addressable",()=>{
   assert.equal(OPPORTUNITY_TEMPLATES.length,100);
   assert.equal(new Set(OPPORTUNITY_TEMPLATES.map(item=>item.id)).size,100);
   assert.ok(OPPORTUNITY_TEMPLATES.every(item=>item.headline&&item.individual&&item.responses.length===2));
+  const responseFlavor=OPPORTUNITY_TEMPLATES.flatMap(item=>item.responses.map(response=>response.flavor));
+  assert.equal(responseFlavor.length,200);
+  assert.equal(new Set(responseFlavor).size,200);
+  assert.ok(responseFlavor.every(line=>line.trim().split(/\s+/).length>=10));
+  assert.ok(responseFlavor.every(line=>!/^Convert .+ opening into an immediate/i.test(line)));
+  assert.ok(responseFlavor.every(line=>!/^Use the same access to deepen classification/i.test(line)));
   let occurrences=0,total=0;
   const ids=[];
   const state=initialState({seed:99173,theater:"industrial"});
@@ -173,6 +179,33 @@ test("the force report uses one local personnel chain and one disclosed effectiv
   assert.equal(operation.boundedForceRatio,Math.max(.35,Math.min(1.8,operation.forceRatio)));
   assert.ok(operation.friendlyConditionFactor>=.42&&operation.friendlyConditionFactor<=1.08);
   assert.ok(operation.enemyConditionFactor>=.45&&operation.enemyConditionFactor<=1.08);
+});
+
+test("Modularized Forces creates a real task package without creating phantom force",()=>{
+  const opening=initialState({seed:99173,theater:"industrial"});
+  const maneuver=MANEUVERS.find(item=>item.id==="route");
+  const baseline=projectOperations(opening,maneuver);
+  const modular={...opening,unlocked:[...opening.unlocked,"modularized"]};
+  const packaged=projectOperations(modular,maneuver);
+  assert.equal(packaged.packageEfficiency,.9);
+  assert.equal(packaged.nominalCommitment,maneuver.commitment);
+  assert.equal(packaged.committed,Math.round(maneuver.commitment*.9));
+  assert.equal(packaged.combatEquivalent,maneuver.commitment);
+  assert.equal(packaged.friendlyPower,baseline.friendlyPower);
+  assert.ok(packaged.friendlyLosses<=baseline.friendlyLosses);
+  const starved=projectOperations({...modular,deployable:8000,patrolCommitment:0},maneuver);
+  assert.equal(starved.committed,8000);
+  assert.ok(starved.combatEquivalent<maneuver.commitment);
+  const doctrine=DOCTRINES.flatMap(vector=>vector.stages).find(stage=>stage.id==="modularized");
+  assert.equal(doctrine.output,"Task-Organization Rule");
+  assert.match(doctrine.effect,/commit 10% fewer soldiers/i);
+  assert.doesNotMatch(`${doctrine.description} ${doctrine.effect}`,/workshop|module slot/i);
+});
+
+test("the Ossuary Mile field aphorism is operationally intelligible",()=>{
+  const ossuary=SITUATIONS.find(item=>item.id==="ossuary-mile");
+  assert.equal(ossuary.quote,"The road is empty because the enemy has finished measuring it.");
+  assert.doesNotMatch(ossuary.quote,/useless or ranged/i);
 });
 
 test("desertion is nonzero by default and zero must be earned through disclosed retention plus patrols",()=>{

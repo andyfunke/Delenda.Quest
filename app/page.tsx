@@ -936,10 +936,6 @@ function Term({
       summary={g.summary}
       className="term inline-concept-bubblette"
       details={[{ label: "FIELD CONSEQUENCE", value: g.body }]}
-      related={g.related.map((label) => ({
-        id: conceptSlug(label),
-        label,
-      }))}
     >
       {children}
     </Bubblette>
@@ -3124,6 +3120,15 @@ function CampaignPage({
     .map((id) => MANEUVERS.find((m) => m.id === id)!)
     .filter(Boolean);
   const current = options.find((x) => x.id === selected?.id) ?? null;
+  const currentProjection = current ? projectOperations(s, current) : null;
+  const currentOwnedEffects =
+    current && currentProjection && currentProjection.packageEfficiency < 1
+      ? [
+          `Nominal combat requirement: ${currentProjection.nominalCommitment.toLocaleString()} soldiers`,
+          `Task package exposes ${currentProjection.committed.toLocaleString()} soldiers and withholds ${Math.max(0, currentProjection.nominalCommitment - currentProjection.committed).toLocaleString()} soldiers`,
+          ...current.exact.slice(1),
+        ]
+      : (current?.exact ?? []);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const allSubOptions = [...packet.domestic.options, ...packet.network.options];
   const subOption =
@@ -3209,7 +3214,6 @@ function CampaignPage({
             details={[
               `COMMANDER'S QUESTION // ${situation.question}`,
               `STANDING ORDER // ${situation.standingOrder}`,
-              `AUTHORIZED MANEUVERS // ${options.map((option) => option.label).join(", ")}`,
             ]}
           />
           <ReportDatum
@@ -3301,7 +3305,7 @@ function CampaignPage({
                 <section>
                   <h3>Owned effects // exact</h3>
                   <ul>
-                    {current.exact.map((x) => (
+                    {currentOwnedEffects.map((x) => (
                       <EffectLine text={x} s={s} key={x} />
                     ))}
                   </ul>

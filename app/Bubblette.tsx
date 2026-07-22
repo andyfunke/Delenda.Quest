@@ -22,7 +22,6 @@ type Props = {
   className?: string;
   panelClassName?: string;
   control?: { label: string; module: string; family?: string };
-  related?: { id: string; label?: string }[];
 };
 
 export function Bubblette({
@@ -34,61 +33,31 @@ export function Bubblette({
   className = "",
   panelClassName = "",
   control: controlOverride,
-  related,
 }: Props) {
-  const rootCatalogId = FIELD_MANUAL_CATALOG.resolve(id) ?? id;
+  const manualId = FIELD_MANUAL_CATALOG.resolve(id) ?? id;
   const [pinned, setPinned] = useState(false),
     [dismissed, setDismissed] = useState(false),
-    [activeId, setActiveId] = useState(rootCatalogId),
     instanceId = useId();
   const rootConcept = CONCEPTS[id],
-    rootNode = FIELD_MANUAL_CATALOG.byId.get(rootCatalogId),
-    activeNode = FIELD_MANUAL_CATALOG.byId.get(activeId),
-    isRoot = activeId === rootCatalogId,
-    activeTitle = isRoot ? title : (activeNode?.label ?? activeId),
-    activeSummary = isRoot
-      ? summary
-      : (activeNode?.summary ?? "No field definition is registered."),
-    activeDetails = isRoot
-      ? details
-      : activeNode
-        ? [{ label: "DEFINITION", value: activeNode.body }]
-        : [],
-    control = isRoot
-      ? (controlOverride ?? rootNode?.control ?? rootConcept?.control)
-      : activeNode?.control,
-    dependencies = isRoot
-      ? (related ??
-        rootNode?.related.map((relatedId) => ({
-          id: relatedId,
-          label: FIELD_MANUAL_CATALOG.byId.get(
-            FIELD_MANUAL_CATALOG.resolve(relatedId) ?? "",
-          )?.label,
-        })) ?? [])
-      : (activeNode?.related.map((relatedId) => ({
-          id: relatedId,
-          label: FIELD_MANUAL_CATALOG.byId.get(
-            FIELD_MANUAL_CATALOG.resolve(relatedId) ?? "",
-          )?.label,
-        })) ?? []);
+    rootNode = FIELD_MANUAL_CATALOG.byId.get(manualId),
+    control = controlOverride ?? rootNode?.control ?? rootConcept?.control,
+    visibleDetails = details.slice(0, 4);
 
   useEffect(() => {
     setPinned(false);
     setDismissed(false);
-    setActiveId(rootCatalogId);
-  }, [id, rootCatalogId]);
+  }, [id]);
 
   useEffect(() => {
     const closeOther = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== instanceId) {
         setPinned(false);
         setDismissed(false);
-        setActiveId(rootCatalogId);
       }
     };
     window.addEventListener("bubblette-pinned", closeOther);
     return () => window.removeEventListener("bubblette-pinned", closeOther);
-  }, [instanceId, rootCatalogId]);
+  }, [instanceId]);
   const runDestination = (
     destination: { module: string; family?: string } | undefined,
   ) => {
@@ -103,7 +72,6 @@ export function Bubblette({
       );
     setPinned(false);
     setDismissed(false);
-    setActiveId(rootCatalogId);
   };
   const runControl = () => runDestination(control);
   const toggle = () => {
@@ -114,14 +82,12 @@ export function Bubblette({
         window.dispatchEvent(
           new CustomEvent("bubblette-pinned", { detail: instanceId }),
         );
-      else setActiveId(rootCatalogId);
       return next;
     });
   };
   const close = () => {
     setPinned(false);
     setDismissed(true);
-    setActiveId(rootCatalogId);
   };
   return (
     <div
@@ -165,41 +131,39 @@ export function Bubblette({
         role={pinned ? "dialog" : undefined}
         aria-modal={pinned || undefined}
         onClick={(event) => event.stopPropagation()}
-        aria-label={`${activeTitle} inspection`}
+        aria-label={`${title} inspection`}
       >
         <header>
           <div>
             <small>{pinned ? "FIELD APPLETTE // PINNED" : "FIELD GLANCE"}</small>
-            <b>{activeTitle}</b>
+            <b>{title}</b>
           </div>
           <button aria-label="Unpin bubblette" onClick={close}>
             ×
           </button>
         </header>
-        <p>{activeSummary}</p>
-        {activeDetails.length ? (
+        <p>{summary}</p>
+        <small className="bubblette-pin-hint">CLICK TO PIN</small>
+        {visibleDetails.length ? (
           <dl>
-            {activeDetails.map((detail) => {
+            {visibleDetails.map((detail) => {
               const detailId = detail.conceptId
                   ? FIELD_MANUAL_CATALOG.resolve(detail.conceptId)
                   : undefined,
-                detailNode = detailId
-                  ? FIELD_MANUAL_CATALOG.byId.get(detailId)
-                  : undefined,
-                detailConcept =
-                  detailNode ??
-                  (detail.conceptId ? CONCEPTS[detail.conceptId] : undefined),
-                detailControl = detail.control ?? detailConcept?.control,
-                traverses = !!detailId && detailId !== activeId;
+                detailControl = detail.control;
               return (
                 <div
                   className={detail.tone ?? "neutral"}
                   key={`${detail.label}-${detail.value}`}
                 >
                   <dt>
-                    {traverses ? (
-                      <button onClick={() => setActiveId(detailId)}>
-                        {detail.label} →
+                    {detail.conceptId ? (
+                      <button
+                        onClick={() =>
+                          openWikiApplet(detailId ?? detail.conceptId ?? id)
+                        }
+                      >
+                        {detail.label} ↗
                       </button>
                     ) : (
                       <span>{detail.label}</span>
@@ -222,47 +186,15 @@ export function Bubblette({
           </dl>
         ) : null}
         <div className="bubblette-actions">
-          {!isRoot ? (
-            <button onClick={() => setActiveId(rootCatalogId)}>
-              ← {title.toUpperCase()}
-            </button>
-          ) : null}
           {control ? (
             <button onClick={runControl}>
               CONTROL // {control.label.toUpperCase()} →
             </button>
           ) : null}
-          <button onClick={() => openWikiApplet(activeNode?.id ?? id)}>
-            FIELD MANUAL // {activeTitle.toUpperCase()} ↗
+          <button onClick={() => openWikiApplet(manualId)}>
+            FIELD MANUAL // {title.toUpperCase()} ↗
           </button>
         </div>
-        {dependencies.length ? (
-          <nav aria-label="Related dependencies">
-            <small>CONNECTED SYSTEMS</small>
-            {dependencies.map((dependency) => {
-              const relatedId =
-                  FIELD_MANUAL_CATALOG.resolve(dependency.id) ??
-                  (dependency.label
-                    ? FIELD_MANUAL_CATALOG.resolve(dependency.label)
-                    : undefined),
-                relatedNode = relatedId
-                  ? FIELD_MANUAL_CATALOG.byId.get(relatedId)
-                  : undefined,
-                label =
-                  dependency.label ?? relatedNode?.label ?? dependency.id;
-              return relatedId && relatedId !== activeId ? (
-                <button
-                  key={dependency.id}
-                  onClick={() => setActiveId(relatedId)}
-                >
-                  {label} →
-                </button>
-              ) : (
-                <span key={dependency.id}>{label}</span>
-              );
-            })}
-          </nav>
-        ) : null}
       </section>
     </div>
   );

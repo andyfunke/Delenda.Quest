@@ -216,7 +216,9 @@ function StateSurface({ s }: { s: GameState }) {
     [
       "LOCAL PERSONNEL",
       fmt(operation.committed, true),
-      `${fmt(operation.operationallyAvailable, true)} operationally available`,
+      operation.packageEfficiency < 1
+        ? `${fmt(operation.nominalCommitment, true)} nominal task package`
+        : `${fmt(operation.operationallyAvailable, true)} operationally available`,
     ],
     [
       "LOCAL EFFECTIVE FORCE",

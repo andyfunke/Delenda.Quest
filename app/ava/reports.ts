@@ -496,7 +496,7 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
   return {
     topic: "operations",
     title: `Operations report / ${situation.sector}`,
-    direct: `${operation.maneuver} commits ${fmt(operation.committed, true)} local personnel at a literal ${operation.forceRatio.toFixed(2)} effective-force ratio and projects ${signed(operation.groundMovement)} km.`,
+    direct: `${operation.maneuver} commits ${fmt(operation.committed, true)} local personnel${operation.packageEfficiency < 1 ? ` against a ${fmt(operation.nominalCommitment, true)} nominal requirement` : ""} at a literal ${operation.forceRatio.toFixed(2)} effective-force ratio and projects ${signed(operation.groundMovement)} km.`,
     flavor: flavor(state, "operations"),
     calculation: {
       equation:
@@ -512,6 +512,23 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
           value: fmt(operation.committed, true),
           conceptId: "force-commitment",
         },
+        ...(operation.packageEfficiency < 1
+          ? [
+              {
+                label: "TASK-PACKAGE EQUIVALENT",
+                value: fmt(operation.combatEquivalent, true),
+                conceptId: "force-commitment",
+              },
+              {
+                label: "PERSONNEL WITHHELD",
+                value: fmt(
+                  Math.max(0, operation.nominalCommitment - operation.committed),
+                  true,
+                ),
+                conceptId: "deployable-force",
+              },
+            ]
+          : []),
         {
           label: "FRIENDLY LOCAL EFFECTIVE",
           value: fmt(operation.friendlyPower, true),
