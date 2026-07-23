@@ -251,7 +251,7 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(page,/EQUILIBRIUM/);
 });
 
-test("dashboard groups Industrial Condition with attrition and keeps Military free of the generic report strip",async()=>{
+test("dashboard owns strategic reporting while every command module reuses Alt UX and routes reports to Ava",async()=>{
   const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -265,8 +265,13 @@ test("dashboard groups Industrial Condition with attrition and keeps Military fr
   const modulePage=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
   assert.match(dashboard,/"Industrial Condition"/);
   assert.doesNotMatch(dashboard,/className=\{`production-health/);
-  assert.match(modulePage,/page !== "military"/);
-  assert.equal((modulePage.match(/<section className="module-report">/g)??[]).length,1);
+  assert.match(modulePage,/data-report-owner="ava"/);
+  assert.match(modulePage,/<DirectiveSurface/);
+  assert.match(modulePage,/module=\{page\}/);
+  assert.doesNotMatch(modulePage,/module-report|ProductionCircuit|ForceGenerationCircuit|DomesticStatePanel|DiplomacyPanel|desertion-control/);
+  const sharedDirective=briefing.slice(briefing.indexOf("export function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
+  assert.match(sharedDirective,/Reports, forecasts, active effects, and historical ledgers are\s+available through Ava/);
+  assert.doesNotMatch(sharedDirective,/NATIVE ALT UX SURFACE/);
   assert.doesNotMatch(briefing,/availableManeuvers\.slice/);
   assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
   assert.doesNotMatch(css,/(?:font-size|font):[^;}]*\b6px\b/);
@@ -298,8 +303,7 @@ test("every command module opens with one canonical conceptual epigraph",async()
   const altCampaign=briefing.slice(briefing.indexOf("function DailySurface"),briefing.indexOf("export function BriefingInterface"));
   assert.match(doctrine,/quote=\{MODULE_EPIGRAPHS\.doctrine\.quote\}/);
   assert.ok(doctrine.indexOf("<Epigraph")<doctrine.indexOf('<span className="eyebrow">'));
-  assert.match(shared,/page === "national" \? "production" : page/);
-  assert.ok(shared.indexOf("<Epigraph")<shared.indexOf('<span className="eyebrow">'));
+  assert.match(shared,/<DirectiveSurface/);
   assert.match(campaign,/quote=\{MODULE_EPIGRAPHS\.campaign\.quote\}/);
   assert.ok(campaign.indexOf("<Epigraph")<campaign.indexOf('<span className="eyebrow">'));
   assert.match(directives,/module === "national" \? "production" : module/);

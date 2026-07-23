@@ -83,7 +83,7 @@ import {
   recordPageView,
   submitCampaignRecord,
 } from "./telemetry";
-import { BriefingInterface } from "./BriefingInterface";
+import { BriefingInterface, DirectiveSurface } from "./BriefingInterface";
 import {
   compileConvergence,
   convergenceFrontIssued,
@@ -1936,7 +1936,7 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
   );
 }
 
-function ModulePage({
+function LegacyModulePage({
   page,
   s,
   issue,
@@ -2285,6 +2285,36 @@ function ModulePage({
           SELECT AND ISSUE IN THIS PANEL
         </footer>
       </section>
+    </div>
+  );
+}
+
+function ModulePage({
+  page,
+  s,
+  issue,
+  focus,
+}: {
+  page: Exclude<
+    Module,
+    "dashboard" | "campaign" | "doctrine" | "wiki" | "account"
+  >;
+  s: GameState;
+  issue: (f: Family, c: Choice) => void;
+  focus?: string;
+}) {
+  return (
+    <div
+      className="command-directive-shell"
+      data-module={moduleName(page)}
+      data-report-owner="ava"
+    >
+      <DirectiveSurface
+        s={s}
+        module={page}
+        focusFamilyId={focus}
+        issue={issue}
+      />
     </div>
   );
 }

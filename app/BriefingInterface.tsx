@@ -356,7 +356,7 @@ function StateSurface({ s }: { s: GameState }) {
   );
 }
 
-function DirectiveSurface({
+export function DirectiveSurface({
   s,
   module,
   focusFamilyId,
@@ -400,7 +400,7 @@ function DirectiveSurface({
     >
       <header>
         <ModernModuleEpigraph module={moduleEpigraph} />
-        <span>{moduleLabel} // NATIVE ALT UX SURFACE</span>
+        <span>{moduleLabel} // DIRECTIVE CONTROL</span>
         <h1>
           {module === "national"
             ? "Production and domestic state"
@@ -409,8 +409,9 @@ function DirectiveSurface({
               : "Diplomatic ledger"}
         </h1>
         <p>
-          Selections remain inside Alt UX and issue against the same directive
-          families, locks, and three-order budget.
+          Select an issue family, review its tradeoffs, and issue one order.
+          Reports, forecasts, active effects, and historical ledgers are
+          available through Ava.
         </p>
       </header>
       {module === "diplomacy" && (
