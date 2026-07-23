@@ -50,7 +50,6 @@ import {
   calculationFor,
   replacementReserveForProjection,
 } from "./concepts";
-import { OperationsPacket } from "./OperationsPacket";
 import { CampaignSetup } from "./CampaignSetup";
 import { AccountPage } from "./AccountPage";
 import { AdminPage } from "./AdminPage";
@@ -2603,10 +2602,6 @@ function Actions({
   );
 }
 
-function CampaignReadout({ s, m }: { s: GameState; m: Maneuver }) {
-  return <OperationsPacket s={s} m={m} />;
-}
-
 function CampaignInspectCell({
   id,
   label,
@@ -2644,6 +2639,125 @@ function CampaignInspectCell({
 
 const campaignDelta = (value: number, digits = 1) =>
   `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(digits)}`;
+
+const MANEUVER_CONSEQUENCES: Record<
+  Maneuver["id"],
+  { immediate: string[]; outcome: string[] }
+> = {
+  reinforce: {
+    immediate: [
+      "The reserve enters the threatened sector.",
+      "Munitions consumption rises sharply.",
+      "Force readiness declines.",
+    ],
+    outcome: [
+      "A clean execution stabilizes the salient.",
+      "Failure traps the reserve inside the enemy’s chosen fires.",
+    ],
+  },
+  interdict: {
+    immediate: [
+      "A counterbattery package enters the interdiction zone.",
+      "Munitions and drone consumption rise sharply.",
+    ],
+    outcome: [
+      "Success suppresses the batteries and releases the sector.",
+      "Failure leaves the salient understrength while the enemy fires remain active.",
+    ],
+  },
+  route: {
+    immediate: [
+      "Engineers attempt a second line of movement.",
+      "Materiel condition declines.",
+      "A completed route eases the local supply burden.",
+    ],
+    outcome: [
+      "Success establishes a durable southern route.",
+      "Failure spends the engineers before the route becomes usable.",
+    ],
+  },
+  abandon: {
+    immediate: [
+      "The formation disengages from the salient.",
+      "Casualty exposure and supply demand fall sharply.",
+      "Equipment is recovered during the withdrawal.",
+    ],
+    outcome: [
+      "Success preserves the force for later operations.",
+      "Failure catches the withdrawing reserve in motion.",
+    ],
+  },
+  exploit: {
+    immediate: [
+      "The mobile reserve attacks the enemy concentration.",
+      "Readiness falls and supply demand rises.",
+    ],
+    outcome: [
+      "Success opens a breakthrough window.",
+      "Failure spends the mobile reserve against a prepared defense.",
+    ],
+  },
+  breach: {
+    immediate: [
+      "The assault force enters the obstacle belt.",
+      "Munitions and supply demand rise sharply.",
+    ],
+    outcome: [
+      "Success breaches the wire and opens the passage.",
+      "Failure reveals the assault sequence to the enemy.",
+    ],
+  },
+  network: {
+    immediate: [
+      "A relay package enters the broken command zone.",
+      "Drone consumption rises while local supply demand eases.",
+    ],
+    outcome: [
+      "Success restores command and improves intelligence.",
+      "Failure compromises the relay package and leaves the network degraded.",
+    ],
+  },
+};
+
+function qualitativeConsequence(text: string) {
+  const allocation = text.match(/^(.+?) allocation becomes/i);
+  if (allocation)
+    return `${allocation[1]} becomes the production priority.`;
+  if (/^Other production lines become/i.test(text))
+    return "All other production lines lose priority.";
+  if (/^All production allocations become/i.test(text))
+    return "Production is distributed evenly.";
+  if (/^Retooling output:/i.test(text))
+    return "Retooling reduces output during the conversion.";
+
+  const directional = text.match(/^([^:]+):\s*([+−-])/);
+  if (directional) {
+    const subject = directional[1]
+      .replace(/^Daily\s+/i, "")
+      .replace(/\s+support$/i, "");
+    return `${subject} ${directional[2] === "+" ? "increases" : "decreases"}.`;
+  }
+
+  const multiplier = text.match(/^([^:]+) multiplier:\s*(\d+(?:\.\d+)?)/i);
+  if (multiplier)
+    return `${multiplier[1]} ${Number(multiplier[2]) > 1 ? "rises" : "falls"}.`;
+
+  const reset = text.match(/^(.+?) becomes\s+0\b/i);
+  if (reset) return `${reset[1]} is eliminated.`;
+  const becomes = text.match(/^(.+?) becomes\b/i);
+  if (becomes) return `${becomes[1]} changes immediately.`;
+
+  const range = text.match(/^([^:]+):\s*.*\bto\b/i);
+  if (range) return `${range[1]} remains a contingent risk.`;
+
+  return text
+    .replace(/\b(?:on\s+)?Day\s+\+\d+\b/gi, "later")
+    .replace(/[+−-]?\d[\d,.]*(?:\s*(?:B|%|km|days?))?/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .replace(/:\s*$/, "")
+    .trim();
+}
 
 function SubMissionReadout({
   s,
@@ -3085,15 +3199,9 @@ function CampaignPage({
   const current =
     rememberedMain ??
     (!showIntro && !subOption ? options[0] ?? null : null);
-  const currentProjection = current ? projectOperations(s, current) : null;
-  const currentOwnedEffects =
-    current && currentProjection && currentProjection.packageEfficiency < 1
-      ? [
-          `Nominal combat requirement: ${currentProjection.nominalCommitment.toLocaleString()} soldiers`,
-          `Task package exposes ${currentProjection.committed.toLocaleString()} soldiers and withholds ${Math.max(0, currentProjection.nominalCommitment - currentProjection.committed).toLocaleString()} soldiers`,
-          ...current.exact.slice(1),
-        ]
-      : (current?.exact ?? []);
+  const currentConsequences = current
+    ? MANEUVER_CONSEQUENCES[current.id]
+    : null;
   const subPrompt =
     subOption?.domain === "domestic"
       ? packet.domestic
@@ -3122,9 +3230,6 @@ function CampaignPage({
     )
       setInspectorSelection({ kind: "main", id: selected.id });
   }, [inspectorSelection, options, selected, setInspectorSelection]);
-  const problemArticle = `situation-${conceptSlug(situation.blueprintId)}`;
-  const intelligenceFactor =
-    0.72 + s.intelligence / 150 - (s.adversaryLedger?.deceptionPenalty ?? 0);
   const chooseMain = (maneuver: Maneuver) => {
     setShowIntro(false);
     setInspectorSelection({ kind: "main", id: maneuver.id });
@@ -3143,11 +3248,7 @@ function CampaignPage({
       >
         <header className="tree-group-heading">
           <span>{label}</span>
-          <small>
-            {status.cooling
-              ? status.reason
-              : `${prompt.options.length} RESPONSES`}
-          </small>
+          <small>{status.cooling ? "COOLING" : "RESPONSES"}</small>
         </header>
         {prompt.options.map((option) => {
           const cooldown = convergenceOptionCooldown(s, option),
@@ -3166,10 +3267,10 @@ function CampaignPage({
                 {convergenceFrontIssued(s, option.domain)
                   ? "COOLING // REOPENS AFTER RESOLUTION"
                   : cooldown
-                    ? `COOLING // ${cooldown}D`
+                    ? "COOLING"
                     : rejection
                       ? rejection.toUpperCase()
-                      : "1 ORDER // AVAILABLE"}
+                      : "AVAILABLE"}
               </small>
             </button>
           );
@@ -3195,64 +3296,12 @@ function CampaignPage({
           <span>CAMPAIGN ORDERS // ACTIVE FRONTS</span>
           <b>DAY {s.day} // {s.actions} ORDERS REMAIN</b>
         </div>
-        <section className="module-report">
-          <ReportDatum
-            id={problemArticle}
-            label="ACTIVE PROBLEM"
-            value={situation.sector}
-            summary={`${situation.headline}. ${situation.briefing}`}
-            details={[
-              `DECISION // ${situation.question}`,
-              `STANDING ORDER // ${situation.standingOrder}`,
-            ]}
-          />
-          <ReportDatum
-            id="actions"
-            label="ORDERS ISSUED"
-            value={`${DAILY_ORDERS - s.actions} / ${DAILY_ORDERS}`}
-            summary="The Main Campaign and today's one or two alternate fronts draw from one daily pool."
-            details={[
-              `ISSUED // ${DAILY_ORDERS - s.actions}`,
-              `REMAINING // ${s.actions}`,
-              "CARRYOVER // NONE",
-            ]}
-          />
-          <ReportDatum
-            id="intelligence"
-            label="INTELLIGENCE"
-            value={`${s.intelligence.toFixed(0)} / 100`}
-            summary="Classification quality converts deployed force, improves Execution Confidence, narrows enemy estimates, and reveals enemy orders."
-            details={[
-              `POWER CONVERSION // ×${Math.max(0.68, Math.min(1.26, intelligenceFactor)).toFixed(2)}`,
-              `CONFIDENCE CONTRIBUTION // ${(s.intelligence - 42) * 0.2 >= 0 ? "+" : ""}${((s.intelligence - 42) * 0.2).toFixed(1)} POINTS`,
-              `ORDERS CLASSIFIED // ${s.intelligence >= 65 ? 3 : s.intelligence >= 35 ? 2 : 1} / 3`,
-              `LEVERS // STATECRAFT, NETWORK OPERATIONS, RECONNAISSANCE, OPPORTUNITIES`,
-            ]}
-          />
-          <ReportDatum
-            id={
-              s.maneuver
-                ? `maneuver-${conceptSlug(maneuverById(s.maneuver)?.label ?? s.maneuver)}`
-                : "standing-order"
-            }
-            label="ORDER"
-            value={maneuverById(s.maneuver)?.label ?? "NOT ISSUED"}
-            summary={
-              maneuverById(s.maneuver)?.flavor ??
-              `If no maneuver is issued, the standing order prosecutes the day: ${situation.standingOrder}`
-            }
-            details={[
-              `STATUS // ${s.maneuver ? "ISSUED" : "AWAITING COMMAND"}`,
-              `SECTOR // ${situation.sector}`,
-            ]}
-          />
-        </section>
         <div className="os-layout campaign-menu-layout">
           <nav className="tree-menu maneuver-list campaign-fronts">
             <section className="tree-group campaign-submenu main">
               <header className="tree-group-heading">
                 <span>MAIN CAMPAIGN</span>
-                <small>{options.length} MANEUVERS // PRIMARY</small>
+                <small>PRIMARY ORDERS</small>
               </header>
               {options.map((m) => (
                 <button
@@ -3263,10 +3312,7 @@ function CampaignPage({
                 >
                   <span>▣</span>
                   <b>{m.label}</b>
-                  <small>
-                    {Math.round(explainManeuverChance(s, m).result * 100)}%
-                    CONFIDENCE
-                  </small>
+                  <small>{s.maneuver === m.id ? "ISSUED" : "AVAILABLE"}</small>
                 </button>
               ))}
             </section>
@@ -3292,21 +3338,20 @@ function CampaignPage({
                 qualifier="DOCTRINE LEARNING PATH"
               />
               <p>{current.flavor}</p>
-              <CampaignReadout s={s} m={current} />
-              <div className="maneuver-contract">
-                <section>
-                  <h3>Owned effects // exact</h3>
+              <div className="maneuver-contract campaign-consequences">
+                <section className="immediate">
+                  <h3>Immediate consequence</h3>
                   <ul>
-                    {currentOwnedEffects.map((x) => (
-                      <EffectLine text={x} s={s} key={x} />
+                    {currentConsequences?.immediate.map((line) => (
+                      <li key={line}>{line}</li>
                     ))}
                   </ul>
                 </section>
-                <section>
-                  <h3>War effects // contingent</h3>
+                <section className="outcome">
+                  <h3>What follows</h3>
                   <ul>
-                    {current.risk.map((x) => (
-                      <EffectLine text={x} s={s} key={x} />
+                    {currentConsequences?.outcome.map((line) => (
+                      <li key={line}>{line}</li>
                     ))}
                   </ul>
                 </section>
@@ -3335,21 +3380,20 @@ function CampaignPage({
                 qualifier={`${subPrompt.pressureBand.toUpperCase()} PRESSURE // TODAY'S ORDER`}
               />
               <p>{subOption.choice.flavor}</p>
-              <SubMissionReadout s={s} prompt={subPrompt} option={subOption} />
-              <div className="maneuver-contract">
-                <section>
-                  <h3>Owned effects // exact</h3>
+              <div className="maneuver-contract campaign-consequences">
+                <section className="immediate">
+                  <h3>Immediate consequence</h3>
                   <ul>
                     {subOption.choice.exact.map((line) => (
-                      <li key={line}>{line}</li>
+                      <li key={line}>{qualitativeConsequence(line)}</li>
                     ))}
                   </ul>
                 </section>
-                <section>
-                  <h3>Tradeoff // contingent</h3>
+                <section className="outcome">
+                  <h3>What this risks</h3>
                   <ul>
                     {subOption.choice.risk.map((line) => (
-                      <li key={line}>{line}</li>
+                      <li key={line}>{qualitativeConsequence(line)}</li>
                     ))}
                   </ul>
                 </section>

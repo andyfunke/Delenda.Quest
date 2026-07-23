@@ -12234,3 +12234,66 @@ small,
     padding: 28px 20px;
   }
 }
+
+/* Campaign is a decision surface. Ava owns the report and the arithmetic. */
+.campaign-workspace .campaign-menu-layout {
+  align-items: start;
+}
+.campaign-workspace .maneuver-detail:not(.campaign-empty-state) {
+  align-self: start;
+  padding-top: 12px;
+}
+.campaign-workspace .maneuver-detail:not(.campaign-empty-state) > h2 {
+  margin-top: 10px;
+}
+.campaign-workspace .campaign-consequences {
+  background: transparent;
+  border-left: 0;
+  gap: 0;
+  margin-top: 20px;
+  padding: 0;
+}
+.campaign-workspace .campaign-consequences section {
+  background: #fff;
+  border-color: #85877f;
+  margin: 0;
+  min-height: 150px;
+  padding: 18px 20px;
+}
+.campaign-workspace .campaign-consequences section + section {
+  border-left: 0;
+}
+.campaign-workspace .campaign-consequences h3 {
+  color: #4f524c;
+  font: 800 11px/1.3 var(--mono);
+  letter-spacing: 0.08em;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+.campaign-workspace .campaign-consequences ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.campaign-workspace .campaign-consequences li {
+  border-top: 1px solid #d1d0c9;
+  color: var(--ink);
+  font: 600 15px/1.45 var(--ui);
+  margin: 0;
+  padding: 10px 0;
+}
+.campaign-workspace .campaign-consequences li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.campaign-workspace .campaign-consequences .immediate {
+  border-left: 5px solid var(--red);
+}
+.campaign-workspace .campaign-consequences .outcome {
+  border-left: 5px solid #111;
+}
+@media (max-width: 700px) {
+  .campaign-workspace .campaign-consequences {
+    grid-template-columns: 1fr;
+  }
+}

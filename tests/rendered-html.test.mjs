@@ -33,13 +33,21 @@ test("renders development preview metadata", async () => {
   assert.match(await response.text(), developmentPreviewMeta);
 });
 
-test("campaign UI keeps one deferred report and consistent order language", async () => {
+test("campaign UI is consequence-only while Ava retains the campaign report", async () => {
   const [page,packet]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/OperationsPacket.tsx",import.meta.url),"utf8"),
   ]);
-  assert.match(page,/label="ORDERS ISSUED"/);
+  const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
   assert.match(page,/ISSUE ORDER →/);
+  assert.doesNotMatch(campaign,/<section className="module-report">/);
+  assert.doesNotMatch(campaign,/<CampaignReadout|<SubMissionReadout/);
+  assert.match(campaign,/Immediate consequence/);
+  assert.match(campaign,/What follows/);
+  assert.match(campaign,/What this risks/);
+  assert.match(campaign,/qualitativeConsequence\(line\)/);
+  assert.doesNotMatch(campaign,/Owned effects|War effects|CAMPAIGN ESTIMATE|EXECUTION CONFIDENCE|EFFECTIVE FORCE RATIO/i);
+  assert.doesNotMatch(campaign,/Math\.round\(explainManeuverChance/);
   assert.doesNotMatch(page,/ISSUE OPERATIONAL ORDER|SHOW FULL CALCULATION|SHOW PRESSURE CALCULUS/i);
   assert.match(packet,/label="ENEMY DEPLOYED"/);
   assert.match(packet,/label="EFFECTIVE FORCE RATIO"/);
@@ -119,7 +127,10 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   ]);
   for(const label of ["MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"])assert.match(page,new RegExp(label));
   assert.match(schema,/DOMESTIC_SUB_MISSIONS/);assert.match(schema,/NETWORK_SUB_MISSIONS/);assert.match(schema,/sub-missions-v3/);assert.match(schema,/SUB_MISSION_CONTENT_VERSION/);
-  assert.match(page,/SubMissionReadout/);assert.match(page,/NETWORK POSTURE/);assert.match(page,/STRIKE RISK/);
+  const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
+  assert.doesNotMatch(campaign,/<SubMissionReadout/);
+  assert.match(reports,/STRIKE RISK/);
+  assert.match(reports,/sector network condition \+ network posture/);
   assert.match(css,/\.bubblette\.pinned\s*>\s*\.bubblette-panel/);assert.match(css,/min-height:\s*0\s*!important/);
   assert.match(css,/position:\s*fixed/);assert.match(css,/translate\(-50%,\s*-50%\)/);
   assert.ok(css.lastIndexOf("Final semantic cascade guard")>css.lastIndexOf("Shared pinned inspection graph"),"the pale content and type authority must be the final cascade block");
@@ -188,11 +199,9 @@ test("campaign navigation, military reinforcement, Doctrine inspection, and text
     readFile(new URL("../app/ava/voice.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/AvaTextRenderer.tsx",import.meta.url),"utf8"),
   ]);
-  const readout=page.slice(page.indexOf("function SubMissionReadout"),page.indexOf("function DoctrineConfirm"));
   const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
   assert.doesNotMatch(campaign,/campaign-mission-context|OPERATIONAL CONVERGENCE|MISSION TICKET|CONTENT FRAME|matrixVersion|frameId|realizationId|mechanical archetype/i);
-  assert.match(readout,/FRONT-LINE CONSEQUENCE/);
-  assert.match(readout,/WHY THIS ORDER EXISTS TODAY/);
+  assert.doesNotMatch(campaign,/FRONT-LINE CONSEQUENCE|WHY THIS ORDER EXISTS TODAY/);
   for(const label of ["EFFECTIVE GRADUATES","FIELD-EQUIPPED GRADUATES","HELD IN REPLACEMENT RESERVE","FIELD-READY SHARE","DEPLOYABLE REINFORCEMENTS"])assert.match(page,new RegExp(label));
   assert.doesNotMatch(concepts,/equipment assignment → reserve or deployable formation/i);
   assert.match(page,/BATTLEFIELD EFFECT/);assert.doesNotMatch(page,/DETERMINISTIC EFFECT/);
