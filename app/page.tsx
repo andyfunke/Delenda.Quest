@@ -3384,7 +3384,10 @@ function CampaignPage({
                   className="situation-index campaign-intro-index"
                   aria-hidden="true"
                 />
-                <div className="campaign-sector-lane">
+                <div
+                  className="campaign-sector-lane"
+                  data-sector={situation.sector}
+                >
                   {situation.sector}
                 </div>
                 <SituationNarrative

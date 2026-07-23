@@ -12092,7 +12092,20 @@ small,
   position: relative;
   text-transform: uppercase;
   white-space: nowrap;
-  z-index: 1;
+  z-index: 3;
+}
+.campaign-sector-lane:after {
+  align-items: flex-end;
+  box-sizing: border-box;
+  clip-path: inset(0 0 0 calc(100% - 270px));
+  color: transparent;
+  content: attr(data-sector);
+  display: flex;
+  inset: 0;
+  padding: 18px 24px 0 48px;
+  pointer-events: none;
+  position: absolute;
+  -webkit-text-stroke: 2px rgb(21 22 18 / 82%);
 }
 .campaign-empty-state .situation-body {
   box-sizing: border-box;
@@ -12115,7 +12128,7 @@ small,
   color: #fff;
   display: grid;
   grid-column: 3;
-  grid-row: 2 / -1;
+  grid-row: 1 / -1;
   grid-template-rows: subgrid;
   justify-content: stretch;
   min-width: 0;
@@ -12189,6 +12202,9 @@ small,
     font-size: clamp(54px, 10vw, 92px);
     grid-column: 2;
     padding: 16px 20px 0 32px;
+  }
+  .campaign-sector-lane:after {
+    content: none;
   }
   .campaign-empty-state .situation-index {
     grid-row: 1 / -1;
