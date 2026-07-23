@@ -1,0 +1,1 @@
+ALTER TABLE `campaign_records` ADD `public_geo` text DEFAULT 'LOCATION UNAVAILABLE' NOT NULL;

@@ -36,6 +36,7 @@ export const campaignRecords=sqliteTable("campaign_records",{
   uberscoreEarned:integer("uberscore_earned").notNull(),
   forcePreserved:integer("force_preserved").notNull(),
   frontMillimeters:integer("front_millimeters").notNull(),
+  publicGeo:text("public_geo").notNull().default("LOCATION UNAVAILABLE"),
   decisions:text("decisions").notNull(),
   completedAt:integer("completed_at").notNull(),
 },table=>[

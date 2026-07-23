@@ -1300,7 +1300,7 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
           conceptId: "front-movement",
         },
         {
-          label: "ARMED FORCE PRESERVED",
+          label: "OPENING FORCE REMAINING",
           value: `${preserved.toFixed(1)}% OF OPENING LEDGER`,
           conceptId: "deployable-force",
         },

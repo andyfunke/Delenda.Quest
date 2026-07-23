@@ -573,7 +573,7 @@ function executeAvaInstruction(
       session,
       withHeader(
         state,
-        "FIELD CONTEXT\nPATTERN ANALYSIS DIRECTORATE\n\nANSWER\nI am Ava Moore. I read the command ledger, calculate the position, compare available sacrifices, prepare orders, and enter them only after your confirmation. I do not invent reports or disclose sealed outcomes.",
+        "FIELD CONTEXT\nPATTERN ANALYSIS DIRECTORATE\n\nANSWER\nI am Ava. I read the command ledger, calculate the position, compare available sacrifices, prepare orders, and enter them only after your confirmation. I do not invent reports or disclose sealed outcomes.",
       ),
     );
   if (instruction.kind === "GRATITUDE")

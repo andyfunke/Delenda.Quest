@@ -1167,6 +1167,28 @@ main {
   line-height: 1.6;
   max-width: 520px;
 }
+.end-score {
+  border:1px solid #555;
+  margin:8px 0;
+  padding:10px 18px;
+  position:relative;
+}
+.end-score small,.end-score b {display:block;font-family:monospace}
+.end-score b {color:var(--acid);font-size:26px;margin-top:4px}
+.end-score span {
+  background:#fff;
+  border:2px solid #111;
+  color:#111;
+  display:none;
+  font:10px/1.45 monospace;
+  left:50%;
+  min-width:310px;
+  padding:9px;
+  position:absolute;
+  top:100%;
+  transform:translateX(-50%);
+}
+.end-score:hover span,.end-score:focus span {display:block}
 .end button {
   background: var(--acid);
   border: 0;
@@ -8178,14 +8200,61 @@ small,
   color: var(--acid);
 }
 .record-certificate {
-  background: #f4f0e3;
+  background: #090a08;
   border: 1px solid #5d5a51;
   box-shadow: 8px 8px 0 #aaa596;
+  color: #f4f0e3;
+  isolation: isolate;
   margin: 0 auto;
   max-width: 1060px;
-  padding: 54px;
+  min-height: 720px;
+  overflow: hidden;
+  padding: 0;
   position: relative;
 }
+.record-certificate-content {
+  background: linear-gradient(90deg, rgba(9,10,8,.96) 0 54%, rgba(9,10,8,.72) 72%, rgba(9,10,8,.22));
+  min-height: 720px;
+  padding: 48px;
+  position: relative;
+  z-index: 2;
+}
+.record-art {
+  background: #792d25;
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: 0;
+}
+.record-art::before,
+.record-art::after,
+.record-art i {
+  border: 3px solid rgba(255,255,255,.72);
+  content: "";
+  position: absolute;
+  transform: rotate(45deg);
+}
+.record-art::before {height: 520px;right: -120px;top: -150px;width: 520px}
+.record-art::after {border-width: 42px;height: 250px;right: 35px;top: 210px;width: 250px}
+.record-art i:nth-child(1){height:120px;right:70px;top:80px;width:420px}
+.record-art i:nth-child(2){height:360px;right:-10px;top:390px;width:360px}
+.record-art i:nth-child(3){border-color:var(--acid);height:60px;right:300px;top:270px;width:60px}
+.record-art i:nth-child(4){background:#090a08;border:0;height:260px;right:120px;top:70px;width:70px}
+.record-art > b {
+  bottom: 20px;
+  color: rgba(255,255,255,.14);
+  font: 900 72px/1 Arial,sans-serif;
+  letter-spacing: -.07em;
+  position: absolute;
+  right: 22px;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+.record-certificate.visual-1 .record-art{background:#243d54}
+.record-certificate.visual-2 .record-art{background:#57441f}
+.record-certificate.visual-3 .record-art{background:#263f32}
+.record-certificate.visual-4 .record-art{background:#4b2d50}
+.record-certificate.visual-5 .record-art{background:#6a3922}
 .record-seal {
   align-items: center;
   background: #6d342f;
@@ -8203,22 +8272,35 @@ small,
   top: 42px;
   width: 76px;
 }
-.record-certificate > small {
+.record-certificate-content > small {
   font: 12px monospace;
   letter-spacing: 0.16em;
 }
-.record-certificate > h1 {
+.record-certificate-content > h1 {
   font:
     700 72px/0.9 Georgia,
     serif;
   margin: 19px 0;
   text-transform: uppercase;
 }
-.record-certificate > p {
+.record-certificate-content > p {
   font:
     20px/1.55 Georgia,
     serif;
   max-width: 810px;
+}
+.record-certificate blockquote {
+  border-left: 5px solid var(--acid);
+  font: italic 16px/1.35 Georgia,serif;
+  margin: 20px 0;
+  max-width: 650px;
+  padding: 4px 16px;
+}
+.record-certificate blockquote cite {
+  display: block;
+  font: 9px/1.4 monospace;
+  margin-top: 8px;
+  text-transform: uppercase;
 }
 .record-scoreboard {
   background: #111;
@@ -8231,6 +8313,22 @@ small,
   border-right: 1px solid #555;
   padding: 18px;
 }
+.score-disclosure {position:relative}
+.score-disclosure em {
+  background:#fff;
+  border:2px solid #111;
+  color:#111;
+  display:none;
+  font:10px/1.4 monospace;
+  left:8px;
+  padding:8px;
+  position:absolute;
+  right:8px;
+  top:100%;
+  z-index:4;
+}
+.score-disclosure:hover em,
+.score-disclosure:focus em {display:block}
 .record-scoreboard span,
 .record-scoreboard b,
 .record-scoreboard small {
@@ -8267,7 +8365,7 @@ small,
   font-size: 15px;
   margin-top: 7px;
 }
-.record-certificate > footer {
+.record-certificate-content > footer {
   border-top: 1px solid #999;
   display: flex;
   font: 10px monospace;
@@ -8482,6 +8580,7 @@ small,
 }
 
 @media print {
+  @page { size: landscape; margin: 0; }
   body {
     background: #fff;
   }
@@ -8498,14 +8597,23 @@ small,
     padding: 0;
   }
   .record-certificate {
-    border: 8px double #222;
+    border: 0;
     box-shadow: none;
+    height: 100vh;
     margin: 0;
     max-width: none;
-    min-height: 90vh;
+    min-height: 0;
+    page-break-after: avoid;
+    page-break-inside: avoid;
   }
-  .record-certificate > footer {
-    margin-top: 80px;
+  .record-certificate-content {
+    box-sizing: border-box;
+    height: 100vh;
+    min-height: 0;
+    padding: 34px 42px;
+  }
+  .record-certificate-content > footer {
+    margin-top: 18px;
   }
 }
 

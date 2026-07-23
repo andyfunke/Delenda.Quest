@@ -6,15 +6,27 @@ import { friendInvites, friendships, users } from "./schema";
 const normalizeEmail=(value:string)=>value.trim().toLowerCase();
 const pair=(a:string,b:string)=>[normalizeEmail(a),normalizeEmail(b)].sort() as [string,string];
 const pairId=(a:string,b:string)=>pair(a,b).join("::");
-const ALIAS_ADJECTIVES=["Ashen","Brazen","Cold","Distant","Iron","Last","Quiet","Red","Sealed","Stern","Vigilant","Winter"];
-const ALIAS_NOUNS=["Column","Furnace","Harbor","Lantern","Morrow","Relay","Reserve","Signal","Standard","Trench","Vanguard","Witness"];
+const ALIAS_FAMILIES=[
+  ["Red","Aurora","Twilight","Rapture","Rupture","Electric"],
+  ["Vague","Approximate","Hypothetical","Illustrative","Rhetorical","Facsimile"],
+  ["Magistrate","Regent","Protectorate","Archon","Divine","Aristocrat","Aristotelian"],
+  ["Armistice","Concord","Cordial","Attache","Proxy","Promulgated","Forthwith"],
+  ["Mephistos","Baal","Persephone","Apostate","Anathema","Devour"],
+  ["Soliloquy","Confabulate","Collusive","Corrosive","Assuage","Assay"],
+  ["Facade","Armoire","Cache","Buttress","Proctored"],
+  ["Hypotenuse","Quadratic","Approximate","Raptor","Aurora"],
+] as const;
 const digest=async(value:string)=>{
   const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
   return Array.from(new Uint8Array(bytes)).map(byte=>byte.toString(16).padStart(2,"0")).join("");
 };
 const generatedAlias=async(email:string)=>{
-  const hex=await digest(`delenda:alias:${email}`),a=parseInt(hex.slice(0,4),16)%ALIAS_ADJECTIVES.length,n=parseInt(hex.slice(4,8),16)%ALIAS_NOUNS.length,suffix=parseInt(hex.slice(8,12),16)%10000;
-  return `${ALIAS_ADJECTIVES[a]}${ALIAS_NOUNS[n]}${String(suffix).padStart(4,"0")}`;
+  const hex=await digest(`delenda:alias:${email}`),family=ALIAS_FAMILIES[parseInt(hex.slice(0,4),16)%ALIAS_FAMILIES.length];
+  const first=parseInt(hex.slice(4,8),16)%family.length;
+  let second=parseInt(hex.slice(8,12),16)%family.length;
+  if(second===first)second=(second+1)%family.length;
+  const suffix=parseInt(hex.slice(12,16),16)%1000;
+  return `${family[first]}${family[second]}${String(suffix).padStart(3,"0")}`.slice(0,28);
 };
 
 export async function ensureAccount(user:ChatGPTUser){

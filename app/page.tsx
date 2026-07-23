@@ -3775,6 +3775,7 @@ export default function Home() {
   const [runToken, setRunToken] = useState("");
   const [multiplayerRun, setMultiplayerRun] = useState(false);
   const [issuedRecordSlug, setIssuedRecordSlug] = useState<string | null>(null);
+  const [issuedCampaignScore, setIssuedCampaignScore] = useState<number | null>(null);
   const [wikiApplet, setWikiApplet] = useState<string | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
   const [opportunityInterruptAcknowledged, setOpportunityInterruptAcknowledged] =
@@ -4182,8 +4183,11 @@ export default function Home() {
     let live = true;
     void submitCampaignRecord(s, runToken,{multiplayer:multiplayerRun})
       .then((record: unknown) => {
-        const slug = (record as { publicSlug?: string } | null)?.publicSlug;
-        if (live && slug) setIssuedRecordSlug(slug);
+        const issued=record as {publicSlug?:string;campaignScore?:number}|null;
+        if (live && issued?.publicSlug) {
+          setIssuedRecordSlug(issued.publicSlug);
+          setIssuedCampaignScore(issued.campaignScore??null);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -4329,6 +4333,7 @@ export default function Home() {
     setS(next);
     setRunToken(portableId());
     setIssuedRecordSlug(null);
+    setIssuedCampaignScore(null);
     setPage("dashboard");
     setFocusFamily(undefined);
     setMetric(null);
@@ -4808,6 +4813,7 @@ export default function Home() {
               ? "The enemy operational system has broken beyond the prewar line."
               : "The state can no longer convert its remaining capacity into a viable front."}
           </p>
+          {issuedCampaignScore!==null&&<div className="end-score" tabIndex={0}><small>CAMPAIGN SCORE ⓘ</small><b>{issuedCampaignScore.toLocaleString()}</b><span>completion + production range + casualty control + inflicted losses + duration; clamped 0–10,000</span></div>}
           {issuedRecordSlug ? (
             <a className="end-record" href={`/record/${issuedRecordSlug}`}>
               OPEN CAMPAIGN RECORD →
@@ -4874,7 +4880,7 @@ export default function Home() {
         >
           <span>AM</span>
           <div>
-            <b>AVA MOORE</b>
+            <b>AVA</b>
             <small>
               {fmtStrategic(live.losses)} LOSSES //{" "}
               {fmtStrategic(live.netDesertion)} NET FLIGHT // ASK WHAT TO DO
@@ -4892,7 +4898,7 @@ export default function Home() {
             <div>
               <span>AM</span>
               <p>
-                <b>AVA MOORE</b>
+                <b>AVA</b>
                 <small>
                   PATTERN ANALYSIS DIRECTORATE //{" "}
                   {moduleName(

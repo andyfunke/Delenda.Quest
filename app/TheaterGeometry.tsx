@@ -40,9 +40,10 @@ export const compileTheaterGeometry=(s:GameState):Geometry=>{
 
 export function TheaterGeometry({ s, variant = "briefing" }: Props) {
   const situation=situationForState(s),sector=s.theaterSectors.find(item=>item.id===situation.sectorId)??s.theaterSectors[0],g=compileTheaterGeometry(s);
+  const latest=[...s.situationHistory].sort((a,b)=>b.day-a.day)[0],maneuver=s.maneuver??latest?.maneuverId??null;
   const activeFacts=s.operationalFacts.filter(fact=>fact.visible&&(fact.sectorId===sector.id||fact.sectorId===null)&&(fact.expiresDay===null||fact.expiresDay>=s.day));
   const routeBroken=sector.supplyAccess<42||activeFacts.some(fact=>/infrastructure_severed|enemy_fires_registered/.test(fact.id));
-  const networkBroken=sector.network==="severed"||sector.network==="degraded";
+  const relayMission=maneuver==="network";
   const arrowEndX=g.posture==="withdraw"?g.friendlyEdge-34:g.posture==="advance"?g.salientX+48:g.salientX;
   const arrowEndY=g.posture==="disperse"?g.activeY-32:g.activeY;
   return (
@@ -58,14 +59,14 @@ export function TheaterGeometry({ s, variant = "briefing" }: Props) {
         <path className="salient" d={`M${g.frontX} ${g.frontTop}L${g.salientX} ${g.salientY-25}L${g.salientX+35} ${g.salientY}L${g.salientX} ${g.salientY+25}L${g.frontX} ${g.frontBottom}Z`} />
         <path className="enemy" d={`M${g.enemyEdge} 18L675 18L675 192L${g.enemyEdge} 192L${g.salientX+35} ${g.salientY}Z`} />
         <path className={`corridor ${routeBroken?"broken":""}`} d={`M${g.friendlyEdge-12} ${g.routeY-10}L${g.salientX} ${g.salientY-22}M${g.friendlyEdge-12} ${g.routeY+10}L${g.salientX} ${g.salientY+22}`} />
-        <path className="front-line" d={`M${g.frontX} ${g.frontTop}Q${g.frontX+(g.entropy-.5)*42} 105 ${g.frontX} ${g.frontBottom}`} />
-        <path className="formation-arrow primary" markerEnd={`url(#friendly-arrow-${variant})`} d={`M${g.friendlyEdge-70} ${g.reserveY}Q${g.frontX-70} ${g.activeY+28} ${arrowEndX} ${arrowEndY}`} />
-        <path className="formation-arrow adjacent" markerEnd={`url(#friendly-arrow-${variant})`} d={`M${g.friendlyEdge-40} ${g.reserveY-48}Q${g.frontX-15} ${g.frontTop-12} ${g.salientX-5} ${g.salientY-42}`} />
-        <path className="enemy-formation-arrow" markerEnd={`url(#enemy-arrow-${variant})`} d={`M${g.enemyEdge+72} ${g.salientY+46}Q${g.enemyEdge-10} ${g.salientY+20} ${g.salientX+42} ${g.salientY+8}`} />
+        <path className="front-line" d={`M${g.frontX} ${g.frontTop}L${g.frontX} 105L${g.frontX} ${g.frontBottom}`} />
+        <path className="formation-arrow primary" markerEnd={`url(#friendly-arrow-${variant})`} d={`M${g.friendlyEdge-70} ${g.reserveY}L${g.frontX-70} ${g.activeY+28}L${arrowEndX} ${arrowEndY}`} />
+        <path className="formation-arrow adjacent" markerEnd={`url(#friendly-arrow-${variant})`} d={`M${g.friendlyEdge-40} ${g.reserveY-48}L${g.frontX-15} ${g.frontTop-12}L${g.salientX-5} ${g.salientY-42}`} />
+        <path className="enemy-formation-arrow" markerEnd={`url(#enemy-arrow-${variant})`} d={`M${g.enemyEdge+72} ${g.salientY+46}L${g.enemyEdge-10} ${g.salientY+20}L${g.salientX+42} ${g.salientY+8}`} />
         <rect className="formation friendly-unit" x={g.friendlyEdge-92} y={g.reserveY-10} width="42" height="20" /><text x={g.friendlyEdge-71} y={g.reserveY+4}>RES</text>
         <rect className="formation active" x={g.salientX-17} y={g.activeY-10} width="42" height="20" /><text x={g.salientX+4} y={g.activeY+4}>18th</text>
-        {networkBroken&&<g className="emitter"><circle cx={g.enemyEdge+42} cy={60+g.entropy*35} r="6"/><circle cx={g.enemyEdge+42} cy={60+g.entropy*35} r="2"/></g>}
-        <text className="enemy-label" x={g.enemyEdge+25} y={48+g.entropy*35}>{networkBroken?"RELAY?":"FIRES"}</text>
+        {relayMission&&<g className="emitter"><rect x={g.enemyEdge+36} y={54+g.entropy*35} width="12" height="12"/><rect x={g.enemyEdge+40} y={58+g.entropy*35} width="4" height="4"/></g>}
+        <text className="enemy-label" x={g.enemyEdge+25} y={48+g.entropy*35}>{relayMission?"RELAY":"FIRES"}</text>
         <text className="caption" x="24" y="207">{situation.sector.toUpperCase()} // {g.dispatch} // FRONT {s.front>=0?"+":""}{s.front.toFixed(1)} KM</text>
         <text className="subcaption" x="24" y="222">{situation.terrain.toUpperCase()} // {situation.ground.toUpperCase()} // SUPPLY {sector.supplyAccess.toFixed(0)} // NETWORK {sector.network.toUpperCase()}</text>
       </svg>
