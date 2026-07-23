@@ -133,7 +133,7 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
 });
 
-test("campaign's unselected inspector reuses the dashboard situation narrative as a black-only field",async()=>{
+test("campaign's one-time introduction uses the dashboard card grammar and cannot be reselected",async()=>{
   const[page,css]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -146,16 +146,23 @@ test("campaign's unselected inspector reuses the dashboard situation narrative a
   assert.match(campaign,/className="menu-inspector maneuver-detail campaign-empty-state"/);
   assert.match(campaign,/className="situation-card campaign-empty-card"/);
   assert.match(campaign,/data-overprint=\{situation\.sector\.toUpperCase\(\)\}/);
-  assert.match(campaign,/label: "NO CAMPAIGN ELEMENT SELECTED"/);
-  assert.match(campaign,/order: maneuverById\(s\.maneuver\) \?\? null/);
-  for(const field of ["situation.sector","situation.windowHours","situation.quote","situation.attribution","situation.headline","situation.briefing","situation.terrain","situation.ground","situation.network","situation.supply","situation.intelligence","situation.question","campaignEmpty.order.label","campaignEmpty.order.flavor"]){
+  assert.match(campaign,/showIntro \? \(/);
+  assert.match(campaign,/setShowIntro\(false\)/);
+  assert.match(campaign,/setInspectorSelection\(\{ kind: "main", id: maneuver\.id \}\)/);
+  assert.match(campaign,/setInspectorSelection\(\{ kind: "sub", id: option\.id \}\)/);
+  assert.doesNotMatch(campaign,/current\?\.id === maneuver\.id \? null : maneuver/);
+  assert.doesNotMatch(campaign,/value === option\.id \? null : option\.id/);
+  for(const field of ["situation.quote","situation.attribution","situation.headline","situation.briefing","situation.terrain","situation.ground","situation.network","situation.supply","situation.intelligence"]){
     assert.match(narrative,new RegExp(field.replaceAll(".","\\.")));
   }
-  assert.match(narrative,/No maneuver has been issued\. The standing operational tempo will[\s\S]*prosecute the day by default\./);
+  for(const field of ["situation.sector","situation.windowHours","situation.question"])
+    assert.match(campaign,new RegExp(field.replaceAll(".","\\.")));
+  assert.match(campaign,/No maneuver has been issued\. The standing operational[\s\S]*tempo will prosecute the day by default\./);
   assert.doesNotMatch(campaign,/Select a front on the left/);
-  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?right:\s*0[\s\S]*?width:\s*100%/);
-  assert.doesNotMatch(css,/\.campaign-empty-card(?:\s*|:before)\{[^}]*var\(--(?:acid|red)\)/);
+  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px/);
+  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?color:\s*#d83b274d/);
+  assert.match(css,/\.campaign-empty-state \.situation-index\s*\{[\s\S]*?background:\s*var\(--red\)/);
+  assert.match(css,/\.campaign-empty-state \.campaign-intro-order\s*\{[\s\S]*?background:\s*var\(--acid\)/);
 });
 
 test("campaign navigation, military reinforcement, Doctrine inspection, and text roles remain player-facing",async()=>{
@@ -267,12 +274,17 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.doesNotMatch(dashboard,/className=\{`production-health/);
   assert.match(modulePage,/data-report-owner="ava"/);
   assert.match(modulePage,/className="module desktop-module"/);
-  assert.match(modulePage,/className="os-window"/);
+  assert.match(modulePage,/className=\{`os-window \$\{isProduction \? "production-command-window" : ""\}`\}/);
   assert.match(modulePage,/className="tree-menu/);
+  assert.match(modulePage,/\{isProduction \? "SET PRODUCTION TARGET" : "DIRECTIVE CONTROL PANEL"\}/);
+  assert.match(modulePage,/className=\{`menu-inspector \$\{isProduction \? "production-target-inspector" : ""\}`\}/);
+  assert.match(modulePage,/\{!isProduction && \(/);
   assert.match(modulePage,/className="menu-choice-list expanded single-surface"/);
   assert.match(modulePage,/className=\{directiveEffectTone\(x\)\}/);
   assert.match(modulePage,/<small>TRADEOFF<\/small>/);
   assert.doesNotMatch(modulePage,/module-report|ProductionCircuit|ForceGenerationCircuit|DomesticStatePanel|DiplomacyPanel|desertion-control/);
+  assert.match(css,/\.production-command-window \.production-target-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
+  assert.match(css,/\.production-command-window[\s\S]*?\.production-target-inspector[\s\S]*?> \.menu-choice-list\s*\{[\s\S]*?margin:\s*0/);
   const sharedDirective=briefing.slice(briefing.indexOf("export function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
   assert.match(sharedDirective,/Reports, forecasts, active effects, and historical ledgers are\s+available through Ava/);
   assert.doesNotMatch(sharedDirective,/NATIVE ALT UX SURFACE/);

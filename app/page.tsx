@@ -1271,30 +1271,11 @@ function WarClock({ remaining }: { remaining: number }) {
 
 function SituationNarrative({
   situation,
-  campaignEmpty,
 }: {
   situation: ReturnType<typeof situationForState>;
-  campaignEmpty?: { label: string; order: Maneuver | null };
 }) {
   return (
-    <div
-      className={`situation-body ${campaignEmpty ? "campaign-empty-body" : ""}`}
-    >
-      {campaignEmpty && (
-        <>
-          <header className="campaign-empty-heading">
-            <span>CAMPAIGN INSPECTOR</span>
-            <strong id="campaign-empty-state-title">
-              {campaignEmpty.label}
-            </strong>
-          </header>
-          <div className="campaign-empty-context">
-            <span>DAILY STRATEGIC SITUATION</span>
-            <b>{situation.sector}</b>
-            <small>{situation.windowHours} HOUR OPPORTUNITY WINDOW</small>
-          </div>
-        </>
-      )}
+    <div className="situation-body">
       <Epigraph
         quote={situation.quote}
         source={situation.attribution}
@@ -1319,24 +1300,6 @@ function SituationNarrative({
           Intel <b>{situation.intelligence}</b>
         </span>
       </div>
-      {campaignEmpty && (
-        <section className="campaign-empty-question">
-          <span>COMMANDER’S QUESTION</span>
-          <h3>{situation.question}</h3>
-          {campaignEmpty.order ? (
-            <>
-              <small>ORDER ISSUED</small>
-              <b>{campaignEmpty.order.label}</b>
-              <p>{campaignEmpty.order.flavor}</p>
-            </>
-          ) : (
-            <p>
-              No maneuver has been issued. The standing operational tempo will
-              prosecute the day by default.
-            </p>
-          )}
-        </section>
-      )}
     </div>
   );
 }
@@ -1984,6 +1947,7 @@ function ModulePage({
     ],
   };
   const desc = descriptions[page],
+    isProduction = page === "national",
     epigraph =
       MODULE_EPIGRAPHS[
         page === "national" ? "production" : page
@@ -2015,9 +1979,13 @@ function ModulePage({
         <h1>{desc[1]}</h1>
         <p>{desc[2]}</p>
       </header>
-      <section className="os-window">
+      <section
+        className={`os-window ${isProduction ? "production-command-window" : ""}`}
+      >
         <div className="os-titlebar">
-          <span>DIRECTIVE CONTROL PANEL</span>
+          <span>
+            {isProduction ? "SET PRODUCTION TARGET" : "DIRECTIVE CONTROL PANEL"}
+          </span>
           <b>
             {moduleName(page)} // DAY {s.day}
           </b>
@@ -2116,13 +2084,20 @@ function ModulePage({
             </nav>
           )}
           {selectedFamily && (
-            <article className="menu-inspector">
-              <div className="menu-path">
-                {moduleName(page)} // {selectedFamily.category.toUpperCase()} //{" "}
-                {selectedFamily.label.toUpperCase()}
-              </div>
-              <h2>{selectedFamily.label}</h2>
-              <p>{selectedFamily.brief}</p>
+            <article
+              className={`menu-inspector ${isProduction ? "production-target-inspector" : ""}`}
+            >
+              {!isProduction && (
+                <>
+                  <div className="menu-path">
+                    {moduleName(page)} //{" "}
+                    {selectedFamily.category.toUpperCase()} //{" "}
+                    {selectedFamily.label.toUpperCase()}
+                  </div>
+                  <h2>{selectedFamily.label}</h2>
+                  <p>{selectedFamily.brief}</p>
+                </>
+              )}
               <div className="menu-choice-list expanded single-surface">
                 {selectedFamily.choices.map((c) => {
                   const rejection = directiveRejection(s, selectedFamily, c);
@@ -3055,12 +3030,20 @@ function CampaignPage({
   s,
   selected,
   setSelected,
+  inspectorSelection,
+  setInspectorSelection,
+  introConsumed,
+  consumeIntro,
   issue,
   issueConvergence,
 }: {
   s: GameState;
   selected: Maneuver | null;
   setSelected: (m: Maneuver | null) => void;
+  inspectorSelection: CampaignInspectorSelection | null;
+  setInspectorSelection: (selection: CampaignInspectorSelection | null) => void;
+  introConsumed: boolean;
+  consumeIntro: () => void;
   issue: (m: Maneuver) => void;
   issueConvergence: (selection: {
     domesticId?: string;
@@ -3072,7 +3055,26 @@ function CampaignPage({
   const options = situation.maneuvers
     .map((id) => MANEUVERS.find((m) => m.id === id)!)
     .filter(Boolean);
-  const current = options.find((x) => x.id === selected?.id) ?? null;
+  const [showIntro, setShowIntro] = useState(() => !introConsumed);
+  useEffect(() => {
+    if (!introConsumed) consumeIntro();
+  }, [consumeIntro, introConsumed]);
+  const rememberedMain =
+    inspectorSelection?.kind === "main"
+      ? options.find((x) => x.id === inspectorSelection.id) ?? null
+      : null;
+  const allSubOptions = [
+    ...(packet.activeDomains.includes("domestic") ? packet.domestic.options : []),
+    ...(packet.activeDomains.includes("network") ? packet.network.options : []),
+  ];
+  const subOption =
+    inspectorSelection?.kind === "sub"
+      ? allSubOptions.find((option) => option.id === inspectorSelection.id) ??
+        null
+      : null;
+  const current =
+    rememberedMain ??
+    (!showIntro && !subOption ? options[0] ?? null : null);
   const currentProjection = current ? projectOperations(s, current) : null;
   const currentOwnedEffects =
     current && currentProjection && currentProjection.packageEfficiency < 1
@@ -3082,13 +3084,6 @@ function CampaignPage({
           ...current.exact.slice(1),
         ]
       : (current?.exact ?? []);
-  const [selectedSub, setSelectedSub] = useState<string | null>(null);
-  const allSubOptions = [
-    ...(packet.activeDomains.includes("domestic") ? packet.domestic.options : []),
-    ...(packet.activeDomains.includes("network") ? packet.network.options : []),
-  ];
-  const subOption =
-    allSubOptions.find((option) => option.id === selectedSub) ?? null;
   const subPrompt =
     subOption?.domain === "domestic"
       ? packet.domestic
@@ -3099,20 +3094,36 @@ function CampaignPage({
     subOption && convergenceFrontIssued(s, subOption.domain)
   );
   useEffect(() => {
-    if (selected && !options.some((x) => x.id === selected.id))
-      setSelected(null);
-  }, [options, selected, setSelected]);
-  useEffect(() => setSelectedSub(null), [s.day]);
+    if (showIntro || current || subOption || !options[0]) return;
+    setInspectorSelection({ kind: "main", id: options[0].id });
+  }, [
+    current,
+    options,
+    setInspectorSelection,
+    showIntro,
+    subOption,
+  ]);
+  useEffect(() => {
+    if (
+      selected &&
+      options.some((x) => x.id === selected.id) &&
+      (inspectorSelection?.kind !== "main" ||
+        inspectorSelection.id !== selected.id)
+    )
+      setInspectorSelection({ kind: "main", id: selected.id });
+  }, [inspectorSelection, options, selected, setInspectorSelection]);
   const problemArticle = `situation-${conceptSlug(situation.blueprintId)}`;
   const intelligenceFactor =
     0.72 + s.intelligence / 150 - (s.adversaryLedger?.deceptionPenalty ?? 0);
   const chooseMain = (maneuver: Maneuver) => {
-    setSelectedSub(null);
-    setSelected(current?.id === maneuver.id ? null : maneuver);
+    setShowIntro(false);
+    setInspectorSelection({ kind: "main", id: maneuver.id });
+    setSelected(maneuver);
   };
   const chooseSub = (option: ConvergenceOption) => {
+    setShowIntro(false);
     setSelected(null);
-    setSelectedSub((value) => (value === option.id ? null : option.id));
+    setInspectorSelection({ kind: "sub", id: option.id });
   };
   const renderSubMenu = (prompt: typeof packet.domestic, label: string) => {
     const status = convergenceFrontStatus(s, prompt);
@@ -3351,7 +3362,7 @@ function CampaignPage({
                   : `ISSUE ${subOption.domain.toUpperCase()} ORDER →`}
               </button>
             </article>
-          ) : (
+          ) : showIntro ? (
             <article
               className="menu-inspector maneuver-detail campaign-empty-state"
               aria-labelledby="campaign-empty-state-title"
@@ -3360,16 +3371,33 @@ function CampaignPage({
                 className="situation-card campaign-empty-card"
                 data-overprint={situation.sector.toUpperCase()}
               >
-                <SituationNarrative
-                  situation={situation}
-                  campaignEmpty={{
-                    label: "NO CAMPAIGN ELEMENT SELECTED",
-                    order: maneuverById(s.maneuver) ?? null,
-                  }}
-                />
+                <div className="situation-index">
+                  <span>DAILY STRATEGIC SITUATION</span>
+                  <b>{situation.sector}</b>
+                  <small>{situation.windowHours} HOUR WINDOW</small>
+                </div>
+                <SituationNarrative situation={situation} />
+                <section className="situation-order campaign-intro-order">
+                  <span id="campaign-empty-state-title">
+                    COMMANDER’S QUESTION
+                  </span>
+                  <h3>{situation.question}</h3>
+                  {maneuverById(s.maneuver) ? (
+                    <>
+                      <small>ORDER ISSUED</small>
+                      <b>{maneuverById(s.maneuver)?.label}</b>
+                      <p>{maneuverById(s.maneuver)?.flavor}</p>
+                    </>
+                  ) : (
+                    <p>
+                      No maneuver has been issued. The standing operational
+                      tempo will prosecute the day by default.
+                    </p>
+                  )}
+                </section>
               </section>
             </article>
-          )}
+          ) : null}
         </div>
         <footer className="os-status">
           SELECT A FRONT // INSPECT A RESPONSE // ISSUE FROM ONE DAILY ORDER POOL
@@ -3639,6 +3667,10 @@ const OPPORTUNITY_LEDGER_KEY = "delenda.quest.opportunity-ledger.v1";
 const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
 const APHORISM_DAY_KEY = "delenda.quest.aphorism-days.v1";
 const DEVICE_KEY = "delenda.quest.device-key.v1";
+type CampaignInspectorSelection = {
+  kind: "main" | "sub";
+  id: string;
+};
 const portableId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `dq-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffffffff)
@@ -3660,6 +3692,9 @@ export default function Home() {
   const [avaFullscreen, setAvaFullscreen] = useState(false);
   const [input, setInput] = useState("");
   const [pendingManeuver, setPendingManeuver] = useState<Maneuver | null>(null);
+  const [campaignInspectorSelection, setCampaignInspectorSelection] =
+    useState<CampaignInspectorSelection | null>(null);
+  const [campaignIntroConsumed, setCampaignIntroConsumed] = useState(false);
   const [pendingDoctrine, setPendingDoctrine] = useState<{
     vector: DoctrineVector;
     stage: DoctrineStage;
@@ -3701,6 +3736,7 @@ export default function Home() {
     priorDay.current = s.day;
     setPage("dashboard");
     setBriefingModule("campaign");
+    setCampaignInspectorSelection(null);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [s.day]);
   useEffect(() => {
@@ -4245,6 +4281,8 @@ export default function Home() {
     setFocusFamily(undefined);
     setMetric(null);
     setPendingManeuver(null);
+    setCampaignInspectorSelection(null);
+    setCampaignIntroConsumed(false);
     setPendingDoctrine(null);
     setAvaSession(initialAvaTerminalSession());
     setClock({ start: n, end: n + DAY_MS });
@@ -4679,6 +4717,10 @@ export default function Home() {
                 s={s}
                 selected={pendingManeuver}
                 setSelected={setPendingManeuver}
+                inspectorSelection={campaignInspectorSelection}
+                setInspectorSelection={setCampaignInspectorSelection}
+                introConsumed={campaignIntroConsumed}
+                consumeIntro={() => setCampaignIntroConsumed(true)}
                 issue={issueManeuver}
                 issueConvergence={issueConverged}
               />
