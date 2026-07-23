@@ -12069,13 +12069,19 @@ small,
 .campaign-empty-card {
   background: #151612;
   grid-template-columns: 82px minmax(0, 1fr) 270px;
-  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   min-height: 620px;
 }
 .campaign-empty-card:before {
-  color: #d83b274d;
-  right: 210px;
-  width: 85%;
+  color: #741b16;
+  right: 18px;
+  text-shadow:
+    -1px -1px 0 #151612,
+    1px -1px 0 #151612,
+    -1px 1px 0 #151612,
+    1px 1px 0 #151612;
+  width: calc(100% - 100px);
+  z-index: 1;
 }
 .campaign-empty-state .situation-body {
   box-sizing: border-box;
@@ -12094,7 +12100,7 @@ small,
   grid-row: 1 / -1;
 }
 .campaign-empty-state .campaign-intro-order {
-  background: var(--red);
+  background: #741b16;
   color: #fff;
   display: grid;
   grid-column: 3;
@@ -12103,6 +12109,8 @@ small,
   justify-content: stretch;
   min-width: 0;
   padding: 42px 24px;
+  position: relative;
+  z-index: 0;
 }
 .campaign-empty-state .situation-body .epigraph {
   grid-row: 1;
