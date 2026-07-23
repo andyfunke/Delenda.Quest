@@ -112,7 +112,7 @@ export type Maneuver = {
 export type Situation = CompiledSituation;
 export type { CompiledSituation, OperationalFact, OutcomeBand, SituationHistoryRecord, SituationTemplate, TheaterSector };
 
-export type DoctrineStage = { id: string; label: string; cost: number; description: string; effect: string; output?: string; affects?: string; delta?: Delta };
+export type DoctrineStage = { id: string; label: string; cost: number; description: string; effect: string; output?: string; affects?: string; delta?: Delta; quote?: string; attribution?: string; severity?: "grave"|"extreme"|"total" };
 export type DoctrineVector = { id: string; label: string; authority: string; quote: string; forbidden?: boolean; stages: DoctrineStage[] };
 
 const c = (id: string, label: string, flavor: string, exact: string[], risk: string[], extra: Partial<Choice> = {}): Choice => ({ id, label, flavor, exact, risk, ...extra });
@@ -384,11 +384,11 @@ export const DOCTRINES: DoctrineVector[] = [
     { id:"terrain-emplacement",label:"Terrain Emplacement",cost:360,output:"Engineer Buttons",affects:"Engineer formations",description:"Deform terrain into kill pits, ramparts, defoliated lanes, and earthen parapets.",effect:"Unlock advanced battlefield-shaping situation choices." },
   ]},
   { id: "atrocities", label: "Atrocities", authority: "Custody and Reciprocity Directorate", quote: "The next surrender is negotiated with the last prisoner.", forbidden: true, stages: [
-    { id: "gas", label: "Gas Warfare", cost: 10, description: "Correct the enemy belief that contaminated ground can be occupied.", effect: "Pressure +0.25. Reciprocity -8. Atrocity Exposure +12.", delta: { reciprocity: -8, atrocityExposure: 12, legitimacy: -3 } },
-    { id: "mines", label: "Persistent Mine Denial", cost: 14, description: "Make the ground remain hostile after the front has moved.", effect: "Withdrawal pressure improves. Materiel Condition -2.", delta: { atrocityExposure: 9, materiel: -2 } },
-    { id: "deny-reciprocity", label: "Deny Reciprocity", cost: 20, description: "Remove exchange from the surrender economy.", effect: "Prisoner burden falls. Enemy surrender expectancy collapses.", delta: { reciprocity: -25, atrocityExposure: 18, legitimacy: -4 } },
-    { id:"stimulants",label:"Administer Stimulants",cost:26,output:"Unit Button",affects:"Biological formations",description:"Purchase one emergency movement interval with accumulated exhaustion debt.",effect:"Unlock emergency reinforcement; next-day Readiness penalty applies.",delta:{atrocityExposure:6,readiness:-3} },
-    { id: "deny-quarter", label: "Deny Quarter", cost: 32, description: "Destroy the expectation that surrender remains available.", effect: "Enemy cohesion hardens. Friendly desertion pressure +12.", delta: { reciprocity: -45, atrocityExposure: 30, desertionPressure: 12, legitimacy: -8 } },
+    { id: "gas", label: "Gas Warfare", cost: 10, description: "Correct the enemy belief that contaminated ground can be occupied.", effect: "Pressure +0.25. Reciprocity -8. Atrocity Exposure +12.", delta: { reciprocity: -8, atrocityExposure: 12, legitimacy: -3 }, severity:"grave", quote:"Gas does not capture ground but corrects the enemy’s belief that ground can be occupied.", attribution:"Col. Aris Thorne, Tables of Practical Denial" },
+    { id: "mines", label: "Persistent Mine Denial", cost: 14, description: "Make the ground remain hostile after the front has moved.", effect: "Withdrawal pressure improves. Materiel Condition -2.", delta: { atrocityExposure: 9, materiel: -2 }, severity:"grave", quote:"The minefield is defeated only when someone crosses it.", attribution:"Col. Aris Thorne, Lectures on Assault Geometry" },
+    { id: "deny-reciprocity", label: "Deny Reciprocity", cost: 20, description: "Remove exchange from the surrender economy.", effect: "Prisoner burden falls. Enemy surrender expectancy collapses.", delta: { reciprocity: -25, atrocityExposure: 18, legitimacy: -4 }, severity:"extreme", quote:"A surrendering army brings the expectation that surrender still exists.", attribution:"Nova Voss, Notes on the Surrender Economy" },
+    { id:"stimulants",label:"Administer Stimulants",cost:26,output:"Unit Button",affects:"Biological formations",description:"Purchase one emergency movement interval with accumulated exhaustion debt.",effect:"Unlock emergency reinforcement; next-day Readiness penalty applies.",delta:{atrocityExposure:6,readiness:-3},severity:"grave",quote:"Collapse is patient. It does not rush to collect its debts.",attribution:"Pell Orasky, Medical Advisory on Combat Acceleration" },
+    { id: "total-war", label: "Total War", cost: 32, description: "Remove the distinction between the enemy war system, its civilian substrate, and the natural resources that sustain both.", effect: "Civilian infrastructure and natural resources become valid targets. Enemy cohesion hardens. Atrocity Exposure +36. Legitimacy -10.", delta: { atrocityExposure: 36, desertionPressure: 10, legitimacy: -10 }, severity:"total", quote:"Total war begins when the map ceases to contain anything innocent.", attribution:"Nova Voss, Notes on the Surrender Economy" },
   ]},
 ];
 
@@ -677,7 +677,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     opportunityCommitment:candidate.opportunityCommitment??null,opportunityHistory:Array.isArray(candidate.opportunityHistory)?candidate.opportunityHistory:base.opportunityHistory,
     opportunityAssignments:Array.isArray(candidate.opportunityAssignments)?candidate.opportunityAssignments:base.opportunityAssignments,
     accountOpportunityIds:Array.isArray(candidate.accountOpportunityIds)?candidate.accountOpportunityIds.filter(item=>typeof item==="string"):base.accountOpportunityIds,
-    unlocked:Array.isArray(candidate.unlocked)?candidate.unlocked:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
+    unlocked:Array.isArray(candidate.unlocked)?[...new Set(candidate.unlocked.map(id=>id==="deny-quarter"?"total-war":id))]:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
     theaterSectors:Array.isArray(candidate.theaterSectors)&&candidate.theaterSectors.length?candidate.theaterSectors:base.theaterSectors,
     operationalFacts:Array.isArray(candidate.operationalFacts)?candidate.operationalFacts:base.operationalFacts,
     situationHistory:Array.isArray(candidate.situationHistory)?candidate.situationHistory:base.situationHistory,currentSituation:candidate.currentSituation??null,

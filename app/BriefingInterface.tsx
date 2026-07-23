@@ -565,6 +565,9 @@ function DoctrineSurface({
                         ? `${stage.cost} IP`
                         : "PREREQUISITE"}
                   </span>
+                  {vector.forbidden && stage.quote && (
+                    <q>{stage.quote}</q>
+                  )}
                   <b>{stage.label}</b>
                   <small>{stage.effect}</small>
                 </button>
@@ -1258,7 +1261,18 @@ export function BriefingInterface({
               // {doctrineConfirm.vector.label.toUpperCase()}
             </small>
             <h2>{doctrineConfirm.stage.label}</h2>
-            <blockquote>“{doctrineConfirm.vector.quote}”</blockquote>
+            <blockquote>
+              “{doctrineConfirm.stage.quote ?? doctrineConfirm.vector.quote}”
+              {doctrineConfirm.stage.attribution && (
+                <cite>— {doctrineConfirm.stage.attribution}</cite>
+              )}
+            </blockquote>
+            {doctrineConfirm.vector.forbidden &&
+              doctrineConfirm.stage.severity && (
+                <strong className={`atrocity-severity ${doctrineConfirm.stage.severity}`}>
+                  DECISION SEVERITY // {doctrineConfirm.stage.severity.toUpperCase()}
+                </strong>
+              )}
             <p>{doctrineConfirm.stage.description}</p>
             <dl>
               <div>

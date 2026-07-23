@@ -201,20 +201,23 @@ test("bubblettes, Military hover geometry, and foreign actor choices preserve th
   assert.doesNotMatch(packet,/AUTHORIZED MANEUVERS|CONNECTED SYSTEMS/);
 });
 
-test("the reference tactical plate and munitions stockpile label are preserved exactly",async()=>{
+test("the theater plate compiles mutable geometry and preserves the munitions stockpile label",async()=>{
   const[page,briefing,map]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/TheaterGeometry.tsx",import.meta.url),"utf8"),
   ]);
-  for(const path of ["M40 20L240 20L300 105L240 190L40 190Z","M300 105L430 70L470 105L430 140Z","M520 20L670 20L670 190L520 190L470 105Z"])assert.match(map,new RegExp(path));
-  for(const coordinates of ['x1="240" y1="52" x2="520" y2="52"','x1="330" y1="44" x2="346" y2="60"','x1="346" y1="44" x2="330" y2="60"','x1="410" y1="44" x2="426" y2="60"','x1="426" y1="44" x2="410" y2="60"'])assert.match(map,new RegExp(coordinates));
-  assert.match(map,/circle cx="590" cy="70" r="6"/);
+  for(const input of ["sector.control","sector.supplyAccess","sector.infrastructure","sector.fortification","sector.network","s.front","s.maneuver","s.situationHistory","s.operationalFacts"])assert.match(map,new RegExp(input.replace(".","\\.")));
+  assert.match(map,/compileTheaterGeometry/);
+  assert.match(map,/formation-arrow primary/);
+  assert.match(map,/formation-arrow adjacent/);
+  assert.match(map,/enemy-formation-arrow/);
+  assert.match(map,/posture-\$\{g\.posture\}/);
   assert.match(map,/>\s*18th\s*</);
-  assert.match(map,/SALIENT \/ CORRIDOR/);
-  assert.match(map,/ENEMY \/ INTERDICTED/);
-  assert.match(map,/INTERDICTED/);assert.match(map,/EMITTER\?/);
-  assert.doesNotMatch(map,/geometry-sectors|geometry-edges|DEPENDENCY/);
+  assert.match(map,/MUTABLE FRONT \/ SALIENT/);
+  assert.match(map,/FRIENDLY \/ FORMATION MOVEMENT/);
+  assert.match(map,/ENEMY PRESSURE/);
+  assert.match(map,/SUPPLY/);assert.match(map,/NETWORK/);
   assert.match(page,/<small>Stockpile<\/small>/);assert.match(briefing,/STOCKPILE/);
   assert.doesNotMatch(page,/Net expenditure/i);
 });

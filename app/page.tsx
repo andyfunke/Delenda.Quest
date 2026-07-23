@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CAMPAIGN_EVENTS,
   CAMPAIGN_PHASES,
@@ -3486,7 +3486,15 @@ function DoctrineConfirm({
           // {vector.label}
         </span>
         <h2>{stage.label}</h2>
-        <blockquote>“{vector.quote}”</blockquote>
+        <blockquote>
+          “{stage.quote ?? vector.quote}”
+          {stage.attribution && <cite>— {stage.attribution}</cite>}
+        </blockquote>
+        {vector.forbidden && stage.severity && (
+          <div className={`atrocity-severity ${stage.severity}`}>
+            DECISION SEVERITY // {stage.severity.toUpperCase()}
+          </div>
+        )}
         <div className="effects">
           <section>
             <h3>Institutional change // exact</h3>
@@ -3764,6 +3772,14 @@ export default function Home() {
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [wikiArticle, setWikiArticle] = useState("resolution");
+  const priorDay = useRef(s.day);
+  useEffect(() => {
+    if (priorDay.current === s.day) return;
+    priorDay.current = s.day;
+    setPage("dashboard");
+    setBriefingModule("campaign");
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [s.day]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("wiki"),
