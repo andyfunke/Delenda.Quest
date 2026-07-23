@@ -11230,3 +11230,139 @@ small,
     grid-template-columns: 1fr;
   }
 }
+
+/* Campaign's unselected inspector reuses the dashboard situation narrative.
+ * The red index and yellow order bands stay exclusive to the dashboard card;
+ * this surface extends only the black field through the inspector bounds. */
+.campaign-empty-state {
+  background: #f3f0e8;
+  border-left: 0;
+  min-width: 0;
+  padding: 0;
+}
+.campaign-empty-card {
+  background: #151612;
+  color: #efede5;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 620px;
+  width: 100%;
+}
+.campaign-empty-card:before {
+  color: #ffffff0c;
+  right: 0;
+  width: 100%;
+}
+.campaign-empty-state .campaign-empty-body {
+  box-sizing: border-box;
+  min-height: 620px;
+  padding: 42px 48px;
+  width: 100%;
+}
+.campaign-empty-heading {
+  border-bottom: 1px solid #44463e;
+  margin-bottom: 26px;
+  padding-bottom: 22px;
+}
+.campaign-empty-heading span,
+.campaign-empty-heading strong {
+  display: block;
+}
+.campaign-empty-heading span {
+  color: #9fa198;
+  font: 800 10px/1.3 var(--mono);
+  letter-spacing: 0.1em;
+}
+.campaign-empty-heading strong {
+  color: #efede5;
+  font-size: clamp(27px, 3.1vw, 46px);
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin-top: 10px;
+}
+.campaign-empty-context {
+  align-items: baseline;
+  border-bottom: 1px solid #34362f;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+}
+.campaign-empty-context span,
+.campaign-empty-context small {
+  color: #9fa198;
+  font: 800 10px/1.3 var(--mono);
+  letter-spacing: 0.06em;
+}
+.campaign-empty-context b {
+  color: #efede5;
+  font: 800 13px/1.3 var(--mono);
+  text-transform: uppercase;
+}
+.campaign-empty-state .epigraph {
+  max-width: 620px;
+}
+.campaign-empty-state .situation-body h2 {
+  max-width: 900px;
+}
+.campaign-empty-state .situation-body > p {
+  max-width: 760px;
+}
+.campaign-empty-question {
+  border-top: 1px solid #44463e;
+  margin-top: 28px;
+  max-width: 900px;
+  padding-top: 20px;
+}
+.campaign-empty-question > span,
+.campaign-empty-question > small,
+.campaign-empty-question > b {
+  display: block;
+  font-family: var(--mono);
+}
+.campaign-empty-question > span,
+.campaign-empty-question > small {
+  color: #9fa198;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.campaign-empty-question h3 {
+  color: #efede5;
+  font-size: clamp(20px, 2.2vw, 31px);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 9px 0 18px;
+}
+.campaign-empty-question > b {
+  color: #efede5;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.campaign-empty-question > p {
+  color: #a8aaa2;
+  font: italic 13px/1.5 var(--serif);
+  margin: 7px 0 0;
+}
+@media (max-width: 900px) {
+  .campaign-empty-card,
+  .campaign-empty-state .campaign-empty-body {
+    min-height: 470px;
+  }
+}
+@media (max-width: 600px) {
+  .campaign-empty-card,
+  .campaign-empty-state .campaign-empty-body {
+    min-height: 520px;
+  }
+  .campaign-empty-state .campaign-empty-body {
+    padding: 28px 20px;
+  }
+  .campaign-empty-heading strong {
+    font-size: 28px;
+  }
+  .campaign-empty-context {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

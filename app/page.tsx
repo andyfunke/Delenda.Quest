@@ -1246,6 +1246,78 @@ function WarClock({ remaining }: { remaining: number }) {
   );
 }
 
+function SituationNarrative({
+  situation,
+  campaignEmpty,
+}: {
+  situation: ReturnType<typeof situationForState>;
+  campaignEmpty?: { label: string; order: Maneuver | null };
+}) {
+  return (
+    <div
+      className={`situation-body ${campaignEmpty ? "campaign-empty-body" : ""}`}
+    >
+      {campaignEmpty && (
+        <>
+          <header className="campaign-empty-heading">
+            <span>CAMPAIGN INSPECTOR</span>
+            <strong id="campaign-empty-state-title">
+              {campaignEmpty.label}
+            </strong>
+          </header>
+          <div className="campaign-empty-context">
+            <span>DAILY STRATEGIC SITUATION</span>
+            <b>{situation.sector}</b>
+            <small>{situation.windowHours} HOUR OPPORTUNITY WINDOW</small>
+          </div>
+        </>
+      )}
+      <Epigraph
+        quote={situation.quote}
+        source={situation.attribution}
+        skin="ink"
+      />
+      <h2>{situation.headline}</h2>
+      <p>{situation.briefing}</p>
+      <div className="conditions">
+        <span>
+          Terrain <b>{situation.terrain}</b>
+        </span>
+        <span>
+          Ground <b>{situation.ground}</b>
+        </span>
+        <span>
+          Network <b>{situation.network}</b>
+        </span>
+        <span>
+          Supply <b>{situation.supply}</b>
+        </span>
+        <span>
+          Intel <b>{situation.intelligence}</b>
+        </span>
+      </div>
+      {campaignEmpty && (
+        <section className="campaign-empty-question">
+          <span>COMMANDER’S QUESTION</span>
+          <h3>{situation.question}</h3>
+          {campaignEmpty.order ? (
+            <>
+              <small>ORDER ISSUED</small>
+              <b>{campaignEmpty.order.label}</b>
+              <p>{campaignEmpty.order.flavor}</p>
+            </>
+          ) : (
+            <p>
+              No maneuver has been issued. The standing operational tempo will
+              prosecute the day by default.
+            </p>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
 function SituationCard({
   s,
   openCampaign,
@@ -1265,32 +1337,7 @@ function SituationCard({
         <b>{situation.sector}</b>
         <small>{situation.windowHours} HOUR OPPORTUNITY WINDOW</small>
       </div>
-      <div className="situation-body">
-        <Epigraph
-          quote={situation.quote}
-          source={situation.attribution}
-          skin="ink"
-        />
-        <h2>{situation.headline}</h2>
-        <p>{situation.briefing}</p>
-        <div className="conditions">
-          <span>
-            Terrain <b>{situation.terrain}</b>
-          </span>
-          <span>
-            Ground <b>{situation.ground}</b>
-          </span>
-          <span>
-            Network <b>{situation.network}</b>
-          </span>
-          <span>
-            Supply <b>{situation.supply}</b>
-          </span>
-          <span>
-            Intel <b>{situation.intelligence}</b>
-          </span>
-        </div>
-      </div>
+      <SituationNarrative situation={situation} />
       <div className="situation-order">
         <span>COMMANDER’S QUESTION</span>
         <h3>{situation.question}</h3>
@@ -3404,13 +3451,22 @@ function CampaignPage({
               </button>
             </article>
           ) : (
-            <article className="menu-inspector maneuver-detail no-decision">
-              <b>NO CAMPAIGN ELEMENT SELECTED</b>
-              <p>
-                Select a front on the left, then inspect one response here. The
-                report will show its price, its evidence, and how it reaches the
-                battlefield before you issue it.
-              </p>
+            <article
+              className="menu-inspector maneuver-detail campaign-empty-state"
+              aria-labelledby="campaign-empty-state-title"
+            >
+              <section
+                className="situation-card campaign-empty-card"
+                data-overprint={situation.sector.toUpperCase()}
+              >
+                <SituationNarrative
+                  situation={situation}
+                  campaignEmpty={{
+                    label: "NO CAMPAIGN ELEMENT SELECTED",
+                    order: maneuverById(s.maneuver) ?? null,
+                  }}
+                />
+              </section>
             </article>
           )}
         </div>

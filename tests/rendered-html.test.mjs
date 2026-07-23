@@ -131,6 +131,31 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
 });
 
+test("campaign's unselected inspector reuses the dashboard situation narrative as a black-only field",async()=>{
+  const[page,css]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  const situationCard=page.slice(page.indexOf("function SituationCard"),page.indexOf("function LiveLedger"));
+  const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
+  const narrative=page.slice(page.indexOf("function SituationNarrative"),page.indexOf("function SituationCard"));
+  assert.match(page,/function SituationNarrative/);
+  assert.match(situationCard,/<SituationNarrative situation=\{situation\} \/>/);
+  assert.match(campaign,/className="menu-inspector maneuver-detail campaign-empty-state"/);
+  assert.match(campaign,/className="situation-card campaign-empty-card"/);
+  assert.match(campaign,/data-overprint=\{situation\.sector\.toUpperCase\(\)\}/);
+  assert.match(campaign,/label: "NO CAMPAIGN ELEMENT SELECTED"/);
+  assert.match(campaign,/order: maneuverById\(s\.maneuver\) \?\? null/);
+  for(const field of ["situation.sector","situation.windowHours","situation.quote","situation.attribution","situation.headline","situation.briefing","situation.terrain","situation.ground","situation.network","situation.supply","situation.intelligence","situation.question","campaignEmpty.order.label","campaignEmpty.order.flavor"]){
+    assert.match(narrative,new RegExp(field.replaceAll(".","\\.")));
+  }
+  assert.match(narrative,/No maneuver has been issued\. The standing operational tempo will[\s\S]*prosecute the day by default\./);
+  assert.doesNotMatch(campaign,/Select a front on the left/);
+  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?right:\s*0[\s\S]*?width:\s*100%/);
+  assert.doesNotMatch(css,/\.campaign-empty-card(?:\s*|:before)\{[^}]*var\(--(?:acid|red)\)/);
+});
+
 test("campaign navigation, military reinforcement, Doctrine inspection, and text roles remain player-facing",async()=>{
   const[page,briefing,bubblette,css,concepts,terminal,voice,avaRenderer]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
