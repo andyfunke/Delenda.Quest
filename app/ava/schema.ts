@@ -228,14 +228,14 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
   {
     command: "ORDERS",
     purpose:
-      "List remaining capacity, staged actions, and all three sealed campaign missions.",
+      "List remaining capacity, staged actions, the Main Campaign, and today's one or two alternate fronts.",
     examples: ["orders", "what are my orders", "orders available"],
     mutates: false,
   },
   {
     command: "MISSIONS",
     purpose:
-      "List Main Campaign, Domestic Front, Command Network, and any active opportunity with stable day-scoped handles.",
+      "List the Main Campaign, today's active Domestic or Network fronts, and any active opportunity with stable day-scoped handles.",
     examples: ["missions", "list available actions", "what can I issue"],
     mutates: false,
   },
@@ -270,7 +270,7 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
   {
     command: "ALT UX BRIEF",
     purpose:
-      "Report Main, Domestic, and Network missions with their live evidence and order handles.",
+      "Report the Main Campaign and today's active Domestic or Network fronts with their live evidence and order handles.",
     examples: ["alt ux brief", "brief me", "produce a campaign briefing"],
     mutates: false,
   },

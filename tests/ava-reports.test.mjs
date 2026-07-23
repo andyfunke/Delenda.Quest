@@ -72,9 +72,14 @@ test("report narration is topic-bounded and contains no implementation vocabular
   }
 });
 
-test("daily brief enumerates all three convergent fronts",()=>{
-  const report=reports.buildAvaReport({kind:"REPORT",topic:"daily-brief",scope:"campaign"},resolvedState(2)),labels=report.calculation.rows.map(item=>item.label);
-  assert.ok(labels.includes("MAIN CAMPAIGN"));assert.ok(labels.includes("DOMESTIC FRONT"));assert.ok(labels.includes("COMMAND NETWORK"));
-  assert.ok(labels.some(label=>label.startsWith("M1 /")));assert.ok(labels.some(label=>label.startsWith("D1 /")));assert.ok(labels.some(label=>label.startsWith("N1 /")));
-  assert.doesNotMatch(report.history.observations.join(" "),/deterministic rotation|seeded tie/i);
+test("daily brief exposes the Main Campaign and only today's active alternate fronts",()=>{
+  for(const seed of [1,2,5]){
+    const state=game.initialState({seed,theater:"ridge"}),active=game.campaignAlternateDomainsForState(state),report=reports.buildAvaReport({kind:"REPORT",topic:"daily-brief",scope:"campaign"},state),labels=report.calculation.rows.map(item=>item.label);
+    assert.ok(labels.includes("MAIN CAMPAIGN"));assert.ok(labels.some(label=>label.startsWith("M1 /")));
+    assert.equal(labels.includes("DOMESTIC FRONT"),active.includes("domestic"));
+    assert.equal(labels.some(label=>label.startsWith("D1 /")),active.includes("domestic"));
+    assert.equal(labels.includes("COMMAND NETWORK"),active.includes("network"));
+    assert.equal(labels.some(label=>label.startsWith("N1 /")),active.includes("network"));
+    assert.doesNotMatch(report.history.observations.join(" "),/deterministic rotation|seeded tie/i);
+  }
 });

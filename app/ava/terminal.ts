@@ -163,20 +163,21 @@ const missionText = (state: GameState, fraction: number) => {
     opportunity = actions.filter(
       (item) => item.kind === "opportunity-response",
     );
-  return [
+  const sections = [
     "MISSIONS [SEALED D+0]",
     `MAIN CAMPAIGN / ${packet.operational.sector}\n${packet.operational.question}\n${listed(main)}`,
     packet.activeDomains.includes("domestic")
       ? `DOMESTIC FRONT / ${packet.domestic.title}\nPRESSURE: ${packet.domestic.pressureBand.toUpperCase()}\n${packet.domestic.question}\nWHY TODAY: ${packet.domestic.convergence.map((edge) => edge.summary).join(" ")}\n${listed(domestic)}`
-      : "DOMESTIC FRONT: NO ADDITIONAL CAMPAIGN TODAY",
+      : null,
     packet.activeDomains.includes("network")
       ? `COMMAND NETWORK / ${packet.network.title}\nPRESSURE: ${packet.network.pressureBand.toUpperCase()}\n${packet.network.question}\nWHY TODAY: ${packet.network.convergence.map((edge) => edge.summary).join(" ")}\n${listed(network)}`
-      : "COMMAND NETWORK: NO ADDITIONAL CAMPAIGN TODAY",
+      : null,
     opportunity.length
       ? `TARGET OF OPPORTUNITY\n${listed(opportunity)}`
       : "TARGET OF OPPORTUNITY: NONE ACTIVE",
-    "COMMANDS\n> stage M2 D1 N3\n> forecast M2\n> compare M2 M4\n> issue plan",
-  ].join("\n\n");
+    `COMMANDS\n> stage M2${packet.activeDomains.includes("domestic") ? " D1" : ""}${packet.activeDomains.includes("network") ? " N3" : ""}\n> forecast M2\n> compare M2 M4\n> issue plan`,
+  ];
+  return sections.filter((section):section is string=>!!section).join("\n\n");
 };
 
 const planText = (

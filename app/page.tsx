@@ -577,20 +577,20 @@ const GLOSSARY: Record<
   "daily-brief-interface": {
     summary:
       "ALT UX is an alternate renderer over the same authoritative campaign state.",
-    body: "ALT UX changes information hierarchy, not game logic. Its Operational, Domestic, and Network selections call the same command functions, consume the same three orders, enter the same decision ledger, and resolve through the same campaign circuits as Command Windows. Interface preference is stored locally and may be changed at any time.",
-    related: ["Three-Front Command Docket", "Actions", "Campaign Situation Substrate"],
+    body: "ALT UX changes information hierarchy, not game logic. Its Main Campaign and active alternate-front selections call the same command functions, consume the same three-order budget, enter the same decision ledger, and resolve through the same campaign circuits as Command Windows. Interface preference is stored locally and may be changed at any time.",
+    related: ["Campaign Docket", "Actions", "Campaign Situation Substrate"],
   },
   "three-front-command-docket": {
     summary:
-      "The daily command plan for one Operational, one Domestic, and one Network problem.",
-    body: "The Three-Front Command Docket contains twelve Domestic and twelve Network mission families. Ninety-six authored incidents each have three campaign-time realizations, producing 288 distinct situations before the current field evidence is bound. Every response names its direct cost, contingent exposure, and route into the main front.",
+      "The daily command plan for the Main Campaign plus Domestic, Network, or both alternate fronts.",
+    body: "The Main Campaign is always accompanied by at least one alternate front. Domestic only, Network only, and both occur at equal probability. The alternate-front corpus contains twelve Domestic and twelve Network mission families. Ninety-six authored incidents each have three campaign-time realizations, producing 288 distinct situations before current field evidence is bound.",
     related: ["Alt UX Interface", "Network Posture", "Owned Effects"],
   },
   "network-posture": {
     summary:
       "The current trade between command speed, transmission secrecy, and relay redundancy.",
     body: "Broadcast restores the most command tempo while reducing Intelligence security. Going dark increases Intelligence and preserves equipment while lowering network conversion and operational tempo. Distributed relays spend Equipment for moderate conversion and resilience. Each posture remains active until replaced and affects the Operations Circuit directly.",
-    related: ["Command Network", "Three-Front Command Docket", "Intelligence"],
+    related: ["Command Network", "Campaign Docket", "Intelligence"],
   },
   "foreign-intelligence": {
     summary:
@@ -3270,7 +3270,7 @@ function CampaignPage({
       </header>
       <section className="os-window campaign-workspace">
         <div className="os-titlebar">
-          <span>CAMPAIGN ORDERS // THREE FRONTS</span>
+          <span>CAMPAIGN ORDERS // ACTIVE FRONTS</span>
           <b>DAY {s.day} // {s.actions} ORDERS REMAIN</b>
         </div>
         <section className="module-report">
@@ -3288,7 +3288,7 @@ function CampaignPage({
             id="actions"
             label="ORDERS ISSUED"
             value={`${DAILY_ORDERS - s.actions} / ${DAILY_ORDERS}`}
-            summary="Main Campaign, Domestic Front, and Command Network draw from one daily pool."
+            summary="The Main Campaign and today's one or two alternate fronts draw from one daily pool."
             details={[
               `ISSUED // ${DAILY_ORDERS - s.actions}`,
               `REMAINING // ${s.actions}`,

@@ -108,6 +108,15 @@ test("MISSIONS is a DOM-free executable docket with Main, Domestic, and Network 
   assert.match(result.text,/\[N\d+\].*AVAILABLE/);
 });
 
+test("MISSIONS omits an alternate front that did not rotate into the day",()=>{
+  const result=run("missions",newState(2));
+  assert.match(result.text,/MAIN CAMPAIGN/);
+  assert.doesNotMatch(result.text,/DOMESTIC FRONT/);
+  assert.match(result.text,/COMMAND NETWORK/);
+  assert.doesNotMatch(result.text,/\[D\d+\]/);
+  assert.match(result.text,/\[N\d+\].*AVAILABLE/);
+});
+
 test("a Main/Domestic/Network packet stages without mutating campaign state",()=>{
   const state=fullDocketState();
   const before=structuredClone(state);

@@ -1348,6 +1348,31 @@ function dailyBriefReport(state: GameState): AvaReportCard {
       .map((id) => MANEUVERS.find((item) => item.id === id))
       .filter((item): item is (typeof MANEUVERS)[number] => !!item),
     records = recent(state, 5);
+  const activeDomestic = packet.activeDomains.includes("domestic"),
+    activeNetwork = packet.activeDomains.includes("network"),
+    activeFrontNames = [
+      packet.operational.sector,
+      ...(activeDomestic ? [packet.domestic.title] : []),
+      ...(activeNetwork ? [packet.network.title] : []),
+    ],
+    activeEvidence = [
+      ...(activeDomestic
+        ? [
+            `Domestic pressure is assessed as ${packet.domestic.pressureBand}.`,
+            ...packet.domestic.evidence.map(
+              (item) => `Domestic evidence: ${item}.`,
+            ),
+          ]
+        : []),
+      ...(activeNetwork
+        ? [
+            `Network pressure is assessed as ${packet.network.pressureBand}.`,
+            ...packet.network.evidence.map(
+              (item) => `Network evidence: ${item}.`,
+            ),
+          ]
+        : []),
+    ];
   const rows: AvaReportCard["calculation"]["rows"] = [
     {
       label: "ORDERS REMAINING",
@@ -1364,26 +1389,34 @@ function dailyBriefReport(state: GameState): AvaReportCard {
       value: `${Math.round(maneuverChance(state, maneuver) * 100)}% CONFIDENCE · ${fmt(projectOperations(state, maneuver).committed, true)} COMMITTED`,
       conceptId: `maneuver-${slug(maneuver.label)}`,
     })),
-    {
-      label: "DOMESTIC FRONT",
-      value: `${packet.domestic.pressureBand.toUpperCase()} · ${packet.domestic.title} · ${packet.domestic.question}`,
-      conceptId: packet.domestic.archetypeId,
-    },
-    ...packet.domestic.options.map((option, index) => ({
-      label: `D${index + 1} / ${option.choice.label.toUpperCase()}`,
-      value: option.choice.exact.join("; "),
-      conceptId: packet.domestic.archetypeId,
-    })),
-    {
-      label: "COMMAND NETWORK",
-      value: `${packet.network.pressureBand.toUpperCase()} · ${packet.network.title} · ${packet.network.question}`,
-      conceptId: packet.network.archetypeId,
-    },
-    ...packet.network.options.map((option, index) => ({
-      label: `N${index + 1} / ${option.choice.label.toUpperCase()}`,
-      value: option.choice.exact.join("; "),
-      conceptId: packet.network.archetypeId,
-    })),
+    ...(activeDomestic
+      ? [
+          {
+            label: "DOMESTIC FRONT",
+            value: `${packet.domestic.pressureBand.toUpperCase()} · ${packet.domestic.title} · ${packet.domestic.question}`,
+            conceptId: packet.domestic.archetypeId,
+          },
+          ...packet.domestic.options.map((option, index) => ({
+            label: `D${index + 1} / ${option.choice.label.toUpperCase()}`,
+            value: option.choice.exact.join("; "),
+            conceptId: packet.domestic.archetypeId,
+          })),
+        ]
+      : []),
+    ...(activeNetwork
+      ? [
+          {
+            label: "COMMAND NETWORK",
+            value: `${packet.network.pressureBand.toUpperCase()} · ${packet.network.title} · ${packet.network.question}`,
+            conceptId: packet.network.archetypeId,
+          },
+          ...packet.network.options.map((option, index) => ({
+            label: `N${index + 1} / ${option.choice.label.toUpperCase()}`,
+            value: option.choice.exact.join("; "),
+            conceptId: packet.network.archetypeId,
+          })),
+        ]
+      : []),
     {
       label: "PROJECTED CLOSE",
       value: `${fmt(personnel.casualty, true)} LOSSES · ${fmt(personnel.netDesertion, true)} NET FLIGHT · ${signed(operation.groundMovement)} KM`,
@@ -1405,30 +1438,29 @@ function dailyBriefReport(state: GameState): AvaReportCard {
   return {
     topic: "daily-brief",
     title: `Daily command brief / Day ${state.day}`,
-    direct: `Three convergent fronts are open: ${packet.operational.sector}, ${packet.domestic.title}, and ${packet.network.title}. ${state.actions} of ${DAILY_ORDERS} orders remain.`,
+    direct: `${activeFrontNames.length} convergent fronts are open: ${activeFrontNames.join(", ")}. ${state.actions} of ${DAILY_ORDERS} orders remain.`,
     flavor: flavor(state, "daily-brief"),
     calculation: {
       equation:
-        "operational problem + sealed Domestic mission + sealed Network mission + live constraints = today's complete command docket",
+        "operational problem + one or both alternate fronts + live constraints = today's complete command docket",
       rows,
     },
-    history: historyLayer(state, records, 5, [
-      `Domestic pressure is assessed as ${packet.domestic.pressureBand}.`,
-      `Network pressure is assessed as ${packet.network.pressureBand}.`,
-      ...packet.domestic.evidence.map((item) => `Domestic evidence: ${item}.`),
-      ...packet.network.evidence.map((item) => `Network evidence: ${item}.`),
-    ]),
+    history: historyLayer(state, records, 5, activeEvidence),
     recommendation: advice.recommendation,
     links: [
       { id: "campaign-synopsis", label: "Main Campaign" },
-      { id: packet.domestic.archetypeId, label: packet.domestic.title },
-      { id: packet.network.archetypeId, label: packet.network.title },
+      ...(activeDomestic
+        ? [{ id: packet.domestic.archetypeId, label: packet.domestic.title }]
+        : []),
+      ...(activeNetwork
+        ? [{ id: packet.network.archetypeId, label: packet.network.title }]
+        : []),
     ],
     commands: [
       "missions",
       "what should I do",
       "compare M1 M2",
-      "stage M1 D1 N1",
+      `stage M1${activeDomestic ? " D1" : ""}${activeNetwork ? " N1" : ""}`,
       "projection",
     ],
   };

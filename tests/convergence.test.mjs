@@ -32,14 +32,23 @@ test("the authoritative campaign docket rotates exactly three maneuvers and surv
   assert.ok(dockets.size>1,"campaign maneuver choices should rotate across days");
 });
 
-test("additional Campaign fronts follow the exact four-way 25 percent rotation",()=>{
-  const counts={none:0,both:0,domestic:0,network:0};
-  for(let seed=1;seed<=400;seed+=1){
+test("every day has Domestic, Network, or both additional Campaign fronts at equal probability",()=>{
+  const counts={both:0,domestic:0,network:0};
+  for(let seed=1;seed<=600;seed+=1){
     const packet=rules.compileConvergence(rules.initialState({seed,theater:"lowland"}));
-    const key=packet.activeDomains.length===0?"none":packet.activeDomains.length===2?"both":packet.activeDomains[0];
+    assert.ok(packet.activeDomains.length>=1,"the Main Campaign must always have an alternate front");
+    const key=packet.activeDomains.length===2?"both":packet.activeDomains[0];
     counts[key]+=1;
   }
-  for(const count of Object.values(counts))assert.ok(count>=75&&count<=125,JSON.stringify(counts));
+  for(const count of Object.values(counts))assert.ok(count>=160&&count<=240,JSON.stringify(counts));
+});
+
+test("only visible alternate fronts enter the resolved sub-mission history",()=>{
+  for(let seed=1;seed<=30;seed+=1){
+    const initial=rules.initialState({seed,theater:"lowland"}),packet=rules.compileConvergence(initial),resolved=rules.resolve(initial);
+    const today=resolved.subMissionHistory.filter(record=>record.day===1);
+    assert.deepEqual(new Set(today.map(record=>record.domain)),new Set(packet.activeDomains));
+  }
 });
 
 test("the enumerated overlay separates mechanical archetypes from authored content frames",()=>{
@@ -77,11 +86,11 @@ test("a campaign consumes enumerated frames without exact-copy repetition",()=>{
   let state=rules.initialState({seed:99173,theater:"lowland"});const seen={domestic:new Set(),network:new Set()};
   for(let day=1;day<=30;day+=1){
     const packet=rules.compileConvergence(state);
-    for(const domain of ["domestic","network"]){assert.ok(!seen[domain].has(packet[domain].id),`${domain} repeated ${packet[domain].id}`);seen[domain].add(packet[domain].id)}
+    for(const domain of packet.activeDomains){assert.ok(!seen[domain].has(packet[domain].id),`${domain} repeated ${packet[domain].id}`);seen[domain].add(packet[domain].id)}
     state.status="active";
     state=rules.resolve(state);
   }
-  assert.ok(seen.domestic.size>=27);assert.ok(seen.network.size>=27);
+  assert.ok(seen.domestic.size>=15);assert.ok(seen.network.size>=15);
 });
 
 test("one briefing issue packet consumes the same three authoritative orders when both additional Campaign fronts rotate in",()=>{

@@ -1,5 +1,5 @@
 import {
-  FAMILIES, MANEUVERS, commit, commitManeuver, directiveRejection, situationForState,
+  FAMILIES, MANEUVERS, campaignAlternateDomainsForState, commit, commitManeuver, directiveRejection, situationForState,
   type Choice, type Family, type GameState, type Maneuver,
 } from "./game";
 import {
@@ -30,14 +30,8 @@ export type ConvergencePacket={
 
 export const CONVERGENCE_MATRIX_VERSION=SUB_MISSION_SCHEMA_VERSION;
 
-export const convergenceDomainsForState=(state:GameState):ConvergenceDomain[]=>{
-  let value=(Math.imul(state.campaignSeed|0,0x45d9f3b)^Math.imul(state.day,0x27d4eb2d))>>>0;
-  value=Math.imul(value^(value>>>16),0x45d9f3b)>>>0;
-  const rotation=value%4;
-  if(rotation===0)return[];
-  if(rotation===1)return["domestic","network"];
-  return rotation===2?["domestic"]:["network"];
-};
+export const convergenceDomainsForState=(state:GameState):ConvergenceDomain[]=>
+  campaignAlternateDomainsForState(state);
 
 const resolveOptions=(domain:ConvergenceDomain,contentId:string,pairs:Array<{familyId:string;choiceId:string}>)=>pairs.map(({familyId,choiceId})=>{
   const family=FAMILIES.find(item=>item.id===familyId);const choice=family?.choices.find(item=>item.id===choiceId);
