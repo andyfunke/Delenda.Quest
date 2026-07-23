@@ -161,11 +161,12 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
   assert.doesNotMatch(campaign,/COMMANDER(?:&apos;|’|'|\\u2019)S QUESTION/i);
   assert.match(campaign,/No maneuver has been issued\. The standing operational[\s\S]*tempo will prosecute the day by default\./);
   assert.doesNotMatch(campaign,/Select a front on the left/);
-  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px[\s\S]*?grid-template-rows:\s*auto auto auto minmax\(0,\s*1fr\)/);
-  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?color:\s*#741b16[\s\S]*?text-shadow:/);
+  assert.match(campaign,/preserveOperationalBlock/);
+  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px[\s\S]*?grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/);
+  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?color:\s*#741b16[\s\S]*?right:\s*210px[\s\S]*?text-shadow:[\s\S]*?width:\s*85%[\s\S]*?z-index:\s*3/);
   assert.match(css,/\.campaign-empty-state \.situation-index\s*\{[\s\S]*?background:\s*#151612/);
-  assert.match(css,/\.campaign-empty-state \.campaign-intro-order\s*\{[\s\S]*?background:\s*#741b16/);
-  assert.match(css,/\.campaign-empty-state \.situation-body h2\s*\{[\s\S]*?grid-row:\s*2/);
+  assert.match(css,/\.campaign-empty-state \.campaign-intro-order\s*\{[\s\S]*?background:\s*var\(--red\)/);
+  assert.match(css,/\.campaign-operational-block\s*\{[\s\S]*?grid-row:\s*2/);
   assert.match(css,/\.campaign-empty-state \.campaign-intro-order > h3\s*\{[\s\S]*?grid-row:\s*2/);
 });
 

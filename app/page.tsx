@@ -1271,16 +1271,13 @@ function WarClock({ remaining }: { remaining: number }) {
 
 function SituationNarrative({
   situation,
+  preserveOperationalBlock = false,
 }: {
   situation: ReturnType<typeof situationForState>;
+  preserveOperationalBlock?: boolean;
 }) {
-  return (
-    <div className="situation-body">
-      <Epigraph
-        quote={situation.quote}
-        source={situation.attribution}
-        skin="ink"
-      />
+  const operationalBlock = (
+    <>
       <h2>{situation.headline}</h2>
       <p>{situation.briefing}</p>
       <div className="conditions">
@@ -1300,6 +1297,20 @@ function SituationNarrative({
           Intel <b>{situation.intelligence}</b>
         </span>
       </div>
+    </>
+  );
+  return (
+    <div className="situation-body">
+      <Epigraph
+        quote={situation.quote}
+        source={situation.attribution}
+        skin="ink"
+      />
+      {preserveOperationalBlock ? (
+        <div className="campaign-operational-block">{operationalBlock}</div>
+      ) : (
+        operationalBlock
+      )}
     </div>
   );
 }
@@ -3375,7 +3386,10 @@ function CampaignPage({
                   <b>{situation.sector}</b>
                   <small>{situation.windowHours} HOUR WINDOW</small>
                 </div>
-                <SituationNarrative situation={situation} />
+                <SituationNarrative
+                  situation={situation}
+                  preserveOperationalBlock
+                />
                 <section className="situation-order campaign-intro-order">
                   <h3 id="campaign-empty-state-title">
                     {situation.question}

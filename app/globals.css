@@ -12069,19 +12069,19 @@ small,
 .campaign-empty-card {
   background: #151612;
   grid-template-columns: 82px minmax(0, 1fr) 270px;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 620px;
 }
 .campaign-empty-card:before {
   color: #741b16;
-  right: 18px;
+  right: 210px;
   text-shadow:
     -1px -1px 0 #151612,
     1px -1px 0 #151612,
     -1px 1px 0 #151612,
     1px 1px 0 #151612;
-  width: calc(100% - 100px);
-  z-index: 1;
+  width: 85%;
+  z-index: 3;
 }
 .campaign-empty-state .situation-body {
   box-sizing: border-box;
@@ -12100,7 +12100,7 @@ small,
   grid-row: 1 / -1;
 }
 .campaign-empty-state .campaign-intro-order {
-  background: #741b16;
+  background: var(--red);
   color: #fff;
   display: grid;
   grid-column: 3;
@@ -12109,23 +12109,30 @@ small,
   justify-content: stretch;
   min-width: 0;
   padding: 42px 24px;
-  position: relative;
-  z-index: 0;
 }
 .campaign-empty-state .situation-body .epigraph {
   grid-row: 1;
   margin-bottom: 0;
 }
-.campaign-empty-state .situation-body h2 {
+.campaign-operational-block {
   align-self: start;
   grid-row: 2;
+  position: relative;
+  z-index: 1;
+}
+.campaign-operational-block h2 {
   margin-top: 0;
 }
-.campaign-empty-state .situation-body > p {
-  grid-row: 3;
+.campaign-operational-block > p {
+  color: #a8aaa2;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 760px;
 }
-.campaign-empty-state .situation-body .conditions {
-  grid-row: 4;
+.campaign-operational-block .conditions {
+  margin-top: 24px;
 }
 .campaign-empty-state .campaign-intro-order > h3 {
   align-self: start;
@@ -12135,7 +12142,7 @@ small,
 }
 .campaign-intro-order-state {
   align-self: end;
-  grid-row: 3 / 5;
+  grid-row: 3;
 }
 .campaign-intro-order-state > small,
 .campaign-intro-order-state > b,
