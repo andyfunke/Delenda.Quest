@@ -145,7 +145,11 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
   assert.match(situationCard,/<SituationNarrative situation=\{situation\} \/>/);
   assert.match(campaign,/className="menu-inspector maneuver-detail campaign-empty-state"/);
   assert.match(campaign,/className="situation-card campaign-empty-card"/);
-  assert.match(campaign,/data-overprint=\{situation\.sector\.toUpperCase\(\)\}/);
+  assert.doesNotMatch(campaign,/data-overprint=/);
+  assert.match(campaign,/className="situation-index campaign-intro-index"[\s\S]*?aria-hidden="true"/);
+  assert.match(campaign,/className="campaign-sector-lane"[\s\S]*?\{situation\.sector\}/);
+  assert.doesNotMatch(campaign,/DAILY STRATEGIC SITUATION/);
+  assert.doesNotMatch(campaign,/\{situation\.windowHours\} HOUR WINDOW/);
   assert.match(campaign,/showIntro \? \(/);
   assert.match(campaign,/setShowIntro\(false\)/);
   assert.match(campaign,/setInspectorSelection\(\{ kind: "main", id: maneuver\.id \}\)/);
@@ -155,19 +159,20 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
   for(const field of ["situation.quote","situation.attribution","situation.headline","situation.briefing","situation.terrain","situation.ground","situation.network","situation.supply","situation.intelligence"]){
     assert.match(narrative,new RegExp(field.replaceAll(".","\\.")));
   }
-  for(const field of ["situation.sector","situation.windowHours","situation.question"])
+  for(const field of ["situation.sector","situation.question"])
     assert.match(campaign,new RegExp(field.replaceAll(".","\\.")));
   assert.doesNotMatch(situationCard,/COMMANDER(?:&apos;|’|'|\\u2019)S QUESTION/i);
   assert.doesNotMatch(campaign,/COMMANDER(?:&apos;|’|'|\\u2019)S QUESTION/i);
   assert.match(campaign,/No maneuver has been issued\. The standing operational[\s\S]*tempo will prosecute the day by default\./);
   assert.doesNotMatch(campaign,/Select a front on the left/);
   assert.match(campaign,/preserveOperationalBlock/);
-  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px[\s\S]*?grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/);
-  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?color:\s*#741b16[\s\S]*?right:\s*210px[\s\S]*?text-shadow:[\s\S]*?width:\s*85%[\s\S]*?z-index:\s*3/);
+  assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px[\s\S]*?grid-template-rows:\s*118px auto auto minmax\(0,\s*1fr\)/);
+  assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?content:\s*none/);
+  assert.match(css,/\.campaign-sector-lane\s*\{[\s\S]*?color:\s*rgb\(216 59 39 \/ 42%\)[\s\S]*?grid-column:\s*2 \/ 4[\s\S]*?grid-row:\s*1/);
   assert.match(css,/\.campaign-empty-state \.situation-index\s*\{[\s\S]*?background:\s*#151612/);
   assert.match(css,/\.campaign-empty-state \.campaign-intro-order\s*\{[\s\S]*?background:\s*var\(--red\)/);
-  assert.match(css,/\.campaign-operational-block\s*\{[\s\S]*?grid-row:\s*2/);
-  assert.match(css,/\.campaign-empty-state \.campaign-intro-order > h3\s*\{[\s\S]*?grid-row:\s*2/);
+  assert.match(css,/\.campaign-operational-block\s*\{[\s\S]*?grid-row:\s*3/);
+  assert.match(css,/\.campaign-empty-state \.campaign-intro-order > h3\s*\{[\s\S]*?grid-row:\s*3[\s\S]*?max-width:\s*100%/);
 });
 
 test("campaign navigation, military reinforcement, Doctrine inspection, and text roles remain player-facing",async()=>{

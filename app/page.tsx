@@ -3379,12 +3379,13 @@ function CampaignPage({
             >
               <section
                 className="situation-card campaign-empty-card"
-                data-overprint={situation.sector.toUpperCase()}
               >
-                <div className="situation-index">
-                  <span>DAILY STRATEGIC SITUATION</span>
-                  <b>{situation.sector}</b>
-                  <small>{situation.windowHours} HOUR WINDOW</small>
+                <div
+                  className="situation-index campaign-intro-index"
+                  aria-hidden="true"
+                />
+                <div className="campaign-sector-lane">
+                  {situation.sector}
                 </div>
                 <SituationNarrative
                   situation={situation}
