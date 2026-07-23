@@ -846,7 +846,7 @@ export const liveProjection = (s: GameState, fraction: number) => {
   const deserted=rollCall(estimate.desertion);const retained=Math.min(deserted,Math.round(deserted*estimate.retentionRate));const intercepted=Math.min(deserted-retained,Math.round(deserted*estimate.patrolRate));const netDesertion=Math.max(0,deserted-retained-intercepted);
   const production: Record<Resource,number> = { munitions:0,armor:0,flight:0,drones:0 };
   const projected=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],resourceUse:maneuverById(s.maneuver)?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance});
-  projected.ledger.lines.forEach(line=>production[line.resource]=Math.max(0,Math.round(line.opening+line.net*f)));
+  projected.ledger.lines.forEach(line=>production[line.resource]=Math.max(0,Math.round(line.opening+(line.output-line.fulfilledUse)*f)));
   return { losses, deserted, retained, intercepted, netDesertion, deployable: Math.max(0, s.deployable - losses - netDesertion), armed: Math.max(0,s.armed-losses-netDesertion), production };
 };
 

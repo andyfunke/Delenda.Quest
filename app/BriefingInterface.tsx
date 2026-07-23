@@ -769,6 +769,10 @@ function DailySurface({
             {coverage(s, "munitions").toFixed(1)} days
           </b>
           <span>STOCKPILE {s.production.munitions.stock.toLocaleString()}</span>
+          <span>
+            CURRENT {production.lines.find((line) => line.resource === "munitions")?.output.toLocaleString()}
+            {" // "}DESIRED {production.lines.find((line) => line.resource === "munitions")?.desiredOutput.toLocaleString()}
+          </span>
         </div>
         <div>
           <small>READINESS</small>

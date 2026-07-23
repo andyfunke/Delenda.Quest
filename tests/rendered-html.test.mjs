@@ -222,6 +222,28 @@ test("the theater plate compiles mutable geometry and preserves the munitions st
   assert.doesNotMatch(page,/Net expenditure/i);
 });
 
+test("opportunities interrupt without opening the decision menu and collapse into AVA's single urgent alert rail",async()=>{
+  const[page,css,circuits]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../app/circuits.ts",import.meta.url),"utf8"),
+  ]);
+  assert.doesNotMatch(page,/if \(status === "opened"\) setOpportunityOpen\(true\)/);
+  assert.match(page,/setOpportunityInterruptAcknowledged\(false\)/);
+  assert.match(page,/role="alertdialog"/);
+  assert.match(page,/className="interrupt-close"/);
+  assert.match(page,/REVIEW OPTIONS →/);
+  assert.match(page,/className="ava-urgent-icon"/);
+  assert.match(page,/className="ava-alert-menu"/);
+  assert.equal((page.match(/className="ava-urgent-icon"/g)??[]).length,1);
+  assert.doesNotMatch(page,/className="early opportunity-alert"/);
+  assert.match(css,/\.global-opportunity-interrupt[\s\S]*background:\s*#fff/);
+  assert.match(css,/\.global-opportunity-interrupt \.interrupt-close[\s\S]*font:\s*900 48px/);
+  for(const field of ["desiredOutput","requestedUse","fulfilledUse","unmetUse","equilibrium"])assert.match(circuits,new RegExp(field));
+  assert.match(page,/Current \/ Desired/);
+  assert.match(page,/EQUILIBRIUM/);
+});
+
 test("dashboard groups Industrial Condition with attrition and keeps Military free of the generic report strip",async()=>{
   const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),

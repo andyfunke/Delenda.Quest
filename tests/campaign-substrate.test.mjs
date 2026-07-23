@@ -6,7 +6,7 @@ const {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, recordOpportunityExpired, recordOpportunityOpened, resolve, restoreCampaignState, situationForState, FAMILIES,
+  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -214,6 +214,18 @@ test("the opportunity corpus is unique, full-day, spaced one to three days apart
   for(let day=1;day<=30;day++)if(opportunityForState({...state,day,currentSituation:null}))occurrenceDays.push(day);
   assert.ok(occurrenceDays.slice(1).every((day,index)=>day-occurrenceDays[index]>=1&&day-occurrenceDays[index]<=3));
   assert.equal(OPPORTUNITY_FREQUENCY,.5);
+});
+
+test("depleted stockpiles preserve industrial output and cap fulfilled use instead of inventing negative stock",()=>{
+  const state=initialState({seed:99173,theater:"industrial"});
+  state.production.munitions.stock=0;
+  const line=projectProduction(state).lines.find(item=>item.resource==="munitions");
+  assert.ok(line.output>0,"depletion must not turn industrial output off");
+  assert.equal(line.desiredOutput,line.requestedUse);
+  assert.equal(line.fulfilledUse,Math.min(line.requestedUse,line.opening+line.output));
+  assert.equal(line.unmetUse,Math.max(0,line.requestedUse-line.fulfilledUse));
+  assert.equal(line.closing,0);
+  assert.equal(line.equilibrium,line.output-line.desiredOutput);
 });
 
 test("the force report uses one local personnel chain and one disclosed effective ratio",()=>{

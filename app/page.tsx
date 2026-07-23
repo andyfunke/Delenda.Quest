@@ -1556,12 +1556,13 @@ function Dashboard({
             <div className="prod-row head">
               <span>Line</span>
               <span>Allocation</span>
-              <span>Output / Use</span>
+              <span>Current / Desired</span>
               <span>Live Stock</span>
-              <span>Coverage</span>
+              <span>Equilibrium</span>
             </div>
             {(Object.keys(s.production) as Resource[]).map((r) => {
               const l = s.production[r],
+                projected = production.lines.find((line) => line.resource === r)!,
                 days = coverage(s, r);
               return (
                 <button
@@ -1577,19 +1578,25 @@ function Dashboard({
                   </strong>
                   <span>{l.allocation}%</span>
                   <span>
-                    <b>+{fmt(l.output)}</b> / -{fmt(l.use)}
+                    <b>{fmt(projected.output)}</b> / {fmt(projected.desiredOutput)}
                   </span>
                   <span>{fmt(live.production[r])}</span>
                   <span
                     className={
-                      days < 2
+                      projected.equilibrium < 0
                         ? "bad-text"
-                        : days < 5
-                          ? "warn-text"
-                          : "good-text"
+                        : projected.equilibrium > 0
+                          ? "good-text"
+                          : "warn-text"
                     }
                   >
-                    {days.toFixed(1)} d
+                    {projected.equilibrium > 0 ? "+" : ""}
+                    {fmt(projected.equilibrium)}{" "}
+                    {projected.equilibrium === 0
+                      ? "EQUILIBRIUM"
+                      : projected.equilibrium > 0
+                        ? "SURPLUS"
+                        : "DEFICIT"}
                   </span>
                 </button>
               );
@@ -2549,9 +2556,7 @@ function OpportunityModal({
           <span>
             TARGET OF OPPORTUNITY // {packet.categoryLabel.toUpperCase()}
           </span>
-          <b>
-            {packet.sector.toUpperCase()} // EXPIRES {closesAt}
-          </b>
+          <b>{packet.sector.toUpperCase()} // AVAILABLE THROUGH DAY RESOLUTION</b>
         </div>
         <Close onClick={close} />
         <header>
@@ -2644,15 +2649,15 @@ function OpportunityModal({
                 <p>
                   Select a response to inspect it. Select the same response
                   again to clear it. Closing the window declines the
-                  opportunity.
+                  opportunity. Closing this window preserves the opportunity.
                 </p>
               </article>
             )}
           </div>
         )}
         <footer>
-          RARE EVENT // 33% DAILY OCCURRENCE // UNIQUE WITHIN THIS CAMPAIGN //
-          IMMEDIATE SAME-DAY EFFECT
+          RANDOM EVENT // 1–3 DAY INTERVAL // UNIQUE WITHIN THIS CAMPAIGN //
+          AVAILABLE ALL PLAYER DAY // IMMEDIATE SAME-DAY EFFECT
         </footer>
       </section>
     </Overlay>
@@ -3772,6 +3777,9 @@ export default function Home() {
   const [issuedRecordSlug, setIssuedRecordSlug] = useState<string | null>(null);
   const [wikiApplet, setWikiApplet] = useState<string | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
+  const [opportunityInterruptAcknowledged, setOpportunityInterruptAcknowledged] =
+    useState(false);
+  const [alertMenuOpen, setAlertMenuOpen] = useState(false);
   const [rotationReady, setRotationReady] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
   const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
@@ -4255,7 +4263,7 @@ export default function Home() {
       }),
       keepalive: true,
     }).catch(() => undefined);
-    if (status === "opened") setOpportunityOpen(true);
+    if (status === "opened") setOpportunityInterruptAcknowledged(false);
     if (status === "expired")
       setSystemNotice(
         `TARGET MISSED // ${packet.label.toUpperCase()} // PERMANENT LEDGER UPDATED`,
@@ -4268,6 +4276,51 @@ export default function Home() {
     s,
   ]);
   const theater = THEATERS.find((x) => x.id === s.theater) ?? THEATERS[0];
+  const projectedProduction = useMemo(() => projectProduction(s), [s]);
+  const majorAlerts = useMemo(() => {
+    const alerts: {
+      id: string;
+      title: string;
+      body: string;
+      urgent: boolean;
+      opportunity?: boolean;
+    }[] = [];
+    const packet = opportunityWindow.packet;
+    if (opportunityWindow.status === "active" && packet) {
+      const legalResponses = packet.responses.filter(
+        (response) => !opportunityResponseRejection(s, response),
+      ).length;
+      alerts.push({
+        id: `opportunity-${packet.id}`,
+        title: `TARGET OF OPPORTUNITY // ${packet.headline}`,
+        body: legalResponses
+          ? `${legalResponses} mitigating response${legalResponses === 1 ? "" : "s"} remain available through day resolution.`
+          : "The intervention window remains open, but no response is currently executable. AVA records the exposure as fact; only mitigation is possible if conditions change.",
+        urgent: true,
+        opportunity: true,
+      });
+    }
+    for (const line of projectedProduction.lines) {
+      if (line.closing > 0 && line.coverage >= 2) continue;
+      const label = resourceLabel[line.resource].toUpperCase();
+      alerts.push({
+        id: `supply-${line.resource}`,
+        title:
+          line.opening <= 0
+            ? `${label} STOCKPILE DEPLETED`
+            : `${label} STOCKPILE BELOW SUSTAINMENT`,
+        body:
+          `Production continues at ${fmt(line.output, true)} against desired output ` +
+          `${fmt(line.desiredOutput, true)}. ` +
+          (line.unmetUse > 0
+            ? `Only ${fmt(line.fulfilledUse, true)} of ${fmt(line.requestedUse, true)} demand can be supplied; ${fmt(line.unmetUse, true)} remains unmet. `
+            : `${fmt(Math.abs(line.equilibrium), true)} ${line.equilibrium >= 0 ? "surplus" : "deficit"} at equilibrium. `) +
+          "Loss exposure increases below target; depletion does not reduce industrial output to zero.",
+        urgent: true,
+      });
+    }
+    return alerts;
+  }, [opportunityWindow.status, opportunityWindow.packet, projectedProduction, s]);
   const startCampaign = (config: CampaignConfig) => {
     if(s.status==="active"&&s.resolutionHistory.length>0&&runToken)
       void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
@@ -4291,6 +4344,8 @@ export default function Home() {
     setChallengeConfig(null);
     setMessages([]);
     setSystemNotice(null);
+    setOpportunityInterruptAcknowledged(false);
+    setAlertMenuOpen(false);
     window.history.replaceState({}, "", window.location.pathname);
   };
   const announceOpenDay = (next: GameState) => {
@@ -4446,6 +4501,8 @@ export default function Home() {
     setClock({ start: n, end: n + DAY_MS });
     setNow(n);
     setLedgerNow(n);
+    setOpportunityInterruptAcknowledged(false);
+    setAlertMenuOpen(false);
   };
   const openAvaConsole = () => setAva(true);
   const avaEntities = useMemo(
@@ -4545,21 +4602,38 @@ export default function Home() {
         </aside>
       )}
       {opportunityWindow.status === "active" &&
-        opportunityWindow.packet && (
-          <button
+        opportunityWindow.packet &&
+        !opportunityInterruptAcknowledged && (
+          <section
             className={`global-opportunity-interrupt ${interfaceMode}`}
-            onClick={() => setOpportunityOpen(true)}
-            aria-live="assertive"
+            role="alertdialog"
+            aria-modal="false"
+            aria-label="Target of Opportunity"
           >
+            <button
+              className="interrupt-close"
+              aria-label="Close target alert"
+              onClick={() => setOpportunityInterruptAcknowledged(true)}
+            >
+              ×
+            </button>
             <span>TARGET OF OPPORTUNITY // WINDOW OPEN</span>
             <b>{opportunityWindow.packet.headline}</b>
             <em>
               {opportunityWindow.packet.categoryLabel.toUpperCase()} //{" "}
-              {opportunityWindow.packet.sector.toUpperCase()} //{" "}
-              {clockText(opportunityRemaining)} REMAINS
+              {opportunityWindow.packet.sector.toUpperCase()} // AVAILABLE UNTIL
+              DAY RESOLUTION
             </em>
-            <strong>OPEN INTERRUPT →</strong>
-          </button>
+            <button
+              className="interrupt-review"
+              onClick={() => {
+                setOpportunityInterruptAcknowledged(true);
+                setOpportunityOpen(true);
+              }}
+            >
+              REVIEW OPTIONS →
+            </button>
+          </section>
         )}
       {opportunityWindow.status === "expired" &&
         opportunityWindow.packet && (
@@ -4641,25 +4715,6 @@ export default function Home() {
               {fmtStrategic(live.deserted)} ATTEMPTS
             </span>
             <span>DOCTRINE {s.doctrine}</span>
-            {opportunityWindow.status === "active" && (
-              <button
-                className="early opportunity-alert"
-                onClick={() => setOpportunityOpen(true)}
-              >
-                TARGET OF OPPORTUNITY //{" "}
-                {opportunityWindow.packet.categoryLabel.toUpperCase()} //{" "}
-                {opportunityClosesAt}
-                <span className="effect-bubble">
-                  <b>{opportunityWindow.packet.headline}</b>
-                  <p>
-                    {opportunityWindow.packet.individual}. This one-time mission
-                    resolves immediately, changes the same-day estimate, and
-                    spends no strategic order.
-                  </p>
-                  <em>OPEN BEFORE {opportunityClosesAt} →</em>
-                </span>
-              </button>
-            )}
             {opportunityWindow.status === "resolved" && (
               <button className="early committed" disabled>
                 TARGET OF OPPORTUNITY // RESOLVED
@@ -4772,6 +4827,44 @@ export default function Home() {
           {systemNotice}
           <span>DISMISS ×</span>
         </button>
+      )}
+      {majorAlerts.length > 0 && (
+        <div className={`ava-alert-cluster ${ava ? "ava-open" : ""}`}>
+          {alertMenuOpen && (
+            <section className="ava-alert-menu" role="dialog" aria-label="AVA alerts">
+              <header>
+                <span>AVA // MAJOR ALERTS</span>
+                <button onClick={() => setAlertMenuOpen(false)}>×</button>
+              </header>
+              {majorAlerts.map((alert) => (
+                <article key={alert.id}>
+                  <b>{alert.title}</b>
+                  <p>{alert.body}</p>
+                  {alert.opportunity && (
+                    <button
+                      onClick={() => {
+                        setOpportunityOpen(true);
+                        setOpportunityInterruptAcknowledged(true);
+                        setAlertMenuOpen(false);
+                      }}
+                    >
+                      REVIEW OPTIONS →
+                    </button>
+                  )}
+                </article>
+              ))}
+            </section>
+          )}
+          <button
+            className="ava-urgent-icon"
+            aria-label={`${majorAlerts.length} urgent AVA alert${majorAlerts.length === 1 ? "" : "s"}`}
+            aria-expanded={alertMenuOpen}
+            onClick={() => setAlertMenuOpen((open) => !open)}
+          >
+            <span>!</span>
+            <b>{majorAlerts.length}</b>
+          </button>
+        </div>
       )}
       {interfaceMode === "command" && (
         <button

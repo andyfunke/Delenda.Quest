@@ -7,8 +7,9 @@ export type Circuit<S,L,C> = { id:string; resolve:(state:S,context:C)=>CircuitRe
 export const executeCircuit = <S,L,C>(circuit:Circuit<S,L,C>,state:S,context:C)=>circuit.resolve(state,context);
 
 export type ProductionLineLedger = {
-  resource:Resource; allocation:number; opening:number; output:number; use:number; closing:number;
-  coverage:number; net:number; status:"stable"|"strained"|"critical";
+  resource:Resource; allocation:number; opening:number; output:number; desiredOutput:number;
+  requestedUse:number; fulfilledUse:number; unmetUse:number; use:number; closing:number;
+  coverage:number; net:number; equilibrium:number; status:"stable"|"strained"|"critical";
 };
 export type ProductionLedger = {
   day:number; target:GameState["target"]; retooled:boolean; workforceFactor:number; conditionFactor:number;
@@ -86,10 +87,11 @@ export const productionCircuit:Circuit<GameState,ProductionLedger,ProductionCont
       const line=state.production[resource];
       const specialization=state.target===resource?1.12:1;
       const output=Math.max(0,Math.round(baseOutput[resource]*line.allocation*workforceFactor*conditionFactor*policy.output*specialization*retoolFactor*context.directorOutput));
-      const use=Math.max(0,Math.round(baseUse[resource]*context.supplyMultiplier*(context.resourceUse?.[resource]??1)*context.directorUse));
-      const opening=line.stock,closing=Math.max(0,opening+output-use),coverage=closing/Math.max(1,use);
-      line.output=output;line.use=use;line.stock=closing;
-      return{resource,allocation:line.allocation,opening,output,use,closing,coverage,net:output-use,status:coverage<2?"critical" as const:coverage<5?"strained" as const:"stable" as const};
+      const requestedUse=Math.max(0,Math.round(baseUse[resource]*context.supplyMultiplier*(context.resourceUse?.[resource]??1)*context.directorUse));
+      const opening=line.stock,available=opening+output,fulfilledUse=Math.min(requestedUse,available),unmetUse=Math.max(0,requestedUse-fulfilledUse);
+      const closing=available-fulfilledUse,coverage=closing/Math.max(1,requestedUse);
+      line.output=output;line.use=requestedUse;line.stock=closing;
+      return{resource,allocation:line.allocation,opening,output,desiredOutput:requestedUse,requestedUse,fulfilledUse,unmetUse,use:requestedUse,closing,coverage,net:output-requestedUse,equilibrium:output-requestedUse,status:unmetUse>0||coverage<2?"critical" as const:coverage<5?"strained" as const:"stable" as const};
     });
     const utilization=lines.reduce((n,line)=>n+line.allocation,0)/100;
     state.maintenanceDebt=clamp(state.maintenanceDebt+policy.debt+utilization*.7+(retooled?2.5:0)+context.directorMaintenance,0,100);
@@ -97,7 +99,7 @@ export const productionCircuit:Circuit<GameState,ProductionLedger,ProductionCont
     const equipmentRecovery=clamp((lines.find(x=>x.resource==="armor")!.output/80+lines.find(x=>x.resource==="flight")!.output/24+lines.find(x=>x.resource==="drones")!.output/1200)*.18,0,1.2);
     state.equipment+=equipmentRecovery;
     const shortages=lines.filter(line=>line.status==="critical").length;
-    const signals:CircuitSignal[]=lines.filter(line=>line.status!=="stable").map(line=>({severity:line.status==="critical"?"critical":"warning",code:`production.${line.resource}.${line.status}`,message:`${line.resource} closes at ${line.coverage.toFixed(1)} days of coverage.`}));
+    const signals:CircuitSignal[]=lines.filter(line=>line.status!=="stable").map(line=>({severity:line.status==="critical"?"critical":"warning",code:`production.${line.resource}.${line.status}`,message:line.unmetUse>0?`${line.resource} output continues at ${line.output}, but only ${line.fulfilledUse} of ${line.requestedUse} requested use can be supplied.`:`${line.resource} closes at ${line.coverage.toFixed(1)} days of coverage.`}));
     if(retooled)signals.push({severity:"warning",code:"production.retooling",message:`Industrial allocation changed to ${state.target}; conversion output absorbed a 28% retooling loss.`});
     return{state,signals,ledger:{day:state.day,target:state.target,retooled,workforceFactor,conditionFactor,policyFactor:policy.output*retoolFactor,maintenanceDebtBefore:openingDebt,maintenanceDebtAfter:state.maintenanceDebt,lines,shortages,equipmentRecovery,materielOpening,materielClosing:state.materiel,materielChange:state.materiel-materielOpening}};
   }
