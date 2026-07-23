@@ -663,6 +663,10 @@ export const opportunityStatusForFraction=(state:GameState,fraction:number)=>{
 };
 
 const legacyTelemetryReport=/Campaign Director:|Operational packet:|Field condition:|Foreign delivery:|Domestic state:|Production closed with|entered training|No Insight Points were awarded/i;
+const legacyNamedCollapse=/At ([^,\n]+), [^;\n]+ came apart under concentrated fire;/g;
+const rewriteNamedCollapseReports=(state:GameState)=>{
+  for(const report of state.reports)report.body=report.body.replace(legacyNamedCollapse,"At $1, the plan lost integrity under concentrated fire;");
+};
 const rewriteLegacyMorningReport=(state:GameState)=>{
   const latest=state.reports[0],operations=state.operationsLedger,adversary=state.adversaryLedger,diplomacy=state.diplomacyLedger,domestic=state.domesticLedger,production=state.productionLedger,forceGeneration=state.forceGenerationLedger;
   if(!latest||!legacyTelemetryReport.test(latest.body)||!operations||!adversary||!diplomacy||!domestic||!production||!forceGeneration)return;
@@ -716,7 +720,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
     resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs,victorySecuredDay:typeof candidate.victorySecuredDay==="number"?candidate.victorySecuredDay:null};
-  normalize(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
 const maneuverGeometryFit=(state:GameState,maneuver:Maneuver)=>{

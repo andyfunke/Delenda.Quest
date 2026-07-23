@@ -419,24 +419,6 @@ function DoctrineControlPanel({
             {s.doctrine} INSIGHT POINTS // DAY {s.day}
           </b>
         </div>
-        <section className="module-report">
-          <div>
-            <small>INSIGHT AVAILABLE</small>
-            <b>{s.doctrine}</b>
-          </div>
-          <div>
-            <small>INTERNALIZED</small>
-            <b>{s.unlocked.length} PRINCIPLES</b>
-          </div>
-          <div>
-            <small>VECTOR</small>
-            <b>{vector.label}</b>
-          </div>
-          <div>
-            <small>SELECTION</small>
-            <b>{stage?.label ?? "NONE"}</b>
-          </div>
-        </section>
         <div className="os-layout">
           <nav className="tree-menu doctrine-tree">
             {DOCTRINES.map((v) => (
@@ -565,11 +547,12 @@ function DoctrineControlPanel({
               </div>
             </article>
           ) : (
-            <article className="menu-inspector doctrine-inspector no-decision">
+            <article className="menu-inspector doctrine-inspector doctrine-empty-state">
+              <small>DOCTRINE // AWAITING PRINCIPLE</small>
               <b>NO PRINCIPLE SELECTED</b>
               <p>
-                Select a principle to inspect its exact institutional effect.
-                Select the same principle again to clear it.
+                Select a principle to inspect its authority, cost, and
+                battlefield effect. Select it again to clear the inspection.
               </p>
             </article>
           )}
@@ -2106,19 +2089,8 @@ function ModulePage({
           )}
           {selectedFamily && (
             <article
-              className={`menu-inspector ${isProduction ? "production-target-inspector" : ""}`}
+              className={`menu-inspector directive-menu-inspector ${isProduction ? "production-target-inspector" : ""}`}
             >
-              {!isProduction && (
-                <>
-                  <div className="menu-path">
-                    {moduleName(page)} //{" "}
-                    {selectedFamily.category.toUpperCase()} //{" "}
-                    {selectedFamily.label.toUpperCase()}
-                  </div>
-                  <h2>{selectedFamily.label}</h2>
-                  <p>{selectedFamily.brief}</p>
-                </>
-              )}
               <div className="menu-choice-list expanded single-surface">
                 {selectedFamily.choices.map((c) => {
                   const rejection = directiveRejection(s, selectedFamily, c);

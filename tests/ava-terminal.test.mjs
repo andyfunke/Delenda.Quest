@@ -419,7 +419,7 @@ test("Dark Net mounts the complete campaign corpus and preserves the current doc
   assert.deepEqual(opened.state,state);
   assert.equal(opened.executed,false);
   assert.match(opened.text,/DARK NET \/\/ RELAY ESTABLISHED/);
-  assert.match(opened.text,/403 CAMPAIGN RECORDS \/\/ 1139 RESPONSE PATHS/);
+  assert.match(opened.text,/435 CAMPAIGN RECORDS \/\/ 1299 RESPONSE PATHS/);
   assert.equal(opened.session.shell.cwd,"/darknet");
   assert.equal(opened.session.shell.darkNetUnlocked,true);
   assert.doesNotMatch(opened.text,/email|friend@example|raw prompt/i);
@@ -435,7 +435,8 @@ test("Dark Net mounts the complete campaign corpus and preserves the current doc
   assert.match(telemetryResult.text,/VICTORY: 12 CAMPAIGNS/);
 
   const campaign=run("access darknet campaign",state,telemetryResult.session);
-  assert.match(campaign.text,/COMPLETE CAMPAIGN REGISTRY \/\/ 403 RECORDS \/\/ 1139 RESPONSE PATHS/);
+  assert.match(campaign.text,/COMPLETE CAMPAIGN REGISTRY \/\/ 435 RECORDS \/\/ 1299 RESPONSE PATHS/);
+  assert.match(campaign.text,/47 MAIN SITUATIONS/);
   assert.match(campaign.text,/288 DOMESTIC \+ NETWORK VARIANTS/);
   assert.match(campaign.text,/100 TARGETS OF OPPORTUNITY/);
   assert.equal(campaign.session.shell.cwd,"/darknet/campaign");

@@ -1215,7 +1215,6 @@ export function BriefingInterface({
       <button className="briefing-ava" onClick={openAva}>
         <i />
         <span>AVA</span>
-        <small>COMMAND CHANNEL</small>
       </button>
       {confirmResolve && (
         <div className="modern-dialog-scrim" role="presentation">

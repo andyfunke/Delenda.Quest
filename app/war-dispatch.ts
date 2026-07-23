@@ -66,7 +66,7 @@ const battlefieldSentence = (context: WarDispatchContext) => {
   if (outcomeBand === "clean") return `At ${sector}, ${maneuverLabel} ruptured the enemy position and carried the tactical initiative beyond the first objective.`;
   if (outcomeBand === "executed") return `At ${sector}, ${maneuverLabel} survived contact and established a lodgment, though resistance held the operation short of a clean breach.`;
   if (outcomeBand === "disrupted") return `At ${sector}, ${maneuverLabel} lost cohesion under pressure and culminated before it could carry the position.`;
-  return `At ${sector}, ${maneuverLabel} came apart under concentrated fire; local reserves were committed to arrest the recoil.`;
+  return `At ${sector}, the plan lost integrity under concentrated fire; local reserves were committed to arrest the recoil.`;
 };
 
 const casualtySentence = ({ friendlyLosses, enemyLosses, committed, movement }: WarDispatchContext) => {

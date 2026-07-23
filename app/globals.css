@@ -1464,6 +1464,156 @@ main {
   }
 }
 
+/*
+ * Main command-menu alignment contract.
+ * Production, Military, and Diplomacy begin their selectable content on the
+ * same top edge as the left command tree. The title bar already owns context.
+ */
+.desktop-module .directive-menu-inspector {
+  align-self: start;
+  padding: 8px 32px 28px;
+}
+.desktop-module .directive-menu-inspector > .menu-choice-list {
+  margin: 0;
+}
+.desktop-module .directive-glance h3 {
+  font: 900 clamp(24px, 2.15vw, 34px) / 0.98 var(--ui);
+  letter-spacing: -0.045em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+.desktop-module .directive-glance p {
+  font: 650 14px/1.38 var(--ui);
+  margin: 0;
+}
+.desktop-module .menu-choice-list.expanded ul {
+  font: 700 13px/1.5 var(--ui);
+}
+.desktop-module .directive-risk small {
+  font: 850 12px/1.25 var(--ui);
+  letter-spacing: 0.08em;
+}
+.desktop-module .directive-risk b {
+  font: 750 13px/1.45 var(--ui);
+}
+.desktop-module .menu-choice-list.expanded > button > strong {
+  font: 900 12px/1.2 var(--ui);
+  letter-spacing: 0.04em;
+}
+
+/* Doctrine deliberately reserves the inspector instead of collapsing it. */
+.doctrine-page .os-layout {
+  align-items: start;
+}
+.doctrine-empty-state {
+  align-self: start;
+  min-height: 520px;
+  padding-top: 14px;
+}
+.doctrine-empty-state > small {
+  color: #555;
+  display: block;
+  font: 850 12px/1.3 var(--ui);
+  letter-spacing: 0.08em;
+}
+.doctrine-empty-state > b {
+  display: block;
+  font: 950 clamp(42px, 6vw, 82px) / 0.9 var(--ui);
+  letter-spacing: -0.065em;
+  margin-top: 14px;
+  max-width: 760px;
+}
+.doctrine-empty-state > p {
+  font: 650 15px/1.5 var(--ui);
+  margin: 18px 0 0;
+  max-width: 560px;
+}
+
+/* Alternate campaigns are a vertical command stack at every viewport. */
+.briefing-secondary-fronts {
+  grid-template-columns: 1fr;
+}
+
+/*
+ * Ava asks for attention roughly three times per minute. Each cycle is mostly
+ * still, with one restrained double pulse: yellow in Command Windows and blue
+ * in ALT UX.
+ */
+@keyframes ava-main-attention {
+  0%,
+  70%,
+  100% {
+    background: var(--acid);
+    box-shadow: 0 0 0 0 rgb(215 237 66 / 0%);
+    filter: brightness(1);
+  }
+  72% {
+    background: #fff574;
+    box-shadow: 0 0 0 7px rgb(215 237 66 / 14%);
+    filter: brightness(1.12);
+  }
+  74% {
+    background: var(--acid);
+    box-shadow: 0 0 0 2px rgb(215 237 66 / 8%);
+    filter: brightness(1);
+  }
+  76% {
+    background: #fff574;
+    box-shadow: 0 0 0 5px rgb(215 237 66 / 11%);
+    filter: brightness(1.08);
+  }
+  78% {
+    background: var(--acid);
+    box-shadow: 0 0 0 0 rgb(215 237 66 / 0%);
+    filter: brightness(1);
+  }
+}
+@keyframes ava-alt-attention {
+  0%,
+  70%,
+  100% {
+    box-shadow: 0 0 12px rgb(111 179 184 / 60%);
+    filter: brightness(1);
+  }
+  72% {
+    box-shadow:
+      0 0 18px rgb(111 208 230 / 88%),
+      0 0 0 7px rgb(111 208 230 / 12%);
+    filter: brightness(1.18);
+  }
+  74% {
+    box-shadow: 0 0 12px rgb(111 179 184 / 60%);
+    filter: brightness(1);
+  }
+  76% {
+    box-shadow:
+      0 0 16px rgb(111 208 230 / 78%),
+      0 0 0 5px rgb(111 208 230 / 10%);
+    filter: brightness(1.12);
+  }
+  78% {
+    box-shadow: 0 0 12px rgb(111 179 184 / 60%);
+    filter: brightness(1);
+  }
+}
+.ava-command-dock .ava-button > span {
+  animation: ava-main-attention 18s ease-in-out infinite;
+}
+.briefing-ava > i {
+  animation: ava-alt-attention 18s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ava-command-dock .ava-button > span,
+  .briefing-ava > i {
+    animation: none;
+  }
+}
+@media (max-width: 700px) {
+  .desktop-module .directive-menu-inspector {
+    padding: 8px 10px 18px;
+  }
+}
+
 /* Live war day */
 .war-clock {
   color: var(--acid) !important;

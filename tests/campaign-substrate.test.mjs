@@ -10,11 +10,21 @@ const {
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
-  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v2");
-  assert.equal(SITUATIONS.length,15);
-  assert.equal(Object.keys(BLUEPRINT_RULES).length,15);
+  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v3");
+  assert.equal(SITUATIONS.length,47);
+  assert.equal(Object.keys(BLUEPRINT_RULES).length,47);
   assert.equal(Object.keys(FACT_CATALOG).length,25);
   assert.deepEqual(auditCampaignSubstrate(SITUATIONS,MANEUVERS.map(x=>x.id)),[]);
+});
+
+test("Main campaign exposes hundreds of sector-bound authored permutations",()=>{
+  const permutationCount=SITUATIONS.reduce((total,situation)=>{
+    const rule=BLUEPRINT_RULES[situation.id];
+    assert.ok(rule,`missing blueprint rule for ${situation.id}`);
+    return total+(rule.fixedSectorId?1:rule.theaters.length*6);
+  },0);
+
+  assert.equal(permutationCount,684);
 });
 
 test("every theater opens with a stored graph-backed Situation Packet",()=>{
@@ -29,7 +39,7 @@ test("every theater opens with a stored graph-backed Situation Packet",()=>{
     assert.ok(state.theaterSectors.some(x=>x.id===situation.sectorId));
     assert.equal(situation.maneuvers.length,3);
     assert.ok(situation.maneuvers.every(id=>MANEUVERS.some(x=>x.id===id)));
-    assert.match(situation.resolutionTicket,/^campaign-substrate-v2:/);
+    assert.match(situation.resolutionTicket,/^campaign-substrate-v3:/);
   }
 });
 

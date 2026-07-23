@@ -1,3 +1,8 @@
+import {
+  FUNGIBLE_BLUEPRINT_RULES,
+  FUNGIBLE_SITUATION_TEMPLATES,
+} from "./main-situation-content";
+
 export type Theater = "lowland" | "ridge" | "industrial" | "river";
 export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
 export type OutcomeBand = "clean" | "executed" | "disrupted" | "collapse";
@@ -96,7 +101,7 @@ export type ManeuverAftermathRule = {
   successFact:string; failureFact:string; cleanFact?:string; ttl:number;
 };
 
-export const CONTENT_PACK_VERSION="campaign-substrate-v2";
+export const CONTENT_PACK_VERSION="campaign-substrate-v3";
 
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
 const hashInt=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
@@ -183,6 +188,7 @@ export const GENERIC_SITUATION_TEMPLATES:SituationTemplate[]=[
   {id:"formation-exhaustion",theater:"lowland",sector:"{sector}",headline:"The Formation at {sector} Exists More Completely on Paper",briefing:"Vehicle faults, medical absence, and unlocated personnel have converged into one operational fact. The line remains occupied, but its occupants can no longer perform every task assigned to the formation name.",question:"Which obligation is removed before the formation removes itself?",terrain:"Compiled from sector",ground:"Compiled from sector",network:"Compiled from sector",supply:"Compiled from sector",intelligence:"Compiled from state",windowHours:8,quote:"A ghost formation still consumes rations if the ledger believes in it.",attribution:"Formation Readiness Board, Exception Register",maneuvers:["reinforce","abandon","network","route","interdict"]},
   {id:"reserve-crisis",theater:"lowland",sector:"{sector}",headline:"The Last Uncommitted Reserve Has Reached {sector}",briefing:"The reserve can restore the local line, preserve another sector, or remain intact long enough to become unavailable for both. Every staff branch has described its preferred commitment as temporary.",question:"Where does future freedom become present force?",terrain:"Compiled from sector",ground:"Compiled from sector",network:"Compiled from sector",supply:"Compiled from sector",intelligence:"Compiled from state",windowHours:10,quote:"A reserve is freedom expressed as a formation.",attribution:"General Staff Memorandum, Reserve Custody",maneuvers:["reinforce","interdict","route","abandon","exploit"]},
   {id:"local-counterstroke",theater:"lowland",sector:"{sector}",headline:"The Enemy Has Begun a Counterstroke at {sector}",briefing:"Enemy movement is converging faster than its supporting timetable. The concentration is vulnerable while moving and overwhelming after arrival. Friendly forces can spoil, receive, evade, or misclassify the blow.",question:"Which part of the counterstroke is allowed to become real?",terrain:"Compiled from sector",ground:"Compiled from sector",network:"Compiled from sector",supply:"Compiled from sector",intelligence:"Compiled from state",windowHours:6,quote:"A counterstroke is a reserve admitting what it was preserved for.",attribution:"Pattern Analysis Directorate, Enemy Intent Series",maneuvers:["reinforce","interdict","network","abandon","exploit"]},
+  ...FUNGIBLE_SITUATION_TEMPLATES,
 ];
 
 const A:Gate={op:"always"};
@@ -208,6 +214,7 @@ export const BLUEPRINT_RULES:Record<string,SituationBlueprintRule>={
   "formation-exhaustion":{id:"formation-exhaustion",problemClass:"force-preservation",theaters:allTheaters,requires:any(band("readiness","exhausted","degraded"),fact("formation_exhausted","any"),fact("reserve_exhausted","any")),targetSelector:"highest-pressure",baseUrgency:76,cooldown:4,standingOrder:"The formation remains in place and converts readiness debt into casualties."},
   "reserve-crisis":{id:"reserve-crisis",problemClass:"force-preservation",theaters:allTheaters,requires:any(band("reserveDepth","absent","thin"),band("frontPosture","collapsing","defensive"),fact("reserve_exposed","any")),targetSelector:"highest-pressure",baseUrgency:72,cooldown:4,standingOrder:"No additional reserve is committed; existing formations absorb local pressure."},
   "local-counterstroke":{id:"local-counterstroke",problemClass:"counterstroke",theaters:allTheaters,requires:any(band("enemyPosture","counterstroking","assaulting","exploiting"),scalar("front","gte",1)),targetSelector:"highest-pressure",baseUrgency:80,cooldown:3,standingOrder:"The line receives the counterstroke under its standing methodical posture."},
+  ...FUNGIBLE_BLUEPRINT_RULES,
 };
 
 export const MANEUVER_AFTERMATH:Record<string,ManeuverAftermathRule>={

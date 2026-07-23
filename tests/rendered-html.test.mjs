@@ -34,9 +34,10 @@ test("renders development preview metadata", async () => {
 });
 
 test("campaign UI is consequence-only while Ava retains the campaign report", async () => {
-  const [page,packet]=await Promise.all([
+  const [page,packet,dispatch]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/OperationsPacket.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/war-dispatch.ts",import.meta.url),"utf8"),
   ]);
   const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
   assert.match(page,/ISSUE ORDER →/);
@@ -59,6 +60,8 @@ test("campaign UI is consequence-only while Ava retains the campaign report", as
   for(const id of ["terrain-conversion","ground-condition","command-network","operational-supply","intelligence"]){
     assert.match(packet,new RegExp(`id:"${id}"`));
   }
+  assert.match(dispatch,/the plan lost integrity under concentrated fire/);
+  assert.doesNotMatch(dispatch,/\$\{maneuverLabel\} came apart under concentrated fire/);
 });
 
 test("diplomacy separates foreign actors from diplomatic actions",async()=>{
@@ -119,6 +122,10 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
+  assert.match(css,/\.briefing-secondary-fronts\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+  assert.doesNotMatch(briefing,/COMMAND CHANNEL/);
+  assert.match(css,/@keyframes ava-alt-attention/);
+  assert.match(css,/@keyframes ava-main-attention/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
@@ -307,14 +314,20 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.match(modulePage,/className=\{`os-window \$\{isProduction \? "production-command-window" : ""\}`\}/);
   assert.match(modulePage,/className="tree-menu/);
   assert.match(modulePage,/\{isProduction \? "SET PRODUCTION TARGET" : "DIRECTIVE CONTROL PANEL"\}/);
-  assert.match(modulePage,/className=\{`menu-inspector \$\{isProduction \? "production-target-inspector" : ""\}`\}/);
-  assert.match(modulePage,/\{!isProduction && \(/);
+  assert.match(modulePage,/className=\{`menu-inspector directive-menu-inspector \$\{isProduction \? "production-target-inspector" : ""\}`\}/);
+  assert.doesNotMatch(modulePage,/\{!isProduction && \(/);
   assert.match(modulePage,/className="menu-choice-list expanded single-surface"/);
   assert.match(modulePage,/className=\{directiveEffectTone\(x\)\}/);
   assert.match(modulePage,/<small>TRADEOFF<\/small>/);
   assert.doesNotMatch(modulePage,/module-report|ProductionCircuit|ForceGenerationCircuit|DomesticStatePanel|DiplomacyPanel|desertion-control/);
   assert.match(css,/\.production-command-window \.production-target-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
   assert.match(css,/\.production-command-window[\s\S]*?\.production-target-inspector[\s\S]*?> \.menu-choice-list\s*\{[\s\S]*?margin:\s*0/);
+  assert.match(css,/\.desktop-module \.directive-menu-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
+  assert.match(css,/\.desktop-module \.directive-glance h3\s*\{[\s\S]*?clamp\(24px/);
+  assert.match(page,/className="menu-inspector doctrine-inspector doctrine-empty-state"/);
+  assert.match(page,/NO PRINCIPLE SELECTED/);
+  const doctrinePanel=page.slice(page.indexOf("function DoctrineControlPanel"),page.indexOf("const initialArticles"));
+  assert.doesNotMatch(doctrinePanel,/<section className="module-report">/);
   const sharedDirective=briefing.slice(briefing.indexOf("export function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
   assert.match(sharedDirective,/Reports, forecasts, active effects, and historical ledgers are\s+available through Ava/);
   assert.doesNotMatch(sharedDirective,/NATIVE ALT UX SURFACE/);
