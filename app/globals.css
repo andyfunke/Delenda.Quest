@@ -12064,11 +12064,12 @@ small,
 }
 
 /* The Campaign introduction is the front-page strategic card carried into the
-   workspace: red index, black field, yellow command question. Its overprint is
-   deliberately red rather than neutral shadow text. */
+   workspace: one black field divided by a red decision band. The body headline
+   and decision share the same grid row so their top edges cannot drift. */
 .campaign-empty-card {
   background: #151612;
   grid-template-columns: 82px minmax(0, 1fr) 270px;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
   min-height: 620px;
 }
 .campaign-empty-card:before {
@@ -12078,38 +12079,96 @@ small,
 }
 .campaign-empty-state .situation-body {
   box-sizing: border-box;
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+  justify-content: stretch;
   min-height: 620px;
   padding: 42px 48px;
 }
 .campaign-empty-state .situation-index {
-  background: var(--red);
-  color: var(--ink);
+  background: #151612;
+  border-right: 1px solid #44463e;
+  color: var(--red);
+  grid-row: 1 / -1;
 }
 .campaign-empty-state .campaign-intro-order {
-  background: var(--acid);
-  color: var(--ink);
+  background: var(--red);
+  color: #fff;
+  display: grid;
+  grid-column: 3;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+  justify-content: stretch;
   min-width: 0;
+  padding: 42px 24px;
 }
-.campaign-intro-order small {
+.campaign-empty-state .situation-body .epigraph {
+  grid-row: 1;
+  margin-bottom: 0;
+}
+.campaign-empty-state .situation-body h2 {
+  align-self: start;
+  grid-row: 2;
+  margin-top: 0;
+}
+.campaign-empty-state .situation-body > p {
+  grid-row: 3;
+}
+.campaign-empty-state .situation-body .conditions {
+  grid-row: 4;
+}
+.campaign-empty-state .campaign-intro-order > h3 {
+  align-self: start;
+  color: #fff;
+  grid-row: 2;
+  margin: 0;
+}
+.campaign-intro-order-state {
+  align-self: end;
+  grid-row: 3 / 5;
+}
+.campaign-intro-order-state > small,
+.campaign-intro-order-state > b,
+.campaign-intro-order-state > p {
+  display: block;
+}
+.campaign-intro-order-state small {
   font: 800 9px/1.3 var(--mono);
   letter-spacing: 0.08em;
   margin-top: 18px;
 }
-.campaign-intro-order > b {
+.campaign-intro-order-state > b {
   font-size: 22px;
   margin: 7px 0;
 }
-.campaign-intro-order > p {
+.campaign-intro-order-state > p {
   font: italic 13px/1.5 var(--serif);
   margin: 7px 0 0;
 }
 @media (max-width: 1120px) {
   .campaign-empty-card {
     grid-template-columns: 65px minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .campaign-empty-state .situation-index {
+    grid-row: auto;
+  }
+  .campaign-empty-state .situation-body {
+    display: flex;
+    grid-column: auto;
+    grid-row: auto;
   }
   .campaign-empty-state .campaign-intro-order {
     grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-rows: auto;
     min-height: 180px;
+  }
+  .campaign-empty-state .campaign-intro-order > h3,
+  .campaign-intro-order-state {
+    grid-row: auto;
   }
 }
 @media (max-width: 700px) {
@@ -12130,5 +12189,6 @@ small,
   }
   .campaign-empty-state .campaign-intro-order {
     min-height: 150px;
+    padding: 28px 20px;
   }
 }

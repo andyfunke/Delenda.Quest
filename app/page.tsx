@@ -1325,7 +1325,6 @@ function SituationCard({
       </div>
       <SituationNarrative situation={situation} />
       <div className="situation-order">
-        <span>COMMANDER’S QUESTION</span>
         <h3>{situation.question}</h3>
         {order ? (
           <>
@@ -3192,7 +3191,7 @@ function CampaignPage({
             value={situation.sector}
             summary={`${situation.headline}. ${situation.briefing}`}
             details={[
-              `COMMANDER'S QUESTION // ${situation.question}`,
+              `DECISION // ${situation.question}`,
               `STANDING ORDER // ${situation.standingOrder}`,
             ]}
           />
@@ -3378,22 +3377,23 @@ function CampaignPage({
                 </div>
                 <SituationNarrative situation={situation} />
                 <section className="situation-order campaign-intro-order">
-                  <span id="campaign-empty-state-title">
-                    COMMANDER’S QUESTION
-                  </span>
-                  <h3>{situation.question}</h3>
-                  {maneuverById(s.maneuver) ? (
-                    <>
-                      <small>ORDER ISSUED</small>
-                      <b>{maneuverById(s.maneuver)?.label}</b>
-                      <p>{maneuverById(s.maneuver)?.flavor}</p>
-                    </>
-                  ) : (
-                    <p>
-                      No maneuver has been issued. The standing operational
-                      tempo will prosecute the day by default.
-                    </p>
-                  )}
+                  <h3 id="campaign-empty-state-title">
+                    {situation.question}
+                  </h3>
+                  <div className="campaign-intro-order-state">
+                    {maneuverById(s.maneuver) ? (
+                      <>
+                        <small>ORDER ISSUED</small>
+                        <b>{maneuverById(s.maneuver)?.label}</b>
+                        <p>{maneuverById(s.maneuver)?.flavor}</p>
+                      </>
+                    ) : (
+                      <p>
+                        No maneuver has been issued. The standing operational
+                        tempo will prosecute the day by default.
+                      </p>
+                    )}
+                  </div>
                 </section>
               </section>
             </article>
