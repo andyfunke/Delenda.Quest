@@ -586,17 +586,22 @@ export const situationForState = (state:GameState):CompiledSituation => {
   return compileSituationForState(state);
 };
 
-export const OPPORTUNITY_FREQUENCY=1/2;
+export const OPPORTUNITY_FREQUENCY=1/5;
+/*
+ * Random assignments use one sealed five-sided roll per player day. A single
+ * face opens the assignment, keeping the rate below the one-in-three ceiling.
+ * Day 1 is an onboarding day and can never open one.
+ */
+const opportunityRoll=(seed:number,day:number)=>
+  1+Math.floor(hash(`${seed}:target-of-opportunity:roll:${day}`)*5);
+const opportunityOccurs=(seed:number,day:number)=>
+  day>1&&opportunityRoll(seed,day)===1;
 const opportunitySchedule=(seed:number,throughDay:number)=>{
-  const days:number[]=[];let day=1+Math.floor(hash(`${seed}:target-of-opportunity:first`)*3),occurrence=0;
-  while(day<=throughDay){
-    days.push(day);
-    occurrence+=1;
-    day+=1+Math.floor(hash(`${seed}:target-of-opportunity:interval:${occurrence}`)*3);
-  }
+  const days:number[]=[];
+  for(let day=2;day<=throughDay;day+=1)
+    if(opportunityOccurs(seed,day))days.push(day);
   return days;
 };
-const opportunityOccurs=(seed:number,day:number)=>opportunitySchedule(seed,day).includes(day);
 const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>hash(`${seed}:target-of-opportunity:deck:${a.id}`)-hash(`${seed}:target-of-opportunity:deck:${b.id}`));
 
 export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
