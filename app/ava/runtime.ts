@@ -69,6 +69,58 @@ const POST_V55_DIRECTIVE_KEYS = new Set([
   "burden-sharing/refugee-rail",
 ]);
 
+// These families shipped after the complete P1–P115 block. Keep them behind
+// that block even though Production is grouped before Military and Diplomacy
+// in the main registry.
+const POST_V56_DIRECTIVE_KEYS = new Set([
+  "war-labor/recall-skilled-reservists",
+  "war-labor/displaced-labor",
+  "war-labor/equal-war-wages",
+  "war-labor/shift-discipline",
+  "war-labor/protected-rest",
+  "strategic-freight/rail-priority",
+  "strategic-freight/night-convoys",
+  "strategic-freight/river-barges",
+  "strategic-freight/civilian-fleet",
+  "strategic-freight/distributed-depots",
+  "tooling-policy/master-dies",
+  "tooling-policy/standard-components",
+  "tooling-policy/tooling-to-failure",
+  "procurement-pricing/cost-plus",
+  "procurement-pricing/fixed-price",
+  "procurement-pricing/open-book",
+  "shift-system/twelve-hour-shifts",
+  "shift-system/rotating-crews",
+  "shift-system/blackout-shifts",
+  "skilled-allocation/reserve-toolmakers",
+  "skilled-allocation/field-repair",
+  "skilled-allocation/apprentice-dilution",
+  "depot-policy/forward-depots",
+  "depot-policy/buried-depots",
+  "depot-policy/mobile-depots",
+  "transport-priority/ammunition-first",
+  "transport-priority/machine-tools-first",
+  "transport-priority/food-and-coal",
+  "mineral-output/deepen-mines",
+  "mineral-output/strip-mines",
+  "mineral-output/foreign-concentrate",
+  "scrap-recovery/battlefield-salvage",
+  "scrap-recovery/household-drive",
+  "scrap-recovery/raze-obsolete-plant",
+  "energy-supply/grid-priority",
+  "energy-supply/emergency-coal",
+  "energy-supply/hydro-reserve",
+  "civilian-rationing/durable-goods",
+  "civilian-rationing/transport-fuel",
+  "civilian-rationing/protect-essentials",
+  "civil-conversion/appliance-fuses",
+  "civil-conversion/bus-carriers",
+  "civil-conversion/press-shells",
+  "substitute-materials/wood-fabric",
+  "substitute-materials/low-grade-steel",
+  "substitute-materials/synthetic-feedstocks",
+]);
+
 const directiveDescriptor = (
   state: GameState,
   family: (typeof FAMILIES)[number],
@@ -167,10 +219,14 @@ export const enumerateAvaActions = (
   const stableDirectiveEntries = [
     ...directiveEntries.filter(
       ({ family, choice }) =>
-        !POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+        !POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`) &&
+        !POST_V56_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
     ),
     ...directiveEntries.filter(({ family, choice }) =>
       POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+    ),
+    ...directiveEntries.filter(({ family, choice }) =>
+      POST_V56_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
     ),
   ];
   stableDirectiveEntries.forEach(({ family, choice }, index) =>

@@ -475,12 +475,18 @@ function DoctrineControlPanel({
           </nav>
           {stage ? (
             <article className="menu-inspector doctrine-inspector">
-              <div className="menu-path">
-                DOCTRINE // {vector.label.toUpperCase()} //{" "}
-                {stage.label.toUpperCase()}
-              </div>
-              <h2>{stage.label}</h2>
-              <p>{stage.description}</p>
+              <section className="selection-dossier doctrine-selection-dossier">
+                <div className="menu-path">
+                  DOCTRINE // {vector.label.toUpperCase()} //{" "}
+                  {stage.label.toUpperCase()}
+                </div>
+                <h2>{stage.label}</h2>
+                <div className="selection-classification">
+                  <small>DOCTRINE LEARNING PATH</small>
+                  <b>{vector.label}</b>
+                </div>
+                <p>{stage.description}</p>
+              </section>
               <dl>
                 <div>
                   <dt>VECTOR</dt>
@@ -2091,6 +2097,27 @@ function ModulePage({
             <article
               className={`menu-inspector directive-menu-inspector ${isProduction ? "production-target-inspector" : ""}`}
             >
+              <section className="selection-dossier directive-selection-dossier">
+                <div className="menu-path">
+                  {moduleName(page)} // {selectedFamily.category.toUpperCase()} //{" "}
+                  {selectedFamily.label.toUpperCase()}
+                  {previewChoice
+                    ? ` // ${previewChoice.label.toUpperCase()}`
+                    : ""}
+                </div>
+                <h2>{previewChoice?.label ?? selectedFamily.label}</h2>
+                <div className="selection-classification">
+                  <small>
+                    {previewChoice ? "SELECTED DIRECTIVE" : "DIRECTIVE FAMILY"}
+                  </small>
+                  <b>
+                    {previewChoice
+                      ? selectedFamily.label
+                      : `${selectedFamily.lock} DAY FAMILY COOLDOWN`}
+                  </b>
+                </div>
+                <p>{previewChoice?.flavor ?? selectedFamily.brief}</p>
+              </section>
               <div className="menu-choice-list expanded single-surface">
                 {selectedFamily.choices.map((c) => {
                   const rejection = directiveRejection(s, selectedFamily, c);

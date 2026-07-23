@@ -77,8 +77,21 @@ test("directive menus expose the expanded parent and child corpus",()=>{
   assert.deepEqual(grouped.get("diplomacy/Commitments and Alliances"),["Bind Foreign Obligations","Service Alliance Obligations","Broker Coalition Burdens"]);
 
   const byModule=(module)=>FAMILIES.filter(family=>family.module===module);
-  assert.equal(byModule("national").length,6);
-  assert.ok(byModule("national").every(family=>family.choices.length>=3));
+  const production=byModule("national");
+  const productionParents=[...new Set(production.map(family=>family.category))];
+  assert.deepEqual(productionParents,[
+    "Industrial Command",
+    "Public Finance",
+    "Labor Mobilization",
+    "Strategic Distribution",
+    "Resource Extraction",
+    "Civilian Conversion",
+  ]);
+  assert.equal(production.length,18);
+  for(const parent of productionParents){
+    assert.ok(production.filter(family=>family.category===parent).length>=3,`${parent} has fewer than three selectable families`);
+  }
+  assert.ok(production.every(family=>family.choices.length>=3));
   assert.equal(byModule("military").length,12);
   assert.ok(byModule("military").every(family=>family.choices.length>=4));
   assert.equal(byModule("diplomacy").length,9);
@@ -95,6 +108,32 @@ test("new Public Finance, Operations, and Personnel Sustainment families execute
     assert.equal(next.active[familyId],choiceId);
     assert.equal(next.locks[familyId],state.day+family.lock);
     assert.notEqual(next[field],before,`${familyId} did not change ${field}`);
+  }
+});
+
+test("all recovered Production parents execute owned state changes without resolving the day",()=>{
+  for(const[familyId,choiceId,field]of[
+    ["war-labor","recall-skilled-reservists","workforce"],
+    ["strategic-freight","rail-priority","materiel"],
+    ["tooling-policy","master-dies","materiel"],
+    ["procurement-pricing","cost-plus","treasury"],
+    ["shift-system","twelve-hour-shifts","workforce"],
+    ["skilled-allocation","reserve-toolmakers","materiel"],
+    ["depot-policy","forward-depots","readiness"],
+    ["transport-priority","ammunition-first","readiness"],
+    ["mineral-output","deepen-mines","materiel"],
+    ["scrap-recovery","battlefield-salvage","equipment"],
+    ["energy-supply","grid-priority","materiel"],
+    ["civilian-rationing","durable-goods","materiel"],
+    ["civil-conversion","appliance-fuses","workforce"],
+    ["substitute-materials","wood-fabric","equipment"],
+  ]){
+    const state=initialState({seed:5522}),family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),before=state[field];
+    const next=commit(state,family,choice);
+    assert.equal(next.day,state.day);
+    assert.equal(next.actions,state.actions-1);
+    assert.equal(next.active[familyId],choiceId);
+    assert.notEqual(next[field],before,`${familyId}/${choiceId} did not change ${field}`);
   }
 });
 

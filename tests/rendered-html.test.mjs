@@ -317,6 +317,9 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.match(modulePage,/className=\{`menu-inspector directive-menu-inspector \$\{isProduction \? "production-target-inspector" : ""\}`\}/);
   assert.doesNotMatch(modulePage,/\{!isProduction && \(/);
   assert.match(modulePage,/className="menu-choice-list expanded single-surface"/);
+  assert.match(modulePage,/className="selection-dossier directive-selection-dossier"/);
+  assert.match(modulePage,/previewChoice\?\.label \?\? selectedFamily\.label/);
+  assert.match(modulePage,/previewChoice\?\.flavor \?\? selectedFamily\.brief/);
   assert.match(modulePage,/className=\{directiveEffectTone\(x\)\}/);
   assert.match(modulePage,/<small>TRADEOFF<\/small>/);
   assert.doesNotMatch(modulePage,/module-report|ProductionCircuit|ForceGenerationCircuit|DomesticStatePanel|DiplomacyPanel|desertion-control/);
@@ -324,8 +327,10 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.match(css,/\.production-command-window[\s\S]*?\.production-target-inspector[\s\S]*?> \.menu-choice-list\s*\{[\s\S]*?margin:\s*0/);
   assert.match(css,/\.desktop-module \.directive-menu-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
   assert.match(css,/\.desktop-module \.directive-glance h3\s*\{[\s\S]*?clamp\(24px/);
+  assert.match(css,/\.campaign-workspace \.campaign-consequences li\s*\{[\s\S]*?18px/);
   assert.match(page,/className="menu-inspector doctrine-inspector doctrine-empty-state"/);
   assert.match(page,/NO PRINCIPLE SELECTED/);
+  assert.match(page,/className="selection-dossier doctrine-selection-dossier"/);
   const doctrinePanel=page.slice(page.indexOf("function DoctrineControlPanel"),page.indexOf("const initialArticles"));
   assert.doesNotMatch(doctrinePanel,/<section className="module-report">/);
   const sharedDirective=briefing.slice(briefing.indexOf("export function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));

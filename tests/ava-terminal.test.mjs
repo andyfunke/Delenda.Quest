@@ -80,7 +80,7 @@ test("expanded directive registration preserves established Ava P-handles",()=>{
   assert.deepEqual(handles("expenditure"),["P82","P83","P84","P85","P102"]);
   assert.deepEqual(handles("operational-reserve"),["P86","P87","P88","P89"]);
   assert.deepEqual(handles("unit-recovery"),["P90","P91","P92","P93"]);
-  assert.equal(actions.filter(item=>item.kind==="directive").length,115);
+  assert.equal(actions.filter(item=>item.kind==="directive").length,161);
   assert.deepEqual(handles("production"),["P1","P2","P3","P4","P5","P94"]);
   assert.deepEqual(handles("network-posture"),["P70","P71","P72","P99"]);
   assert.deepEqual(handles("network-authentication"),["P73","P74","P75","P100"]);
@@ -89,6 +89,10 @@ test("expanded directive registration preserves established Ava P-handles",()=>{
   assert.deepEqual(handles("industrial-accords"),["P107","P108","P109"]);
   assert.deepEqual(handles("information-diplomacy"),["P110","P111","P112"]);
   assert.deepEqual(handles("burden-sharing"),["P113","P114","P115"]);
+  assert.deepEqual(handles("war-labor"),["P116","P117","P118","P119","P120"]);
+  assert.deepEqual(handles("strategic-freight"),["P121","P122","P123","P124","P125"]);
+  assert.deepEqual(handles("tooling-policy"),["P126","P127","P128"]);
+  assert.deepEqual(handles("substitute-materials"),["P159","P160","P161"]);
 });
 
 const missionPacket=(state)=>[

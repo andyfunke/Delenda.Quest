@@ -12657,3 +12657,71 @@ small,
     flex: 0 0 64px;
   }
 }
+
+/*
+ * Selected-object hierarchy. Campaign established this reading order first:
+ * path, object, classification, authored line. The other command surfaces use
+ * the same hierarchy without restoring the deleted report strips.
+ */
+.desktop-module .directive-menu-inspector {
+  padding-top: 18px;
+}
+.selection-dossier {
+  border-bottom: 1px solid #a6a59e;
+  margin: 0 0 22px;
+  padding: 0 0 22px;
+}
+.selection-dossier > h2 {
+  font: 950 clamp(34px, 3.4vw, 54px) / 0.92 var(--ui);
+  letter-spacing: -0.055em;
+  margin: 12px 0 14px;
+  max-width: 920px;
+  text-transform: uppercase;
+}
+.selection-dossier > p {
+  color: #444741;
+  font: 650 15px/1.5 var(--ui);
+  margin: 14px 0 0;
+  max-width: 780px;
+}
+.selection-classification {
+  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.selection-classification small {
+  color: #62655e;
+  font: 850 12px/1.25 var(--mono);
+  letter-spacing: 0.08em;
+}
+.selection-classification b {
+  font: 850 17px/1.25 var(--ui);
+}
+.directive-selection-dossier + .menu-choice-list {
+  margin-top: 0;
+}
+.doctrine-selection-dossier {
+  margin-bottom: 24px;
+}
+
+/* Campaign consequence boxes are decision copy, not footnotes. */
+.campaign-workspace .campaign-consequences h3 {
+  font-size: 13px;
+}
+.campaign-workspace .campaign-consequences li {
+  font: 650 18px/1.45 var(--ui);
+  padding: 13px 0;
+}
+
+@media (max-width: 700px) {
+  .selection-dossier > h2 {
+    font-size: 34px;
+  }
+  .selection-dossier > p {
+    font-size: 14px;
+  }
+  .campaign-workspace .campaign-consequences li {
+    font-size: 16px;
+  }
+}
