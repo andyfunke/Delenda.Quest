@@ -147,7 +147,7 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
   assert.match(campaign,/className="situation-card campaign-empty-card"/);
   assert.doesNotMatch(campaign,/data-overprint=/);
   assert.match(campaign,/className="situation-index campaign-intro-index"[\s\S]*?aria-hidden="true"/);
-  assert.match(campaign,/className="campaign-sector-lane"[\s\S]*?data-sector=\{situation\.sector\}[\s\S]*?\{situation\.sector\}/);
+  assert.match(campaign,/className="campaign-sector-lane"[\s\S]*?data-sector=\{situation\.sector\}[\s\S]*?--campaign-sector-fit[\s\S]*?\{situation\.sector\}/);
   assert.doesNotMatch(campaign,/DAILY STRATEGIC SITUATION/);
   assert.doesNotMatch(campaign,/\{situation\.windowHours\} HOUR WINDOW/);
   assert.match(campaign,/showIntro \? \(/);
@@ -168,8 +168,9 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
   assert.match(campaign,/preserveOperationalBlock/);
   assert.match(css,/\.campaign-empty-card\s*\{[\s\S]*?background:\s*#151612[\s\S]*?grid-template-columns:\s*82px minmax\(0,\s*1fr\) 270px[\s\S]*?grid-template-rows:\s*118px auto auto minmax\(0,\s*1fr\)/);
   assert.match(css,/\.campaign-empty-card:before\s*\{[\s\S]*?content:\s*none/);
-  assert.match(css,/\.campaign-sector-lane\s*\{[\s\S]*?color:\s*rgb\(216 59 39 \/ 42%\)[\s\S]*?grid-column:\s*2 \/ 4[\s\S]*?grid-row:\s*1[\s\S]*?z-index:\s*3/);
-  assert.match(css,/\.campaign-sector-lane:after\s*\{[\s\S]*?clip-path:\s*inset\(0 0 0 calc\(100% - 270px\)\)[\s\S]*?content:\s*attr\(data-sector\)[\s\S]*?-webkit-text-stroke:\s*2px rgb\(21 22 18 \/ 82%\)/);
+  assert.match(css,/\.campaign-sector-lane\s*\{[\s\S]*?color:\s*rgb\(216 59 39 \/ 42%\)[\s\S]*?container-type:\s*inline-size[\s\S]*?grid-column:\s*2[\s\S]*?grid-row:\s*1[\s\S]*?padding:\s*16px 48px[\s\S]*?z-index:\s*3/);
+  assert.match(css,/\.campaign-sector-lane > span\s*\{[\s\S]*?font-size:\s*clamp\(18px,\s*var\(--campaign-sector-fit\),\s*76px\)[\s\S]*?font-kerning:\s*normal[\s\S]*?letter-spacing:\s*0\.01em[\s\S]*?max-width:\s*100%/);
+  assert.doesNotMatch(css,/\.campaign-sector-lane:after/);
   assert.match(css,/\.campaign-empty-state \.situation-index\s*\{[\s\S]*?background:\s*#151612/);
   assert.match(css,/\.campaign-empty-state \.campaign-intro-order\s*\{[\s\S]*?background:\s*var\(--red\)[\s\S]*?grid-row:\s*1 \/ -1/);
   assert.match(css,/\.campaign-operational-block\s*\{[\s\S]*?grid-row:\s*3/);

@@ -3388,7 +3388,18 @@ function CampaignPage({
                   className="campaign-sector-lane"
                   data-sector={situation.sector}
                 >
-                  {situation.sector}
+                  <span
+                    style={
+                      {
+                        "--campaign-sector-fit": `${Math.min(
+                          10,
+                          92 / Math.max(1, situation.sector.length * 0.62),
+                        )}cqw`,
+                      } as React.CSSProperties
+                    }
+                  >
+                    {situation.sector}
+                  </span>
                 </div>
                 <SituationNarrative
                   situation={situation}
