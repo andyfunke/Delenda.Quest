@@ -74,7 +74,11 @@ import {
   runAvaInstruction,
   type AvaTerminalSession,
 } from "./ava/terminal";
-import { restoreAvaShellSession } from "./ava/filesystem";
+import {
+  avaShellFileReferences,
+  restoreAvaShellSession,
+} from "./ava/filesystem";
+import { completeAvaInput } from "./ava/completion";
 import {
   deleteAvaShellArchive,
   loadAvaShellArchive,
@@ -3813,11 +3817,21 @@ export default function Home() {
       cwd: avaSession.shell.cwd,
       history: [],
       files: avaSession.shell.files,
+      darkNetUnlocked: avaSession.shell.darkNetUnlocked,
     }),
-    [avaSession.shell.cwd, avaSession.shell.files],
+    [
+      avaSession.shell.cwd,
+      avaSession.shell.darkNetUnlocked,
+      avaSession.shell.files,
+    ],
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const avaMessagesRef = useRef<HTMLDivElement>(null);
+  const avaCompletionRef = useRef<{
+    candidates: string[];
+    index: number;
+    value: string;
+  } | null>(null);
   const [wikiArticle, setWikiArticle] = useState("resolution");
   const priorDay = useRef(s.day);
   const activeArchiveKey = useRef("");
@@ -3941,6 +3955,9 @@ export default function Home() {
                     cwd: interacted ? current.shell.cwd : archived.cwd,
                     history: current.shell.history,
                     files: [...byPath.values()],
+                    darkNetUnlocked:
+                      current.shell.darkNetUnlocked ||
+                      archived.darkNetUnlocked,
                   },
                 };
               });
@@ -4692,6 +4709,11 @@ export default function Home() {
       selected: selectedAvaEntity,
       discourse,
       openApplet: wikiApplet,
+      shellFileReferences: avaShellFileReferences(
+        s,
+        avaSession.shell,
+        fraction,
+      ),
     });
     if (result.status === "clarify") {
       recordAvaTelemetry(result, page==="admin"?"account":page, "clarification");
@@ -4714,7 +4736,8 @@ export default function Home() {
     let darkNetContext: AvaDarkNetContext = {};
     if (
       result.instruction.kind === "SHELL" &&
-      result.instruction.shell.command === "DARK_NET"
+      (result.instruction.shell.command === "DARK_NET" ||
+        avaSession.shell.darkNetUnlocked)
     ) {
       let localIds: string[] = [];
       try {
@@ -4770,18 +4793,19 @@ export default function Home() {
         ? `${terminal.text}\n\nSESSION-ONLY FILE // DOWNLOAD BEFORE RELOAD`
         : terminal.text;
     setAvaSession(terminal.session);
-    if (terminal.aphorismViewId) {
-      const itemId = terminal.aphorismViewId;
+    if (terminal.aphorismViewIds?.length) {
       const seen = new Set(darkNetContext.seenAphorismIds ?? []);
-      const newlyViewed = !seen.has(itemId);
-      seen.add(itemId);
+      const newlyViewed = terminal.aphorismViewIds.filter(
+        (itemId) => !seen.has(itemId),
+      );
+      terminal.aphorismViewIds.forEach((itemId) => seen.add(itemId));
       try {
         window.localStorage.setItem(
           APHORISM_LEDGER_KEY,
           JSON.stringify([...seen]),
         );
       } catch {}
-      if (newlyViewed)
+      for (const itemId of newlyViewed)
         void fetch("/api/rotation/aphorisms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -4853,6 +4877,42 @@ export default function Home() {
     e.preventDefault();
     void submitAvaCommand(input);
     setInput("");
+    avaCompletionRef.current = null;
+  };
+  const completeAvaCommand = () => {
+    const prior = avaCompletionRef.current;
+    if (
+      prior &&
+      prior.value === input &&
+      prior.candidates.length > 1
+    ) {
+      const index = (prior.index + 1) % prior.candidates.length;
+      const value = prior.candidates[index];
+      avaCompletionRef.current = {
+        candidates: prior.candidates,
+        index,
+        value,
+      };
+      setInput(value);
+      return;
+    }
+    const completion = completeAvaInput(
+      input,
+      s,
+      avaSession.shell,
+      fraction,
+    );
+    if (!completion.candidates.length) return;
+    const index = Math.max(
+      0,
+      completion.candidates.indexOf(completion.value),
+    );
+    avaCompletionRef.current = {
+      candidates: completion.candidates,
+      index,
+      value: completion.value,
+    };
+    setInput(completion.value);
   };
   return (
     <main>
@@ -5249,7 +5309,15 @@ export default function Home() {
                 disabled={!avaArchiveHydrated}
                 maxLength={512}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  avaCompletionRef.current = null;
+                  setInput(e.target.value);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Tab") return;
+                  event.preventDefault();
+                  completeAvaCommand();
+                }}
                 placeholder={
                   avaArchiveHydrated
                     ? "Ask Ava, or use cd, ls, grep, find, download..."

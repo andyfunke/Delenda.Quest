@@ -754,7 +754,7 @@ export function compileAvaCommand(
   context: AvaCompilerContext,
 ): AvaCompileResult {
   const semantic = compileSemanticQuery(raw, context);
-  const shell = parseAvaShellInput(raw);
+  const shell = parseAvaShellInput(raw, context.shellFileReferences);
   if (shell) {
     const instruction: AvaInstruction = { kind: "SHELL", shell };
     return {

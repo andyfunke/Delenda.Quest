@@ -10,6 +10,9 @@ import { buildAvaReport } from "./reports";
 import { buildAvaWorkbook } from "./workbook";
 import { projectAvaEnvelope } from "./projection";
 import {
+  AVA_DARK_NET_ROOT,
+  avaDarkNetDirectories,
+  avaDarkNetFiles,
   executeAvaDarkNet,
   type AvaDarkNetContext,
 } from "./darknet";
@@ -28,6 +31,9 @@ const MAX_SAVED_REPORT_SNAPSHOTS = 1_000;
 const MAX_GREP_PATTERN_LENGTH = 96;
 const MAX_GREP_FILES = 64;
 const MAX_GREP_FILE_CHARACTERS = 250_000;
+const MAX_DARK_NET_OUTPUT_LINES = 2_000;
+const MAX_DARK_NET_GREP_FILES = 2_048;
+const MAX_DARK_NET_FILE_CHARACTERS = 2_000_000;
 
 type VirtualDirectory = {
   path: string;
@@ -342,17 +348,45 @@ const dynamicDirectories = (state: GameState): VirtualDirectory[] =>
     owner: "commander",
   }));
 
-const allDirectories = (state: GameState) => [
+const allDirectories = (
+  state: GameState,
+  shell?: Pick<AvaShellSession, "darkNetUnlocked">,
+) => [
   ...staticDirectories,
   ...dynamicDirectories(state),
+  ...(shell?.darkNetUnlocked
+    ? avaDarkNetDirectories.map<VirtualDirectory>((path) => ({
+        path,
+        mode: "0550",
+        owner: "ava",
+      }))
+    : []),
 ];
 const allFiles = (
   state: GameState,
   shell: AvaShellSession,
   fraction: number,
+  darkNetContext: AvaDarkNetContext = {},
 ) => {
   const byPath = new Map<string, AvaVirtualFile>();
-  for (const file of [...staticFiles(state, fraction), ...shell.files])
+  const darkNetFiles = shell.darkNetUnlocked
+    ? avaDarkNetFiles(state, fraction, darkNetContext).map<AvaVirtualFile>(
+        (file) => ({
+          path: file.path,
+          kind: "text",
+          mode: "0440",
+          owner: "ava",
+          createdDay: state.day,
+          content: file.content,
+          stateRevision: avaStateRevision(state),
+        }),
+      )
+    : [];
+  for (const file of [
+    ...staticFiles(state, fraction),
+    ...darkNetFiles,
+    ...shell.files,
+  ])
     byPath.set(file.path, file);
   return [...byPath.values()];
 };
@@ -361,11 +395,13 @@ export const initialAvaShellSession = (): AvaShellSession => ({
   cwd: AVA_INITIAL_CWD,
   history: [],
   files: [],
+  darkNetUnlocked: false,
 });
 
 export const serializeAvaShellSession = (shell: AvaShellSession) => ({
   cwd: shell.cwd,
   files: shell.files,
+  darkNetUnlocked: shell.darkNetUnlocked,
 });
 
 export const restoreAvaShellSession = (
@@ -374,12 +410,17 @@ export const restoreAvaShellSession = (
 ): AvaShellSession => {
   const initial = initialAvaShellSession();
   if (!value || typeof value !== "object") return initial;
-  const candidate = value as { cwd?: unknown; files?: unknown };
+  const candidate = value as {
+    cwd?: unknown;
+    files?: unknown;
+    darkNetUnlocked?: unknown;
+  };
+  const darkNetUnlocked = candidate.darkNetUnlocked === true;
   const requestedCwd =
     typeof candidate.cwd === "string" ? cleanPath(candidate.cwd) : initial.cwd;
   const cwd =
     !deniedDirectory(requestedCwd) &&
-    allDirectories(state).some(
+    allDirectories(state, { darkNetUnlocked }).some(
       (directory) => directory.path === requestedCwd,
     )
       ? requestedCwd
@@ -444,7 +485,7 @@ export const restoreAvaShellSession = (
         },
       ];
     });
-  return { cwd, history: [], files };
+  return { cwd, history: [], files, darkNetUnlocked };
 };
 
 export const saveAvaReportSnapshot = (
@@ -538,8 +579,9 @@ const childEntries = (
   state: GameState,
   shell: AvaShellSession,
   fraction: number,
+  darkNetContext: AvaDarkNetContext = {},
 ) => {
-  const directories = allDirectories(state)
+  const directories = allDirectories(state, shell)
       .filter(
         (directory) =>
           directory.path !== path && parentPath(directory.path) === path,
@@ -551,7 +593,7 @@ const childEntries = (
         mode: directory.mode,
         owner: directory.owner,
       })),
-    files = allFiles(state, shell, fraction)
+    files = allFiles(state, shell, fraction, darkNetContext)
       .filter((file) => parentPath(file.path) === path)
       .map((file) => ({
         name: baseName(file.path),
@@ -563,6 +605,153 @@ const childEntries = (
   return [...directories, ...files].sort((left, right) =>
     left.name.localeCompare(right.name),
   );
+};
+
+const withoutExtension = (name: string) =>
+  name.replace(/\.(?:txt|xlsx)$/i, "");
+
+const relativeTo = (path: string, parent: string) =>
+  path === parent
+    ? "."
+    : isInside(path, parent)
+      ? path.slice(parent.length + (parent === "/" ? 0 : 1))
+      : path;
+
+type FileResolution =
+  | { status: "resolved"; file: AvaVirtualFile }
+  | { status: "missing" }
+  | { status: "ambiguous"; files: AvaVirtualFile[] };
+
+const resolveFileReference = (
+  requested: string,
+  state: GameState,
+  shell: AvaShellSession,
+  fraction: number,
+  darkNetContext: AvaDarkNetContext = {},
+): FileResolution => {
+  const files = allFiles(state, shell, fraction, darkNetContext);
+  const direct = resolveAvaPath(shell.cwd, requested);
+  const exact = files.find((file) => file.path === direct);
+  if (exact) return { status: "resolved", file: exact };
+  if (requested.includes("/")) return { status: "missing" };
+  const needle = requested.toLowerCase();
+  const currentChildren = files.filter(
+    (file) => parentPath(file.path) === shell.cwd,
+  );
+  const global = files.filter((file) => {
+    const name = baseName(file.path).toLowerCase();
+    return name === needle || withoutExtension(name) === needle;
+  });
+  const local = currentChildren.filter((file) => {
+    const name = baseName(file.path).toLowerCase();
+    return name === needle || withoutExtension(name) === needle;
+  });
+  const candidates = local.length ? local : global;
+  if (!candidates.length) return { status: "missing" };
+  if (candidates.length === 1)
+    return { status: "resolved", file: candidates[0] };
+  const exactName = candidates.filter(
+    (file) => baseName(file.path).toLowerCase() === needle,
+  );
+  if (exactName.length === 1)
+    return { status: "resolved", file: exactName[0] };
+  const currentWorkbook = candidates.filter(
+    (file) =>
+      file.kind === "workbook" &&
+      file.path.startsWith(`${AVA_INITIAL_CWD}/reports/current/`),
+  );
+  if (currentWorkbook.length === 1)
+    return { status: "resolved", file: currentWorkbook[0] };
+  const workbook = candidates.filter((file) => file.kind === "workbook");
+  if (workbook.length === 1)
+    return { status: "resolved", file: workbook[0] };
+  return { status: "ambiguous", files: candidates };
+};
+
+const fileReferenceError = (
+  command: string,
+  requested: string,
+  resolution: Exclude<FileResolution, { status: "resolved" }>,
+) =>
+  resolution.status === "missing"
+    ? `${command}: ${requested}: No such file`
+    : `${command}: ${requested}: ambiguous file; use one of:\n${resolution.files
+        .map((file) => file.path)
+        .join("\n")}`;
+
+const darkNetAphorismIdForPath = (path: string) =>
+  path.match(/^\/darknet\/quotes\/(Q\d{3})\.txt$/i)?.[1].toUpperCase();
+
+export const avaShellFileReferences = (
+  state: GameState,
+  shell: AvaShellSession,
+  fraction = 0,
+  darkNetContext: AvaDarkNetContext = {},
+) => {
+  const references = new Set<string>();
+  for (const file of allFiles(state, shell, fraction, darkNetContext)) {
+    const name = baseName(file.path);
+    references.add(file.path);
+    references.add(relativeTo(file.path, shell.cwd));
+    references.add(name);
+    references.add(withoutExtension(name));
+  }
+  return [...references].filter(Boolean).sort();
+};
+
+export const avaShellCompletionCandidates = (
+  state: GameState,
+  shell: AvaShellSession,
+  fraction = 0,
+  darkNetContext: AvaDarkNetContext = {},
+) => {
+  const commands = [
+    "pwd",
+    "cd ",
+    "ls ",
+    "cat ",
+    "open ",
+    "grep ",
+    "find ",
+    "whoami",
+    "history",
+    "clear",
+    "download ",
+    "tor",
+    "tor campaign",
+    "tor campaign current",
+    "tor telemetry",
+    "tor quotes",
+  ];
+  const directories = allDirectories(state, shell)
+    .filter((directory) => !directory.denied)
+    .flatMap((directory) => {
+      const relative = relativeTo(directory.path, shell.cwd);
+      return [
+        directory.path,
+        relative,
+        baseName(directory.path),
+      ];
+    });
+  const files = avaShellFileReferences(
+    state,
+    shell,
+    fraction,
+    darkNetContext,
+  );
+  const candidates = new Set(commands);
+  for (const directory of directories.filter(Boolean)) {
+    candidates.add(`cd ${directory}`);
+    candidates.add(`ls ${directory}`);
+    candidates.add(`find ${directory}`);
+  }
+  for (const file of files) {
+    candidates.add(file);
+    candidates.add(`open ${file}`);
+    candidates.add(`cat ${file}`);
+    if (/\.xlsx$/i.test(file)) candidates.add(`download ${file}`);
+  }
+  return [...candidates].sort((left, right) => left.localeCompare(right));
 };
 
 const globRegex = (glob: string) =>
@@ -584,7 +773,7 @@ export type AvaShellExecution = {
   text: string;
   clearScreen?: boolean;
   download?: AvaVirtualFile;
-  aphorismViewId?: string;
+  aphorismViewIds?: string[];
 };
 
 const fail = (shell: AvaShellSession, command: string, message: string) => ({
@@ -620,9 +809,13 @@ export const executeAvaShell = (
       darkNetContext,
     );
     return {
-      shell: nextShell,
+      shell: {
+        ...nextShell,
+        cwd: result.cwd ?? nextShell.cwd,
+        darkNetUnlocked: true,
+      },
       text: result.text,
-      aphorismViewId: result.aphorismViewId,
+      aphorismViewIds: result.aphorismViewIds,
     };
   }
   if (command === "PWD") return { shell: nextShell, text: shell.cwd };
@@ -642,8 +835,8 @@ export const executeAvaShell = (
       shell: nextShell,
       text: [
         "AVA SEALED SHELL",
-        "pwd · cd [path] · ls [-al] [path] · cat file",
-        "grep [-inr] literal path · find [path] [-maxdepth n] [-type f|d] [-name glob]",
+        "pwd · cd [path] · ls [-al] [path] · cat file · open file",
+        "grep [-inr] literal [path] · find [path] [-maxdepth n] [-type f|d] [-name glob]",
         "whoami · history · clear · download file.xlsx",
         "",
         "Natural-language commands remain available outside this shell grammar.",
@@ -657,7 +850,7 @@ export const executeAvaShell = (
     );
     if (traversesDeniedDirectory(shell.cwd, requested) || deniedDirectory(target))
       return fail(nextShell, "cd", `${requested}: Permission denied`);
-    const directory = allDirectories(state).find(
+    const directory = allDirectories(state, shell).find(
       (candidate) => candidate.path === target,
     );
     if (!directory)
@@ -670,14 +863,20 @@ export const executeAvaShell = (
     const target = resolveAvaPath(shell.cwd, requested);
     if (traversesDeniedDirectory(shell.cwd, requested) || deniedDirectory(target))
       return fail(nextShell, "ls", `${requested}: Permission denied`);
-    const file = allFiles(state, shell, fraction).find(
+    const file = allFiles(state, shell, fraction, darkNetContext).find(
       (candidate) => candidate.path === target,
     );
     if (file)
       return { shell: nextShell, text: long ? `${file.mode} ${file.owner} ${baseName(file.path)}` : baseName(file.path) };
-    if (!allDirectories(state).some((directory) => directory.path === target))
+    if (!allDirectories(state, shell).some((directory) => directory.path === target))
       return fail(nextShell, "ls", `${requested}: No such file or directory`);
-    const entries = childEntries(target, state, shell, fraction);
+    const entries = childEntries(
+      target,
+      state,
+      shell,
+      fraction,
+      darkNetContext,
+    );
     return {
       shell: nextShell,
       text: long
@@ -693,6 +892,7 @@ export const executeAvaShell = (
   if (command === "CAT") {
     if (!args.length) return fail(nextShell, "cat", "missing file operand");
     const output: string[] = [];
+    const aphorismViewIds = new Set<string>();
     for (const requested of args) {
       const target = resolveAvaPath(shell.cwd, requested);
       if (
@@ -702,20 +902,67 @@ export const executeAvaShell = (
         output.push(`cat: ${requested}: Permission denied`);
         continue;
       }
-      const file = allFiles(state, shell, fraction).find(
-        (candidate) => candidate.path === target,
+      const resolution = resolveFileReference(
+        requested,
+        state,
+        shell,
+        fraction,
+        darkNetContext,
       );
-      if (!file) {
-        output.push(`cat: ${requested}: No such file`);
+      if (resolution.status !== "resolved") {
+        output.push(fileReferenceError("cat", requested, resolution));
         continue;
       }
+      const file = resolution.file;
+      const aphorismId = darkNetAphorismIdForPath(file.path);
+      if (aphorismId) aphorismViewIds.add(aphorismId);
       output.push(
         file.kind === "workbook"
           ? `${requested}: binary Excel workbook; use download ${requested}`
           : file.content ?? "",
       );
     }
-    return { shell: nextShell, text: output.join("\n") };
+    return {
+      shell: nextShell,
+      text: output.join("\n"),
+      aphorismViewIds: [...aphorismViewIds],
+    };
+  }
+  if (command === "OPEN") {
+    if (args.length !== 1)
+      return fail(nextShell, "open", "expected one file");
+    const requested = args[0];
+    const target = resolveAvaPath(shell.cwd, requested);
+    if (
+      traversesDeniedDirectory(shell.cwd, requested) ||
+      deniedDirectory(target)
+    )
+      return fail(nextShell, "open", `${requested}: Permission denied`);
+    const resolution = resolveFileReference(
+      requested,
+      state,
+      shell,
+      fraction,
+      darkNetContext,
+    );
+    if (resolution.status !== "resolved")
+      return {
+        shell: nextShell,
+        text: fileReferenceError("open", requested, resolution),
+      };
+    const file = resolution.file;
+    const aphorismId = darkNetAphorismIdForPath(file.path);
+    if (file.kind === "workbook")
+      return {
+        shell: nextShell,
+        text: `open: ${baseName(file.path)}`,
+        download: file,
+      };
+    return {
+      shell: nextShell,
+      text: file.content ?? "",
+      aphorismViewIds: aphorismId ? [aphorismId] : [],
+    };
   }
   if (command === "DOWNLOAD") {
     if (args.length !== 1)
@@ -726,10 +973,19 @@ export const executeAvaShell = (
       deniedDirectory(target)
     )
       return fail(nextShell, "download", `${args[0]}: Permission denied`);
-    const file = allFiles(state, shell, fraction).find(
-      (candidate) => candidate.path === target,
+    const resolution = resolveFileReference(
+      args[0],
+      state,
+      shell,
+      fraction,
+      darkNetContext,
     );
-    if (!file) return fail(nextShell, "download", `${args[0]}: No such file`);
+    if (resolution.status !== "resolved")
+      return {
+        shell: nextShell,
+        text: fileReferenceError("download", args[0], resolution),
+      };
+    const file = resolution.file;
     if (file.kind !== "workbook")
       return fail(nextShell, "download", `${args[0]}: Not an Excel workbook`);
     return {
@@ -741,27 +997,45 @@ export const executeAvaShell = (
   if (command === "GREP") {
     const flags = args.filter((arg) => /^-[inr]+$/.test(arg)).join("");
     const operands = args.filter((arg) => !/^-[inr]+$/.test(arg));
-    if (operands.length < 2)
+    if (!operands.length)
+      return fail(nextShell, "grep", "expected PATTERN [PATH]");
+    const [pattern, ...explicitPaths] = operands;
+    const inDarkNet = isInside(shell.cwd, AVA_DARK_NET_ROOT);
+    const requestedPaths =
+      explicitPaths.length
+        ? explicitPaths
+        : inDarkNet
+          ? ["."]
+          : [];
+    if (!requestedPaths.length)
       return fail(nextShell, "grep", "expected PATTERN and PATH");
-    const [pattern, ...requestedPaths] = operands;
+    const effectiveFlags =
+      !explicitPaths.length && inDarkNet && !flags.includes("r")
+        ? `${flags}r`
+        : flags;
     const blockedPath = requestedPaths.find((requested) =>
       traversesDeniedDirectory(shell.cwd, requested) ||
       deniedDirectory(resolveAvaPath(shell.cwd, requested)),
     );
     if (blockedPath)
       return fail(nextShell, "grep", `${blockedPath}: Permission denied`);
-    const searchableFiles = allFiles(state, shell, fraction);
+    const searchableFiles = allFiles(
+      state,
+      shell,
+      fraction,
+      darkNetContext,
+    );
     for (const requested of requestedPaths) {
       const target = resolveAvaPath(shell.cwd, requested);
       const fileExists = searchableFiles.some(
         (file) => file.path === target,
       );
-      const directoryExists = allDirectories(state).some(
+      const directoryExists = allDirectories(state, shell).some(
         (directory) => directory.path === target,
       );
       if (!fileExists && !directoryExists)
         return fail(nextShell, "grep", `${requested}: No such file or directory`);
-      if (directoryExists && !flags.includes("r"))
+      if (directoryExists && !effectiveFlags.includes("r"))
         return fail(nextShell, "grep", `${requested}: Is a directory`);
     }
     if (pattern.length > MAX_GREP_PATTERN_LENGTH)
@@ -772,33 +1046,51 @@ export const executeAvaShell = (
       );
     const expression = literalSearchExpression(
       pattern,
-      flags.includes("i"),
+      effectiveFlags.includes("i"),
     );
+    const darkNetSearch = requestedPaths.some((requested) =>
+      isInside(resolveAvaPath(shell.cwd, requested), AVA_DARK_NET_ROOT),
+    );
+    const fileLimit = darkNetSearch
+      ? MAX_DARK_NET_GREP_FILES
+      : MAX_GREP_FILES;
+    const characterLimit = darkNetSearch
+      ? MAX_DARK_NET_FILE_CHARACTERS
+      : MAX_GREP_FILE_CHARACTERS;
     const candidates = searchableFiles
       .filter((file) => {
         if (file.kind !== "text") return false;
         if (deniedDirectory(file.path)) return false;
         return requestedPaths.some((requested) => {
           const target = resolveAvaPath(shell.cwd, requested);
-          return file.path === target || (flags.includes("r") && isInside(file.path, target));
+          return (
+            file.path === target ||
+            (effectiveFlags.includes("r") && isInside(file.path, target))
+          );
         });
       })
-      .slice(0, MAX_GREP_FILES);
+      .slice(0, fileLimit);
+    const aphorismViewIds = new Set<string>();
     const matches = candidates.flatMap((file) =>
       (file.content ?? "")
-        .slice(0, MAX_GREP_FILE_CHARACTERS)
+        .slice(0, characterLimit)
         .split("\n")
-        .flatMap((line, index) =>
-          expression.test(line)
-            ? [
-                `${candidates.length > 1 || flags.includes("r") ? `${file.path}:` : ""}${flags.includes("n") ? `${index + 1}:` : ""}${line}`,
-              ]
-            : [],
-        ),
+        .flatMap((line, index) => {
+          if (!expression.test(line)) return [];
+          const aphorismId = darkNetAphorismIdForPath(file.path);
+          if (aphorismId) aphorismViewIds.add(aphorismId);
+          return [
+            `${candidates.length > 1 || effectiveFlags.includes("r") ? `${file.path}:` : ""}${effectiveFlags.includes("n") ? `${index + 1}:` : ""}${line}`,
+          ];
+        }),
     );
+    const outputLimit = darkNetSearch
+      ? MAX_DARK_NET_OUTPUT_LINES
+      : MAX_OUTPUT_LINES;
     return {
       shell: nextShell,
-      text: matches.slice(0, MAX_OUTPUT_LINES).join("\n"),
+      text: matches.slice(0, outputLimit).join("\n"),
+      aphorismViewIds: [...aphorismViewIds],
     };
   }
   if (command === "FIND") {
@@ -810,8 +1102,8 @@ export const executeAvaShell = (
     )
       return fail(nextShell, "find", `${startArg}: Permission denied`);
     const startExists =
-      allDirectories(state).some((directory) => directory.path === start) ||
-      allFiles(state, shell, fraction).some((file) => file.path === start);
+      allDirectories(state, shell).some((directory) => directory.path === start) ||
+      allFiles(state, shell, fraction, darkNetContext).some((file) => file.path === start);
     if (!startExists)
       return fail(nextShell, "find", `${startArg}: No such file or directory`);
     const maxDepthIndex = args.indexOf("-maxdepth");
@@ -827,7 +1119,7 @@ export const executeAvaShell = (
     const depth = (path: string) =>
       path.split("/").filter(Boolean).length -
       start.split("/").filter(Boolean).length;
-    const directories = allDirectories(state)
+    const directories = allDirectories(state, shell)
       .filter(
         (directory) =>
           isInside(directory.path, start) &&
@@ -835,7 +1127,7 @@ export const executeAvaShell = (
           !directory.denied,
       )
       .map((directory) => ({ path: directory.path, type: "d" }));
-    const files = allFiles(state, shell, fraction)
+    const files = allFiles(state, shell, fraction, darkNetContext)
       .filter(
         (file) =>
           !deniedDirectory(file.path) &&
@@ -848,7 +1140,7 @@ export const executeAvaShell = (
       .filter((entry) => !namePattern || namePattern.test(baseName(entry.path)))
       .sort((left, right) => left.path.localeCompare(right.path))
       .slice(0, MAX_OUTPUT_LINES);
-    const blocked = allDirectories(state)
+    const blocked = allDirectories(state, shell)
       .filter(
         (directory) =>
           directory.denied &&

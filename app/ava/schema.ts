@@ -205,6 +205,7 @@ export type AvaShellCommandName =
   | "CD"
   | "LS"
   | "CAT"
+  | "OPEN"
   | "GREP"
   | "FIND"
   | "HELP"
@@ -234,6 +235,7 @@ export type AvaShellSession = {
   cwd: string;
   history: string[];
   files: AvaVirtualFile[];
+  darkNetUnlocked: boolean;
 };
 
 export type AvaActionRef =
@@ -411,6 +413,7 @@ export type AvaCompilerContext = {
   selected?: AvaEntity | null;
   discourse?: AvaDiscourseState;
   openApplet?: string | null;
+  shellFileReferences?: string[];
 };
 
 export type AvaCommandHelp = {

@@ -14,6 +14,7 @@ type StoredArchive = {
   campaignId: string;
   cwd: string;
   files: StoredVirtualFile[];
+  darkNetUnlocked?: boolean;
 };
 let archiveWriteQueue: Promise<void> = Promise.resolve();
 
@@ -81,6 +82,7 @@ const writeAvaShellArchive = async (
     runToken,
     campaignId,
     cwd: shell.cwd,
+    darkNetUnlocked: shell.darkNetUnlocked,
     files: shell.files.map((file) => ({
       ...file,
       workbookBytes: file.workbookBytes

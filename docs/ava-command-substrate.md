@@ -25,3 +25,22 @@ Read commands may accept broad aliases. Commands that mutate state fail closed. 
 Ava records only compiled intent, execution/clarification/rejection outcome, failure class, matched grammar rule, current module, token count, and unresolved-token count. Raw player commands are displayed in the current browser session but are not transmitted or stored by telemetry.
 
 The compiler exports a versioned instruction schema and a pure compilation function. Regression examples cover natural aliases, ambiguity, missing targets, comparisons, and fail-closed mutations.
+
+## Sealed filesystem and completion
+
+The command input is both Ava's natural-language channel and a sealed shell.
+Tab completion draws from the compiled utterance corpus, shell commands,
+accessible directories, and live virtual files. Full paths, filenames, and
+unique extensionless stems resolve to the same file. Text files open inline;
+workbook files download as genuine Excel packages.
+
+Dark Net is an unlockable read-only mount at `/darknet`. Its campaign archive
+contains the complete authored registry rather than only the current docket:
+15 Main situation records, 288 Domestic/Network scene variants, and 100 targets
+of opportunity. The state-bound daily docket remains separately available as
+`/darknet/campaign/current.txt`. Once mounted, ordinary `ls`, `cd`, `cat`,
+`open`, `find`, and literal `grep` operate over the archive. A one-argument
+`grep` inside Dark Net defaults to a recursive search of the current directory.
+Reading quotation content through `cat`, `open`, direct Tor access, or matching
+content with `grep` records the same account-persistent view event as a
+quotation encountered in the ordinary interface.

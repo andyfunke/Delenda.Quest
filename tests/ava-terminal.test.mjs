@@ -398,7 +398,7 @@ test("the sealed Ava shell navigates a realistic fake filesystem and denies prot
   assert.equal(cleared.text,"");
 });
 
-test("Dark Net exposes aggregate telemetry and the authoritative docket without issuing anything",()=>{
+test("Dark Net mounts the complete campaign corpus and preserves the current docket separately",()=>{
   const state=newState(1);
   const telemetry={
     asOf:Date.UTC(2026,6,23),
@@ -419,20 +419,41 @@ test("Dark Net exposes aggregate telemetry and the authoritative docket without 
   assert.deepEqual(opened.state,state);
   assert.equal(opened.executed,false);
   assert.match(opened.text,/DARK NET \/\/ RELAY ESTABLISHED/);
-  assert.match(opened.text,/PAGE VIEW: 1,200/);
-  assert.match(opened.text,/VICTORY: 12 CAMPAIGNS/);
+  assert.match(opened.text,/403 CAMPAIGN RECORDS \/\/ 1139 RESPONSE PATHS/);
+  assert.equal(opened.session.shell.cwd,"/darknet");
+  assert.equal(opened.session.shell.darkNetUnlocked,true);
   assert.doesNotMatch(opened.text,/email|friend@example|raw prompt/i);
 
-  const campaign=run("access darknet campaign",state,opened.session);
+  const telemetryResult=run(
+    "tor telemetry",
+    state,
+    opened.session,
+    0,
+    {telemetry,seenAphorismIds:[]},
+  );
+  assert.match(telemetryResult.text,/PAGE VIEW: 1,200/);
+  assert.match(telemetryResult.text,/VICTORY: 12 CAMPAIGNS/);
+
+  const campaign=run("access darknet campaign",state,telemetryResult.session);
+  assert.match(campaign.text,/COMPLETE CAMPAIGN REGISTRY \/\/ 403 RECORDS \/\/ 1139 RESPONSE PATHS/);
+  assert.match(campaign.text,/288 DOMESTIC \+ NETWORK VARIANTS/);
+  assert.match(campaign.text,/100 TARGETS OF OPPORTUNITY/);
+  assert.equal(campaign.session.shell.cwd,"/darknet/campaign");
+
+  const grep=run("grep -ir authentication .",state,campaign.session);
+  assert.match(grep.text,/\/darknet\/campaign\/network\//);
+  assert.ok(grep.text.split("\n").length>100);
+
+  const current=run("tor campaign current",state,grep.session);
   const expected=runtime.enumerateAvaActions(state).filter(
     item=>item.domain!==undefined||item.kind==="opportunity-response",
   );
-  assert.match(campaign.text,new RegExp(`${expected.length} OPTIONS`));
-  for(const option of expected)assert.match(campaign.text,new RegExp(`\\[${option.handle}\\]`));
-  assert.equal(campaign.session.plan.length,0);
-  assert.equal(campaign.session.confirmation,null);
-  assert.deepEqual(campaign.state,state);
-  assert.match(campaign.text,/No order can be staged, issued, or confirmed through this surface/);
+  assert.match(current.text,new RegExp(`${expected.length} OPTIONS`));
+  for(const option of expected)assert.match(current.text,new RegExp(`\\[${option.handle}\\]`));
+  assert.equal(current.session.plan.length,0);
+  assert.equal(current.session.confirmation,null);
+  assert.deepEqual(current.state,state);
+  assert.match(current.text,/No order can be staged, issued, or confirmed through this surface/);
 });
 
 test("Dark Net quotation index is free but opening a record consumes exactly one unseen entry",()=>{
@@ -442,17 +463,76 @@ test("Dark Net quotation index is free but opening a record consumes exactly one
   assert.match(index.text,/Q001 \[UNSEEN\]/);
   assert.match(index.text,/Q002 \[VIEWED\]/);
   assert.doesNotMatch(index.text,/A commander who spends his reserve early/);
-  assert.equal(index.aphorismViewId,undefined);
+  assert.equal(index.aphorismViewIds,undefined);
 
   const first=run("tor quote Q001",state,index.session,0,{seenAphorismIds:["Q002"]});
-  assert.equal(first.aphorismViewId,"Q001");
+  assert.deepEqual(first.aphorismViewIds,["Q001"]);
   assert.match(first.text,/A commander who spends his reserve early/);
   assert.match(first.text,/125 → 124 UNSEEN/);
   assert.deepEqual(first.state,state);
 
   const repeated=run("dark net Q001",state,first.session,0,{seenAphorismIds:["Q001","Q002"]});
-  assert.equal(repeated.aphorismViewId,"Q001");
+  assert.deepEqual(repeated.aphorismViewIds,["Q001"]);
   assert.match(repeated.text,/ALREADY VIEWED \/\/ 124 UNSEEN REMAIN/);
+
+  const grepped=run(
+    "grep reserve",
+    state,
+    first.session,
+    0,
+    {seenAphorismIds:["Q002"]},
+  );
+  assert.ok(grepped.aphorismViewIds?.length);
+  assert.match(grepped.text,/\/darknet\/quotes\/Q\d{3}\.txt:/);
+});
+
+test("bare filenames, shorthand stems, and Tab completion resolve through the live virtual filesystem",()=>{
+  const state=newState(1);
+  const session=newSession();
+  const references=terminal.avaShellFileReferences(state,session.shell);
+  const context={
+    currentModule:"campaign",
+    entities:contextModule.avaEntitiesForState(state,0),
+    shellFileReferences:references,
+  };
+  const bare=compiler.compileAvaCommand("operations",context);
+  assert.equal(bare.status,"compiled");
+  assert.equal(bare.instruction.kind,"SHELL");
+  assert.equal(bare.instruction.shell.command,"OPEN");
+  const opened=terminal.runAvaInstruction(
+    state,
+    session,
+    bare.instruction,
+    0,
+    bare.semantic,
+    bare.trace,
+  );
+  assert.equal(opened.download?.filename,"operations.xlsx");
+
+  const explicit=compiler.compileAvaCommand(
+    "reports/current/operations.txt",
+    context,
+  );
+  assert.equal(explicit.status,"compiled");
+  assert.equal(explicit.instruction.kind,"SHELL");
+  const text=terminal.runAvaInstruction(
+    state,
+    session,
+    explicit.instruction,
+    0,
+    explicit.semantic,
+    explicit.trace,
+  );
+  assert.match(text.text,/OPERATIONS|Operational/i);
+
+  const shellCompletion=terminal.completeAvaInput("cd rep",state,session.shell);
+  assert.match(shellCompletion.value,/^cd reports/);
+  const naturalCompletion=terminal.completeAvaInput(
+    "advise me on the sec",
+    state,
+    session.shell,
+  );
+  assert.match(naturalCompletion.value,/^advise me on the secondary/i);
 });
 
 test("Ava report workbooks are real downloadable xlsx files with formulas preserved in cells",()=>{

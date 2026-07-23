@@ -50,6 +50,9 @@ import type {
   AvaSemanticQuery,
 } from "./schema";
 
+export { completeAvaInput } from "./completion";
+export { avaShellFileReferences } from "./filesystem";
+
 export type AvaDetail = "glance" | "standard" | "deep";
 export type AvaTerminalSession = {
   plan: AvaActionRef[];
@@ -70,7 +73,7 @@ export type AvaTerminalResult = {
   rejection?: string;
   outputKind?: "ava" | "shell";
   clearScreen?: boolean;
-  aphorismViewId?: string;
+  aphorismViewIds?: string[];
   download?: {
     virtualPath: string;
     filename: string;
@@ -552,7 +555,7 @@ function executeAvaInstruction(
     return finalize(state, next, shellResult.text, {
       outputKind: "shell",
       clearScreen: shellResult.clearScreen,
-      aphorismViewId: shellResult.aphorismViewId,
+      aphorismViewIds: shellResult.aphorismViewIds,
       download,
     });
   }

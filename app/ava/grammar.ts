@@ -39,6 +39,7 @@ const shellNames = new Set([
   "cd",
   "ls",
   "cat",
+  "open",
   "grep",
   "find",
   "whoami",
@@ -143,11 +144,13 @@ const shellArgumentError = (
     return !args.length || args.some((arg) => arg.startsWith("-"))
       ? "cat: expected one or more file paths"
       : null;
+  if (command === "open")
+    return args.length === 1 ? null : "open: expected one file";
   if (command === "grep") {
     if (args.some((arg) => arg.startsWith("-") && !/^-[inr]+$/.test(arg)))
       return "grep: unsupported flag";
-    return args.filter((arg) => !arg.startsWith("-")).length < 2
-      ? "grep: expected PATTERN and PATH"
+    return args.filter((arg) => !arg.startsWith("-")).length < 1
+      ? "grep: expected PATTERN [PATH]"
       : null;
   }
   if (command === "find") {
@@ -179,6 +182,7 @@ const shellArgumentError = (
 
 export const parseAvaShellInput = (
   raw: string,
+  availableFileReferences: string[] = [],
 ): AvaShellInstruction | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -218,7 +222,27 @@ export const parseAvaShellInput = (
   if (command === "help") {
     if (tokens.length < 2 || !shellNames.has(tokens[1].toLowerCase()))
       return null;
-  } else if (!shellNames.has(command)) return null;
+  } else if (!shellNames.has(command)) {
+    if (
+      tokens.length === 1 &&
+      availableFileReferences.some(
+        (reference) => reference.toLowerCase() === tokens[0].toLowerCase(),
+      )
+    )
+      return {
+        command: "OPEN",
+        args: [tokens[0]],
+        raw: trimmed,
+      };
+    return null;
+  }
+  if (
+    command === "open" &&
+    /^(?:dashboard|campaign|production|national|military|diplomacy|doctrine|account|wiki)$/i.test(
+      tokens[1] ?? "",
+    )
+  )
+    return null;
   if (
     command === "find" &&
     tokens.length > 1 &&
@@ -382,6 +406,14 @@ export const AVA_UTTERANCE_COVERAGE = {
     criteria: criterionSuffixes.length,
   },
 };
+
+export const AVA_AUTOCOMPLETE_UTTERANCES = [
+  ...new Set(
+    [...generatedIndex.values()].flatMap((entries) =>
+      entries.map((entry) => entry.normalized),
+    ),
+  ),
+].sort((left, right) => left.localeCompare(right));
 
 export type AvaCorpusExpectation = {
   id: string;
