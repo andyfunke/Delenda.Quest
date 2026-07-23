@@ -12026,34 +12026,28 @@ small,
   }
 }
 
-/* Command Windows consume the Alt UX directive surface verbatim.
-   Reports belong to Ava; these modules contain only decision context. */
-.command-directive-shell {
-  --b-bg: #0c0e0d;
-  --b-panel: #131614;
-  --b-line: #2a302b;
-  --b-ink: #d8ddd4;
-  --b-dim: #8b9188;
-  --b-faint: #565c54;
-  --b-amber: #e0a458;
-  --b-red: #c9524a;
-  --b-green: #7ba05b;
-  --b-cyan: #6fb3b8;
-  background: var(--b-bg);
-  border: 1px solid var(--b-line);
-  color: var(--b-ink);
-  font: 14px/1.5 var(--mono);
-  min-height: 720px;
-  padding: 0 36px;
+/* Command Windows keep the established paper interface while sharing the
+   Alt UX information boundary: decisions here, reporting through Ava. */
+.desktop-module .menu-choice-list.expanded li.gain {
+  color: var(--good);
+  font-weight: 900;
 }
-
-.command-directive-shell > .modern-surface {
-  margin: 0 auto;
-  max-width: 1060px;
+.desktop-module .menu-choice-list.expanded li.loss,
+.desktop-module .directive-risk b:not(.neutral) {
+  color: var(--bad);
+  font-weight: 900;
 }
-
-@media (max-width: 700px) {
-  .command-directive-shell {
-    padding: 0 16px;
-  }
+.desktop-module .menu-choice-list.expanded li.neutral,
+.desktop-module .directive-risk b.neutral {
+  color: #555;
+}
+.desktop-module .menu-choice-list.expanded > button {
+  grid-template-columns:
+    minmax(180px, 0.9fr)
+    minmax(220px, 1.15fr)
+    minmax(170px, 0.85fr)
+    70px;
+}
+.desktop-module .directive-risk b + b {
+  margin-top: 0;
 }

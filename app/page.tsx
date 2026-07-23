@@ -51,8 +51,6 @@ import {
   replacementReserveForProjection,
 } from "./concepts";
 import { OperationsPacket } from "./OperationsPacket";
-import { DomesticStatePanel } from "./DomesticStatePanel";
-import { DiplomacyPanel } from "./DiplomacyPanel";
 import { CampaignSetup } from "./CampaignSetup";
 import { AccountPage } from "./AccountPage";
 import { AdminPage } from "./AdminPage";
@@ -83,7 +81,7 @@ import {
   recordPageView,
   submitCampaignRecord,
 } from "./telemetry";
-import { BriefingInterface, DirectiveSurface } from "./BriefingInterface";
+import { BriefingInterface } from "./BriefingInterface";
 import {
   compileConvergence,
   convergenceFrontIssued,
@@ -119,6 +117,21 @@ const resourceLabel: Record<Resource, string> = {
 };
 const moduleName = (module: Module) =>
   module === "national" ? "PRODUCTION" : module.toUpperCase();
+const directiveEffectTone = (line: string) => {
+  if (
+    /(?:^|\s)\+\s*\d|↑|\b(?:increase|gain|restore|improve|add|recover)\b/i.test(
+      line,
+    )
+  )
+    return "gain";
+  if (
+    /(?:^|\s)[−-]\s*\d|↓|\b(?:decrease|loss|cost|spend|consume|reduce)\b/i.test(
+      line,
+    )
+  )
+    return "loss";
+  return "neutral";
+};
 type Metric =
   | "population"
   | "armed"
@@ -1936,7 +1949,7 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
   );
 }
 
-function LegacyModulePage({
+function ModulePage({
   page,
   s,
   issue,
@@ -1981,21 +1994,21 @@ function LegacyModulePage({
   const [previewChoice, setPreviewChoice] = useState<Choice | null>(null);
   const [selectedActor, setSelectedActor] = useState(s.actors[0]?.id ?? "");
   const selectedFamily = families.find((f) => f.id === selected) ?? families[0];
-  const personnel = estimateDay(s);
   useEffect(() => {
     if (focus && FAMILIES.some((f) => f.module === page && f.id === focus))
       setSelected(focus);
   }, [focus, page]);
   useEffect(() => setPreviewChoice(null), [selected, page, s.day]);
-  const locked = selectedFamily
-    ? Math.max(0, (s.locks[selectedFamily.id] ?? 0) - s.day)
-    : 0;
   const previewRejection =
     selectedFamily && previewChoice
       ? directiveRejection(s, selectedFamily, previewChoice)
       : null;
   return (
-    <div className="module desktop-module" data-module={moduleName(page)}>
+    <div
+      className="module desktop-module"
+      data-module={moduleName(page)}
+      data-report-owner="ava"
+    >
       <header>
         <Epigraph quote={epigraph.quote} source={epigraph.source} />
         <span className="eyebrow">{desc[0]}</span>
@@ -2009,30 +2022,6 @@ function LegacyModulePage({
             {moduleName(page)} // DAY {s.day}
           </b>
         </div>
-        {page !== "military" && (
-          <section className="module-report">
-            <div>
-              <small>DAY</small>
-              <b>{s.day}</b>
-            </div>
-            <div>
-              <small>ORDERS AVAILABLE</small>
-              <b>
-                {s.actions} / {DAILY_ORDERS}
-              </b>
-            </div>
-            <div>
-              <small>ISSUE FAMILY</small>
-              <b>{selectedFamily?.label ?? "NONE"}</b>
-            </div>
-            <div>
-              <small>COOLDOWN</small>
-              <b>
-                {locked ? `${locked} DAY${locked === 1 ? "" : "S"}` : "READY"}
-              </b>
-            </div>
-          </section>
-        )}
         <div
           className={`os-layout ${page === "diplomacy" ? "diplomacy-menu-layout" : ""}`}
         >
@@ -2057,7 +2046,8 @@ function LegacyModulePage({
                       <b>{actor.name}</b>
                       <small>
                         {actor.role.toUpperCase()} // TRUST{" "}
-                        {actor.trust.toFixed(0)}
+                        {actor.trust.toFixed(0)} // LEVERAGE{" "}
+                        {actor.leverage.toFixed(0)}
                       </small>
                     </button>
                   ))}
@@ -2133,86 +2123,6 @@ function LegacyModulePage({
               </div>
               <h2>{selectedFamily.label}</h2>
               <p>{selectedFamily.brief}</p>
-              {page === "national" &&
-                selectedFamily.category !== "Home Front" && (
-                  <ProductionCircuit s={s} />
-                )}{" "}
-              {page === "national" &&
-                selectedFamily.category === "Home Front" && (
-                  <DomesticStatePanel s={s} />
-                )}{" "}
-              {page === "diplomacy" && (
-                <DiplomacyPanel
-                  s={s}
-                  actorId={selectedActor}
-                  onActorChange={setSelectedActor}
-                  preview={
-                    previewChoice
-                      ? { family: selectedFamily, choice: previewChoice }
-                      : null
-                  }
-                />
-              )}{" "}
-              {page === "military" &&
-                (selectedFamily.category === "Force Generation" ||
-                  selectedFamily.category === "Training and Induction") && (
-                  <ForceGenerationCircuit s={s} />
-                )}{" "}
-              {selectedFamily.id === "desertion" && (
-                <section className="desertion-control">
-                  <div>
-                    <Term id="desertion-pressure">PRESSURE</Term>
-                    <b>{s.desertionPressure.toFixed(0)} / 100</b>
-                    <small>Generates attempted flight at resolution</small>
-                  </div>
-                  <div>
-                    <Term id="patrol-commitment">PATROL COMMITMENT</Term>
-                    <b>{fmt(s.patrolCommitment, true)}</b>
-                    <small>Removed from frontline employment</small>
-                  </div>
-                  <div>
-                    <Term id="net-flight">PROJECTED NET FLIGHT</Term>
-                    <b>−{fmt(personnel.netDesertion, true)}</b>
-                    <small>
-                      {fmt(personnel.desertion, true)} attempts −{" "}
-                      {fmt(personnel.retained, true)} retained −{" "}
-                      {fmt(personnel.intercepted, true)} intercepted
-                    </small>
-                  </div>
-                  <div>
-                    <Term id="deployable-force">DEPLOYABLE AFTER FLIGHT</Term>
-                    <b>
-                      {fmt(
-                        Math.max(0, s.deployable - personnel.netDesertion),
-                        true,
-                      )}
-                    </b>
-                    <small>
-                      Current {fmt(s.deployable, true)} // before combat losses
-                    </small>
-                  </div>
-                </section>
-              )}
-              {page !== "diplomacy" && (
-                <dl>
-                  <div>
-                    <dt>DIRECTIVES</dt>
-                    <dd>{selectedFamily.choices.length}</dd>
-                  </div>
-                  <div>
-                    <dt>ACTION COST</dt>
-                    <dd>1</dd>
-                  </div>
-                  <div>
-                    <dt>ROTATION</dt>
-                    <dd>{selectedFamily.lock} DAYS</dd>
-                  </div>
-                  <div>
-                    <dt>INACTION</dt>
-                    <dd>STANDING POLICY CONTINUES</dd>
-                  </div>
-                </dl>
-              )}
               <div className="menu-choice-list expanded single-surface">
                 {selectedFamily.choices.map((c) => {
                   const rejection = directiveRejection(s, selectedFamily, c);
@@ -2229,27 +2139,22 @@ function LegacyModulePage({
                       <div className="directive-glance">
                         <h3>{c.label}</h3>
                         <p>{c.flavor}</p>
-                        <span>
-                          {rejection
-                            ? rejection.toUpperCase()
-                            : c.doctrine
-                              ? "HAZARDOUS // INSIGHT ELIGIBLE ON WIN"
-                              : "ROUTINE DIRECTIVE"}
-                        </span>
+                        {rejection && <span>{rejection.toUpperCase()}</span>}
                       </div>
                       <ul>
                         {c.exact.map((x) => (
-                          <li key={x}>{x}</li>
+                          <li className={directiveEffectTone(x)} key={x}>
+                            {x}
+                          </li>
                         ))}
                       </ul>
                       <div className="directive-risk">
-                        <small>CONTINGENT</small>
-                        <b>{c.risk[0] ?? "NO CONTINGENT EFFECT"}</b>
-                        <em>
-                          {page === "diplomacy"
-                            ? `ACTIVE ${c.duration ?? "MULTI"} DAYS // STACKABLE`
-                            : `${selectedFamily.lock}D ROTATION`}
-                        </em>
+                        <small>TRADEOFF</small>
+                        {c.risk.length ? (
+                          c.risk.map((risk) => <b key={risk}>{risk}</b>)
+                        ) : (
+                          <b className="neutral">NO CONTINGENT EFFECT</b>
+                        )}
                       </div>
                       <strong>
                         {previewChoice?.id === c.id ? "SELECTED" : "INSPECT"} →
@@ -2280,41 +2185,7 @@ function LegacyModulePage({
             </article>
           )}
         </div>
-        <footer className="os-status">
-          {families.length} ISSUE FAMILIES // {s.actions} ORDERS AVAILABLE //
-          SELECT AND ISSUE IN THIS PANEL
-        </footer>
       </section>
-    </div>
-  );
-}
-
-function ModulePage({
-  page,
-  s,
-  issue,
-  focus,
-}: {
-  page: Exclude<
-    Module,
-    "dashboard" | "campaign" | "doctrine" | "wiki" | "account"
-  >;
-  s: GameState;
-  issue: (f: Family, c: Choice) => void;
-  focus?: string;
-}) {
-  return (
-    <div
-      className="command-directive-shell"
-      data-module={moduleName(page)}
-      data-report-owner="ava"
-    >
-      <DirectiveSurface
-        s={s}
-        module={page}
-        focusFamilyId={focus}
-        issue={issue}
-      />
     </div>
   );
 }
