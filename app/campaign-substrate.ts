@@ -4,6 +4,21 @@ export type OutcomeBand = "clean" | "executed" | "disrupted" | "collapse";
 export type ProblemClass = "force-preservation" | "logistics" | "command" | "assault" | "crossing" | "exploitation" | "counterstroke" | "observation";
 export type TargetSelector = "fixed" | "highest-pressure" | "lowest-supply" | "weakest-network" | "most-damaged" | "frontline";
 
+const OPERATIONAL_OBJECTIVES: Record<ProblemClass, string> = {
+  "force-preservation": "PRESERVE THE FORCE",
+  logistics: "RESTORE THE SUPPLY LINE",
+  command: "RESTORE COMMAND",
+  assault: "BREAK THE POSITION",
+  crossing: "FORCE THE CROSSING",
+  exploitation: "EXPLOIT THE OPENING",
+  counterstroke: "ARREST THE COUNTERSTROKE",
+  observation: "CLASSIFY THE ENEMY",
+};
+
+export const operationalObjectiveForProblemClass = (problem: string) =>
+  OPERATIONAL_OBJECTIVES[problem as ProblemClass] ??
+  "RESOLVE THE OPERATIONAL PROBLEM";
+
 export type SituationTemplate = {
   id:string; sector:string; headline:string; briefing:string; question:string; theater:Theater;
   terrain:string; ground:string; network:string; supply:string; intelligence:string;

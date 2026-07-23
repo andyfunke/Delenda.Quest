@@ -1488,7 +1488,6 @@ function Dashboard({
         <section className="command-geometry">
           <Heading
             title={`${s.theater.toUpperCase()} Theater Geometry`}
-            note="Live tactical state // shared with Alt UX"
           />
           <TheaterGeometry s={s} variant="command" />
         </section>

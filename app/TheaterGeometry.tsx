@@ -3,15 +3,9 @@
 import {
   maneuverById,
   projectOperations,
-  regulatedPathwayForState,
   situationForState,
   type GameState,
-  type Maneuver,
 } from "./game";
-import {
-  campaignBalanceProfile,
-  finishByDayProbability,
-} from "./campaign-balance";
 
 type Props = { s: GameState; variant?: "briefing" | "command" };
 type Point = readonly [number, number];
@@ -85,8 +79,6 @@ export type TheaterGeometryModel = {
   routeY: number;
   relayMission: boolean;
   routeBroken: boolean;
-  advantageManeuverId: string | null;
-  balance: ReturnType<typeof campaignBalanceProfile>;
 };
 
 const primitiveFor = (terrain: string): Primitive => {
@@ -197,12 +189,6 @@ export const compileTheaterGeometry = (
     [activeCenterX + 20, 150],
     [activeCenterX, 130],
   ];
-  const docket = situation.maneuvers
-    .map((id) => maneuverById(id))
-    .filter((item): item is Maneuver => !!item);
-  const advantageManeuverId =
-    docket.find((item) => regulatedPathwayForState(state, item) === "advantage")
-      ?.id ?? null;
   const activeFacts = state.operationalFacts.filter(
     (fact) =>
       fact.visible &&
@@ -269,8 +255,6 @@ export const compileTheaterGeometry = (
     routeY,
     relayMission,
     routeBroken,
-    advantageManeuverId,
-    balance: campaignBalanceProfile(state.campaignSeed),
   };
 };
 
@@ -300,7 +284,6 @@ export function TheaterGeometry({
     s.theaterSectors.find((item) => item.id === situation.sectorId) ??
     s.theaterSectors[0];
   const geometry = compileTheaterGeometry(s);
-  const rarityAt15 = finishByDayProbability(15) * 100;
   return (
     <div
       className={`theater-plate briefing-plate ${variant} posture-${geometry.posture}`}
@@ -390,67 +373,12 @@ export function TheaterGeometry({
           </g>
         )}
         <text className="enemy-label" x="575" y="45">
-          {geometry.relayMission ? "RELAY OBJECTIVE" : "ENEMY FIRES"}
+          {geometry.relayMission ? "RELAY OBJECTIVE" : "ENEMY POSITION"}
         </text>
-        <g className="path-surfaces" aria-label="Regulated campaign pathway surface">
-          {situation.maneuvers.map((id, index) => (
-            <g
-              key={id}
-              className={id === geometry.advantageManeuverId ? "advantage" : "loss-exposure"}
-            >
-              <rect x={430 + index * 70} y="205" width="60" height="10" />
-              <text x={460 + index * 70} y="228">
-                {id.toUpperCase()}
-              </text>
-            </g>
-          ))}
-        </g>
         <text className="caption" x="24" y="232">
-          {situation.sector.toUpperCase()} // {geometry.dispatch} // FRONT{" "}
-          {s.front >= 0 ? "+" : ""}
-          {s.front.toFixed(1)} KM
-        </text>
-        <text className="subcaption" x="24" y="246">
-          {situation.terrain.toUpperCase()} // {situation.ground.toUpperCase()} //
-          COMMITTED {geometry.committed.toLocaleString()} / FRONTAGE{" "}
-          {geometry.frontageDemand.toLocaleString()} // SURFACE{" "}
-          {geometry.committedSurfacePercent.toFixed(0)}%
+          {situation.sector.toUpperCase()}
         </text>
       </svg>
-      <div className="briefing-map-legend">
-        <span>
-          <i className="friendly" />
-          FRIENDLY / FORCE SURFACE
-        </span>
-        <span>
-          <i className="salient" />
-          ACTIVE FRONTAGE
-        </span>
-        <span>
-          <i className="enemy" />
-          ENEMY PRESSURE
-        </span>
-        <span>
-          <i className="advantage" />
-          33% ADVANTAGE PATH SURFACE
-        </span>
-        <span>
-          <i className="loss-exposure" />
-          67% LOSS-EXPOSURE SURFACE
-        </span>
-      </div>
-      <div className="geometry-calculus">
-        <span>
-          DESIGN HORIZON // DAY {geometry.balance.designHorizonDay}
-        </span>
-        <span>
-          INERT COMMAND COLLAPSE // DAY {geometry.balance.inertDefeatDay}
-        </span>
-        <span>
-          ≤15-DAY GENERATED HORIZON // {rarityAt15.toFixed(6)}%
-        </span>
-        <span>ANGLE CONTRACT // 45° / 90°</span>
-      </div>
     </div>
   );
 }

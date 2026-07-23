@@ -43,6 +43,8 @@ test("campaign UI keeps one deferred report and consistent order language", asyn
   assert.doesNotMatch(page,/ISSUE OPERATIONAL ORDER|SHOW FULL CALCULATION|SHOW PRESSURE CALCULUS/i);
   assert.match(packet,/label="ENEMY DEPLOYED"/);
   assert.match(packet,/label="EFFECTIVE FORCE RATIO"/);
+  assert.match(packet,/operationalObjectiveForProblemClass\(situation\.problemClass\)/);
+  assert.doesNotMatch(packet,/situation\.problemClass\.replaceAll/);
   assert.match(packet,/label:"FRONTAGE"/);
   assert.doesNotMatch(packet,/label="FRONTAGE"/);
   assert.doesNotMatch(packet,/AUTHORIZED MANEUVERS|CONNECTED SYSTEMS/);
@@ -97,7 +99,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   for(const domain of ["PRIMARY · MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
-  assert.match(briefing,/REFERENCE TACTICAL PLATE/);
+  assert.doesNotMatch(briefing,/REFERENCE TACTICAL PLATE/);
   assert.match(convergence,/CONVERGENCE_MATRIX_VERSION=SUB_MISSION_SCHEMA_VERSION/);
   assert.match(briefing,/TheaterGeometry/);
   assert.doesNotMatch(briefing,/openModule/);
@@ -218,12 +220,11 @@ test("the theater plate compiles deterministic 45/90 geometry and preserves the 
   assert.match(map,/enemy-formation-arrow/);
   assert.match(map,/posture-\$\{geometry\.posture\}/);
   assert.match(map,/>\s*18th\s*</);
-  assert.match(map,/ACTIVE FRONTAGE/);
-  assert.match(map,/FRIENDLY \/ FORCE SURFACE/);
-  assert.match(map,/ENEMY PRESSURE/);
-  assert.match(map,/33% ADVANTAGE PATH SURFACE/);
-  assert.match(map,/67% LOSS-EXPOSURE SURFACE/);
-  assert.match(map,/DESIGN HORIZON/);
+  assert.match(map,/ENEMY POSITION/);
+  assert.doesNotMatch(map,/ENEMY FIRES|ACTIVE FRONTAGE|FRIENDLY \/ FORCE SURFACE|ENEMY PRESSURE/);
+  assert.doesNotMatch(map,/ADVANTAGE PATH SURFACE|LOSS-EXPOSURE SURFACE|DESIGN HORIZON|INERT COMMAND COLLAPSE|GENERATED HORIZON|ANGLE CONTRACT/);
+  assert.doesNotMatch(map,/COMMITTED \{|FRONTAGE \{|SURFACE \{/);
+  assert.doesNotMatch(map,/className="briefing-map-legend"|className="geometry-calculus"|className="path-surfaces"/);
   assert.match(page,/<small>Stockpile<\/small>/);assert.match(briefing,/STOCKPILE/);
   assert.doesNotMatch(page,/Net expenditure/i);
 });

@@ -33,6 +33,7 @@ import {
 } from "./convergence";
 import { FieldManual } from "./FieldManual";
 import { TheaterGeometry } from "./TheaterGeometry";
+import { operationalObjectiveForProblemClass } from "./campaign-substrate";
 import {
   MODULE_EPIGRAPHS,
   type ModuleEpigraphKey,
@@ -195,7 +196,7 @@ function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
         <b>{prompt.question}</b>
         <span>
           OPERATIONAL ANCHOR // {prompt.operationalAnchor.sector.toUpperCase()}{" "}
-          // {prompt.operationalAnchor.problemClass.toUpperCase()}
+          // {operationalObjectiveForProblemClass(prompt.operationalAnchor.problemClass)}
         </span>
       </div>
       <div className="maneuver-contract">
@@ -249,7 +250,7 @@ function SecondaryFrontLedger({
       </header>
       <dl>
         <div><dt>SUBJECT</dt><dd>{prompt.title}</dd></div>
-        <div><dt>ORIENTATION</dt><dd>{prompt.operationalAnchor.sector} // {prompt.operationalAnchor.problemClass}</dd></div>
+        <div><dt>ORIENTATION</dt><dd>{prompt.operationalAnchor.sector} // {operationalObjectiveForProblemClass(prompt.operationalAnchor.problemClass)}</dd></div>
         <div><dt>PRESSURE</dt><dd>{prompt.pressureBand.toUpperCase()}</dd></div>
         <div><dt>QUESTION</dt><dd>{prompt.question}</dd></div>
         <div><dt>FRONT EFFECT</dt><dd>{prompt.convergence.map((edge) => edge.summary).join(" ")}</dd></div>
@@ -348,7 +349,6 @@ function StateSurface({ s }: { s: GameState }) {
       <section className="briefing-block">
         <header>
           <h2>{s.theater.toUpperCase()} THEATER // SITUATION MAP</h2>
-          <span>REFERENCE TACTICAL PLATE // LIVE STATE</span>
         </header>
         <TheaterGeometry s={s} variant="briefing" />
       </section>
@@ -926,7 +926,6 @@ function DailySurface({
       <section className="briefing-block">
         <header>
           <h2>{s.theater.toUpperCase()} THEATER // SITUATION MAP</h2>
-          <span>REFERENCE TACTICAL PLATE // LIVE STATE</span>
         </header>
         <TheaterGeometry s={s} variant="briefing" />
       </section>

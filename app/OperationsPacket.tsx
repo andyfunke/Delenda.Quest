@@ -4,6 +4,7 @@ import type { GameState, Maneuver } from "./game";
 import { directorForState, explainManeuverChance, fmtStrategic, projectAdversary, projectOutcomeBands, situationForState } from "./game";
 import { CONCEPTS } from "./concepts";
 import { Bubblette, type BubbletteDetail } from "./Bubblette";
+import { operationalObjectiveForProblemClass } from "./campaign-substrate";
 
 type Detail=BubbletteDetail;
 
@@ -51,7 +52,7 @@ export function OperationsPacket({s,m}:{s:GameState;m:Maneuver}){
     <header><div><small>CAMPAIGN ESTIMATE // ONE AUTHORITATIVE REPORT</small><b>{situation.sector.toUpperCase()} // {m.label.toUpperCase()}</b></div><span>SELECT ANY FIELD TO TRACE ITS CAUSE</span></header>
     <section className="operations-brief">
       <div><small>ACTIVE OPERATIONAL PROBLEM</small><h3>{situation.headline}</h3><p>{situation.briefing}</p></div>
-      <Bubblette id={problemArticle} title="Campaign Synopsis" summary={situation.briefing} details={[{label:"DECISION",value:situation.question,conceptId:"campaign-synopsis"}]} control={{label:"Open Main Campaign",module:"campaign"}} className="operations-synopsis"><span>CAMPAIGN SYNOPSIS</span><b>{situation.problemClass.replaceAll("-"," ").toUpperCase()}</b><small>{situation.question}</small></Bubblette>
+      <Bubblette id={problemArticle} title="Campaign Synopsis" summary={situation.briefing} details={[{label:"DECISION",value:situation.question,conceptId:"campaign-synopsis"}]} control={{label:"Open Main Campaign",module:"campaign"}} className="operations-synopsis"><span>CAMPAIGN SYNOPSIS</span><b>{operationalObjectiveForProblemClass(situation.problemClass)}</b><small>{situation.question}</small></Bubblette>
     </section>
     <div className="operations-factors">{factorData.map(factor=><InspectCell key={factor.id} id={factor.id} label={factor.label} value={factor.value} note={`CONVERSION ×${factor.factor.toFixed(2)}`} details={factor.details}/>)}</div>
     <InspectCell id="enemy-orders" label="OBSERVED ENEMY INTENT" value={adversary.observedOrders[0]??"NO CURRENT ORDER CLASSIFIED"} note={adversary.hiddenOrders?`${adversary.hiddenOrders} of 3 orders remain unclassified`:"All three orders classified"} details={[{label:"OPERATIONS",value:adversary.observedOrders.find(order=>order.startsWith("OPERATIONS"))??"UNCLASSIFIED"},{label:"PRODUCTION",value:adversary.observedOrders.find(order=>order.startsWith("PRODUCTION"))??"UNCLASSIFIED"},{label:"COUNTERMEASURE",value:adversary.observedOrders.find(order=>order.startsWith("COUNTERMEASURE"))??"UNCLASSIFIED"},{label:"CLASSIFICATION RULE",value:"Intelligence below 35 reveals 1 order; 35 to 64 reveals 2; 65 or higher reveals all 3"}]} className="observed-intent"/>

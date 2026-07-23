@@ -1,6 +1,7 @@
 "use client";
 
 import { FACT_CATALOG, type GameState, situationForState } from "./game";
+import { operationalObjectiveForProblemClass } from "./campaign-substrate";
 
 const slug=(value:string)=>value.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const wiki=(id:string)=>`?wiki=${id}`;
@@ -16,7 +17,7 @@ export function CampaignSituationPanel({s,compact=false}:{s:GameState;compact?:b
   const bands=Object.entries(situation.bands);
   return <section className={`campaign-substrate ${compact?"compact":""}`}>
     <header>
-      <div><small>SEALED DAILY SITUATION</small><b>{situation.problemClass.replaceAll("-"," ").toUpperCase()} // {situation.sector.toUpperCase()}</b></div>
+      <div><small>SEALED DAILY SITUATION</small><b>{operationalObjectiveForProblemClass(situation.problemClass)} // {situation.sector.toUpperCase()}</b></div>
       <ManualLink id="campaign-situation-substrate" label={`PACK ${situation.contentPackVersion}`} detail="The rules engine that selects, stores, and resolves daily operational problems."/>
     </header>
     <div className="substrate-ledger">

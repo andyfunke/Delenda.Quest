@@ -7714,45 +7714,6 @@ small,
   stroke:#525a52;
   stroke-width:1;
 }
-.theater-plate .path-surfaces rect {
-  stroke-width:1;
-}
-.theater-plate .path-surfaces .advantage rect {
-  fill:rgba(123,160,91,.28);
-  stroke:var(--b-green);
-}
-.theater-plate .path-surfaces .loss-exposure rect {
-  fill:rgba(201,82,74,.2);
-  stroke:var(--b-red);
-}
-.theater-plate .path-surfaces text {
-  fill:#9ba198;
-  font-size:7px;
-}
-.theater-plate .briefing-map-legend i.advantage {
-  background:var(--b-green);
-}
-.theater-plate .briefing-map-legend i.loss-exposure {
-  background:var(--b-red);
-}
-.geometry-calculus {
-  border-top:1px solid #2a302b;
-  color:#858c83;
-  display:grid;
-  font:8px/1.4 var(--mono);
-  gap:6px;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  margin-top:10px;
-  padding-top:9px;
-}
-.geometry-calculus span {
-  border-right:1px solid #2a302b;
-  padding-right:6px;
-}
-@media (max-width:900px) {
-  .geometry-calculus {grid-template-columns:1fr 1fr}
-}
-
 /* Bubblette prose is primary information, never disabled-state gray. */
 .bubblette-panel > p,
 .bubblette-panel dt,
