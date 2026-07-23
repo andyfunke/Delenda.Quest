@@ -312,6 +312,28 @@ test("confirmation is rejected after authoritative state changes",()=>{
   assert.match(rejected.text,/CONFIRM REJECTED/);
 });
 
+test("advise, forecast, and compare share an explicit maneuver calculus",()=>{
+  const state=newState(1729);
+  const advice=run("what should I do",state);
+  assert.match(advice.text,/corridor viability = \(.+relay uptime × .+road throughput\) ÷ .+enemy fires/i);
+  assert.match(advice.text,/sustainment floor/i);
+  assert.match(advice.text,/replacement balance/i);
+  assert.match(advice.text,/outcome envelope/i);
+  assert.match(advice.text,/rules fired/i);
+  assert.match(advice.text,/DERIVATIVE RECOMMENDATION/i);
+
+  const forecast=run("forecast M1",state);
+  assert.match(forecast.text,/corridor viability =/i);
+  assert.match(forecast.text,/sustainment:/i);
+  assert.match(forecast.text,/principal uncertainty/i);
+  assert.match(forecast.text,/outcome envelope/i);
+
+  const comparison=run("compare M1 M2",state);
+  assert.match(comparison.text,/SHARED DECISION CALCULUS/i);
+  assert.match(comparison.text,/rules fired/i);
+  assert.match(comparison.text,/SUSTAINMENT/i);
+});
+
 test("a complete campaign can be prosecuted through Ava text alone",()=>{
   let state=newState(90210),session=newSession(),resolutions=0;
   while(state.status==="active"&&resolutions<35){

@@ -41,7 +41,11 @@ export type OpportunityPacket = OpportunityTemplate & {
 export type OpportunityCommitment = { day:number; opportunityId:string; responseId:string };
 export type OpportunityHistoryRecord = {
   day:number; opportunityId:string; responseId:string; label:string; response:string;
-  outcome:"exploited"|"missed"; report:string; friendlyPressure?:number; category?:OpportunityCategory;
+  outcome:"exploited"|"missed"|"expired"; report:string; friendlyPressure?:number; category?:OpportunityCategory;
+};
+export type OpportunityAssignment = {
+  campaignId:string; day:number; opportunityId:string; occurrence:number;
+  status:"opened"|"acted"|"expired"; openedAt:number; updatedAt:number;
 };
 export type ActiveDiplomacyAction = { familyId:string; choiceId:string; startedDay:number; expiresDay:number };
 
@@ -78,6 +82,7 @@ export type GameState = {
   unlocked: string[]; decisions: { day: number; family: string; choice: string; familyId?:string; choiceId?:string; domain?:SubMissionDomain; missionId?:string; resolutionTicket?:string }[];
   eventHistory:{day:number;phase:string;event:string;eventId:string;trigger:string}[];
   opportunityCommitment:OpportunityCommitment|null; opportunityHistory:OpportunityHistoryRecord[];
+  opportunityAssignments:OpportunityAssignment[]; accountOpportunityIds:string[];
   theaterSectors:TheaterSector[]; operationalFacts:OperationalFact[]; situationHistory:SituationHistoryRecord[]; currentSituation:CompiledSituation|null;
   currentSubMissions:DailySubMissionDocket|null;subMissionHistory:SubMissionHistoryRecord[];resolutionHistory:DailyResolutionRecord[];
   reports: { day: number; title: string; body: string; tone: Tone; epigraph?: string }[];
@@ -438,7 +443,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     ],
     adversary:{force:590000,readiness:61,equipment:68,munitions:138000,munitionsOutput:16800,munitionsUse:19200,doctrine:0,objective:"Unclassified",posture:"Methodical Pressure",productionTarget:"Replacement Equipment",countermeasure:"Seed False Dispositions",maneuverCounts:{},adaptation:{},lastOrders:[],estimateBias:1},adversaryLedger:null,
     production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
-    active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],
+    active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],opportunityAssignments:[],accountOpportunityIds:[],
     theaterSectors:initialTheaterSectors(config.theater),operationalFacts:initialOperationalFacts(config.theater),situationHistory:[],currentSituation:null,
     currentSubMissions:null,subMissionHistory:[],resolutionHistory:[],reports: [],
   };
@@ -584,12 +589,36 @@ const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>has
 export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
   if(!opportunityOccurs(state.campaignSeed,state.day))return null;
   let occurrence=0;for(let day=1;day<state.day;day+=1)if(opportunityOccurs(state.campaignSeed,day))occurrence+=1;
-  const deck=opportunityOrder(state.campaignSeed);const template=deck[occurrence%deck.length];if(!template)return null;
+  const assignment=(state.opportunityAssignments??[]).find(item=>item.campaignId===state.campaignId&&item.day===state.day);
+  const fullDeck=opportunityOrder(state.campaignSeed);
+  const remaining=fullDeck.filter(item=>!(state.accountOpportunityIds??[]).includes(item.id));
+  const deck=remaining.length?remaining:fullDeck;
+  const template=assignment
+    ? OPPORTUNITY_TEMPLATES.find(item=>item.id===assignment.opportunityId)
+    : deck[occurrence%deck.length];
+  if(!template)return null;
   const situation=situationForState(state);
   const opensAtFraction=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-open`)*.68;
   const duration=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-duration`)*.14;
   const closesAtFraction=Math.min(.94,opensAtFraction+duration);
   return{...template,sector:situation.sector,occurrence:occurrence+1,opensAtFraction,closesAtFraction,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
+};
+
+export const recordOpportunityOpened=(state:GameState,packet:OpportunityPacket,at=Date.now())=>{
+  if((state.opportunityAssignments??[]).some(item=>item.campaignId===state.campaignId&&item.day===state.day))return state;
+  const next=clone(state);
+  next.opportunityAssignments.unshift({campaignId:state.campaignId,day:state.day,opportunityId:packet.id,occurrence:packet.occurrence,status:"opened",openedAt:at,updatedAt:at});
+  if(!next.accountOpportunityIds.includes(packet.id))next.accountOpportunityIds.push(packet.id);
+  return next;
+};
+
+export const recordOpportunityExpired=(state:GameState,packet:OpportunityPacket,at=Date.now())=>{
+  if(state.opportunityHistory.some(record=>record.day===state.day&&record.opportunityId===packet.id))return state;
+  const opened=recordOpportunityOpened(state,packet,at),next=clone(opened);
+  const assignment=next.opportunityAssignments.find(item=>item.campaignId===state.campaignId&&item.day===state.day&&item.opportunityId===packet.id);
+  if(assignment){assignment.status="expired";assignment.updatedAt=at;}
+  next.opportunityHistory.unshift({day:state.day,opportunityId:packet.id,responseId:"window-expired",label:packet.label,response:"No response entered",outcome:"expired",report:`${packet.label} at ${packet.sector} expired without a command response. The missed opening remains in the permanent opportunity ledger.`,friendlyPressure:0,category:packet.category});
+  return next;
 };
 
 export const opportunityStatusForFraction=(state:GameState,fraction:number)=>{
@@ -608,7 +637,7 @@ const rewriteLegacyMorningReport=(state:GameState)=>{
   const eventRecord=state.eventHistory.find(record=>record.day===operations.day);const event=CAMPAIGN_EVENTS.find(item=>item.id===eventRecord?.eventId);
   const history=state.situationHistory.find(record=>record.day===operations.day);const aftermath=(history?.factsCreated??[]).map(id=>FACT_CATALOG[id]).filter(Boolean);
   const award=state.doctrineWinAwards.find(item=>item.day===operations.day);const opportunity=state.opportunityHistory.find(item=>item.day===operations.day);
-  const dispatch=composeWarDispatch({sector:operations.sector,maneuverLabel:operations.maneuver==="Standing Tempo"?null:operations.maneuver,conditionBrief:event?.brief??"Field reports reached headquarters before the formations had finished counting the night.",outcomeBand:operations.outcomeBand,movement:operations.groundMovement,friendlyLosses:operations.friendlyLosses,enemyLosses:operations.enemyLosses,committed:operations.committed,forceRatio:operations.forceRatio,adversary,diplomacy,domestic,production,forceGeneration,desertionAttempted:state.deserters,doctrineGain:award?.reward??0,aftermath,opportunityOutcome:opportunity?.outcome??null});
+  const dispatch=composeWarDispatch({sector:operations.sector,maneuverLabel:operations.maneuver==="Standing Tempo"?null:operations.maneuver,conditionBrief:event?.brief??"Field reports reached headquarters before the formations had finished counting the night.",outcomeBand:operations.outcomeBand,movement:operations.groundMovement,friendlyLosses:operations.friendlyLosses,enemyLosses:operations.enemyLosses,committed:operations.committed,forceRatio:operations.forceRatio,adversary,diplomacy,domestic,production,forceGeneration,desertionAttempted:state.deserters,doctrineGain:award?.reward??0,aftermath,opportunityOutcome:opportunity?.outcome==="expired"?"missed":opportunity?.outcome??null});
   state.reports[0]={...latest,...dispatch,epigraph:event?.quote??latest.epigraph};
 };
 
@@ -646,6 +675,8 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     actors:Array.isArray(candidate.actors)?candidate.actors:base.actors,trainingCohorts:Array.isArray(candidate.trainingCohorts)?candidate.trainingCohorts:base.trainingCohorts,
     decisions:Array.isArray(candidate.decisions)?candidate.decisions:base.decisions,eventHistory:Array.isArray(candidate.eventHistory)?candidate.eventHistory:base.eventHistory,reports:Array.isArray(candidate.reports)&&candidate.reports.length?candidate.reports:base.reports,scheduled:Array.isArray(candidate.scheduled)?candidate.scheduled:base.scheduled,
     opportunityCommitment:candidate.opportunityCommitment??null,opportunityHistory:Array.isArray(candidate.opportunityHistory)?candidate.opportunityHistory:base.opportunityHistory,
+    opportunityAssignments:Array.isArray(candidate.opportunityAssignments)?candidate.opportunityAssignments:base.opportunityAssignments,
+    accountOpportunityIds:Array.isArray(candidate.accountOpportunityIds)?candidate.accountOpportunityIds.filter(item=>typeof item==="string"):base.accountOpportunityIds,
     unlocked:Array.isArray(candidate.unlocked)?candidate.unlocked:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
     theaterSectors:Array.isArray(candidate.theaterSectors)&&candidate.theaterSectors.length?candidate.theaterSectors:base.theaterSectors,
     operationalFacts:Array.isArray(candidate.operationalFacts)?candidate.operationalFacts:base.operationalFacts,
@@ -734,6 +765,10 @@ export const commitOpportunity=(state:GameState,response:OpportunityResponse)=>{
   const effect=exploited?response.success:response.failure??{};applyOpportunityEffect(s,effect);normalize(s);
   const report=exploited?`${packet.individual} executed ${response.label.toLowerCase()} at ${packet.sector}; the opening was exploited before the window closed.`:`${packet.individual} attempted ${response.label.toLowerCase()} at ${packet.sector}; the opening closed without the intended effect.`;
   s.opportunityHistory.unshift({day:s.day,opportunityId:packet.id,responseId:response.id,label:packet.label,response:response.label,outcome:exploited?"exploited":"missed",report,friendlyPressure:effect.friendlyPressure??0,category:packet.category});
+  const assignment=s.opportunityAssignments.find(item=>item.campaignId===s.campaignId&&item.day===s.day&&item.opportunityId===packet.id);
+  if(assignment){assignment.status="acted";assignment.updatedAt=Date.now();}
+  else s.opportunityAssignments.unshift({campaignId:s.campaignId,day:s.day,opportunityId:packet.id,occurrence:packet.occurrence,status:"acted",openedAt:Date.now(),updatedAt:Date.now()});
+  if(!s.accountOpportunityIds.includes(packet.id))s.accountOpportunityIds.push(packet.id);
   s.opportunityCommitment=null;
   return s;
 };
@@ -857,7 +892,7 @@ export const resolve = (state: GameState) => {
   s.front+=move;if(maneuver?.id==="network"&&succeeded)s.intelligence+=3;const aftermath=resolveSituationAftermath(s,situation,maneuver?.id??null,outcomeBand,margin,move);s.theaterSectors=aftermath.theaterSectors;s.operationalFacts=aftermath.operationalFacts;s.situationHistory=aftermath.situationHistory;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${fmtStrategic(enemyLoss)} enemy losses // ${describeGroundMovement(move).display}`,reward:doctrineGain});}
   s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000+director.modifiers.treasury;const domesticResult=executeCircuit(domesticCircuit,s,{friendlyLosses:losses,shortages,directorLegitimacy:director.modifiers.legitimacy,directorResistance:director.modifiers.resistance});Object.assign(s,domesticResult.state);s.domesticLedger=domesticResult.ledger;
-  const opportunityOutcome=s.opportunityHistory[0]?.day===s.day?s.opportunityHistory[0].outcome:null;
+  const opportunityOutcome=s.opportunityHistory[0]?.day===s.day?(s.opportunityHistory[0].outcome==="expired"?"missed":s.opportunityHistory[0].outcome):null;
   const dispatch=composeWarDispatch({sector:situation.sector,maneuverLabel:maneuver?.label??null,conditionBrief:director.event.brief,outcomeBand,movement:move,friendlyLosses:losses,enemyLosses:enemyLoss,committed:operationResult.ledger.committed,forceRatio:operationResult.ledger.forceRatio,adversary:adversaryResult.ledger,diplomacy:diplomacyResult.ledger,domestic:domesticResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,desertionAttempted:desert.desertion,doctrineGain,aftermath:aftermath.createdFacts,opportunityOutcome});
   s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,trigger:director.trigger});
   const todayDirectives=s.decisions.filter(decision=>decision.day===s.day);

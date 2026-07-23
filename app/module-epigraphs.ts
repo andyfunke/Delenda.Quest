@@ -1,4 +1,4 @@
-export const MODULE_EPIGRAPHS = {
+export const MODULE_EPIGRAPHS:Record<"campaign"|"production"|"military"|"diplomacy"|"doctrine",{quote:string;source:string}> = {
   campaign: {
     quote: "The map is where every other ledger comes to collect.",
     source: "COMM. HET CLAXTON // PRAETOR CORPS",
@@ -21,6 +21,12 @@ export const MODULE_EPIGRAPHS = {
       "A doctrine is born when a battlefield mistake becomes too useful to condemn.",
     source: "DOCTRINE ARCHIVE // CANON CORPUS",
   },
-} as const;
+};
 
 export type ModuleEpigraphKey = keyof typeof MODULE_EPIGRAPHS;
+
+export const setDailyModuleEpigraph=(quote:{text:string;source:string})=>{
+  for(const key of Object.keys(MODULE_EPIGRAPHS) as ModuleEpigraphKey[]){
+    MODULE_EPIGRAPHS[key]={quote:quote.text,source:quote.source.toUpperCase()};
+  }
+};

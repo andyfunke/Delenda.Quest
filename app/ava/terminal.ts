@@ -17,6 +17,11 @@ import { CONCEPTS, calculationFor } from "../concepts";
 import { compileConvergence } from "../convergence";
 import { buildAvaReport } from "./reports";
 import {
+  compileDecisionCalculus,
+  renderDecisionCalculus,
+  renderManeuverCalculus,
+} from "./decision-calculus";
+import {
   actionKey,
   avaStateRevision,
   buildAvaPlan,
@@ -236,6 +241,22 @@ const forecastText = (
     return "Day resolution is sealed. Use PROJECTION for disclosed circuit outputs; Ava will not execute resolution to reveal hidden results during a forecast.";
   if (action.kind === "opportunity-response")
     return `${renderAvaAction(descriptor)}\n\nThe response resolves immediately from a sealed ticket. Forecasting does not reveal which contingent branch will occur.`;
+  if (action.kind === "maneuver") {
+    const packet = compileDecisionCalculus(state);
+    const option = packet.options.find(
+      (candidate) => candidate.maneuver.id === action.maneuverId,
+    );
+    if (option)
+      return [
+        "FIELD NOTE / PROJECTION\nA projection is the battlefield confessing under controlled pressure. It tells the truth only about the orders already on the table.",
+        renderManeuverCalculus(option, descriptor.handle),
+        `PRINCIPAL UNCERTAINTY\n${packet.uncertainty}`,
+        `DECLARED CHANGE [PROJECTED]\n${diffText(
+          state,
+          executeAvaAction(state, action, fraction).state,
+        )}`,
+      ].join("\n\n");
+  }
   const preview = executeAvaAction(state, action, fraction);
   return preview.executed
     ? `${renderAvaAction(descriptor)}\n\nDECLARED CHANGE [PROJECTED]\n${diffText(state, preview.state)}`
@@ -461,9 +482,7 @@ const accumulatedIntel = (state: GameState) => {
 const adviceText = (state: GameState, fraction: number) => {
   const report = buildAvaReport({ kind: "ADVISE" }, state),
     situation = situationForState(state),
-    director = directorForState(state),
-    catalog = enumerateAvaActions(state, fraction),
-    baseline = commandUtility(state);
+    catalog = enumerateAvaActions(state, fraction);
   if (state.status !== "active")
     return {
       report,
@@ -476,63 +495,55 @@ const adviceText = (state: GameState, fraction: number) => {
       text: `The orders are closed. Review the projection, then stage ${resolution ? `[${resolution.handle}] ${resolution.label}` : "day resolution"}.\n\n${accumulatedIntel(state)}\n\nCOMMANDS\n> projection\n> resolve day`,
     };
   }
-  const candidates = catalog
-    .filter(
-      (item) =>
-        item.available &&
-        item.kind !== "resolve-day" &&
-        item.kind !== "opportunity-response",
-    )
-    .map((descriptor) => {
-      const preview = executeAvaAction(state, descriptor.action, fraction);
-      let score = preview.executed
-        ? commandUtility(preview.state) - baseline
-        : -999;
-      if (descriptor.domain === "main" && !state.maneuver) score += 48;
-      if (descriptor.domain === "domestic") score += 6;
-      if (descriptor.domain === "network") score += 6;
-      if (descriptor.kind === "doctrine-stage") score += 3;
-      return { descriptor, score };
-    })
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        a.descriptor.handle.localeCompare(b.descriptor.handle),
-    );
   const opportunity = catalog.find(
-      (item) => item.kind === "opportunity-response" && item.available,
+    (item) => item.kind === "opportunity-response" && item.available,
+  );
+  if (opportunity)
+    return {
+      report: {
+        ...report,
+        recommendation: `Resolve [${opportunity.handle}] ${opportunity.label} before its window closes.`,
+      },
+      text: [
+        `TIME-SENSITIVE INTERRUPTION\n[${opportunity.handle}] ${opportunity.label}`,
+        `DEADLINE\nThe live target window is open now. ${opportunity.summary}`,
+        `OWNED SACRIFICE\n${opportunity.owned.join(" · ") || "No immediate ledger change is attached."}`,
+        `CONTINGENT EXPOSURE\n${opportunity.contingent.join(" · ") || "No contingent exposure is attached."}`,
+        `RECOMMENDATION\nResolve the timed opening first. The ordinary maneuver calculus remains available, but the opportunity does not.`,
+        `COMMANDS\n> forecast ${opportunity.handle}\n> stage ${opportunity.handle}\n> missions`,
+      ].join("\n\n"),
+    };
+
+  const packet = compileDecisionCalculus(state);
+  const main = catalog.filter(
+    (item) => item.kind === "maneuver" && item.available,
+  );
+  const handles = new Map(
+    main.flatMap((descriptor) =>
+      descriptor.action.kind === "maneuver"
+        ? [[descriptor.action.maneuverId, descriptor.handle] as const]
+        : [],
     ),
-    primary = opportunity
-      ? { descriptor: opportunity, score: 99 }
-      : candidates[0],
-    alternative = candidates.find(
-      (item) => item.descriptor.id !== primary?.descriptor.id,
-    );
-  if (!primary)
+  );
+  const primaryHandle = handles.get(packet.recommendation.maneuver.id);
+  const alternativeHandle = packet.alternative
+    ? handles.get(packet.alternative.maneuver.id)
+    : undefined;
+  if (!primaryHandle)
     return {
       report,
       text: `${report.direct}\n\nNo legal order remains under the present constraints.\n\nGRAMMAR\n> status\n> list all`,
     };
-  const d = primary.descriptor,
-    a = alternative?.descriptor,
-    projected = executeAvaAction(state, d.action, fraction),
-    mechanic =
-      projected.executed && d.kind !== "opportunity-response"
-        ? diffText(state, projected.state)
-        : "The response is bound to a sealed contingent ticket; its exact branch is not exposed before issue.";
-  const recommendation = `Stage [${d.handle}] ${d.label}.`;
+  const recommendation = `Stage [${primaryHandle}] ${packet.recommendation.maneuver.label}${packet.coupledOrder ? ` and pair it with ${packet.coupledOrder}` : ""}.`;
   return {
     report: { ...report, recommendation },
     text: [
-      `FIELD CONTEXT\n${situation.headline}. ${director.event.brief}`,
+      `FIELD NOTE / JUDGMENT\nCommander. ${/corridor|route/i.test(`${situation.terrain} ${situation.headline}`) ? "The corridor is not a route; it is a rate." : "The position is not a picture; it is a rate."}`,
+      `FIELD CONTEXT\n${situation.headline}. ${situation.briefing}`,
+      renderDecisionCalculus(packet, handles),
       `RECOMMENDATION\n${recommendation}`,
-      `WHY IT RANKS FIRST\n[STATE] ${situation.question}\n[PROJECTED D+0] ${mechanic}`,
       `CUMULATIVE INTELLIGENCE\n${accumulatedIntel(state)}`,
-      `OWNED SACRIFICE\n${d.owned.join(" · ") || "No immediate ledger change is attached."}\nCONTINGENT EXPOSURE\n${d.contingent.join(" · ") || "No contingent exposure is attached."}`,
-      a
-        ? `NEAREST ALTERNATIVE\n[${a.handle}] ${a.label}. It ranks behind the recommendation under the default survival-to-victory objective; compare it if your objective differs.`
-        : "NEAREST ALTERNATIVE\nNo second executable candidate is present.",
-      `COMMANDS\n> forecast ${d.handle}${a ? `\n> compare ${d.handle} ${a.handle}` : ""}\n> stage ${d.handle}\n> missions`,
+      `COMMANDS\n> forecast ${primaryHandle}${alternativeHandle ? `\n> compare ${primaryHandle} ${alternativeHandle}` : ""}\n> stage ${primaryHandle}\n> missions`,
     ].join("\n\n"),
   };
 };
@@ -822,6 +833,37 @@ function executeAvaInstruction(
         ),
         { rejection: "stale-reference" },
       );
+    const actions = instruction.entities.map((entity) => entity.action);
+    const leftAction = actions[0],
+      rightAction = actions[1];
+    if (
+      leftAction?.kind === "maneuver" &&
+      rightAction?.kind === "maneuver"
+    ) {
+      const packet = compileDecisionCalculus(state);
+      const left = packet.options.find(
+        (option) => option.maneuver.id === leftAction.maneuverId,
+      );
+      const right = packet.options.find(
+        (option) => option.maneuver.id === rightAction.maneuverId,
+      );
+      if (left && right)
+        return finalize(
+          state,
+          session,
+          withHeader(
+            state,
+            [
+              "COMPARISON / SHARED DECISION CALCULUS",
+              renderManeuverCalculus(left, descriptors[0].handle),
+              "VERSUS",
+              renderManeuverCalculus(right, descriptors[1].handle),
+              `DELTA\nSCORE ${(left.score - right.score).toFixed(2)} · LOSSES ${fmt(left.expectedLosses - right.expectedLosses, true)} · GROUND ${(left.groundMovement - right.groundMovement).toFixed(2)} KM · SUSTAINMENT ${(left.sustainmentDays - right.sustainmentDays).toFixed(1)} DAYS`,
+              `JUDGMENT\n${left.score >= right.score ? descriptors[0].label : descriptors[1].label} ranks first because the same declared equations and fired rules produce the higher score. No order was issued.`,
+            ].join("\n\n"),
+          ),
+        );
+    }
     return finalize(
       state,
       session,

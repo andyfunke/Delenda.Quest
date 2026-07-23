@@ -227,6 +227,55 @@ function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
   );
 }
 
+function SecondaryFrontLedger({
+  s,
+  prompt,
+  prefix,
+  selected,
+  select,
+}: {
+  s: GameState;
+  prompt: ConvergencePrompt;
+  prefix: "D" | "N";
+  selected: string;
+  select: (id: string) => void;
+}) {
+  const status = convergenceFrontStatus(s, prompt);
+  return (
+    <section className="briefing-secondary-ledger">
+      <header>
+        <span>{prompt.domain === "domestic" ? "DOMESTIC FRONT" : "COMMAND NETWORK"}</span>
+        <b>{status.cooling ? status.reason : "RESPONSES AVAILABLE"}</b>
+      </header>
+      <dl>
+        <div><dt>SUBJECT</dt><dd>{prompt.title}</dd></div>
+        <div><dt>ORIENTATION</dt><dd>{prompt.operationalAnchor.sector} // {prompt.operationalAnchor.problemClass}</dd></div>
+        <div><dt>PRESSURE</dt><dd>{prompt.pressureBand.toUpperCase()}</dd></div>
+        <div><dt>QUESTION</dt><dd>{prompt.question}</dd></div>
+        <div><dt>FRONT EFFECT</dt><dd>{prompt.convergence.map((edge) => edge.summary).join(" ")}</dd></div>
+      </dl>
+      <div className="briefing-secondary-options">
+        {prompt.options.map((option, index) => {
+          const unavailable = !convergenceOptionAvailable(s, option);
+          return (
+            <button
+              key={option.id}
+              className={selected === option.id ? "selected" : ""}
+              disabled={unavailable}
+              aria-pressed={selected === option.id}
+              onClick={() => select(selected === option.id ? "" : option.id)}
+            >
+              <b>{prefix}{index + 1} // {option.choice.label}</b>
+              <span>{option.choice.flavor}</span>
+              <small>{optionCost(option).join(" · ")}</small>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function StateSurface({ s }: { s: GameState }) {
   const operation = projectOperations(s),
     production = projectProduction(s),
@@ -627,9 +676,7 @@ function DailySurface({
   const operation = projectOperations(s),
     production = projectProduction(s),
     personnel = estimateDay(s);
-  const domesticStatus = convergenceFrontStatus(s, packet.domestic),
-    networkStatus = convergenceFrontStatus(s, packet.network),
-    selectedDomesticOption = packet.domestic.options.find(
+  const selectedDomesticOption = packet.domestic.options.find(
       (option) => option.id === selectedDomestic,
     ),
     selectedNetworkOption = packet.network.options.find(
@@ -666,6 +713,12 @@ function DailySurface({
       "MUNITIONS COVERAGE",
       Math.min(100, (coverage(s, "munitions") / 12) * 100),
       `${coverage(s, "munitions").toFixed(1)} days`,
+      "amber",
+    ],
+    [
+      "INDUSTRIAL CONDITION",
+      s.materiel,
+      `${s.materiel.toFixed(0)}% · ${signed(production.materielChange)} / day`,
       "amber",
     ],
     ["EQUIPMENT COVERAGE", s.equipment, `${s.equipment.toFixed(0)}%`, "cyan"],
@@ -715,11 +768,9 @@ function DailySurface({
           <span>STOCKPILE {s.production.munitions.stock.toLocaleString()}</span>
         </div>
         <div>
-          <small>INDUSTRIAL CONDITION</small>
-          <b>{s.materiel.toFixed(0)}%</b>
-          <span className={production.materielChange < 0 ? "neg" : "pos"}>
-            {signed(production.materielChange)} / day
-          </span>
+          <small>READINESS</small>
+          <b>{s.readiness.toFixed(0)}%</b>
+          <span>{s.tempo.toUpperCase()} TEMPO</span>
         </div>
         <div>
           <small>INTEL CONFIDENCE</small>
@@ -769,52 +820,22 @@ function DailySurface({
               );
             })}
           </DecisionCard>
-          <DecisionCard
-            meta={`SITUATIONAL · DOMESTIC · ${domesticStatus.cooling ? domesticStatus.reason : packet.domestic.authority}`}
-            title={packet.domestic.title}
-            brief={`${packet.domestic.brief} Sealed through Day ${packet.domestic.rotatesAfterDay} resolution.`}
-            context={<MissionContext prompt={packet.domestic} />}
-            cooling={domesticStatus.cooling}
-          >
-            {packet.domestic.options.map((option) => (
-              <DecisionOption
-                key={option.id}
-                selected={selectedDomestic === option.id}
-                unavailable={!convergenceOptionAvailable(s, option)}
-                name={option.choice.label}
-                description={option.choice.flavor}
-                cost={optionCost(option)}
-                onClick={() =>
-                  setSelectedDomestic(
-                    selectedDomestic === option.id ? "" : option.id,
-                  )
-                }
-              />
-            ))}
-          </DecisionCard>
-          <DecisionCard
-            meta={`SITUATIONAL · NETWORK · ${networkStatus.cooling ? networkStatus.reason : packet.network.authority}`}
-            title={packet.network.title}
-            brief={`${packet.network.brief} Sealed through Day ${packet.network.rotatesAfterDay} resolution.`}
-            context={<MissionContext prompt={packet.network} />}
-            cooling={networkStatus.cooling}
-          >
-            {packet.network.options.map((option) => (
-              <DecisionOption
-                key={option.id}
-                selected={selectedNetwork === option.id}
-                unavailable={!convergenceOptionAvailable(s, option)}
-                name={option.choice.label}
-                description={option.choice.flavor}
-                cost={optionCost(option)}
-                onClick={() =>
-                  setSelectedNetwork(
-                    selectedNetwork === option.id ? "" : option.id,
-                  )
-                }
-              />
-            ))}
-          </DecisionCard>
+          <div className="briefing-secondary-fronts">
+            <SecondaryFrontLedger
+              s={s}
+              prompt={packet.domestic}
+              prefix="D"
+              selected={selectedDomestic}
+              select={setSelectedDomestic}
+            />
+            <SecondaryFrontLedger
+              s={s}
+              prompt={packet.network}
+              prefix="N"
+              selected={selectedNetwork}
+              select={setSelectedNetwork}
+            />
+          </div>
         </div>
         <div className="briefing-issue">
           <span>

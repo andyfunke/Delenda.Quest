@@ -51,7 +51,7 @@ const dispatchTitle = ({ sector, maneuverLabel, outcomeBand, movement }: WarDisp
   if (outcomeBand === "disrupted") return movement < -0.05
     ? `${maneuverLabel} Was Thrown Back at ${sector}`
     : `${maneuverLabel} Culminated at ${sector}`;
-  return `${maneuverLabel} Broke Down at ${sector}`;
+  return `Procedures Broke Down at ${sector}`;
 };
 
 const battlefieldSentence = (context: WarDispatchContext) => {

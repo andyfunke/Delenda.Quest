@@ -93,3 +93,17 @@ export const campaignOutcomes=sqliteTable("campaign_outcomes",{
   index("campaign_outcomes_outcome_idx").on(table.outcome),
   index("campaign_outcomes_theater_idx").on(table.theater),
 ]);
+
+export const accountRotationLedger=sqliteTable("account_rotation_ledger",{
+  id:text("id").primaryKey(),
+  ownerEmail:text("owner_email").notNull(),
+  kind:text("kind",{enum:["opportunity","aphorism"]}).notNull(),
+  itemId:text("item_id").notNull(),
+  status:text("status").notNull(),
+  context:text("context").notNull(),
+  firstSeenAt:integer("first_seen_at").notNull(),
+  updatedAt:integer("updated_at").notNull(),
+},table=>[
+  uniqueIndex("account_rotation_owner_kind_item_unique").on(table.ownerEmail,table.kind,table.itemId),
+  index("account_rotation_owner_kind_idx").on(table.ownerEmail,table.kind),
+]);

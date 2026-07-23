@@ -6,7 +6,7 @@ const {
   BLUEPRINT_RULES, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, resolve, restoreCampaignState, situationForState, FAMILIES,
+  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, recordOpportunityExpired, recordOpportunityOpened, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -149,6 +149,25 @@ test("targets of opportunity are deterministic and do not spend a strategic orde
   assert.equal(committed.opportunityHistory[0].opportunityId,packet.id);
   assert.match(committed.opportunityHistory[0].report,/opening/i);
   assert.notDeepEqual(committed,state);
+});
+
+test("opened and expired opportunities remain pinned in the permanent no-repeat ledger",()=>{
+  let state=null,packet=null;
+  for(let seed=1;seed<500&&!packet;seed++){
+    const candidate=initialState({seed,theater:"river"});
+    const found=opportunityForState(candidate);
+    if(found){state=candidate;packet=found;}
+  }
+  assert.ok(state&&packet);
+  const opened=recordOpportunityOpened(state,packet,1234);
+  assert.ok(opened.accountOpportunityIds.includes(packet.id));
+  assert.equal(opened.opportunityAssignments[0].status,"opened");
+  assert.equal(opportunityForState(opened).id,packet.id);
+  const expired=recordOpportunityExpired(opened,packet,5678);
+  assert.equal(expired.opportunityAssignments[0].status,"expired");
+  assert.equal(expired.opportunityHistory[0].outcome,"expired");
+  assert.match(expired.opportunityHistory[0].report,/permanent opportunity ledger/i);
+  assert.equal(opportunityForState(expired).id,packet.id);
 });
 
 test("immediate opportunities alter the same-day operation when their effect is operational",()=>{

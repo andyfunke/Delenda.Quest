@@ -35,6 +35,8 @@ import {
   maneuverById,
   opportunityResponseRejection,
   opportunityStatusForFraction,
+  recordOpportunityExpired,
+  recordOpportunityOpened,
   projectAdversary,
   projectDomestic,
   projectForceGeneration,
@@ -92,7 +94,8 @@ import { Bubblette, type BubbletteDetail } from "./Bubblette";
 import { TheaterGeometry } from "./TheaterGeometry";
 import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
-import { MODULE_EPIGRAPHS } from "./module-epigraphs";
+import { MODULE_EPIGRAPHS, setDailyModuleEpigraph } from "./module-epigraphs";
+import { APHORISMS, aphorismForDay, type Aphorism } from "./aphorisms";
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -1401,9 +1404,10 @@ function LiveLedger({
             )
           }
         >
-          <span>Net Flight</span>
+          <span>Desertion</span>
           <b>{fmtStrategic(live.netDesertion)}</b>
           <small>
+            Net Flight {fmtStrategic(live.netDesertion)} ·{" "}
             {fmtStrategic(live.deserted)} attempts ·{" "}
             {fmtStrategic(live.retained)} retained ·{" "}
             {fmtStrategic(live.intercepted)} intercepted
@@ -3726,6 +3730,15 @@ function MetricDrawer({
 }
 
 const SAVE_KEY = "delenda.quest.campaign.v1";
+const OPPORTUNITY_LEDGER_KEY = "delenda.quest.opportunity-ledger.v1";
+const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
+const APHORISM_DAY_KEY = "delenda.quest.aphorism-days.v1";
+const DEVICE_KEY = "delenda.quest.device-key.v1";
+const portableId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `dq-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffffffff)
+    .toString(36)
+    .padStart(7, "0")}`;
 
 export default function Home() {
   const [s, setS] = useState<GameState>(initialState);
@@ -3763,6 +3776,8 @@ export default function Home() {
   const [issuedRecordSlug, setIssuedRecordSlug] = useState<string | null>(null);
   const [wikiApplet, setWikiApplet] = useState<string | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
+  const [rotationReady, setRotationReady] = useState(false);
+  const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
@@ -3823,7 +3838,7 @@ export default function Home() {
           setRunToken(
             typeof record.runToken === "string" && record.runToken
               ? record.runToken
-              : crypto.randomUUID(),
+              : portableId(),
           );
           if (
             record.clock &&
@@ -3832,14 +3847,153 @@ export default function Home() {
           )
             setClock({ start: record.clock.start, end: record.clock.end });
         }
-      } else setRunToken(crypto.randomUUID());
+      } else setRunToken(portableId());
     } catch {
-      setRunToken(crypto.randomUUID());
+      setRunToken(portableId());
     }
     setHydrated(true);
   }, []);
   useEffect(() => {
     void fetch("/api/account", { cache: "no-store" }).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    let live = true;
+    let localIds: string[] = [];
+    try {
+      const value = JSON.parse(
+        window.localStorage.getItem(OPPORTUNITY_LEDGER_KEY) ?? "[]",
+      ) as unknown;
+      if (Array.isArray(value))
+        localIds = value.filter((item): item is string => typeof item === "string");
+    } catch {}
+    setS((current) => ({
+      ...current,
+      accountOpportunityIds: [
+        ...new Set([...current.accountOpportunityIds, ...localIds]),
+      ],
+    }));
+    void fetch("/api/rotation/opportunities", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return { ids: [] as string[] };
+        return (await response.json()) as { ids?: string[] };
+      })
+      .then((payload) => {
+        if (!live) return;
+        const remoteIds = Array.isArray(payload.ids)
+          ? payload.ids.filter((item): item is string => typeof item === "string")
+          : [];
+        setS((current) => ({
+          ...current,
+          accountOpportunityIds: [
+            ...new Set([
+              ...current.accountOpportunityIds,
+              ...localIds,
+              ...remoteIds,
+            ]),
+          ],
+        }));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (live) setRotationReady(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  useEffect(() => {
+    let live = true;
+    const dayKey = [
+      new Date().getFullYear(),
+      String(new Date().getMonth() + 1).padStart(2, "0"),
+      String(new Date().getDate()).padStart(2, "0"),
+    ].join("-");
+    let deviceKey = "";
+    let localSeen: string[] = [];
+    let localDays: Record<string, string> = {};
+    try {
+      deviceKey = window.localStorage.getItem(DEVICE_KEY) ?? portableId();
+      window.localStorage.setItem(DEVICE_KEY, deviceKey);
+      const seen = JSON.parse(
+        window.localStorage.getItem(APHORISM_LEDGER_KEY) ?? "[]",
+      ) as unknown;
+      if (Array.isArray(seen))
+        localSeen = seen.filter(
+          (item): item is string => typeof item === "string",
+        );
+      const days = JSON.parse(
+        window.localStorage.getItem(APHORISM_DAY_KEY) ?? "{}",
+      ) as unknown;
+      if (days && typeof days === "object")
+        localDays = Object.fromEntries(
+          Object.entries(days as Record<string, unknown>).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        );
+    } catch {}
+    void fetch("/api/rotation/aphorisms", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok)
+          return {
+            ids: [] as string[],
+            entries: [] as Array<{ itemId: string; context: string }>,
+            accountKey: null as string | null,
+          };
+        return (await response.json()) as {
+          ids?: string[];
+          entries?: Array<{ itemId: string; context: string }>;
+          accountKey?: string | null;
+        };
+      })
+      .then((payload) => {
+        if (!live) return;
+        const remoteIds = Array.isArray(payload.ids)
+          ? payload.ids.filter((item): item is string => typeof item === "string")
+          : [];
+        const remoteToday = payload.entries?.find(
+          (entry) => entry.context === dayKey,
+        )?.itemId;
+        const assignedId = remoteToday ?? localDays[dayKey];
+        const assigned = APHORISMS.find((item) => item.id === assignedId);
+        const selected =
+          assigned ??
+          aphorismForDay(
+            payload.accountKey ?? deviceKey,
+            dayKey,
+            [...new Set([...localSeen, ...remoteIds])],
+          );
+        if (!selected) return;
+        setDailyModuleEpigraph(selected);
+        setDailyAphorism(selected);
+        const seen = [...new Set([...localSeen, ...remoteIds, selected.id])];
+        try {
+          window.localStorage.setItem(APHORISM_LEDGER_KEY, JSON.stringify(seen));
+          window.localStorage.setItem(
+            APHORISM_DAY_KEY,
+            JSON.stringify({ ...localDays, [dayKey]: selected.id }),
+          );
+        } catch {}
+        if (!remoteIds.includes(selected.id))
+          void fetch("/api/rotation/aphorisms", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itemId: selected.id, dayKey }),
+            keepalive: true,
+          }).catch(() => undefined);
+      })
+      .catch(() => {
+        const assigned = APHORISMS.find(
+          (item) => item.id === localDays[dayKey],
+        );
+        const selected =
+          assigned ?? aphorismForDay(deviceKey, dayKey, localSeen);
+        if (!live || !selected) return;
+        setDailyModuleEpigraph(selected);
+        setDailyAphorism(selected);
+      });
+    return () => {
+      live = false;
+    };
   }, []);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -4007,16 +4161,81 @@ export default function Home() {
           opportunityWindow.packet.closesAtFraction * (clock.end - clock.start),
       ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "";
+  const opportunityRemaining =
+    opportunityWindow.packet
+      ? Math.max(
+          0,
+          clock.start +
+            opportunityWindow.packet.closesAtFraction *
+              (clock.end - clock.start) -
+            ledgerNow,
+        )
+      : 0;
   useEffect(() => {
     if (opportunityOpen && opportunityWindow.status !== "active")
       setOpportunityOpen(false);
   }, [opportunityOpen, opportunityWindow.status]);
+  useEffect(() => {
+    const packet = opportunityWindow.packet;
+    if (!hydrated || !rotationReady || !packet) return;
+    const assignment = s.opportunityAssignments.find(
+      (item) =>
+        item.campaignId === s.campaignId &&
+        item.day === s.day &&
+        item.opportunityId === packet.id,
+    );
+    let next = s;
+    let status: "opened" | "expired" | null = null;
+    if (opportunityWindow.status === "active" && !assignment) {
+      next = recordOpportunityOpened(s, packet);
+      status = "opened";
+    } else if (
+      opportunityWindow.status === "expired" &&
+      !s.opportunityHistory.some(
+        (record) =>
+          record.day === s.day && record.opportunityId === packet.id,
+      )
+    ) {
+      next = recordOpportunityExpired(s, packet);
+      status = "expired";
+    }
+    if (!status || next === s) return;
+    setS(next);
+    try {
+      window.localStorage.setItem(
+        OPPORTUNITY_LEDGER_KEY,
+        JSON.stringify(next.accountOpportunityIds),
+      );
+    } catch {}
+    void fetch("/api/rotation/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        itemId: packet.id,
+        status,
+        campaignId: s.campaignId,
+        day: s.day,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+    if (status === "opened") setOpportunityOpen(true);
+    if (status === "expired")
+      setSystemNotice(
+        `TARGET MISSED // ${packet.label.toUpperCase()} // PERMANENT LEDGER UPDATED`,
+      );
+  }, [
+    hydrated,
+    rotationReady,
+    opportunityWindow.status,
+    opportunityWindow.packet?.id,
+    s,
+  ]);
   const theater = THEATERS.find((x) => x.id === s.theater) ?? THEATERS[0];
   const startCampaign = (config: CampaignConfig) => {
     const next = initialState(config);
     const n = Date.now();
     setS(next);
-    setRunToken(crypto.randomUUID());
+    setRunToken(portableId());
     setIssuedRecordSlug(null);
     setPage("dashboard");
     setFocusFamily(undefined);
@@ -4130,6 +4349,23 @@ export default function Home() {
       (item) => item.day === s.day && item.opportunityId === packet.id,
     );
     setS(result.state);
+    try {
+      window.localStorage.setItem(
+        OPPORTUNITY_LEDGER_KEY,
+        JSON.stringify(result.state.accountOpportunityIds),
+      );
+    } catch {}
+    void fetch("/api/rotation/opportunities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        itemId: packet.id,
+        status: record?.outcome ?? "acted",
+        campaignId: s.campaignId,
+        day: s.day,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
     setSystemNotice(record?.report ?? "OPPORTUNITY RESPONSE EXECUTED");
     setOpportunityOpen(false);
   };
@@ -4257,6 +4493,37 @@ export default function Home() {
   };
   return (
     <main>
+      {dailyAphorism && (
+        <aside className={`daily-aphorism-ribbon ${interfaceMode}`}>
+          <span>DAILY APHORISM // {dailyAphorism.id}</span>
+          <q>{dailyAphorism.text}</q>
+          <cite>{dailyAphorism.source}</cite>
+        </aside>
+      )}
+      {opportunityWindow.status === "active" &&
+        opportunityWindow.packet && (
+          <button
+            className={`global-opportunity-interrupt ${interfaceMode}`}
+            onClick={() => setOpportunityOpen(true)}
+            aria-live="assertive"
+          >
+            <span>TARGET OF OPPORTUNITY // WINDOW OPEN</span>
+            <b>{opportunityWindow.packet.headline}</b>
+            <em>
+              {opportunityWindow.packet.categoryLabel.toUpperCase()} //{" "}
+              {opportunityWindow.packet.sector.toUpperCase()} //{" "}
+              {clockText(opportunityRemaining)} REMAINS
+            </em>
+            <strong>OPEN INTERRUPT →</strong>
+          </button>
+        )}
+      {opportunityWindow.status === "expired" &&
+        opportunityWindow.packet && (
+          <div className={`global-opportunity-missed ${interfaceMode}`}>
+            <span>TARGET MISSED // PERMANENT LEDGER</span>
+            <b>{opportunityWindow.packet.headline}</b>
+          </div>
+        )}
       {interfaceMode === "briefing" ? (
         <BriefingInterface
           s={s}

@@ -73,8 +73,8 @@ test("menu hierarchy, secondary-front cooldown, and manual day resolution remain
   for(const label of ["Allocate War Expenditure","Manage Operational Reserves","Administer Rotation and Recovery"])assert.match(game,new RegExp(label));
   for(const category of ["Access and Exchange","Influence and Coercion","Commitments and Alliances"])assert.match(game,new RegExp(category,"g"));
   assert.match(page,/convergenceFrontStatus/);assert.match(page,/cooling-option/);assert.match(page,/FRONT COOLING \/\/ INSPECT ONLY/);
-  assert.match(briefing,/unavailable=\{!convergenceOptionAvailable/);assert.doesNotMatch(briefing,/disabled=\{!convergenceOptionAvailable/);
-  assert.match(styles,/\.campaign-submenu\.cooling/);assert.match(styles,/\.briefing-option\.unavailable/);
+  assert.match(briefing,/const unavailable = !convergenceOptionAvailable/);assert.match(briefing,/disabled=\{unavailable\}/);
+  assert.match(styles,/\.campaign-submenu\.cooling/);assert.match(styles,/\.briefing-secondary-ledger/);
   assert.doesNotMatch(page,/completion-stamp|DAY&apos;S ORDERS ISSUED/);
   assert.match(page,/DAY \$\{next\.day\} REMAINS OPEN \/\/ RESOLVE MANUALLY/);
   assert.match(page,/GRADUATE ASSIGNMENT/);assert.match(page,/FIELD-READY SHARE/);
@@ -94,7 +94,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/executeAvaPlan/);
   assert.match(page,/buildAvaPlan/);
   assert.match(page,/ALT UX/);
-  for(const domain of ["PRIMARY · MAIN CAMPAIGN","SITUATIONAL · DOMESTIC","SITUATIONAL · NETWORK"]){
+  for(const domain of ["PRIMARY · MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
   assert.match(briefing,/REFERENCE TACTICAL PLATE/);
