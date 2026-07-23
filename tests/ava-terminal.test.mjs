@@ -21,7 +21,7 @@ const compile=(raw,state,fraction=0,selected=null,discourse)=>{
   return result;
 };
 
-const run=(raw,state,session=newSession(),fraction=0)=>{
+const run=(raw,state,session=newSession(),fraction=0,darkNetContext)=>{
   const compiled=compile(raw,state,fraction,null,session.discourse);
   return terminal.runAvaInstruction(
     state,
@@ -30,6 +30,7 @@ const run=(raw,state,session=newSession(),fraction=0)=>{
     fraction,
     compiled.semantic,
     compiled.trace,
+    darkNetContext,
   );
 };
 
@@ -395,6 +396,63 @@ test("the sealed Ava shell navigates a realistic fake filesystem and denies prot
   const cleared=execute("clear");
   assert.equal(cleared.clearScreen,true);
   assert.equal(cleared.text,"");
+});
+
+test("Dark Net exposes aggregate telemetry and the authoritative docket without issuing anything",()=>{
+  const state=newState(1);
+  const telemetry={
+    asOf:Date.UTC(2026,6,23),
+    categoryTotals:[
+      {category:"page_view",count:1200},
+      {category:"ava_command",count:400},
+    ],
+    outcomes:[
+      {outcome:"victory",campaigns:12,averageDays:18},
+      {outcome:"defeat",campaigns:9,averageDays:14},
+    ],
+    topSignals:[
+      {category:"page_view",subject:"module:campaign",context:"site",count:500},
+    ],
+  };
+  const opened=run("tor",state,newSession(),0,{telemetry,seenAphorismIds:[]});
+  assert.equal(opened.outputKind,"shell");
+  assert.deepEqual(opened.state,state);
+  assert.equal(opened.executed,false);
+  assert.match(opened.text,/DARK NET \/\/ RELAY ESTABLISHED/);
+  assert.match(opened.text,/PAGE VIEW: 1,200/);
+  assert.match(opened.text,/VICTORY: 12 CAMPAIGNS/);
+  assert.doesNotMatch(opened.text,/email|friend@example|raw prompt/i);
+
+  const campaign=run("access darknet campaign",state,opened.session);
+  const expected=runtime.enumerateAvaActions(state).filter(
+    item=>item.domain!==undefined||item.kind==="opportunity-response",
+  );
+  assert.match(campaign.text,new RegExp(`${expected.length} OPTIONS`));
+  for(const option of expected)assert.match(campaign.text,new RegExp(`\\[${option.handle}\\]`));
+  assert.equal(campaign.session.plan.length,0);
+  assert.equal(campaign.session.confirmation,null);
+  assert.deepEqual(campaign.state,state);
+  assert.match(campaign.text,/No order can be staged, issued, or confirmed through this surface/);
+});
+
+test("Dark Net quotation index is free but opening a record consumes exactly one unseen entry",()=>{
+  const state=newState(1);
+  const index=run("tor quotes",state,newSession(),0,{seenAphorismIds:["Q002"]});
+  assert.match(index.text,/126 RECORDS \/\/ 125 UNSEEN/);
+  assert.match(index.text,/Q001 \[UNSEEN\]/);
+  assert.match(index.text,/Q002 \[VIEWED\]/);
+  assert.doesNotMatch(index.text,/A commander who spends his reserve early/);
+  assert.equal(index.aphorismViewId,undefined);
+
+  const first=run("tor quote Q001",state,index.session,0,{seenAphorismIds:["Q002"]});
+  assert.equal(first.aphorismViewId,"Q001");
+  assert.match(first.text,/A commander who spends his reserve early/);
+  assert.match(first.text,/125 → 124 UNSEEN/);
+  assert.deepEqual(first.state,state);
+
+  const repeated=run("dark net Q001",state,first.session,0,{seenAphorismIds:["Q001","Q002"]});
+  assert.equal(repeated.aphorismViewId,"Q001");
+  assert.match(repeated.text,/ALREADY VIEWED \/\/ 124 UNSEEN REMAIN/);
 });
 
 test("Ava report workbooks are real downloadable xlsx files with formulas preserved in cells",()=>{

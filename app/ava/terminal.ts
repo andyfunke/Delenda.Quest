@@ -42,6 +42,7 @@ import {
 import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
 import { answerSemanticQuery } from "./advisory";
 import { projectAvaEnvelope } from "./projection";
+import type { AvaDarkNetContext } from "./darknet";
 import type {
   AvaAnswerPlan,
   AvaCompilerTrace,
@@ -69,6 +70,7 @@ export type AvaTerminalResult = {
   rejection?: string;
   outputKind?: "ava" | "shell";
   clearScreen?: boolean;
+  aphorismViewId?: string;
   download?: {
     virtualPath: string;
     filename: string;
@@ -517,6 +519,7 @@ function executeAvaInstruction(
   session: AvaTerminalSession,
   instruction: AvaInstruction,
   opportunityFraction = 0,
+  darkNetContext: AvaDarkNetContext = {},
 ): AvaTerminalResult {
   if (instruction.kind === "SHELL") {
     const shellResult = executeAvaShell(
@@ -524,6 +527,7 @@ function executeAvaInstruction(
       session.shell,
       instruction.shell,
       opportunityFraction,
+      darkNetContext,
     );
     const next = { ...session, shell: shellResult.shell };
     const download = shellResult.download
@@ -548,6 +552,7 @@ function executeAvaInstruction(
     return finalize(state, next, shellResult.text, {
       outputKind: "shell",
       clearScreen: shellResult.clearScreen,
+      aphorismViewId: shellResult.aphorismViewId,
       download,
     });
   }
@@ -1238,12 +1243,14 @@ export function runAvaInstruction(
   opportunityFraction = 0,
   semantic?: AvaSemanticQuery,
   compilerTrace?: AvaCompilerTrace,
+  darkNetContext: AvaDarkNetContext = {},
 ): AvaTerminalResult {
   const result = executeAvaInstruction(
       state,
       session,
       instruction,
       opportunityFraction,
+      darkNetContext,
     );
   if (result.outputKind === "shell")
     return {

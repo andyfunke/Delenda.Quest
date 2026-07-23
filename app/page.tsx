@@ -59,6 +59,10 @@ import { openWikiApplet } from "./wiki-events";
 import { compileAvaCommand } from "./ava/compiler";
 import { avaEntitiesForState } from "./ava/game-context";
 import { type AvaActionRef } from "./ava/schema";
+import type {
+  AvaDarkNetContext,
+  AvaGlobalProductTelemetry,
+} from "./ava/darknet";
 import {
   actionKey,
   buildAvaPlan,
@@ -4655,7 +4659,7 @@ export default function Home() {
         ) ?? null)
       : null;
   }, [avaSession.plan, pendingManeuver, avaEntities]);
-  const submitAvaCommand = (command: string) => {
+  const submitAvaCommand = async (command: string) => {
     const raw = command.trim();
     if (!raw) return;
     if (!avaArchiveHydrated) {
@@ -4707,6 +4711,51 @@ export default function Home() {
       ]);
       return;
     }
+    let darkNetContext: AvaDarkNetContext = {};
+    if (
+      result.instruction.kind === "SHELL" &&
+      result.instruction.shell.command === "DARK_NET"
+    ) {
+      let localIds: string[] = [];
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem(APHORISM_LEDGER_KEY) ?? "[]",
+        ) as unknown;
+        if (Array.isArray(stored))
+          localIds = stored.filter(
+            (item): item is string => typeof item === "string",
+          );
+      } catch {}
+      const [telemetry, rotation] = await Promise.all([
+        fetch("/api/darknet", { cache: "no-store" })
+          .then(async (response) =>
+            response.ok
+              ? ((await response.json()) as AvaGlobalProductTelemetry)
+              : undefined,
+          )
+          .catch(() => undefined),
+        fetch("/api/rotation/aphorisms", { cache: "no-store" })
+          .then(async (response) =>
+            response.ok
+              ? ((await response.json()) as { ids?: string[] })
+              : undefined,
+          )
+          .catch(() => undefined),
+      ]);
+      const remoteIds = Array.isArray(rotation?.ids)
+        ? rotation.ids.filter(
+            (item): item is string => typeof item === "string",
+          )
+        : [];
+      const seenAphorismIds = [...new Set([...localIds, ...remoteIds])];
+      try {
+        window.localStorage.setItem(
+          APHORISM_LEDGER_KEY,
+          JSON.stringify(seenAphorismIds),
+        );
+      } catch {}
+      darkNetContext = { telemetry, seenAphorismIds };
+    }
     const terminal = runAvaInstruction(
       s,
       { ...avaSession, discourse },
@@ -4714,12 +4763,35 @@ export default function Home() {
       fraction,
       result.semantic,
       result.trace,
+      darkNetContext,
     );
     const terminalText =
       terminal.report && !avaArchiveWritable
         ? `${terminal.text}\n\nSESSION-ONLY FILE // DOWNLOAD BEFORE RELOAD`
         : terminal.text;
     setAvaSession(terminal.session);
+    if (terminal.aphorismViewId) {
+      const itemId = terminal.aphorismViewId;
+      const seen = new Set(darkNetContext.seenAphorismIds ?? []);
+      const newlyViewed = !seen.has(itemId);
+      seen.add(itemId);
+      try {
+        window.localStorage.setItem(
+          APHORISM_LEDGER_KEY,
+          JSON.stringify([...seen]),
+        );
+      } catch {}
+      if (newlyViewed)
+        void fetch("/api/rotation/aphorisms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemId,
+            dayKey: `darknet:${s.campaignId}:day-${s.day}`,
+          }),
+          keepalive: true,
+        }).catch(() => undefined);
+    }
     if (terminal.download) {
       const bytes = terminal.download.bytes;
       const data = bytes.buffer.slice(
@@ -4779,7 +4851,7 @@ export default function Home() {
   };
   const run = (e: FormEvent) => {
     e.preventDefault();
-    submitAvaCommand(input);
+    void submitAvaCommand(input);
     setInput("");
   };
   return (
@@ -5191,7 +5263,7 @@ export default function Home() {
             <button
               type="button"
               data-telemetry="ava.open-help"
-              onClick={() => submitAvaCommand("help")}
+              onClick={() => void submitAvaCommand("help")}
             >
               COMMAND MANUAL
             </button>

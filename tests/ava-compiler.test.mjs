@@ -136,6 +136,32 @@ test("shell grammar is recognized before natural-language normalization",()=>{
   assert.notEqual(instruction("clear plan").kind,"SHELL");
 });
 
+test("Dark Net easter-egg derivatives compile as one sealed shell surface",()=>{
+  for(const raw of [
+    "tor",
+    "./tor",
+    "sh tor",
+    "darknet",
+    "dark net",
+    "dark-web",
+    "access darknet",
+    "access the dark net",
+    "open tor",
+    "connect to dark web",
+    "tor campaign",
+    "darknet quote Q103",
+  ]){
+    const result=mod.compileAvaCommand(raw,context);
+    assert.equal(result.status,"compiled",raw);
+    assert.equal(result.instruction.kind,"SHELL",raw);
+    assert.equal(result.instruction.shell.command,"DARK_NET",raw);
+  }
+  const unsafe=mod.compileAvaCommand("tor campaign | stage M1",context);
+  assert.equal(unsafe.status,"compiled");
+  assert.equal(unsafe.instruction.kind,"SHELL");
+  assert.equal(unsafe.instruction.shell.command,"REJECT");
+});
+
 test("shell operators fail closed without turning ordinary comparisons into security errors",()=>{
   for(const raw of [
     "grep x /etc && resolve day",

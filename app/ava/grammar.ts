@@ -47,6 +47,18 @@ const shellNames = new Set([
   "download",
 ]);
 
+const darkNetInput = (raw: string) => {
+  const trimmed = raw.trim();
+  const patterns = [
+    /^(?:\.\/|sh\s+)?tor(?:\s+|$)/i,
+    /^(?:(?:access|open|enter|connect(?:\s+to)?|launch|use)\s+(?:the\s+)?)?dark[\s-]?(?:net|web)(?:\s+|$)/i,
+    /^(?:access|open|enter|connect(?:\s+to)?|launch|use)\s+tor(?:\s+|$)/i,
+  ];
+  const prefix = patterns.map((pattern) => trimmed.match(pattern)?.[0]).find(Boolean);
+  if (!prefix) return null;
+  return { trimmed, prefix };
+};
+
 const shellLex = (raw: string) => {
   const tokens: string[] = [];
   let token = "";
@@ -170,6 +182,21 @@ export const parseAvaShellInput = (
 ): AvaShellInstruction | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
+  const darkNet = darkNetInput(trimmed);
+  if (darkNet) {
+    if (trimmed.length > 512)
+      return rejectedShell(trimmed, "command exceeds the 512-character limit");
+    if (hasUnsafeShellSyntax(trimmed))
+      return rejectedShell(
+        trimmed,
+        "operators, redirects, substitutions, and command chaining are disabled",
+      );
+    const remainder = trimmed.slice(darkNet.prefix.length).trim();
+    const args = remainder ? shellLex(remainder) : [];
+    if (!args)
+      return rejectedShell(trimmed, "unterminated quoted argument");
+    return { command: "DARK_NET", args, raw: trimmed };
+  }
   const lexicalHead = trimmed.match(/^([a-z]+)/i)?.[1].toLowerCase();
   const beginsAsShell = !!lexicalHead && shellNames.has(lexicalHead);
   if (beginsAsShell && trimmed.length > 512)

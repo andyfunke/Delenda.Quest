@@ -9,6 +9,10 @@ import { enumerateAvaActions, avaStateRevision } from "./runtime";
 import { buildAvaReport } from "./reports";
 import { buildAvaWorkbook } from "./workbook";
 import { projectAvaEnvelope } from "./projection";
+import {
+  executeAvaDarkNet,
+  type AvaDarkNetContext,
+} from "./darknet";
 import type {
   AvaReportCard,
   AvaReportTopic,
@@ -580,6 +584,7 @@ export type AvaShellExecution = {
   text: string;
   clearScreen?: boolean;
   download?: AvaVirtualFile;
+  aphorismViewId?: string;
 };
 
 const fail = (shell: AvaShellSession, command: string, message: string) => ({
@@ -592,6 +597,7 @@ export const executeAvaShell = (
   shell: AvaShellSession,
   instruction: AvaShellInstruction,
   fraction = 0,
+  darkNetContext: AvaDarkNetContext = {},
 ): AvaShellExecution => {
   const nextShell = {
     ...shell,
@@ -606,6 +612,19 @@ export const executeAvaShell = (
       "shell",
       args[0] ?? "unsupported or unsafe syntax",
     );
+  if (command === "DARK_NET") {
+    const result = executeAvaDarkNet(
+      state,
+      fraction,
+      args,
+      darkNetContext,
+    );
+    return {
+      shell: nextShell,
+      text: result.text,
+      aphorismViewId: result.aphorismViewId,
+    };
+  }
   if (command === "PWD") return { shell: nextShell, text: shell.cwd };
   if (command === "WHOAMI")
     return { shell: nextShell, text: "commander" };

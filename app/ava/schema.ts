@@ -200,6 +200,7 @@ export type AvaAnswerPlan = {
 
 export type AvaShellCommandName =
   | "REJECT"
+  | "DARK_NET"
   | "PWD"
   | "CD"
   | "LS"
