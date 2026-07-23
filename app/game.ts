@@ -12,6 +12,11 @@ import { OPPORTUNITY_CATEGORY_LABELS, OPPORTUNITY_SPINES, type OpportunityCatego
 import { OPPORTUNITY_RESPONSE_FLAVOR } from "./opportunity-flavor";
 import { SUB_MISSION_CONTENT_VERSION, SUB_MISSION_SCHEMA_VERSION, compileSubMissionDocket, subMissionArchetypeById, subMissionFrameById, type DailySubMissionDocket, type SubMissionDomain, type SubMissionHistoryRecord } from "./submission-schema";
 import { EARLIEST_MODELED_VICTORY_DAY, campaignBalanceProfile } from "./campaign-balance";
+import { campaignSeedId } from "./campaign-id";
+import { ADDITIONAL_DIRECTIVE_FAMILIES, DIRECTIVE_CATEGORY_OVERRIDES, DIRECTIVE_CHOICE_ADDITIONS } from "./directive-expansion";
+import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-event-expansion";
+
+export { CAMPAIGN_SEED_NAME_COUNT, campaignSeedId } from "./campaign-id";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -56,7 +61,9 @@ export type OpportunityAssignment = {
   campaignId:string; day:number; opportunityId:string; occurrence:number;
   status:"opened"|"acted"|"expired"; openedAt:number; updatedAt:number;
 };
-export type ActiveDiplomacyAction = { familyId:string; choiceId:string; startedDay:number; expiresDay:number };
+export type DiplomaticMetric="trust"|"leverage"|"dependency"|"obligation"|"aidPipeline"|"sanctionsExposure";
+export type DiplomaticEffect={actorId:string;metric:DiplomaticMetric;perDay:number};
+export type ActiveDiplomacyAction = { familyId:string; choiceId:string; startedDay:number; expiresDay:number; actorEffects?:DiplomaticEffect[] };
 
 export type StrategicSnapshot = {
   day:number;front:number;armed:number;deployable:number;readiness:number;equipment:number;materiel:number;
@@ -89,7 +96,7 @@ export type GameState = {
   active: Record<string, string>; locks: Record<string, number>; scheduled: Scheduled[];
   activeDiplomacy:ActiveDiplomacyAction[];
   unlocked: string[]; decisions: { day: number; family: string; choice: string; familyId?:string; choiceId?:string; domain?:SubMissionDomain; missionId?:string; resolutionTicket?:string }[];
-  eventHistory:{day:number;phase:string;event:string;eventId:string;trigger:string}[];
+  eventHistory:{day:number;phase:string;event:string;eventId:string;calculusId?:string;trigger:string}[];
   opportunityCommitment:OpportunityCommitment|null; opportunityHistory:OpportunityHistoryRecord[];
   opportunityAssignments:OpportunityAssignment[]; accountOpportunityIds:string[];
   theaterSectors:TheaterSector[]; operationalFacts:OperationalFact[]; situationHistory:SituationHistoryRecord[]; currentSituation:CompiledSituation|null;
@@ -105,6 +112,7 @@ export type Choice = {
   id: string; label: string; flavor: string; exact: string[]; risk: string[];
   delta?: Delta; tick?: Delta; delay?: { days: number; delta: Delta };
   target?: GameState["target"]; tempo?: Tempo; networkPosture?:NetworkPosture; doctrine?: number; duration?:number;
+  actorEffects?:DiplomaticEffect[];
 };
 
 export type Family = {
@@ -132,7 +140,7 @@ export type TheaterDefinition = { id:Theater; label:string; brief:string; pressu
 export type CampaignPhaseId="contact"|"compression"|"exhaustion"|"terminal";
 export type DirectorModifiers={productionOutput:number;supplyUse:number;casualty:number;desertion:number;confidence:number;friendlyPressure:number;enemyPressure:number;supplyConversion:number;legitimacy:number;resistance:number;maintenance:number;treasury:number};
 export type CampaignPhase={id:CampaignPhaseId;label:string;days:[number,number];brief:string;quote:string;exact:string[];modifiers:Partial<DirectorModifiers>};
-export type CampaignEvent={id:string;label:string;category:string;phases:CampaignPhaseId[];brief:string;report:string;quote:string;exact:string[];risk:string[];modifiers:Partial<DirectorModifiers>;trigger?:string};
+export type CampaignEvent={id:string;label:string;category:string;phases:CampaignPhaseId[];brief:string;report:string;quote:string;exact:string[];risk:string[];modifiers:Partial<DirectorModifiers>;trigger?:string;calculusId?:string};
 export type CampaignDirector={phase:CampaignPhase;event:CampaignEvent;modifiers:DirectorModifiers;trigger:string};
 
 export const STATE_ARCHETYPES:CampaignArchetype[]=[
@@ -187,6 +195,8 @@ export const CAMPAIGN_EVENTS:CampaignEvent[]=[
   {id:"formation-fever",label:"The Formation Reports Sick",category:"REACTIVE CRISIS",phases:["contact","compression","exhaustion","terminal"],trigger:"Readiness below 42",brief:"Medical absence, vehicle faults, and unlocated personnel have converged into a single operational fact: the formation exists more completely on paper than in assembly.",report:"Readiness collapse increased casualties, desertion, and execution failure.",quote:"A ghost formation still consumes rations if the ledger believes in it.",exact:["Execution Confidence -7%","Combat casualty factor ×1.12","Desertion flow ×1.25"],risk:["The condition persists until Readiness is restored"],modifiers:{confidence:-.07,casualty:1.12,desertion:1.25}},
   {id:"creditor-call",label:"A Creditor Exercises Wartime Access",category:"REACTIVE CRISIS",phases:["contact","compression","exhaustion","terminal"],trigger:"Dependency at or above 55",brief:"A foreign counterparty has converted emergency assistance into a claim on current transport and treasury capacity. The agreement was always explicit to somebody.",report:"External dependency reduced available treasury and industrial discretion.",quote:"Aid becomes ownership at the first moment refusal is unaffordable.",exact:["Treasury -8 B at resolution","Industrial output ×0.92","Legitimacy -0.6 at resolution"],risk:["Refusal may interrupt future deliveries"],modifiers:{treasury:-8,productionOutput:.92,legitimacy:-.6}},
 ];
+const CORE_CAMPAIGN_EVENTS=[...CAMPAIGN_EVENTS];
+CAMPAIGN_EVENTS.push(...ADDITIONAL_CAMPAIGN_EVENTS);
 
 export const FAMILIES: Family[] = [
   { id: "production", module: "national", category: "Industrial Command", label: "Set Production Target", brief: "Put the marginal factory, worker, and shipment behind one arm of the war machine.", lock: 2, choices: [
@@ -436,6 +446,14 @@ export const FAMILIES: Family[] = [
   ]},
 ];
 
+for(const family of FAMILIES){
+  const category=DIRECTIVE_CATEGORY_OVERRIDES[family.id];
+  if(category)family.category=category;
+  const additions=DIRECTIVE_CHOICE_ADDITIONS[family.id];
+  if(additions?.length)family.choices.push(...additions as Choice[]);
+}
+FAMILIES.push(...ADDITIONAL_DIRECTIVE_FAMILIES as Family[]);
+
 export const MANEUVERS: Maneuver[] = [
   { id:"reinforce",commitment:31000,label:"Reinforce the Salient",flavor:"The reserve enters through the route the enemy has already selected for fire.",exact:["Commit 31,000 deployable soldiers","Munitions use: +18%","Readiness: -2"],risk:["Outcome margin: Clean Execution through Operational Collapse","Negative margin exposes the committed reserve"],success:.68,casualty:1.22,supply:1.18,successPressure:.9,failurePressure:-.7,vector:"Force Reconstitution",readiness:-2,resourceUse:{munitions:1.18}},
   { id:"interdict",commitment:24000,label:"Clear the Interdiction Zone",flavor:"Find the batteries by surviving long enough to make them fire twice.",exact:["Commit 24,000 deployable soldiers","Munitions use: +31%","Drone use: +24%"],risk:["Outcome margin: Clean Execution through Operational Collapse","Salient remains understrength during the fires commitment"],success:.47,casualty:.86,supply:1.31,successPressure:1.25,failurePressure:-.45,vector:"Strategic Fires",resourceUse:{munitions:1.31,drones:1.24}},
@@ -541,7 +559,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     theater:validTheater(input.theater)?input.theater:DEFAULT_CAMPAIGN.theater,
   };
   const s:GameState={
-    saveVersion:4,contentPackVersion:CONTENT_PACK_VERSION,campaignId:`DQ-${config.seed.toString(36).toUpperCase().padStart(6,"0")}-${config.theater.slice(0,3).toUpperCase()}`,campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
+    saveVersion:4,contentPackVersion:CONTENT_PACK_VERSION,campaignId:campaignSeedId(config.seed),campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
     day: 1, actions: DAILY_ORDERS, status: "active", victorySecuredDay:null, population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
     voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
     trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
@@ -675,15 +693,23 @@ export const OPPORTUNITY_TEMPLATES:OpportunityTemplate[]=OPPORTUNITY_SPINES.map(
 const DIRECTOR_DEFAULTS:DirectorModifiers={productionOutput:1,supplyUse:1,casualty:1,desertion:1,confidence:0,friendlyPressure:0,enemyPressure:0,supplyConversion:1,legitimacy:0,resistance:0,maintenance:0,treasury:0};
 export const phaseForDay=(day:number)=>CAMPAIGN_PHASES.find(x=>day>=x.days[0]&&day<=x.days[1])??CAMPAIGN_PHASES[CAMPAIGN_PHASES.length-1];
 export const eventForState=(state:GameState)=>{
-  const phase=phaseForDay(state.day);const last=state.eventHistory?.[0]?.eventId;
-  const triggered=CAMPAIGN_EVENTS.filter(event=>event.trigger&&event.id!==last&&(
+  const phase=phaseForDay(state.day),history=state.eventHistory??[],seen=new Set(history.map(record=>record.eventId));
+  const lastCalculus=history[0]?.calculusId??CAMPAIGN_EVENT_CALCULUS[history[0]?.eventId??""]??history[0]?.eventId;
+  const triggered=CORE_CAMPAIGN_EVENTS.filter(event=>event.trigger&&event.id!==lastCalculus&&(
     (event.id==="shell-famine"&&state.production.munitions.stock/Math.max(1,state.production.munitions.use)<2)||
     (event.id==="general-stoppage"&&state.resistance>=55)||
     (event.id==="formation-fever"&&state.readiness<42)||
     (event.id==="creditor-call"&&state.dependency>=55)
   ));
-  if(triggered.length){const index=Math.floor(hash(`${state.campaignSeed}:${state.day}:reactive-crisis`)*triggered.length);return triggered[index];}
-  const deck=CAMPAIGN_EVENTS.filter(event=>!event.trigger&&event.phases.includes(phase.id));const offset=Math.floor(hash(`${state.campaignSeed}:${phase.id}:event-offset`)*deck.length);const stride=hash(`${state.campaignSeed}:${phase.id}:event-stride`)>.5?3:1;const relative=Math.max(0,state.day-phase.days[0]);return deck[(offset+relative*stride)%deck.length]??CAMPAIGN_EVENTS[0];
+  const baseline=triggered.length
+    ? triggered[Math.floor(hash(`${state.campaignSeed}:${state.day}:reactive-crisis`)*triggered.length)]
+    : (()=>{const deck=CORE_CAMPAIGN_EVENTS.filter(event=>!event.trigger&&event.phases.includes(phase.id));const offset=Math.floor(hash(`${state.campaignSeed}:${phase.id}:event-offset`)*deck.length);const stride=hash(`${state.campaignSeed}:${phase.id}:event-stride`)>.5?3:1;const relative=Math.max(0,state.day-phase.days[0]);return deck[(offset+relative*stride)%deck.length]??CORE_CAMPAIGN_EVENTS[0]})();
+  const aligned=CAMPAIGN_EVENTS.filter(event=>!event.trigger&&event.phases.includes(phase.id)&&!seen.has(event.id)&&(CAMPAIGN_EVENT_CALCULUS[event.id]??event.id)===baseline.id);
+  const phaseUnused=CAMPAIGN_EVENTS.filter(event=>!event.trigger&&event.phases.includes(phase.id)&&!seen.has(event.id));
+  const anyUnused=CAMPAIGN_EVENTS.filter(event=>!event.trigger&&!seen.has(event.id));
+  const deck=!seen.has(baseline.id)?[baseline]:aligned.length?aligned:phaseUnused.length?phaseUnused:anyUnused.length?anyUnused:[baseline];
+  const narrative=deck[Math.floor(hash(`${state.campaignSeed}:${state.day}:${baseline.id}:campaign-writing`)*deck.length)]??baseline;
+  return{...narrative,exact:baseline.exact,modifiers:baseline.modifiers,calculusId:baseline.id};
 };
 const combineDirectorModifiers=(phase:Partial<DirectorModifiers>,event:Partial<DirectorModifiers>):DirectorModifiers=>({
   productionOutput:(phase.productionOutput??DIRECTOR_DEFAULTS.productionOutput)*(event.productionOutput??DIRECTOR_DEFAULTS.productionOutput),supplyUse:(phase.supplyUse??DIRECTOR_DEFAULTS.supplyUse)*(event.supplyUse??DIRECTOR_DEFAULTS.supplyUse),casualty:(phase.casualty??DIRECTOR_DEFAULTS.casualty)*(event.casualty??DIRECTOR_DEFAULTS.casualty),desertion:(phase.desertion??DIRECTOR_DEFAULTS.desertion)*(event.desertion??DIRECTOR_DEFAULTS.desertion),
@@ -692,7 +718,7 @@ const combineDirectorModifiers=(phase:Partial<DirectorModifiers>,event:Partial<D
 });
 export const directorForState=(state:GameState):CampaignDirector=>{const phase=phaseForDay(state.day),event=eventForState(state);return{phase,event,modifiers:combineDirectorModifiers(phase.modifiers,event.modifiers),trigger:event.trigger??`Seeded ${phase.label} condition`};};
 
-const compileSituationForState=(state:GameState)=>{const event=eventForState(state);return compileSituation(state,SITUATIONS,{id:event.id,category:event.category,label:event.label});};
+const compileSituationForState=(state:GameState)=>{const event=eventForState(state),calculus=CORE_CAMPAIGN_EVENTS.find(item=>item.id===(event.calculusId??event.id))??event;return compileSituation(state,SITUATIONS,{id:calculus.id,category:calculus.category,label:calculus.label});};
 export const situationForDay = (day: number) => SITUATIONS[(day - 1) % SITUATIONS.length];
 export const situationForState = (state:GameState):CompiledSituation => {
   if(state.currentSituation?.day===state.day&&state.currentSituation.contentPackVersion===CONTENT_PACK_VERSION&&state.currentSituation.maneuverPresentations)return state.currentSituation;
@@ -915,7 +941,7 @@ export const commit = (state: GameState, family: Family, choice: Choice) => {
   if (choice.tempo) s.tempo = choice.tempo;
   if (choice.networkPosture) s.networkPosture = choice.networkPosture;
   s.active[family.id] = choice.id;
-  if(family.module==="diplomacy")s.activeDiplomacy.push({familyId:family.id,choiceId:choice.id,startedDay:s.day,expiresDay:s.day+diplomacyDurationFor(family.id,choice)});
+  if(family.module==="diplomacy")s.activeDiplomacy.push({familyId:family.id,choiceId:choice.id,startedDay:s.day,expiresDay:s.day+diplomacyDurationFor(family.id,choice),actorEffects:choice.actorEffects?.map(effect=>({...effect}))});
   s.locks[family.id] = s.day + family.lock; s.actions -= 1; s.decisions.unshift({ day: s.day, family: family.label, choice: choice.label, familyId:family.id, choiceId:choice.id }); normalize(s); return s;
 };
 
@@ -1082,7 +1108,7 @@ export const resolve = (state: GameState) => {
   s.readiness+=(grads>losses?.7:-1.2)-shortages*.55; s.equipment-=losses/18000+shortages*.35; s.maintenanceDebt+=tempoSupply*.6; s.treasury+=3.4-s.armed/185000+director.modifiers.treasury;const domesticResult=executeCircuit(domesticCircuit,s,{friendlyLosses:losses,shortages,directorLegitimacy:director.modifiers.legitimacy,directorResistance:director.modifiers.resistance});Object.assign(s,domesticResult.state);s.domesticLedger=domesticResult.ledger;
   const opportunityOutcome=s.opportunityHistory[0]?.day===s.day?(s.opportunityHistory[0].outcome==="expired"?"missed":s.opportunityHistory[0].outcome):null;
   const dispatch=composeWarDispatch({sector:situation.sector,maneuverLabel:maneuver?.label??null,conditionBrief:director.event.brief,outcomeBand,movement:move,friendlyLosses:losses,enemyLosses:enemyLoss,committed:operationResult.ledger.committed,forceRatio:operationResult.ledger.forceRatio,adversary:adversaryResult.ledger,diplomacy:diplomacyResult.ledger,domestic:domesticResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,desertionAttempted:desert.desertion,doctrineGain,aftermath:aftermath.createdFacts,opportunityOutcome});
-  s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,trigger:director.trigger});
+  s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,calculusId:director.event.calculusId??director.event.id,trigger:director.trigger});
   const todayDirectives=s.decisions.filter(decision=>decision.day===s.day);
   for(const domain of campaignAlternateDomainsForState(s)){const mission=docket[domain];const issued=todayDirectives.find(decision=>decision.domain===domain&&decision.missionId===mission.contentId);s.subMissionHistory.unshift({day:s.day,domain,archetypeId:mission.archetypeId,frameId:mission.frameId,realizationId:mission.realizationId,contentId:mission.contentId,category:mission.category,pressureBand:mission.pressureBand,resolutionTicket:mission.resolutionTicket,optionId:issued?.choiceId??null,familyId:issued?.familyId??null,choiceId:issued?.choiceId??null,outcome:issued?"issued":"lapsed"});}
   const closing=strategicSnapshot(s);s.resolutionHistory.unshift({schemaVersion:1,resolvedDay:s.day,phaseId:director.phase.id,eventId:director.event.id,sector:situation.sector,blueprintId:situation.blueprintId,opening,closing,orders:{used:DAILY_ORDERS-s.actions,unused:s.actions,maneuverId:maneuver?.id??null,directives:todayDirectives.map(decision=>({familyId:decision.familyId,choiceId:decision.choiceId,family:decision.family,choice:decision.choice,domain:decision.domain,missionId:decision.missionId}))},operations:operationResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,domestic:domesticResult.ledger,diplomacy:diplomacyResult.ledger,adversaryObserved:{estimatedForce:adversaryResult.ledger.estimatedForce,estimateLow:adversaryResult.ledger.estimateLow,estimateHigh:adversaryResult.ledger.estimateHigh,observedOrders:[...adversaryResult.ledger.observedOrders],hiddenOrders:adversaryResult.ledger.hiddenOrders,signals:[...adversaryResult.ledger.signals]},personnel:{combatLosses:losses,desertionAttempts:desert.desertion,retained:desert.retained,intercepted:desert.intercepted,netDesertion:desert.netDesertion,effectiveGraduates:forceResult.ledger.effectiveGraduates,deployableAssigned:forceResult.ledger.deployableAssigned},outcome:{groundMovement:move,outcomeBand,doctrineGain,factsCreated:aftermath.createdFacts.map(fact=>fact.id)}});

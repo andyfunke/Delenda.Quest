@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { accountSnapshot, inviteFriend, removeFriendByAlias, updateAlias, updateAllowFriends } from "../../../db/accounts";
+import { accountSnapshot, inviteFriend, removeFriendByAlias, updateAlias, updateAllowFriends, updateTimeZone } from "../../../db/accounts";
 import { chatGPTSignInPath, getChatGPTUser } from "../../chatgpt-auth";
 import { isAdmin } from "../../../db/admin";
 
@@ -21,9 +21,10 @@ export async function DELETE(request:Request){
 
 export async function PATCH(request:Request){
   const user=await getChatGPTUser();if(!user)return NextResponse.json({error:"Sign in before changing account settings."},{status:401});
-  const body=await request.json() as {allowFriends?:unknown;alias?:unknown};
+  const body=await request.json() as {allowFriends?:unknown;alias?:unknown;timeZone?:unknown};
   try{
     if(typeof body.alias==="string")return NextResponse.json(await updateAlias(user,body.alias));
+    if(typeof body.timeZone==="string")return NextResponse.json(await updateTimeZone(user,body.timeZone));
     if(typeof body.allowFriends==="boolean")return NextResponse.json(await updateAllowFriends(user,body.allowFriends));
     return NextResponse.json({error:"No supported account setting was supplied."},{status:400});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Account setting failed."},{status:400});}

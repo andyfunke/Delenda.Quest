@@ -12,6 +12,7 @@ import {
   situationForState,
   type GameState,
 } from "../game";
+import { campaignSeedId } from "../campaign-id";
 import { compileConvergence } from "../convergence";
 import type { AvaInstruction, AvaReportCard, AvaReportTopic } from "./schema";
 import { avaReportOpening as flavor } from "./voice";
@@ -1268,8 +1269,8 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
     topic: "service-record",
     title: "Campaign service record",
     direct: closed
-      ? `Campaign ${state.campaignId} is ${state.status}. Its transparent Campaign Score is ${score.total.toLocaleString()}; permanent cohort rank and Player Rating issuance occur at the records office.`
-      : `If Campaign ${state.campaignId} were terminated now, its partial Campaign Score would be ${score.total.toLocaleString()}. The completed result remains unissued while the campaign is active.`,
+      ? `Campaign ${campaignSeedId(state.campaignSeed)} is ${state.status}. Its transparent Campaign Score is ${score.total.toLocaleString()}; permanent cohort rank and Player Rating issuance occur at the records office.`
+      : `If Campaign ${campaignSeedId(state.campaignSeed)} were terminated now, its partial Campaign Score would be ${score.total.toLocaleString()}. The completed result remains unissued while the campaign is active.`,
     flavor: flavor(state, "service-record"),
     calculation: {
       equation:
@@ -1277,7 +1278,7 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
       rows: [
         {
           label: "CAMPAIGN ID",
-          value: state.campaignId,
+          value: campaignSeedId(state.campaignSeed),
           conceptId: "campaign-synopsis",
         },
         {

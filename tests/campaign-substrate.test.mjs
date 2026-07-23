@@ -3,28 +3,63 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_FINISH_DISTRIBUTION, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
+  ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_EVENTS, CAMPAIGN_FINISH_DISTRIBUTION, CAMPAIGN_SEED_NAME_COUNT, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  calculateCampaignScore, campaignBalanceProfile, directiveRejection, earlyVictoryAcceleration, estimateDay, finishByDayProbability, maneuverChance, outcomeBandForMargin, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, maneuverChance, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
-  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v3");
-  assert.equal(SITUATIONS.length,47);
-  assert.equal(Object.keys(BLUEPRINT_RULES).length,47);
+  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v4");
+  assert.equal(SITUATIONS.length,50);
+  assert.equal(Object.keys(BLUEPRINT_RULES).length,50);
   assert.equal(Object.keys(FACT_CATALOG).length,25);
   assert.deepEqual(auditCampaignSubstrate(SITUATIONS,MANEUVERS.map(x=>x.id)),[]);
 });
 
-test("Main campaign exposes hundreds of sector-bound authored permutations",()=>{
+test("campaign seeds use a broad proper-name register instead of alias grammar",()=>{
+  assert.ok(CAMPAIGN_SEED_NAME_COUNT>=80);
+  const ids=new Set(Array.from({length:80},(_,index)=>campaignSeedId(index+1)));
+  assert.equal(ids.size,80);
+  for(const id of ids)assert.match(id,/^#WAR-[A-Z]+-[0-9]{4}$/);
+  assert.match(campaignSeedId(6682),/^#WAR-(?:POSEIDON|HERMES|HERMAPHRODITUS|[A-Z]+)-[0-9]{4}$/);
+});
+
+test("Main campaign exposes hundreds of eligible situation-sector bindings",()=>{
   const permutationCount=SITUATIONS.reduce((total,situation)=>{
     const rule=BLUEPRINT_RULES[situation.id];
     assert.ok(rule,`missing blueprint rule for ${situation.id}`);
+    if(rule.writingOnly)return total;
     return total+(rule.fixedSectorId?1:rule.theaters.length*6);
   },0);
 
   assert.equal(permutationCount,684);
+});
+
+test("a full thirty-day campaign cannot repeat an authored Main situation or campaign condition",()=>{
+  assert.ok(CAMPAIGN_EVENTS.filter(event=>!event.trigger).length>=30);
+  for(const theater of THEATERS){
+    for(let seed=1;seed<=20;seed++){
+      let state=initialState({seed,theater:theater.id});
+      const situations=new Set(),events=new Set();
+      for(let day=1;day<=30;day++){
+        state={...state,day,currentSituation:null};
+        const situation=situationForState(state),event=eventForState(state);
+        const situationKey=situation.blueprintId;
+        assert.ok(!situations.has(situationKey),`${theater.id} seed ${seed} repeated ${situationKey} on day ${day}`);
+        assert.ok(!events.has(event.id),`${theater.id} seed ${seed} repeated ${event.id} on day ${day}`);
+        situations.add(situationKey);
+        events.add(event.id);
+        state={
+          ...state,
+          situationHistory:[{day,blueprintId:situation.blueprintId,calculusBlueprintId:situation.calculusBlueprintId,situationId:situation.id,sectorId:situation.sectorId,maneuverId:null,outcomeBand:null,margin:null,groundMovement:null,factsCreated:[]},...state.situationHistory],
+          eventHistory:[{day,phase:phaseForDay(day).label,event:event.label,eventId:event.id,calculusId:event.calculusId,trigger:event.trigger??"Seeded campaign condition"},...state.eventHistory],
+        };
+      }
+      assert.equal(situations.size,30);
+      assert.equal(events.size,30);
+    }
+  }
 });
 
 test("every theater opens with a stored graph-backed Situation Packet",()=>{
@@ -91,9 +126,9 @@ test("directive menus expose the expanded parent and child corpus",()=>{
     grouped.set(key,[...(grouped.get(key)??[]),family.label]);
   }
   for(const[key,labels]of grouped)assert.ok(labels.length>=2,`${key} exposes only ${labels.join(", ")}`);
-  assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Allocate War Expenditure","Set Procurement Prices"]);
-  assert.deepEqual(grouped.get("military/Operations"),["Set Operational Tempo","Manage Operational Reserves"]);
-  assert.deepEqual(grouped.get("military/Personnel Sustainment"),["Process Desertion","Administer Rotation and Recovery"]);
+  assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Administer the Butcher's Bill","Allocate War Expenditure","Set Procurement Prices"]);
+  assert.deepEqual(grouped.get("military/Operations"),["Set Operational Tempo","Manage Operational Reserves","Set Combined-Arms Priority"]);
+  assert.deepEqual(grouped.get("military/Personnel Sustainment"),["Process Desertion","Administer Rotation and Recovery","Govern the Medical Replacement System"]);
   assert.deepEqual(grouped.get("diplomacy/Access and Exchange"),["Secure External Supply","Trade Foreign Intelligence","Negotiate Industrial Accords"]);
   assert.deepEqual(grouped.get("diplomacy/Influence and Coercion"),["Conduct Statecraft","Administer Sanctions","Conduct Information Diplomacy"]);
   assert.deepEqual(grouped.get("diplomacy/Commitments and Alliances"),["Bind Foreign Obligations","Service Alliance Obligations","Broker Coalition Burdens"]);
@@ -104,20 +139,29 @@ test("directive menus expose the expanded parent and child corpus",()=>{
   assert.deepEqual(productionParents,[
     "Industrial Command",
     "Public Finance",
-    "Civilian Conversion",
     "Labor Mobilization",
     "Strategic Distribution",
     "Resource Extraction",
+    "Civilian Conversion",
   ]);
   assert.equal(production.length,20);
   for(const parent of productionParents){
-    assert.ok(production.filter(family=>family.category===parent).length>=3,`${parent} has fewer than three selectable families`);
+    const count=production.filter(family=>family.category===parent).length;
+    assert.ok(count>=3&&count<=4,`${parent} has ${count} selectable families`);
   }
-  assert.ok(production.every(family=>family.choices.length>=3));
-  assert.equal(byModule("military").length,12);
+  assert.ok(production.every(family=>family.choices.length>=4));
+  assert.equal(byModule("military").length,18);
   assert.ok(byModule("military").every(family=>family.choices.length>=4));
-  assert.equal(byModule("diplomacy").length,9);
-  assert.ok(byModule("diplomacy").every(family=>family.choices.length>=3));
+  assert.equal(byModule("diplomacy").length,18);
+  assert.ok(byModule("diplomacy").every(family=>family.choices.length>=4));
+  for(const moduleId of ["military","diplomacy"]){
+    const families=byModule(moduleId),parents=[...new Set(families.map(family=>family.category))];
+    assert.equal(parents.length,6,`${moduleId} exposes ${parents.length} parents`);
+    for(const parent of parents){
+      const count=families.filter(family=>family.category===parent).length;
+      assert.ok(count>=3&&count<=4,`${moduleId}/${parent} exposes ${count} subcategories`);
+    }
+  }
 });
 
 test("new Public Finance, Operations, and Personnel Sustainment families execute real state changes without resolving the day",()=>{
@@ -160,7 +204,7 @@ test("all recovered Production parents execute owned state changes without resol
 });
 
 test("expanded directive families execute owned state changes and persistent diplomacy",()=>{
-  for(const[familyId,choiceId,field]of[["production","common-spares","maintenanceDebt"],["branch-priority","drone-operators","intelligence"],["industrial-accords","licensed-tooling","materiel"],["information-diplomacy","broadcast-surrender","intelligence"],["burden-sharing","refugee-rail","legitimacy"]]){
+  for(const[familyId,choiceId,field]of[["production","common-spares","maintenanceDebt"],["branch-priority","drone-operators","intelligence"],["procurement-goal","armor-reserve-goal","pendingTarget"],["industrial-accords","licensed-tooling","materiel"],["information-diplomacy","broadcast-surrender","intelligence"],["burden-sharing","refugee-rail","legitimacy"],["neutral-finance","gold-swap","treasury"]]){
     const state=initialState({seed:5520}),family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),before=state[field];
     const next=commit(state,family,choice);
     assert.equal(next.day,state.day);

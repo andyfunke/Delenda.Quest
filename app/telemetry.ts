@@ -1,5 +1,6 @@
 import type { AvaCompileResult } from "./ava/schema";
 import { DOCTRINES, FAMILIES, MANEUVERS, initialState, type GameState, type Module } from "./game";
+import { campaignSeedId } from "./campaign-id";
 
 type ClientCounter={type:"counter";category:"page_view"|"element_interaction"|"ava_command"|"module_dwell"|"module_switch";subject:string;context?:string;count?:number};
 type ClientOutcome={type:"campaign_outcome";campaignId:string;outcome:"victory"|"defeat";days:number;theater:string;archetype:string;adversary:string;decisions:Record<string,number>};
@@ -41,7 +42,7 @@ export const recordCampaignOutcome=(state:GameState)=>{
     ...state.opportunityHistory.map(item=>`opportunity:${item.opportunityId}:${item.responseId}:${item.outcome}`),
     ...state.unlocked.map(item=>`doctrine:${item}`),
   ];
-  enqueue({type:"campaign_outcome",campaignId:state.campaignId,outcome:state.status,days:state.day,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,decisions:countBy(decisions)});
+  enqueue({type:"campaign_outcome",campaignId:campaignSeedId(state.campaignSeed),outcome:state.status,days:state.day,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,decisions:countBy(decisions)});
 };
 
 const serviceDecisions=(state:GameState)=>{
@@ -70,7 +71,7 @@ export const submitCampaignRecord=async(state:GameState,submissionId:string,opti
   const production=state.resolutionHistory.map(day=>day.production.lines.reduce((sum,line)=>sum+line.net,0)),suffered=state.resolutionHistory.map(day=>day.personnel.combatLosses),inflicted=state.resolutionHistory.map(day=>day.operations.enemyLosses);
   const range=(values:number[])=>({min:values.length?Math.min(...values):0,max:values.length?Math.max(...values):0});
   const productionRange=range(production),sufferedRange=range(suffered),inflictedRange=range(inflicted);
-  const response=await fetch("/api/campaign-records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({submissionId,campaignId:state.campaignId,campaignSeed:state.campaignSeed,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,contentVersion:state.contentPackVersion,outcome:options.abandoned?"abandoned":state.status,days:Math.max(1,state.day-1),deployable:state.deployable,openingDeployable:opening.deployable,front:state.front,legitimacy:state.legitimacy,resistance:state.resistance,readiness:state.readiness,decisions:serviceDecisions(state),completedAt:Date.now(),multiplayer:options.multiplayer,productionMin:productionRange.min,productionMax:productionRange.max,sufferedMin:sufferedRange.min,sufferedMax:sufferedRange.max,inflictedMin:inflictedRange.min,inflictedMax:inflictedRange.max}),keepalive:true});
+  const response=await fetch("/api/campaign-records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({submissionId,campaignId:campaignSeedId(state.campaignSeed),campaignSeed:state.campaignSeed,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,contentVersion:state.contentPackVersion,outcome:options.abandoned?"abandoned":state.status,days:Math.max(1,state.day-1),deployable:state.deployable,openingDeployable:opening.deployable,front:state.front,legitimacy:state.legitimacy,resistance:state.resistance,readiness:state.readiness,decisions:serviceDecisions(state),completedAt:Date.now(),multiplayer:options.multiplayer,productionMin:productionRange.min,productionMax:productionRange.max,sufferedMin:sufferedRange.min,sufferedMax:sufferedRange.max,inflictedMin:inflictedRange.min,inflictedMax:inflictedRange.max}),keepalive:true});
   if(response.status===401)return null;
   if(!response.ok){const result=await response.json().catch(()=>({})) as {error?:string};throw new Error(result.error??"Campaign Record could not be issued.")}
   return response.json();

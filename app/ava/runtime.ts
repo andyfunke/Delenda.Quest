@@ -22,6 +22,7 @@ import {
   convergenceOptionAvailable,
   convergenceOptionRejection,
 } from "../convergence";
+import { EXPANDED_DIRECTIVE_KEYS } from "../directive-expansion";
 import type {
   AvaActionDescriptor,
   AvaActionRef,
@@ -121,6 +122,7 @@ const POST_V56_DIRECTIVE_KEYS = new Set([
   "substitute-materials/low-grade-steel",
   "substitute-materials/synthetic-feedstocks",
 ]);
+const POST_V60_DIRECTIVE_KEYS = new Set(EXPANDED_DIRECTIVE_KEYS);
 
 const directiveDescriptor = (
   state: GameState,
@@ -221,13 +223,17 @@ export const enumerateAvaActions = (
     ...directiveEntries.filter(
       ({ family, choice }) =>
         !POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`) &&
-        !POST_V56_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+        !POST_V56_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`) &&
+        !POST_V60_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
     ),
     ...directiveEntries.filter(({ family, choice }) =>
       POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
     ),
     ...directiveEntries.filter(({ family, choice }) =>
       POST_V56_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+    ),
+    ...directiveEntries.filter(({ family, choice }) =>
+      POST_V60_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
     ),
   ];
   stableDirectiveEntries.forEach(({ family, choice }, index) =>

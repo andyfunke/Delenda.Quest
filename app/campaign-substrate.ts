@@ -45,7 +45,7 @@ export type OperationalFact = {
 export type FactDefinition = {id:string;label:string;category:string;consequence:string};
 
 export type SituationHistoryRecord = {
-  day:number; blueprintId:string; situationId:string; sectorId:string; maneuverId:string|null;
+  day:number; blueprintId:string; calculusBlueprintId?:string; situationId:string; sectorId:string; maneuverId:string|null;
   outcomeBand:OutcomeBand|null; margin:number|null; groundMovement:number|null; factsCreated:string[];
 };
 
@@ -78,11 +78,11 @@ export type Gate =
 export type SituationBlueprintRule = {
   id:string; problemClass:ProblemClass; theaters:Theater[]; requires:Gate; forbids?:Gate;
   targetSelector:TargetSelector; fixedSectorId?:string; baseUrgency:number; cooldown:number;
-  standingOrder:string;
+  standingOrder:string; writingOnly?:boolean;
 };
 
 export type CompiledSituation = SituationTemplate & {
-  day:number; blueprintId:string; problemClass:ProblemClass; sectorId:string; contentPackVersion:string;
+  day:number; blueprintId:string; calculusBlueprintId:string; problemClass:ProblemClass; sectorId:string; contentPackVersion:string;
   selectionScore:number; candidateCount:number; selectionBasis:string; resolutionTicket:string;
   triggeringFacts:string[]; bands:OperationalBands; standingOrder:string; aftermathFacts:string[];
   maneuverPresentations:Record<string,ManeuverPresentation>;
@@ -108,7 +108,8 @@ export type ManeuverAftermathRule = {
   successFact:string; failureFact:string; cleanFact?:string; ttl:number;
 };
 
-export const CONTENT_PACK_VERSION="campaign-substrate-v3";
+export const CONTENT_PACK_VERSION="campaign-substrate-v4";
+const CALCULUS_VERSION="campaign-substrate-v3";
 
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
 const hashInt=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
@@ -437,30 +438,35 @@ export const compileSituation=(state:CampaignStateView,templates:SituationTempla
   const sectors=(state.theaterSectors?.filter(x=>x.theater===state.theater).length?state.theaterSectors.filter(x=>x.theater===state.theater):initialTheaterSectors(state.theater));
   const history=state.situationHistory??[];const phase=phaseForState(state);
   const sourceTemplates=templates.filter(template=>{const rule=BLUEPRINT_RULES[template.id];return rule?.theaters.includes(state.theater);});
-  const buildCandidates=(respectCooldown:boolean)=>sourceTemplates.flatMap(template=>{
+  const calculusTemplates=sourceTemplates.filter(template=>!BLUEPRINT_RULES[template.id]?.writingOnly);
+  const buildCandidates=(respectCooldown:boolean)=>calculusTemplates.flatMap(template=>{
     const rule=BLUEPRINT_RULES[template.id];if(!rule)return[];
     const sector=targetSector(rule,sectors);if(!sector)return[];const bands=operationalBandsFor(state,sector);const context={state,sector,bands};
     if(!evaluateGate(rule.requires,context)||rule.forbids&&evaluateGate(rule.forbids,context))return[];
-    const last=history.find(x=>x.blueprintId===template.id);if(respectCooldown&&last&&state.day-last.day<rule.cooldown)return[];
+    const last=history.find(x=>(x.calculusBlueprintId??x.blueprintId)===template.id);if(respectCooldown&&last&&state.day-last.day<rule.cooldown)return[];
     const recentSector=history.filter(x=>x.sectorId===sector.id&&state.day-x.day<=5).length;
     const factWeight=activeFacts(state,sector.id).length*2.5;
     const novelty=-recentSector*9-(last?Math.max(0,rule.cooldown-(state.day-last.day))*5:0);
-    const noise=stableHash(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${CONTENT_PACK_VERSION}`)*12;
+    const noise=stableHash(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${CALCULUS_VERSION}`)*12;
     const score=rule.baseUrgency+phaseFit(rule.problemClass,phase)+conditionFit(rule.problemClass,bands)+strategicFit(rule.problemClass,condition)+factWeight+novelty+noise;
     return[{template,rule,sector,bands,score}];
   });
   let candidates=buildCandidates(true);if(!candidates.length)candidates=buildCandidates(false);
   if(!candidates.length){const template=templates.find(x=>BLUEPRINT_RULES[x.id]?.theaters.includes(state.theater))??templates[0];const rule=BLUEPRINT_RULES[template.id];const sector=targetSector(rule,sectors);const bands=operationalBandsFor(state,sector);candidates=[{template,rule,sector,bands,score:0}];}
   candidates.sort((a,b)=>b.score-a.score||a.template.id.localeCompare(b.template.id));const chosen=candidates[0];
+  const unseenWriting=sourceTemplates.filter(template=>!history.some(record=>record.blueprintId===template.id));
+  const alignedWriting=unseenWriting.filter(template=>BLUEPRINT_RULES[template.id]?.problemClass===chosen.rule.problemClass);
+  const writingDeck=alignedWriting.length?alignedWriting:unseenWriting.length?unseenWriting:[chosen.template];
+  const narrative=writingDeck[Math.floor(stableHash(`${state.campaignSeed}:${state.day}:${chosen.template.id}:situation-writing:${CONTENT_PACK_VERSION}`)*writingDeck.length)]??chosen.template;
   const facts=activeFacts(state,chosen.sector.id).map(x=>FACT_CATALOG[x.id]?.label??x.id);
   const maneuvers=dailyManeuverDocket(state,chosen.template);
-  const maneuverPresentations=compileManeuverPresentations(state,chosen.template,chosen.rule,chosen.sector,maneuvers);
+  const maneuverPresentations=compileManeuverPresentations(state,narrative,chosen.rule,chosen.sector,maneuvers);
   const aftermathFacts=[...new Set(maneuvers.flatMap(id=>{const rule=MANEUVER_AFTERMATH[id];return rule?[rule.successFact,rule.failureFact,...(rule.cleanFact?[rule.cleanFact]:[])]:[]}).map(id=>FACT_CATALOG[id]?.label??id))];
-  const ticket=`${CONTENT_PACK_VERSION}:${hashInt(`${state.campaignSeed}:${state.day}:${chosen.template.id}:${chosen.sector.id}:resolution`).toString(16).padStart(8,"0")}`;
-  const selectionBasis=`${candidates.length} ELIGIBLE // ${phase.toUpperCase()} PHASE // ${chosen.bands.frontPosture.toUpperCase()} FRONT // ${chosen.bands.supply.toUpperCase()} SUPPLY // ${condition?.label.toUpperCase()??"NO STRATEGIC CONDITION"}`;
+  const ticket=`${CALCULUS_VERSION}:${hashInt(`${state.campaignSeed}:${state.day}:${chosen.template.id}:${chosen.sector.id}:resolution`).toString(16).padStart(8,"0")}`;
+  const selectionBasis=`${candidates.length} ELIGIBLE CALCULUS // ${unseenWriting.length} UNSEEN AUTHORED SITUATIONS // ${phase.toUpperCase()} PHASE // ${chosen.bands.frontPosture.toUpperCase()} FRONT // ${chosen.bands.supply.toUpperCase()} SUPPLY // ${condition?.label.toUpperCase()??"NO STRATEGIC CONDITION"}`;
   return{
-    ...chosen.template,maneuvers,id:`${chosen.template.id}:d${state.day}:${chosen.sector.id}`,day:state.day,blueprintId:chosen.template.id,problemClass:chosen.rule.problemClass,sectorId:chosen.sector.id,contentPackVersion:CONTENT_PACK_VERSION,
-    theater:state.theater,sector:chosen.sector.name,headline:compiledText(chosen.template.headline,chosen.sector),briefing:compiledText(chosen.template.briefing,chosen.sector),question:compiledText(chosen.template.question,chosen.sector),
+    ...narrative,maneuvers,id:`${narrative.id}:d${state.day}:${chosen.sector.id}`,day:state.day,blueprintId:narrative.id,calculusBlueprintId:chosen.template.id,problemClass:chosen.rule.problemClass,sectorId:chosen.sector.id,contentPackVersion:CONTENT_PACK_VERSION,
+    theater:state.theater,sector:chosen.sector.name,headline:compiledText(narrative.headline,chosen.sector),briefing:compiledText(narrative.briefing,chosen.sector),question:compiledText(narrative.question,chosen.sector),
     terrain:chosen.sector.terrain,ground:chosen.sector.ground,network:networkLabel(chosen.sector.network),supply:supplyLabel(chosen.bands.supply),intelligence:intelLabel(state,chosen.bands),
     selectionScore:Number(chosen.score.toFixed(2)),candidateCount:candidates.length,selectionBasis,resolutionTicket:ticket,triggeringFacts:facts,bands:chosen.bands,standingOrder:chosen.rule.standingOrder,aftermathFacts,
     maneuverPresentations,
@@ -490,7 +496,7 @@ export const resolveSituationAftermath=(state:CampaignStateView,situation:Compil
   if(maneuverId==="breach"){sector.fortification=clamp(sector.fortification-(success?18:3),0,100);if(success)facts=removeFact(facts,"obstacle_belt_prepared",sector.id);}
   if(maneuverId==="network"){sector.network=success?improveNetwork(sector.network):degradeNetwork(sector.network);if(success){facts=removeFact(facts,"command_net_severed",sector.id);facts=removeFact(facts,"relay_compromised",sector.id);}}
   if(!maneuverId&&state.readiness<50)create("formation_exhausted",3,1);
-  history.unshift({day:state.day,blueprintId:situation.blueprintId,situationId:situation.id,sectorId:sector.id,maneuverId,outcomeBand:band,margin,groundMovement,factsCreated:created});
+  history.unshift({day:state.day,blueprintId:situation.blueprintId,calculusBlueprintId:situation.calculusBlueprintId,situationId:situation.id,sectorId:sector.id,maneuverId,outcomeBand:band,margin,groundMovement,factsCreated:created});
   return{theaterSectors:sectors,operationalFacts:facts,situationHistory:history.slice(0,60),createdFacts:created.map(id=>FACT_CATALOG[id])};
 };
 

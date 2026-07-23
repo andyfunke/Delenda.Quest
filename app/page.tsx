@@ -120,6 +120,7 @@ import {
 } from "./aphorisms";
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
+import { accountDayBounds, browserTimeZone } from "./account-time";
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -175,12 +176,7 @@ type Page = Module | "admin";
 type Live = ReturnType<typeof liveProjection>;
 
 const DAY_MS = 86_400_000;
-const initialClock = () => {
-  const now = Date.now();
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  return { start: d.getTime(), end: d.getTime() + DAY_MS };
-};
+const initialClock = () => accountDayBounds("UTC");
 const clockText = (ms: number) => {
   const x = Math.max(0, ms);
   const h = Math.floor(x / 3_600_000);
@@ -3816,6 +3812,7 @@ export default function Home() {
   const [adminAccess, setAdminAccess] = useState(false);
   const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
   const [activeAphorismDay, setActiveAphorismDay] = useState("");
+  const [accountTimeZone, setAccountTimeZone] = useState("UTC");
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
@@ -3940,7 +3937,7 @@ export default function Home() {
             typeof record.clock.end === "number"
           )
             if(record.clock.end>Date.now())setClock({ start: record.clock.start, end: record.clock.end });
-            else {const resumed=Date.now();setClock({start:resumed,end:resumed+DAY_MS})}
+            else setClock(accountDayBounds(browserTimeZone()))
           void loadAvaShellArchive(
             restoredRunToken,
             restoredState.campaignId,
@@ -4006,9 +4003,18 @@ export default function Home() {
     setHydrated(true);
   }, []);
   useEffect(() => {
+    const detected=browserTimeZone();
+    setAccountTimeZone(detected);
+    setClock(accountDayBounds(detected));
     void fetch("/api/account", { cache: "no-store" })
       .then(response=>response.ok?response.json():null)
-      .then((account:{isAdmin?:boolean}|null)=>setAdminAccess(!!account?.isAdmin))
+      .then((account:{isAdmin?:boolean;timeZone?:string}|null)=>{
+        setAdminAccess(!!account?.isAdmin);
+        if(account?.timeZone){
+          setAccountTimeZone(account.timeZone);
+          setClock(accountDayBounds(account.timeZone));
+        }
+      })
       .catch(() => undefined);
   }, []);
   useEffect(() => {
@@ -4060,9 +4066,9 @@ export default function Home() {
     let timeout:number|undefined;
     const schedule=()=>{
       const now=new Date();
-      setActiveAphorismDay(aphorismDayKey(now));
+      setActiveAphorismDay(aphorismDayKey(now,accountTimeZone));
       window.clearTimeout(timeout);
-      timeout=window.setTimeout(schedule,millisecondsUntilNextLocalDay(now)+50);
+      timeout=window.setTimeout(schedule,millisecondsUntilNextLocalDay(now,accountTimeZone)+50);
     };
     const refreshWhenVisible=()=>{
       if(document.visibilityState==="visible")schedule();
@@ -4073,7 +4079,7 @@ export default function Home() {
       window.clearTimeout(timeout);
       document.removeEventListener("visibilitychange",refreshWhenVisible);
     };
-  },[]);
+  },[accountTimeZone]);
   useEffect(() => {
     if(!activeAphorismDay)return;
     let live = true;
@@ -4519,7 +4525,7 @@ export default function Home() {
     setCampaignIntroConsumed(false);
     setPendingDoctrine(null);
     setAvaSession(initialAvaTerminalSession());
-    setClock({ start: n, end: n + DAY_MS });
+    setClock(accountDayBounds(accountTimeZone,n));
     setNow(n);
     setLedgerNow(n);
     setReset(false);
@@ -4687,7 +4693,7 @@ export default function Home() {
     setTurnBlackout(true);
     window.setTimeout(() => setTurnBlackout(false), 240);
     const n = Date.now();
-    setClock({ start: n, end: n + DAY_MS });
+    setClock(accountDayBounds(accountTimeZone,n));
     setNow(n);
     setLedgerNow(n);
     setOpportunityInterruptAcknowledged(false);
@@ -4885,7 +4891,7 @@ export default function Home() {
         setTurnBlackout(true);
         window.setTimeout(() => setTurnBlackout(false), 240);
         const n = Date.now();
-        setClock({ start: n, end: n + DAY_MS });
+        setClock(accountDayBounds(accountTimeZone,n));
         setNow(n);
         setLedgerNow(n);
       }

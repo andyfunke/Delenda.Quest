@@ -76,10 +76,10 @@ test("Campaign order language and daily aphorisms consume compiled rotating stat
   assert.match(substrate,/MANEUVER_ORDER_GRAMMAR/);
   assert.match(game,/maneuversForState/);
   assert.match(page,/const options = maneuversForState\(s\)/);
-  assert.match(page,/setActiveAphorismDay\(aphorismDayKey\(now\)\)/);
-  assert.match(page,/millisecondsUntilNextLocalDay\(now\)/);
+  assert.match(page,/setActiveAphorismDay\(aphorismDayKey\(now,\s*accountTimeZone\)\)/);
+  assert.match(page,/millisecondsUntilNextLocalDay\(now,\s*accountTimeZone\)/);
   assert.match(page,/document\.addEventListener\("visibilitychange",refreshWhenVisible\)/);
-  assert.match(page,/\}, \[activeAphorismDay\]\);/);
+  assert.match(page,/\},\s*\[accountTimeZone\]\);/);
   assert.match(rotation,/const update=input\.context[\s\S]*?\? \{status:input\.status,context:input\.context,updatedAt:now\}[\s\S]*?: \{status:input\.status,updatedAt:now\}/);
 });
 
@@ -238,7 +238,7 @@ test("campaign navigation, military reinforcement, Doctrine inspection, and text
   assert.match(page,/BATTLEFIELD EFFECT/);assert.doesNotMatch(page,/DETERMINISTIC EFFECT/);
   assert.doesNotMatch(briefing,/EXACT RUNTIME EFFECT/);assert.match(briefing,/BATTLEFIELD EFFECT/);
   const doctrineSurface=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));
-  assert.doesNotMatch(page,/\sdisabled=\{!prior\}/);assert.doesNotMatch(doctrineSurface,/\sdisabled=\{!available\}/);
+  assert.doesNotMatch(page,/\sdisabled=\{!prior\}/);
   assert.doesNotMatch(doctrineSurface,/aria-disabled/);
   assert.match(bubblette,/bubblette-pinned/);assert.doesNotMatch(bubblette,/setActiveId|relatedId|CONNECTED SYSTEMS/);assert.match(bubblette,/FIELD APPLETTE \/\/ PINNED/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);
   assert.match(page,/if \(interfaceMode === "briefing"\)[\s\S]{0,180}briefing-open-manual/);
@@ -438,17 +438,21 @@ test("every command module opens with one canonical conceptual epigraph",async()
   assert.match(css,/\.modern-module-epigraph cite\s*\{[\s\S]*?font:\s*normal 9\.5px var\(--mono\)/);
 });
 
-test("social metagame uses private aliases, Player Rating, and portable campaign records",async()=>{
-  const[account,setup,records,recordPage]=await Promise.all([
+test("social metagame uses private aliases, private day boundaries, Player Rating, and portable campaign records",async()=>{
+  const[account,setup,records,recordPage,admin]=await Promise.all([
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/CampaignSetup.tsx",import.meta.url),"utf8"),
     readFile(new URL("../db/campaign-records.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/record/[slug]/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../db/admin.ts",import.meta.url),"utf8"),
   ]);
   assert.match(account,/Service Record/);
   assert.match(account,/PLAYER RATING/);
   assert.match(account,/Only player aliases appear here/);
   assert.doesNotMatch(account,/friend\.email|friend\.displayName/);
+  assert.match(account,/PRIVATE TIME ZONE/);
+  assert.match(account,/setting is private and is not available to administration/);
+  assert.doesNotMatch(admin,/users\.timeZone|timeZone:users/);
   assert.match(records,/FRIEND_BONUS_PER_CONNECTION=5/);
   assert.match(records,/FRIEND_BONUS_CAP=10/);
   assert.match(records,/friendMultiplier/);

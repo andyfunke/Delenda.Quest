@@ -7395,6 +7395,7 @@ small,
   margin-bottom: 7px;
 }
 .account-credentials input,
+.account-credentials select,
 .friends-panel input {
   background: #fff;
   border: 2px inset #ddd;
@@ -7403,6 +7404,314 @@ small,
   font-size: 14px;
   padding: 10px;
   width: 100%;
+}
+
+/* Alt UX state becomes the complete reporting room. */
+.modern-state-surface > .campaign-director,
+.modern-state-surface > .briefing-block,
+.modern-state-surface > .operations-packet,
+.modern-state-surface > .domestic-panel,
+.modern-state-surface > .diplomacy-panel,
+.modern-state-surface > .adversary-panel,
+.modern-state-surface > .state-report-block {
+  margin-top: 28px;
+}
+.state-constellation {
+  background:
+    linear-gradient(var(--b-line),var(--b-line)) 50% 50%/76% 1px no-repeat,
+    linear-gradient(90deg,var(--b-line),var(--b-line)) 50% 50%/1px 72% no-repeat;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  margin-top: 30px;
+  position: relative;
+}
+.state-constellation-core,
+.state-constellation-node {
+  background: #101412;
+  border: 1px solid var(--b-line);
+  box-sizing: border-box;
+  color: var(--b-ink);
+  min-height: 126px;
+  padding: 16px;
+  position: relative;
+}
+.state-constellation-core {
+  align-items: center;
+  border-color: var(--b-amber);
+  display: flex;
+  flex-direction: column;
+  grid-column: 3;
+  grid-row: 2 / span 2;
+  justify-content: center;
+  text-align: center;
+  z-index: 2;
+}
+.state-constellation-node:nth-of-type(2),
+.state-constellation-node:nth-of-type(7) {
+  grid-column: span 2;
+}
+.state-constellation-core small,
+.state-constellation-core b,
+.state-constellation-core span,
+.state-constellation-node > small,
+.state-constellation-node > b,
+.state-constellation-node > span {
+  display: block;
+}
+.state-constellation-core small,
+.state-constellation-node > small {
+  color: var(--b-cyan);
+  font: 800 12px/1.2 var(--mono);
+  letter-spacing: .1em;
+}
+.state-constellation-core b {
+  color: var(--b-amber);
+  font: 30px/1 var(--serif);
+  margin: 10px 0;
+}
+.state-constellation-node > b {
+  font: 25px/1 var(--serif);
+  margin: 14px 0 8px;
+}
+.state-constellation-core span,
+.state-constellation-node > span {
+  color: var(--b-dim);
+  font: 12px/1.45 var(--mono);
+}
+.state-throughput-grid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4,1fr);
+}
+.state-throughput-grid .state-constellation-node {
+  min-height: 150px;
+}
+.state-report-block {
+  border: 1px solid var(--b-line);
+}
+.state-report-block > header {
+  align-items: center;
+  border-bottom: 1px solid var(--b-line);
+  display: flex;
+  justify-content: space-between;
+  padding: 13px 16px;
+}
+.state-report-block > header span,
+.state-report-block > header b {
+  font: 800 12px/1.2 var(--mono);
+  letter-spacing: .08em;
+}
+.state-report-block > header b {
+  color: var(--b-amber);
+}
+.resolution-ledger > article {
+  border-bottom: 1px dashed var(--b-line);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 80px 1.5fr repeat(3,1fr);
+  padding: 13px 16px;
+}
+.resolution-ledger > article:last-of-type {
+  border-bottom: 0;
+}
+.resolution-ledger > article b,
+.resolution-ledger > article span,
+.resolution-ledger > p {
+  font: 12px/1.4 var(--mono);
+}
+.resolution-ledger > p {
+  color: var(--b-faint);
+  padding: 20px;
+}
+
+/* Alt UX Doctrine uses the same left-rail/content grammar as every directive module. */
+.doctrine-insight-available {
+  align-items: center;
+  background: var(--b-amber);
+  color: #15110b;
+  display: grid;
+  gap: 6px 18px;
+  grid-template-columns: auto 1fr;
+  margin-top: 22px;
+  max-width: 460px;
+  padding: 15px 18px;
+}
+.doctrine-insight-available small,
+.doctrine-insight-available span {
+  font: 900 12px/1.2 var(--mono);
+  letter-spacing: .1em;
+}
+.doctrine-insight-available b {
+  font: 950 38px/1 var(--ui);
+  grid-row: 1 / span 2;
+}
+.modern-doctrine-layout {
+  border: 1px solid var(--b-line);
+  display: grid;
+  grid-template-columns: 320px minmax(0,1fr);
+  margin-top: 28px;
+  min-height: 720px;
+}
+.modern-doctrine-rail {
+  border-right: 1px solid var(--b-line);
+}
+.modern-doctrine-rail section + section {
+  border-top: 1px solid var(--b-line);
+}
+.modern-doctrine-rail button {
+  background: transparent;
+  border: 0;
+  border-top: 1px dashed #242925;
+  color: var(--b-ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 56px;
+  padding: 11px 14px;
+  text-align: left;
+  width: 100%;
+}
+.modern-doctrine-rail section > button:first-child {
+  background: #111512;
+  border-top: 0;
+  min-height: 72px;
+}
+.modern-doctrine-rail button.active {
+  background: rgba(224,164,88,.1);
+  box-shadow: inset 4px 0 var(--b-amber);
+}
+.modern-doctrine-rail section.forbidden > button:first-child {
+  color: var(--b-red);
+}
+.modern-doctrine-rail button.unresearchable {
+  opacity: .5;
+}
+.modern-doctrine-rail small,
+.modern-doctrine-rail span {
+  color: var(--b-faint);
+  font: 11px/1.25 var(--mono);
+}
+.modern-doctrine-rail b {
+  font: 800 14px/1.3 var(--ui);
+  margin-top: 5px;
+}
+.modern-doctrine-detail {
+  padding: 34px;
+}
+.modern-doctrine-detail > small {
+  color: var(--b-cyan);
+  display: block;
+  font: 800 12px/1.3 var(--mono);
+  margin-top: 24px;
+}
+.modern-doctrine-detail > h2,
+.modern-doctrine-empty h2 {
+  font: 48px/.98 var(--serif);
+  margin: 12px 0 18px;
+}
+.modern-doctrine-detail > p,
+.modern-doctrine-empty p {
+  color: var(--b-dim);
+  font: 15px/1.65 var(--mono);
+  max-width: 760px;
+}
+.modern-doctrine-detail > blockquote {
+  border-left: 2px solid var(--b-amber);
+  color: var(--b-ink);
+  font: italic 20px/1.5 var(--serif);
+  margin: 24px 0;
+  padding-left: 18px;
+}
+.modern-doctrine-detail > blockquote cite {
+  color: var(--b-faint);
+  display: block;
+  font: normal 12px/1.4 var(--mono);
+  margin-top: 8px;
+}
+.modern-doctrine-empty {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 570px;
+}
+.modern-doctrine-empty > small {
+  color: var(--b-amber);
+  font: 900 13px/1.2 var(--mono);
+  letter-spacing: .12em;
+}
+.doctrine-effect-report {
+  border: 1px solid var(--b-line);
+  margin-top: 28px;
+  padding: 20px;
+}
+.doctrine-effect-report small,
+.doctrine-effect-report b,
+.doctrine-effect-report span {
+  display: block;
+}
+.doctrine-effect-report small,
+.doctrine-effect-report span {
+  color: var(--b-faint);
+  font: 12px/1.35 var(--mono);
+}
+.doctrine-effect-report b {
+  font: 22px/1.35 var(--serif);
+  margin: 12px 0;
+}
+.doctrine-internalize {
+  background: var(--b-amber);
+  border: 0;
+  color: #15110b;
+  cursor: pointer;
+  font: 900 13px/1.2 var(--mono);
+  margin-top: 18px;
+  padding: 15px 19px;
+}
+.doctrine-internalize:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+@media (max-width: 900px) {
+  .state-constellation {
+    background: none;
+    grid-template-columns: 1fr 1fr;
+  }
+  .state-constellation-core,
+  .state-constellation-node:nth-of-type(2),
+  .state-constellation-node:nth-of-type(7) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .state-throughput-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .modern-doctrine-layout {
+    grid-template-columns: 1fr;
+  }
+  .modern-doctrine-rail {
+    border-bottom: 1px solid var(--b-line);
+    border-right: 0;
+  }
+  .resolution-ledger > article {
+    grid-template-columns: 70px 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .state-constellation,
+  .state-throughput-grid {
+    grid-template-columns: 1fr;
+  }
+  .modern-doctrine-detail {
+    padding: 22px;
+  }
+  .modern-doctrine-detail > h2,
+  .modern-doctrine-empty h2 {
+    font-size: 38px;
+  }
 }
 .account-credentials > a {
   color: #00e;

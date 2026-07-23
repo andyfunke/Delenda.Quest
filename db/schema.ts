@@ -5,6 +5,7 @@ export const users=sqliteTable("users",{
   displayName:text("display_name").notNull(),
   alias:text("alias"),
   aliasChangedAt:integer("alias_changed_at").notNull().default(0),
+  timeZone:text("time_zone").notNull().default("UTC"),
   allowFriends:integer("allow_friends",{mode:"boolean"}).notNull().default(true),
   accountEnabled:integer("account_enabled",{mode:"boolean"}).notNull().default(true),
   socialEnabled:integer("social_enabled",{mode:"boolean"}).notNull().default(true),

@@ -76,23 +76,28 @@ test("expanded directive registration preserves established Ava P-handles",()=>{
   assert.deepEqual(handles("treaties"),["P56","P57","P58","P59","P60"]);
   assert.deepEqual(handles("sanctions"),["P61","P62","P63","P64","P65"]);
   assert.deepEqual(handles("alliance-obligations"),["P66","P67","P68","P69"]);
-  assert.deepEqual(handles("foreign-intelligence"),["P79","P80","P81"]);
+  assert.deepEqual(handles("foreign-intelligence"),["P79","P80","P81","P162"]);
   assert.deepEqual(handles("expenditure"),["P82","P83","P84","P85","P102"]);
   assert.deepEqual(handles("operational-reserve"),["P86","P87","P88","P89"]);
   assert.deepEqual(handles("unit-recovery"),["P90","P91","P92","P93"]);
-  assert.equal(actions.filter(item=>item.kind==="directive").length,161);
+  assert.equal(actions.filter(item=>item.kind==="directive").length,237);
   assert.deepEqual(handles("production"),["P1","P2","P3","P4","P5","P94"]);
   assert.deepEqual(handles("network-posture"),["P70","P71","P72","P99"]);
   assert.deepEqual(handles("network-authentication"),["P73","P74","P75","P100"]);
   assert.deepEqual(handles("network-custody"),["P76","P77","P78","P101"]);
   assert.deepEqual(handles("branch-priority"),["P103","P104","P105","P106"]);
-  assert.deepEqual(handles("industrial-accords"),["P107","P108","P109"]);
-  assert.deepEqual(handles("information-diplomacy"),["P110","P111","P112"]);
-  assert.deepEqual(handles("burden-sharing"),["P113","P114","P115"]);
+  assert.deepEqual(handles("industrial-accords"),["P107","P108","P109","P175"]);
+  assert.deepEqual(handles("information-diplomacy"),["P110","P111","P112","P176"]);
+  assert.deepEqual(handles("burden-sharing"),["P113","P114","P115","P177"]);
   assert.deepEqual(handles("war-labor"),["P116","P117","P118","P119","P120"]);
   assert.deepEqual(handles("strategic-freight"),["P121","P122","P123","P124","P125"]);
-  assert.deepEqual(handles("tooling-policy"),["P126","P127","P128"]);
-  assert.deepEqual(handles("substitute-materials"),["P159","P160","P161"]);
+  assert.deepEqual(handles("tooling-policy"),["P126","P127","P128","P163"]);
+  assert.deepEqual(handles("substitute-materials"),["P159","P160","P161","P174"]);
+  assert.deepEqual(handles("procurement-goal"),["P190","P191","P192","P193"]);
+  assert.deepEqual(handles("equipment-standard"),["P194","P195","P196","P197"]);
+  assert.deepEqual(handles("sustainment-goal"),["P198","P199","P200","P201"]);
+  assert.deepEqual(handles("neutral-courtship"),["P202","P203","P204","P205"]);
+  assert.deepEqual(handles("covert-purchases"),["P234","P235","P236","P237"]);
 });
 
 const missionPacket=(state)=>[
@@ -432,7 +437,7 @@ test("Dark Net mounts the complete campaign corpus and preserves the current doc
   assert.deepEqual(opened.state,state);
   assert.equal(opened.executed,false);
   assert.match(opened.text,/DARK NET \/\/ RELAY ESTABLISHED/);
-  assert.match(opened.text,/435 CAMPAIGN RECORDS \/\/ 1299 RESPONSE PATHS/);
+  assert.match(opened.text,/438 CAMPAIGN RECORDS \/\/ 1314 RESPONSE PATHS/);
   assert.equal(opened.session.shell.cwd,"/darknet");
   assert.equal(opened.session.shell.darkNetUnlocked,true);
   assert.doesNotMatch(opened.text,/email|friend@example|raw prompt/i);
@@ -448,8 +453,8 @@ test("Dark Net mounts the complete campaign corpus and preserves the current doc
   assert.match(telemetryResult.text,/VICTORY: 12 CAMPAIGNS/);
 
   const campaign=run("access darknet campaign",state,telemetryResult.session);
-  assert.match(campaign.text,/COMPLETE CAMPAIGN REGISTRY \/\/ 435 RECORDS \/\/ 1299 RESPONSE PATHS/);
-  assert.match(campaign.text,/47 MAIN SITUATIONS/);
+  assert.match(campaign.text,/COMPLETE CAMPAIGN REGISTRY \/\/ 438 RECORDS \/\/ 1314 RESPONSE PATHS/);
+  assert.match(campaign.text,/50 MAIN SITUATIONS/);
   assert.match(campaign.text,/288 DOMESTIC \+ NETWORK VARIANTS/);
   assert.match(campaign.text,/100 TARGETS OF OPPORTUNITY/);
   assert.equal(campaign.session.shell.cwd,"/darknet/campaign");

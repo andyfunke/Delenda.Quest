@@ -34,3 +34,13 @@ test("local calendar boundaries compile without UTC drift",()=>{
   assert.ok(millisecondsUntilNextLocalDay(before)<=500);
   assert.ok(millisecondsUntilNextLocalDay(after)>86_000_000);
 });
+
+test("account-selected time zones own the day boundary, including DST days",()=>{
+  const instant=new Date("2026-07-24T06:30:00.000Z");
+  assert.equal(aphorismDayKey(instant,"America/Los_Angeles"),"2026-07-23");
+  assert.equal(aphorismDayKey(instant,"Europe/Paris"),"2026-07-24");
+
+  const beforeSpringMidnight=new Date("2026-03-09T06:59:59.500Z");
+  assert.equal(aphorismDayKey(beforeSpringMidnight,"America/Los_Angeles"),"2026-03-08");
+  assert.ok(millisecondsUntilNextLocalDay(beforeSpringMidnight,"America/Los_Angeles")<=500);
+});

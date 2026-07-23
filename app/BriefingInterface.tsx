@@ -12,6 +12,7 @@ import {
   maneuverForState,
   maneuversForState,
   projectDomestic,
+  projectDiplomacy,
   projectForceGeneration,
   projectOperations,
   projectProduction,
@@ -37,6 +38,13 @@ import {
   MODULE_EPIGRAPHS,
   type ModuleEpigraphKey,
 } from "./module-epigraphs";
+import { Bubblette, type BubbletteDetail } from "./Bubblette";
+import { OperationsPacket } from "./OperationsPacket";
+import { CampaignDirectorPanel } from "./CampaignDirectorPanel";
+import { DomesticStatePanel } from "./DomesticStatePanel";
+import { DiplomacyPanel } from "./DiplomacyPanel";
+import { AdversaryPanel } from "./AdversaryPanel";
+import { campaignSeedId } from "./campaign-id";
 
 type BriefingIssue = {
   maneuverId?: string;
@@ -281,75 +289,103 @@ function StateSurface({ s }: { s: GameState }) {
     production = projectProduction(s),
     domestic = projectDomestic(s),
     force = projectForceGeneration(s),
-    personnel = estimateDay(s);
-  const metrics = [
-    [
-      "LOCAL PERSONNEL",
-      fmt(operation.committed, true),
-      operation.packageEfficiency < 1
-        ? `${fmt(operation.nominalCommitment, true)} nominal task package`
-        : `${fmt(operation.operationallyAvailable, true)} operationally available`,
-    ],
-    [
-      "LOCAL EFFECTIVE FORCE",
-      fmt(operation.friendlyPower, true),
-      `literal ratio ${operation.forceRatio.toFixed(2)}`,
-    ],
-    [
-      "ENEMY EFFECTIVE FORCE",
-      fmt(operation.enemyPower, true),
-      `${fmt(operation.enemyCommitted, true)} local personnel`,
-    ],
-    [
-      "PROJECTED LOSSES",
-      fmt(personnel.casualty, true),
-      `${fmt(personnel.netDesertion, true)} net flight`,
-    ],
-    [
-      "PRODUCTION SHORTAGES",
-      String(production.shortages),
-      `${production.maintenanceDebtAfter.toFixed(0)} maintenance debt`,
-    ],
-    [
-      "REPLACEMENT OUTPUT",
-      fmt(force.effectiveGraduates, true),
-      `${fmt(force.deployableAssigned, true)} assigned deployable`,
-    ],
-    [
-      "LEGITIMACY",
-      `${s.legitimacy.toFixed(0)}%`,
-      `${signed(domestic.legitimacyChange)} at resolution`,
-    ],
-    [
-      "RESISTANCE",
-      `${s.resistance.toFixed(0)}%`,
-      `${signed(domestic.resistanceChange)} at resolution`,
-    ],
-  ];
+    diplomacy=projectDiplomacy(s),
+    personnel = estimateDay(s),
+    maneuver=maneuversForState(s)[0];
+  const activeDirectives=Object.entries(s.active).flatMap(([familyId,choiceId])=>{
+    const family=FAMILIES.find(item=>item.id===familyId),choice=family?.choices.find(item=>item.id===choiceId);
+    return family&&choice?[{family,choice,expires:s.locks[familyId]??s.day}]:[];
+  });
+  const internalized=DOCTRINES.flatMap(vector=>vector.stages.map(stage=>({vector,stage}))).filter(item=>s.unlocked.includes(item.stage.id));
+  const controlsFor=(keys:string[])=>{
+    const matches=FAMILIES.flatMap(family=>family.choices.some(item=>{
+      const effects=[item.delta,item.tick,item.delay?.delta].filter(Boolean) as Array<Record<string,number>>;
+      return effects.some(effect=>keys.some(key=>key in effect));
+    })?[family]:[]);
+    return [...new Set(matches.map(item=>`${item.category} // ${item.label}`))];
+  };
+  const node=(id:string,label:string,value:string,note:string,keys:string[],details:BubbletteDetail[]=[])=>{
+    const controls=controlsFor(keys);
+    return <Bubblette id={id} title={label} summary={note} details={[
+      ...details,
+      {label:"DIRECT CONTROLS",value:controls.slice(0,5).join(" · ")||"No directive changes this value directly"},
+      {label:"INTERDEPENDENCIES",value:keys.join(" · ")},
+    ]} className="state-constellation-node">
+      <small>{label}</small><b>{value}</b><span>{note}</span>
+    </Bubblette>;
+  };
   return (
-    <section className="modern-surface">
+    <section className="modern-surface modern-state-surface">
       <header>
-        <span>AUTHORITATIVE STATE // DAY {s.day}</span>
+        <span>AUTHORITATIVE STATE // DAY {s.day} // {campaignSeedId(s.campaignSeed)}</span>
         <h1>State of the war</h1>
         <p>
-          Every number below is drawn from the same state used by resolution,
-          Ava, Campaign, and the command windows.
+          Hover any figure for its dependencies. Pin it to open the Field
+          Manual, trace what consumes it, or jump to the directives that
+          control it.
         </p>
       </header>
-      <div className="modern-metric-grid">
-        {metrics.map(([label, value, note]) => (
-          <article key={label}>
-            <small>{label}</small>
-            <b>{value}</b>
-            <span>{note}</span>
-          </article>
-        ))}
+      <div className="state-constellation" aria-label="Authoritative state dependency constellation">
+        <div className="state-constellation-core"><small>CAMPAIGN STATE</small><b>{s.status.toUpperCase()}</b><span>{s.front>=0?"+":""}{s.front.toFixed(1)} KM // DAY {s.day}</span></div>
+        {node("deployable-force","DEPLOYABLE",fmt(s.deployable,true),`${fmt(operation.committed,true)} committed locally`,["deployable","armed","readiness"])}
+        {node("effective-committed-force","FRIENDLY EFFECTIVE",fmt(operation.friendlyPower,true),`ratio ${operation.forceRatio.toFixed(2)} : 1`,["readiness","equipment","intelligence"])}
+        {node("enemy-forward-deployment","ENEMY EFFECTIVE",fmt(operation.enemyPower,true),`${fmt(operation.enemyCommittedLow,true)}–${fmt(operation.enemyCommittedHigh,true)} local band`,["intelligence","enemy"])}
+        {node("casualty-exposure","LOSS EXPOSURE",fmt(personnel.casualty,true),`${fmt(personnel.netDesertion,true)} projected net flight`,["readiness","equipment","desertionPressure","patrolCommitment"])}
+        {node("industrial-condition","INDUSTRIAL CONDITION",`${s.materiel.toFixed(0)}%`,`${production.shortages} shortages // ${production.maintenanceDebtAfter.toFixed(0)} debt`,["materiel","maintenanceDebt","workforce","treasury"])}
+        {node("training-pipeline","REPLACEMENT OUTPUT",fmt(force.effectiveGraduates,true),`${fmt(force.deployableAssigned,true)} assigned deployable`,["training","quality","queue","reserves"])}
+        {node("treasury","TREASURY",`${s.treasury.toFixed(1)} B`,`${signed(diplomacy.totalTreasury)} foreign delivery`,["treasury","dependency"])}
+        {node("legitimacy","LEGITIMACY",`${s.legitimacy.toFixed(0)}%`,`${signed(domestic.legitimacyChange)} at resolution`,["legitimacy","resistance","treasury"])}
+        {node("resistance","RESISTANCE",`${s.resistance.toFixed(0)}%`,`${signed(domestic.resistanceChange)} at resolution`,["resistance","legitimacy","forced"])}
+        {node("intelligence","INTELLIGENCE",`${s.intelligence.toFixed(0)}%`,`${operation.executionConfidence*100>=0?"+":""}${Math.round(operation.executionConfidence*100)}% execution confidence`,["intelligence","networkPosture"])}
       </div>
+      <CampaignDirectorPanel s={s} />
       <section className="briefing-block">
         <header>
           <h2>{s.theater.toUpperCase()} THEATER // SITUATION MAP</h2>
         </header>
         <TheaterGeometry s={s} variant="briefing" />
+      </section>
+      {maneuver?<OperationsPacket s={s} m={maneuver}/>:null}
+      <section className="state-report-block">
+        <header><span>INDUSTRIAL THROUGHPUT // NEXT RESOLUTION</span><b>{production.shortages} SHORTAGES</b></header>
+        <div className="state-throughput-grid">
+          {production.lines.map(line=>node(
+            line.resource==="munitions"?"operational-supply":"equipment",
+            line.resource.toUpperCase(),
+            line.closing.toLocaleString(),
+            `${line.output.toLocaleString()} output // ${line.fulfilledUse.toLocaleString()} use // ${line.net>=0?"+":""}${line.net.toLocaleString()} net`,
+            ["materiel","maintenanceDebt","workforce","treasury"],
+            [{label:"ALLOCATION",value:`${s.production[line.resource].allocation}%`},{label:"DESIRED OUTPUT",value:line.desiredOutput.toLocaleString()},{label:"COVERAGE",value:`${coverage(s,line.resource).toFixed(1)} days`}],
+          ))}
+        </div>
+      </section>
+      <section className="state-report-block">
+        <header><span>FORCE GENERATION // NEXT RESOLUTION</span><b>{fmt(force.effectiveGraduates,true)} EFFECTIVE GRADUATES</b></header>
+        <div className="modern-metric-grid">
+          <article><small>GROSS INTAKE</small><b>{fmt(force.grossIntake,true)}</b><span>{fmt(force.admitted,true)} admitted</span></article>
+          <article><small>TRAINING CAPACITY</small><b>{fmt(force.capacity,true)}</b><span>{force.cohortsClosing} cohorts tracked</span></article>
+          <article><small>REPLACEMENT RESERVE</small><b>{fmt(force.reservesClosing,true)}</b><span>{fmt(force.deployableAssigned,true)} assigned</span></article>
+          <article><small>TRAINING QUALITY</small><b>{s.quality.toFixed(0)}%</b><span>{s.duration} day standard</span></article>
+        </div>
+      </section>
+      <DomesticStatePanel s={s}/>
+      <DiplomacyPanel s={s}/>
+      {maneuver?<AdversaryPanel s={s} m={maneuver}/>:null}
+      <section className="state-report-block resolution-ledger state-order-ledger">
+        <header><span>ACTIVE ORDERS AND EFFECTS</span><b>{activeDirectives.length+s.activeDiplomacy.length} ACTIVE</b></header>
+        {activeDirectives.map(({family,choice,expires})=><article key={family.id}><b>{family.category.toUpperCase()}</b><span>{family.label} // {choice.label}</span><span>LOCK THROUGH DAY {expires}</span><span>{[...choice.exact,...choice.risk].join(" · ")}</span></article>)}
+        {s.activeDiplomacy.map(action=>{const family=FAMILIES.find(item=>item.id===action.familyId),choice=family?.choices.find(item=>item.id===action.choiceId);return <article key={`${action.familyId}:${action.choiceId}:${action.startedDay}`}><b>DIPLOMATIC EFFECT</b><span>{family?.label??action.familyId} // {choice?.label??action.choiceId}</span><span>EXPIRES DAY {action.expiresDay}</span><span>{choice?[...choice.exact,...choice.risk].join(" · "):"Persistent foreign effect"}</span></article>})}
+        {!activeDirectives.length&&!s.activeDiplomacy.length?<p>NO ACTIVE DIRECTIVES // THE STATE IS RUNNING ON BASELINE ORDERS</p>:null}
+      </section>
+      <section className="state-report-block resolution-ledger state-learning-ledger">
+        <header><span>DOCTRINE, OPPORTUNITIES, AND PERMANENT MEMORY</span><b>{s.doctrine} INSIGHT AVAILABLE</b></header>
+        {internalized.map(({vector,stage})=><article key={stage.id}><b>{vector.label.toUpperCase()}</b><span>{stage.label}</span><span>INTERNALIZED</span><span>{stage.effect}</span></article>)}
+        {s.opportunityHistory.map(record=><article key={`${record.day}:${record.opportunityId}`}><b>DAY {record.day} OPPORTUNITY</b><span>{record.label}</span><span>{record.outcome.toUpperCase()}</span><span>{record.response} // {record.report}</span></article>)}
+        {!internalized.length&&!s.opportunityHistory.length?<p>NO PERMANENT LEARNING OR OPPORTUNITY RECORDS YET</p>:null}
+      </section>
+      <section className="state-report-block resolution-ledger">
+        <header><span>RESOLUTION HISTORY</span><b>{s.resolutionHistory.length} DAYS RECORDED</b></header>
+        {s.resolutionHistory.length?s.resolutionHistory.map(record=><article key={record.resolvedDay}><b>DAY {record.resolvedDay}</b><span>{record.sector} // {record.outcome.outcomeBand.replaceAll("-"," ").toUpperCase()}</span><span>{record.outcome.groundMovement>=0?"+":""}{record.outcome.groundMovement.toFixed(2)} KM</span><span>{fmt(record.personnel.combatLosses,true)} COMBAT LOSSES</span><span>{fmt(record.personnel.netDesertion,true)} NET FLIGHT</span></article>):<p>NO DAYS RESOLVED // TODAY’S STATE IS THE OPENING RECORD</p>}
       </section>
     </section>
   );
@@ -525,56 +561,48 @@ function DoctrineSurface({
   s: GameState;
   select: (vector: DoctrineVector, stage: DoctrineStage) => void;
 }) {
+  const [selectedVectorId,setSelectedVectorId]=useState("");
+  const [selectedStageId,setSelectedStageId]=useState("");
+  const vector=DOCTRINES.find(item=>item.id===selectedVectorId)??null;
+  const stage=vector?.stages.find(item=>item.id===selectedStageId)??null;
+  const stageIndex=stage&&vector?vector.stages.findIndex(item=>item.id===stage.id):-1;
+  const priorAvailable=!!stage&&!!vector&&(stageIndex===0||s.unlocked.includes(vector.stages[stageIndex-1].id));
+  const unlocked=!!stage&&s.unlocked.includes(stage.id);
+  const available=!!stage&&priorAvailable&&!unlocked&&s.doctrine>=stage.cost;
   return (
-    <section className="modern-surface">
+    <section className="modern-surface modern-doctrine-surface">
       <header>
         <ModernModuleEpigraph module="doctrine" />
-        <span>DOCTRINE // {s.doctrine} INSIGHT AVAILABLE</span>
-        <h1>Institutional memory</h1>
-        <p>
-          Verified battlefield results become spendable principles. No campaign
-          order is consumed.
-        </p>
+        <span>DOCTRINE // INSTITUTIONAL MEMORY</span>
+        <h1>Doctrine control</h1>
+        <div className="doctrine-insight-available"><small>INSIGHT AVAILABLE</small><b>{s.doctrine}</b><span>VERIFIED BATTLEFIELD EVIDENCE</span></div>
       </header>
-      <div className="modern-doctrine-grid">
-        {DOCTRINES.map((vector) => (
-          <article
-            className={vector.forbidden ? "forbidden" : ""}
-            key={vector.id}
-          >
-            <header>
-              <small>{vector.authority}</small>
-              <h2>{vector.label}</h2>
-              <p>“{vector.quote}”</p>
-            </header>
-            {vector.stages.map((stage, index) => {
-              const unlocked = s.unlocked.includes(stage.id),
-                prior =
-                  index === 0 ||
-                  s.unlocked.includes(vector.stages[index - 1].id);
-              return (
-                <button
-                  className={!prior ? "unresearchable" : ""}
-                  onClick={() => select(vector, stage)}
-                  key={stage.id}
-                >
-                  <span>
-                    {unlocked
-                      ? "INTERNALIZED"
-                      : prior
-                        ? `${stage.cost} IP`
-                        : "PREREQUISITE"}
-                  </span>
-                  {vector.forbidden && stage.quote && (
-                    <q>{stage.quote}</q>
-                  )}
-                  <b>{stage.label}</b>
-                  <small>{stage.effect}</small>
-                </button>
-              );
+      <div className="modern-doctrine-layout">
+        <nav className="modern-doctrine-rail" aria-label="Doctrine categories and principles">
+          {DOCTRINES.map(item=><section className={item.forbidden?"forbidden":""} key={item.id}>
+            <button className={selectedVectorId===item.id&&!selectedStageId?"active":""} onClick={()=>{setSelectedVectorId(item.id);setSelectedStageId("")}}>
+              <small>{item.authority}</small><b>{item.label}</b>
+            </button>
+            {item.stages.map((itemStage,index)=>{
+              const itemUnlocked=s.unlocked.includes(itemStage.id);
+              const prior=index===0||s.unlocked.includes(item.stages[index-1].id);
+              return <button className={`${selectedStageId===itemStage.id?"active":""} ${!prior?"unresearchable":""}`} onClick={()=>{setSelectedVectorId(item.id);setSelectedStageId(itemStage.id)}} key={itemStage.id}>
+                <span>{itemUnlocked?"INTERNALIZED":prior?`${itemStage.cost} INSIGHT`:"PREREQUISITE"}</span><b>{itemStage.label}</b>
+              </button>;
             })}
-          </article>
-        ))}
+          </section>)}
+        </nav>
+        <article className={`modern-doctrine-detail ${vector?.forbidden?"forbidden":""}`}>
+          {!vector?<div className="modern-doctrine-empty"><small>NO PRINCIPLE SELECTED</small><h2>Select a doctrine category from the left.</h2><p>Every principle is authored, sequential, persistent, and grounded in a verified battlefield result.</p></div>:!stage?<><div className="modern-path">DOCTRINE / {vector.label.toUpperCase()}</div><small>{vector.authority}</small><h2>{vector.label}</h2><blockquote>“{vector.quote}”</blockquote><p>{vector.stages.length} principles form this learning path. Select one from the left to inspect its evidence cost, affected formation, and permanent rule.</p></>:<>
+            <div className="modern-path">DOCTRINE / {vector.label.toUpperCase()} / {stage.label.toUpperCase()}</div>
+            <small>{stage.output??"INSTITUTIONAL PRINCIPLE"} // {stage.affects??vector.authority}</small>
+            <h2>{stage.label}</h2>
+            {stage.quote?<blockquote>“{stage.quote}”<cite>— {stage.attribution}</cite></blockquote>:<blockquote>“{vector.quote}”<cite>— {vector.authority}</cite></blockquote>}
+            <p>{stage.description}</p>
+            <section className="doctrine-effect-report"><small>PERMANENT EFFECT</small><b>{stage.effect}</b><span>{stage.cost} INSIGHT REQUIRED // {s.doctrine} AVAILABLE</span></section>
+            <button className="doctrine-internalize" onClick={()=>{if(available)select(vector,stage)}}>{unlocked?"ALREADY INTERNALIZED":!priorAvailable?"PREREQUISITE REQUIRED":s.doctrine<stage.cost?`NEED ${stage.cost-s.doctrine} MORE INSIGHT`:`INTERNALIZE ${stage.label.toUpperCase()} →`}</button>
+          </>}
+        </article>
       </div>
     </section>
   );
@@ -609,7 +637,7 @@ function ServiceSurface({ s }: { s: GameState }) {
     <section className="modern-surface">
       <header>
         <span>SERVICE RECORD // CURRENT CAMPAIGN</span>
-        <h1>{s.campaignId}</h1>
+        <h1>{campaignSeedId(s.campaignSeed)}</h1>
         <p>
           This live command record becomes a permanent, pseudonymous Campaign
           Record when the run closes.

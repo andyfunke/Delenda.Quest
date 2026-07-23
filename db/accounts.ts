@@ -2,6 +2,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import { getDb } from "./index";
 import { friendInvites, friendships, users } from "./schema";
+import { validTimeZone } from "../app/account-time";
 
 const normalizeEmail=(value:string)=>value.trim().toLowerCase();
 const pair=(a:string,b:string)=>[normalizeEmail(a),normalizeEmail(b)].sort() as [string,string];
@@ -53,9 +54,9 @@ export async function accountSnapshot(user:ChatGPTUser){
   const records=friendEmails.length?await db.select({email:users.email,alias:users.alias}).from(users).where(inArray(users.email,friendEmails)):[];
   const aliases=new Map(records.map(record=>[record.email,record.alias]));
   const pending=await db.select().from(friendInvites).where(and(eq(friendInvites.inviterEmail,email),eq(friendInvites.status,"pending")));
-  const account=(await db.select({alias:users.alias,aliasChangedAt:users.aliasChangedAt,allowFriends:users.allowFriends,accountEnabled:users.accountEnabled,socialEnabled:users.socialEnabled,telemetryEnabled:users.telemetryEnabled,aliasRenameUnlocked:users.aliasRenameUnlocked}).from(users).where(eq(users.email,email)).limit(1))[0];
+  const account=(await db.select({alias:users.alias,aliasChangedAt:users.aliasChangedAt,timeZone:users.timeZone,allowFriends:users.allowFriends,accountEnabled:users.accountEnabled,socialEnabled:users.socialEnabled,telemetryEnabled:users.telemetryEnabled,aliasRenameUnlocked:users.aliasRenameUnlocked}).from(users).where(eq(users.email,email)).limit(1))[0];
   const nextAliasChangeAt=(account?.aliasChangedAt??0)+30*86_400_000;
-  return{email,alias:account?.alias??await generatedAlias(email),allowFriends:account?.allowFriends??true,accountEnabled:account?.accountEnabled??true,socialEnabled:account?.socialEnabled??true,telemetryEnabled:account?.telemetryEnabled??true,nextAliasChangeAt:account?.aliasRenameUnlocked?0:nextAliasChangeAt,friends:friendEmails.map(friendEmail=>({alias:aliases.get(friendEmail)??"UnknownCommander"})),pendingCount:pending.length};
+  return{email,alias:account?.alias??await generatedAlias(email),timeZone:account?.timeZone??"UTC",allowFriends:account?.allowFriends??true,accountEnabled:account?.accountEnabled??true,socialEnabled:account?.socialEnabled??true,telemetryEnabled:account?.telemetryEnabled??true,nextAliasChangeAt:account?.aliasRenameUnlocked?0:nextAliasChangeAt,friends:friendEmails.map(friendEmail=>({alias:aliases.get(friendEmail)??"UnknownCommander"})),pendingCount:pending.length};
 }
 
 export async function updateAlias(user:ChatGPTUser,rawAlias:string){
@@ -103,6 +104,15 @@ export async function updateAllowFriends(user:ChatGPTUser,allowFriends:boolean){
   if(!account?.accountEnabled||!account.socialEnabled)throw new Error("Social account services are disabled.");
   await db.update(users).set({allowFriends,lastSeenAt:Date.now()}).where(eq(users.email,email));
   return{allowFriends};
+}
+
+export async function updateTimeZone(user:ChatGPTUser,timeZone:string){
+  if(!validTimeZone(timeZone))throw new Error("Select a valid IANA time zone.");
+  const db=await getDb(),email=await ensureAccount(user);
+  const account=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
+  if(!account?.accountEnabled)throw new Error("Account services are disabled.");
+  await db.update(users).set({timeZone,lastSeenAt:Date.now()}).where(eq(users.email,email));
+  return{timeZone};
 }
 
 export async function telemetryAllowed(user:ChatGPTUser){

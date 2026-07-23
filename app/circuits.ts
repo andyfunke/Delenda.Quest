@@ -254,6 +254,17 @@ export const diplomacyCircuit:Circuit<GameState,DiplomacyLedger,Record<string,ne
       if(actor.id==="vey"){if(enabled("industrial-accords","component-clearing")){trustChange+=1.2;dependencyChange+=.5;actor.aidPipeline=Math.min(100,actor.aidPipeline+.5);}if(enabled("information-diplomacy","embed-correspondents")){trustChange+=.7;leverageChange-=.2;}if(enabled("burden-sharing","refugee-rail")){trustChange+=1.6;leverageChange-=.8;}}
       if(actor.id==="kestrel"&&enabled("industrial-accords","reverse-engineering")){trustChange+=.7;leverageChange+=1.2;actor.sanctionsExposure+=.8;}
       if(actor.id==="cineric"){if(enabled("information-diplomacy","publish-captured-orders")){trustChange-=1.4;leverageChange+=.6;}if(enabled("information-diplomacy","broadcast-surrender")){trustChange+=.8;leverageChange-=.4;}}
+      for(const action of state.activeDiplomacy){
+        for(const effect of action.actorEffects??[]){
+          if(effect.actorId!==actor.id)continue;
+          if(effect.metric==="trust")trustChange+=effect.perDay;
+          else if(effect.metric==="leverage")leverageChange+=effect.perDay;
+          else if(effect.metric==="dependency")dependencyChange+=effect.perDay;
+          else if(effect.metric==="obligation")actor.obligation=clamp(actor.obligation+effect.perDay,0,100);
+          else if(effect.metric==="aidPipeline")actor.aidPipeline=clamp(actor.aidPipeline+effect.perDay,0,100);
+          else if(effect.metric==="sanctionsExposure")actor.sanctionsExposure=clamp(actor.sanctionsExposure+effect.perDay,0,100);
+        }
+      }
       actor.trust=clamp(actor.trust+trustChange,0,100);actor.leverage=clamp(actor.leverage+leverageChange,0,100);actor.dependency=clamp(actor.dependency+dependencyChange,0,100);actor.sanctionsExposure=clamp(actor.sanctionsExposure,0,100);actor.betrayalRisk=clamp((actor.dependency*.45+actor.leverage*.3+(100-actor.trust)*.35+(actor.role==="broker"?12:0))/100,0,.95);
       const deliveryFactor=actor.role==="rival"?0:actor.aidPipeline*(actor.trust/100)*(1-actor.betrayalRisk);const munitionsDelivered=Math.round(deliveryFactor*145),treasuryDelivered=deliveryFactor*.035,intelligenceDelivered=Math.round(deliveryFactor/18);
       state.production.munitions.stock+=munitionsDelivered;state.treasury+=treasuryDelivered;state.intelligence+=intelligenceDelivered;
