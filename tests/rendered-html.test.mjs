@@ -63,6 +63,26 @@ test("diplomacy separates foreign actors from diplomatic actions",async()=>{
   assert.doesNotMatch(panel,/<nav>/);
 });
 
+test("menu hierarchy, secondary-front cooldown, and manual day resolution remain explicit",async()=>{
+  const[page,briefing,game,styles]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/game.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  for(const label of ["Allocate War Expenditure","Manage Operational Reserves","Administer Rotation and Recovery"])assert.match(game,new RegExp(label));
+  for(const category of ["Access and Exchange","Influence and Coercion","Commitments and Alliances"])assert.match(game,new RegExp(category,"g"));
+  assert.match(page,/convergenceFrontStatus/);assert.match(page,/cooling-option/);assert.match(page,/FRONT COOLING \/\/ INSPECT ONLY/);
+  assert.match(briefing,/unavailable=\{!convergenceOptionAvailable/);assert.doesNotMatch(briefing,/disabled=\{!convergenceOptionAvailable/);
+  assert.match(styles,/\.campaign-submenu\.cooling/);assert.match(styles,/\.briefing-option\.unavailable/);
+  assert.doesNotMatch(page,/completion-stamp|DAY&apos;S ORDERS ISSUED/);
+  assert.match(page,/DAY \$\{next\.day\} REMAINS OPEN \/\/ RESOLVE MANUALLY/);
+  assert.match(page,/GRADUATE ASSIGNMENT/);assert.match(page,/FIELD-READY SHARE/);
+  assert.match(page,/ALL OTHER EFFECTIVE GRADUATES ENTER THE REPLACEMENT RESERVE/);
+  assert.doesNotMatch(page,/ASSIGNMENT GATE|GRADUATES REMAIN PEOPLE/);
+  assert.match(styles,/\.force-human-flow\s*\{[^}]*border-bottom:\s*6px solid #fff/s);
+});
+
 test("Alt UX is a second renderer over the same convergence substrate",async()=>{
   const[page,briefing,convergence,css]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
@@ -127,7 +147,7 @@ test("campaign navigation, military reinforcement, Doctrine inspection, and text
   assert.doesNotMatch(campaign,/campaign-mission-context|OPERATIONAL CONVERGENCE|MISSION TICKET|CONTENT FRAME|matrixVersion|frameId|realizationId|mechanical archetype/i);
   assert.match(readout,/FRONT-LINE CONSEQUENCE/);
   assert.match(readout,/WHY THIS ORDER EXISTS TODAY/);
-  for(const label of ["EFFECTIVE GRADUATES","FIELD-EQUIPPED GRADUATES","HELD IN REPLACEMENT RESERVE","READINESS GATE","DEPLOYABLE REINFORCEMENTS"])assert.match(page,new RegExp(label));
+  for(const label of ["EFFECTIVE GRADUATES","FIELD-EQUIPPED GRADUATES","HELD IN REPLACEMENT RESERVE","FIELD-READY SHARE","DEPLOYABLE REINFORCEMENTS"])assert.match(page,new RegExp(label));
   assert.doesNotMatch(concepts,/equipment assignment → reserve or deployable formation/i);
   assert.match(page,/BATTLEFIELD EFFECT/);assert.doesNotMatch(page,/DETERMINISTIC EFFECT/);
   assert.doesNotMatch(briefing,/EXACT RUNTIME EFFECT/);assert.match(briefing,/BATTLEFIELD EFFECT/);

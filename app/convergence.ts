@@ -46,12 +46,30 @@ export const compileConvergence=(state:GameState):ConvergencePacket=>{
   return{id:`${SUB_MISSION_SCHEMA_VERSION}:${state.campaignSeed}:${state.day}`,day:state.day,operational:situationForState(state),domestic:compilePrompt("domestic",docket.domestic,state.day),network:compilePrompt("network",docket.network,state.day),matrixVersion:SUB_MISSION_SCHEMA_VERSION};
 };
 
-export const convergenceOptionAvailable=(state:GameState,option:ConvergenceOption)=>!directiveRejection(state,option.family,option.choice);
+export const convergenceFrontIssued=(state:GameState,domain:ConvergenceDomain)=>state.decisions.some(decision=>decision.day===state.day&&decision.domain===domain);
+
+export const convergenceOptionCooldown=(state:GameState,option:ConvergenceOption)=>Math.max(0,(state.locks[option.family.id]??0)-state.day);
+
+export const convergenceFrontStatus=(state:GameState,prompt:ConvergencePrompt)=>{
+  if(convergenceFrontIssued(state,prompt.domain))return{cooling:true,days:1,reason:"ORDER ISSUED // REOPENS AFTER RESOLUTION"};
+  const cooldowns=prompt.options.map(option=>convergenceOptionCooldown(state,option));
+  const cooling=cooldowns.length>0&&cooldowns.every(days=>days>0);
+  return cooling
+    ? {cooling:true,days:Math.min(...cooldowns),reason:`ALL RESPONSES COOLING // NEXT READY IN ${Math.min(...cooldowns)}D`}
+    : {cooling:false,days:0,reason:"RESPONSES AVAILABLE"};
+};
+
+export const convergenceOptionRejection=(state:GameState,option:ConvergenceOption)=>{
+  if(convergenceFrontIssued(state,option.domain))return `${option.domain==="domestic"?"Domestic Front":"Command Network"} already received today's response and reopens after resolution.`;
+  return directiveRejection(state,option.family,option.choice);
+};
+
+export const convergenceOptionAvailable=(state:GameState,option:ConvergenceOption)=>!convergenceOptionRejection(state,option);
 
 export const commitConvergence=(state:GameState,input:{maneuverId?:string;domesticId?:string;networkId?:string})=>{
   const packet=compileConvergence(state);let next=state;const issued:string[]=[];
   for(const [domain,id,prompt] of [["domestic",input.domesticId,packet.domestic],["network",input.networkId,packet.network]] as const){
-    if(!id)continue;const option=prompt.options.find(item=>item.id===id);if(!option)continue;
+    if(!id)continue;const option=prompt.options.find(item=>item.id===id);if(!option||!convergenceOptionAvailable(next,option))continue;
     const result=commit(next,option.family,option.choice);if(result!==next){next=result;const decision=next.decisions[0];if(decision){decision.domain=domain;decision.missionId=prompt.id;decision.resolutionTicket=prompt.resolutionTicket;}issued.push(option.choice.label)}
   }
   const maneuver: Maneuver|undefined=MANEUVERS.find(item=>item.id===input.maneuverId);

@@ -26,6 +26,7 @@ import {
 } from "./game";
 import {
   compileConvergence,
+  convergenceFrontStatus,
   convergenceOptionAvailable,
   type ConvergenceOption,
   type ConvergencePrompt,
@@ -98,6 +99,7 @@ function InterfaceSwitch({
 function DecisionOption({
   selected,
   disabled,
+  unavailable,
   name,
   description,
   cost,
@@ -105,6 +107,7 @@ function DecisionOption({
 }: {
   selected: boolean;
   disabled?: boolean;
+  unavailable?: boolean;
   name: string;
   description: string;
   cost: string[];
@@ -112,7 +115,7 @@ function DecisionOption({
 }) {
   return (
     <button
-      className={`briefing-option ${selected ? "selected" : ""}`}
+      className={`briefing-option ${selected ? "selected" : ""} ${unavailable ? "unavailable" : ""}`}
       disabled={disabled}
       aria-pressed={selected}
       onClick={onClick}
@@ -149,6 +152,7 @@ function DecisionCard({
   context,
   children,
   primary = false,
+  cooling = false,
 }: {
   meta: string;
   title: string;
@@ -156,9 +160,12 @@ function DecisionCard({
   context?: React.ReactNode;
   children: React.ReactNode;
   primary?: boolean;
+  cooling?: boolean;
 }) {
   return (
-    <article className={`briefing-decision ${primary ? "primary" : ""}`}>
+    <article
+      className={`briefing-decision ${primary ? "primary" : ""} ${cooling ? "cooling" : ""}`}
+    >
       <header>
         <span>{meta}</span>
         <h2>{title}</h2>
@@ -338,7 +345,10 @@ function DirectiveSurface({
     module === "national" ? "PRODUCTION" : module.toUpperCase();
   const moduleEpigraph = module === "national" ? "production" : module;
   return (
-    <section className="modern-surface modern-directives">
+    <section
+      className="modern-surface modern-directives"
+      data-module={moduleLabel}
+    >
       <header>
         <ModernModuleEpigraph module={moduleEpigraph} />
         <span>{moduleLabel} // NATIVE ALT UX SURFACE</span>
@@ -617,13 +627,27 @@ function DailySurface({
   const operation = projectOperations(s),
     production = projectProduction(s),
     personnel = estimateDay(s);
+  const domesticStatus = convergenceFrontStatus(s, packet.domestic),
+    networkStatus = convergenceFrontStatus(s, packet.network),
+    selectedDomesticOption = packet.domestic.options.find(
+      (option) => option.id === selectedDomestic,
+    ),
+    selectedNetworkOption = packet.network.options.find(
+      (option) => option.id === selectedNetwork,
+    );
   const selectedCount = [
     selectedManeuver && !s.maneuver,
     selectedDomestic,
     selectedNetwork,
   ].filter(Boolean).length;
   const canIssue =
-    s.status === "active" && selectedCount > 0 && selectedCount <= s.actions;
+    s.status === "active" &&
+    selectedCount > 0 &&
+    selectedCount <= s.actions &&
+    (!selectedDomesticOption ||
+      convergenceOptionAvailable(s, selectedDomesticOption)) &&
+    (!selectedNetworkOption ||
+      convergenceOptionAvailable(s, selectedNetworkOption));
   const availableManeuvers = packet.operational.maneuvers
     .map((id) => MANEUVERS.find((item) => item.id === id))
     .filter((item): item is Maneuver => !!item);
@@ -746,16 +770,17 @@ function DailySurface({
             })}
           </DecisionCard>
           <DecisionCard
-            meta={`SITUATIONAL · DOMESTIC · ${packet.domestic.authority}`}
+            meta={`SITUATIONAL · DOMESTIC · ${domesticStatus.cooling ? domesticStatus.reason : packet.domestic.authority}`}
             title={packet.domestic.title}
             brief={`${packet.domestic.brief} Sealed through Day ${packet.domestic.rotatesAfterDay} resolution.`}
             context={<MissionContext prompt={packet.domestic} />}
+            cooling={domesticStatus.cooling}
           >
             {packet.domestic.options.map((option) => (
               <DecisionOption
                 key={option.id}
                 selected={selectedDomestic === option.id}
-                disabled={!convergenceOptionAvailable(s, option)}
+                unavailable={!convergenceOptionAvailable(s, option)}
                 name={option.choice.label}
                 description={option.choice.flavor}
                 cost={optionCost(option)}
@@ -768,16 +793,17 @@ function DailySurface({
             ))}
           </DecisionCard>
           <DecisionCard
-            meta={`SITUATIONAL · NETWORK · ${packet.network.authority}`}
+            meta={`SITUATIONAL · NETWORK · ${networkStatus.cooling ? networkStatus.reason : packet.network.authority}`}
             title={packet.network.title}
             brief={`${packet.network.brief} Sealed through Day ${packet.network.rotatesAfterDay} resolution.`}
             context={<MissionContext prompt={packet.network} />}
+            cooling={networkStatus.cooling}
           >
             {packet.network.options.map((option) => (
               <DecisionOption
                 key={option.id}
                 selected={selectedNetwork === option.id}
-                disabled={!convergenceOptionAvailable(s, option)}
+                unavailable={!convergenceOptionAvailable(s, option)}
                 name={option.choice.label}
                 description={option.choice.flavor}
                 cost={optionCost(option)}

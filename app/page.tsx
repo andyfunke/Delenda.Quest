@@ -80,7 +80,11 @@ import {
 import { BriefingInterface } from "./BriefingInterface";
 import {
   compileConvergence,
+  convergenceFrontIssued,
+  convergenceFrontStatus,
   convergenceOptionAvailable,
+  convergenceOptionCooldown,
+  convergenceOptionRejection,
   type ConvergenceOption,
   type ConvergencePrompt,
 } from "./convergence";
@@ -1843,8 +1847,8 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
       </div>
       <div className="force-assignment">
         <header>
-          <small>ASSIGNMENT GATE</small>
-          <b>GRADUATES REMAIN PEOPLE; KIT AND READINESS DECIDE WHERE THEY SERVE</b>
+          <small>GRADUATE ASSIGNMENT</small>
+          <b>FIELD-EQUIPPED, FIELD-READY GRADUATES JOIN THE DEPLOYABLE FORCE. ALL OTHER EFFECTIVE GRADUATES ENTER THE REPLACEMENT RESERVE.</b>
         </header>
         <div className="force-assignment-branches">
           <div>
@@ -1862,7 +1866,7 @@ function ForceGenerationCircuit({ s }: { s: GameState }) {
             <small>ALL EFFECTIVE GRADUATES NOT DEPLOYED TODAY</small>
           </div>
           <div>
-            <RegistryConcept id="readiness">READINESS GATE</RegistryConcept>
+            <RegistryConcept id="readiness">FIELD-READY SHARE</RegistryConcept>
             <b>{s.readiness.toFixed(0)}%</b>
             <small>SHARE OF EQUIPPED GRADUATES READY FOR FIELD DUTY</small>
           </div>
@@ -1940,7 +1944,7 @@ function ModulePage({
     if (focus && FAMILIES.some((f) => f.module === page && f.id === focus))
       setSelected(focus);
   }, [focus, page]);
-  useEffect(() => setPreviewChoice(null), [selected, page, s.actions, s.day]);
+  useEffect(() => setPreviewChoice(null), [selected, page, s.day]);
   const locked = selectedFamily
     ? Math.max(0, (s.locks[selectedFamily.id] ?? 0) - s.day)
     : 0;
@@ -3146,15 +3150,7 @@ function CampaignPage({
         ? packet.network
         : null;
   const selectedSubIssued = !!(
-    subOption &&
-    subPrompt &&
-    s.decisions.some(
-      (decision) =>
-        decision.day === s.day &&
-        decision.domain === subOption.domain &&
-        decision.missionId === subPrompt.id &&
-        decision.choiceId === subOption.choice.id,
-    )
+    subOption && convergenceFrontIssued(s, subOption.domain)
   );
   useEffect(() => {
     if (selected && !options.some((x) => x.id === selected.id))
@@ -3172,31 +3168,48 @@ function CampaignPage({
     setSelected(null);
     setSelectedSub((value) => (value === option.id ? null : option.id));
   };
-  const renderSubMenu = (prompt: typeof packet.domestic, label: string) => (
-    <section className={`tree-group campaign-submenu ${prompt.domain}`}>
-      <header className="tree-group-heading">
-        <span>{label}</span>
-        <small>{prompt.options.length} RESPONSES</small>
-      </header>
-      {prompt.options.map((option) => {
-        const rejection = directiveRejection(s, option.family, option.choice);
-        return (
-          <button
-            aria-pressed={subOption?.id === option.id}
-            className={subOption?.id === option.id ? "selected" : ""}
-            onClick={() => chooseSub(option)}
-            key={option.id}
-          >
-            <span>▣</span>
-            <b>{option.choice.label}</b>
-            <small>
-              {rejection ? rejection.toUpperCase() : "1 ORDER // AVAILABLE"}
-            </small>
-          </button>
-        );
-      })}
-    </section>
-  );
+  const renderSubMenu = (prompt: typeof packet.domestic, label: string) => {
+    const status = convergenceFrontStatus(s, prompt);
+    return (
+      <section
+        className={`tree-group campaign-submenu ${prompt.domain} ${status.cooling ? "cooling" : ""}`}
+      >
+        <header className="tree-group-heading">
+          <span>{label}</span>
+          <small>
+            {status.cooling
+              ? status.reason
+              : `${prompt.options.length} RESPONSES`}
+          </small>
+        </header>
+        {prompt.options.map((option) => {
+          const cooldown = convergenceOptionCooldown(s, option),
+            rejection = convergenceOptionRejection(s, option),
+            cooling = status.cooling || cooldown > 0;
+          return (
+            <button
+              aria-pressed={subOption?.id === option.id}
+              className={`${subOption?.id === option.id ? "selected" : ""} ${cooling ? "cooling-option" : ""}`}
+              onClick={() => chooseSub(option)}
+              key={option.id}
+            >
+              <span>▣</span>
+              <b>{option.choice.label}</b>
+              <small>
+                {convergenceFrontIssued(s, option.domain)
+                  ? "COOLING // REOPENS AFTER RESOLUTION"
+                  : cooldown
+                    ? `COOLING // ${cooldown}D`
+                    : rejection
+                      ? rejection.toUpperCase()
+                      : "1 ORDER // AVAILABLE"}
+              </small>
+            </button>
+          );
+        })}
+      </section>
+    );
+  };
   return (
     <div className="module campaign-page" data-module="CAMPAIGN">
       <header>
@@ -3386,7 +3399,7 @@ function CampaignPage({
                 }
               >
                 {selectedSubIssued
-                  ? "ORDER ALREADY ISSUED"
+                  ? "FRONT COOLING // INSPECT ONLY"
                   : `ISSUE ${subOption.domain.toUpperCase()} ORDER →`}
               </button>
             </article>
@@ -3680,7 +3693,6 @@ export default function Home() {
   const [clock, setClock] = useState(initialClock);
   const [now, setNow] = useState(() => Date.now());
   const [ledgerNow, setLedgerNow] = useState(() => Date.now());
-  const [ordersStamped, setOrdersStamped] = useState(false);
   const [dispatch, setDispatch] = useState<{
     open: boolean;
     day: number;
@@ -3966,11 +3978,11 @@ export default function Home() {
     setSystemNotice(null);
     window.history.replaceState({}, "", window.location.pathname);
   };
-  const recordCompletion = (next: GameState) => {
-    if (next.actions === 0) {
-      setOrdersStamped(true);
-      window.setTimeout(() => setOrdersStamped(false), 2400);
-    }
+  const announceOpenDay = (next: GameState) => {
+    if (next.actions === 0)
+      setSystemNotice(
+        `ORDER BUDGET EXHAUSTED // DAY ${next.day} REMAINS OPEN // RESOLVE MANUALLY`,
+      );
   };
   const issueDirective = (selectedFamily: Family, choice: Choice) => {
     const result = executeAvaAction(
@@ -3983,7 +3995,7 @@ export default function Home() {
       return;
     }
     setS(result.state);
-    recordCompletion(result.state);
+    announceOpenDay(result.state);
   };
   const switchInterface = (mode: "command" | "briefing") => {
     setInterfaceMode(mode);
@@ -4027,7 +4039,7 @@ export default function Home() {
       return;
     }
     setS(result.state);
-    recordCompletion(result.state);
+    announceOpenDay(result.state);
   };
   const issueManeuver = (selection?: Maneuver) => {
     const maneuver = selection ?? pendingManeuver;
@@ -4042,7 +4054,7 @@ export default function Home() {
       return;
     }
     setS(result.state);
-    recordCompletion(result.state);
+    announceOpenDay(result.state);
     setPendingManeuver(null);
   };
   const issueOpportunity = (responseId: string) => {
@@ -4165,7 +4177,7 @@ export default function Home() {
     }
     if (terminal.state !== s) {
       setS(terminal.state);
-      recordCompletion(terminal.state);
+      announceOpenDay(terminal.state);
       setPendingManeuver(null);
       if (terminal.state.day !== s.day) {
         setDispatch({ open: false, day: s.day });
@@ -4374,11 +4386,6 @@ export default function Home() {
             <small>SIGN IN TO ISSUE A PERMANENT CAMPAIGN RECORD</small>
           )}
           <button onClick={() => setReset(true)}>Begin new campaign</button>
-        </div>
-      )}
-      {ordersStamped && (
-        <div className="completion-stamp" role="status">
-          DAY&apos;S ORDERS ISSUED // AWAITING RESOLUTION
         </div>
       )}
       {systemNotice && (

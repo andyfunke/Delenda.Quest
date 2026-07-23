@@ -19,6 +19,7 @@ import {
   commitConvergence,
   compileConvergence,
   convergenceOptionAvailable,
+  convergenceOptionRejection,
 } from "../convergence";
 import type {
   AvaActionDescriptor,
@@ -131,7 +132,7 @@ export const enumerateAvaActions = (
     ["network", packet.network, "N"],
   ] as const)
     prompt.options.forEach((option, index) => {
-      const rejection = directiveRejection(state, option.family, option.choice);
+      const rejection = convergenceOptionRejection(state, option);
       actions.push({
         id: `sub-mission:${prompt.id}:${option.id}`,
         handle: `${prefix}${index + 1}`,
@@ -347,6 +348,18 @@ export const executeAvaAction = (
   } else if (action.kind === "doctrine-stage")
     next = unlockDoctrine(state, action.stageId);
   else if (action.kind === "resolve-day") next = resolve(state);
+  if (
+    action.kind !== "resolve-day" &&
+    (next.day !== state.day ||
+      next.resolutionHistory.length !== state.resolutionHistory.length)
+  )
+    return {
+      state,
+      executed: false,
+      rejection:
+        "The order was rejected because only an explicit day resolution may advance the campaign clock.",
+      receipt: [],
+    };
   if (next === state)
     return {
       state,

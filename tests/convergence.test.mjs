@@ -78,6 +78,41 @@ test("daily sub-missions remain sealed through same-day orders and rotate only a
   assert.equal(afterResolve.day,2);assert.notEqual(afterResolve.domestic.resolutionTicket,before.domestic.resolutionTicket);assert.notEqual(afterResolve.domestic.id,before.domestic.id);assert.notEqual(afterResolve.network.id,before.network.id);assert.equal(next.subMissionHistory.length,2);assert.equal(next.subMissionHistory.find(record=>record.domain==="domestic").outcome,"issued");assert.equal(next.subMissionHistory.find(record=>record.domain==="network").outcome,"lapsed");
 });
 
+test("each secondary front accepts one daily response, then cools while remaining inspectable",()=>{
+  const state=rules.initialState({seed:4409}),packet=rules.compileConvergence(state);
+  const first=packet.domestic.options[0],second=packet.domestic.options.find(option=>option.family.id!==first.family.id)??packet.domestic.options[1];
+  const committed=rules.commitConvergence(state,{domesticId:first.id});
+  assert.equal(committed.issued.length,1);
+  assert.equal(rules.convergenceFrontIssued(committed.state,"domestic"),true);
+  const afterPacket=rules.compileConvergence(committed.state),status=rules.convergenceFrontStatus(committed.state,afterPacket.domestic);
+  assert.equal(status.cooling,true);assert.equal(status.days,1);assert.match(status.reason,/REOPENS AFTER RESOLUTION/);
+  assert.equal(rules.convergenceOptionAvailable(committed.state,afterPacket.domestic.options.find(option=>option.id===second.id)),false);
+  const rejected=rules.commitConvergence(committed.state,{domesticId:second.id});
+  assert.equal(rejected.state,committed.state,"a second same-front response must fail closed");
+  assert.equal(rejected.issued.length,0);assert.equal(rejected.state.actions,committed.state.actions);
+  assert.ok(afterPacket.domestic.options.some(option=>option.id===second.id),"cooling responses remain present for inspection");
+});
+
+test("full family cooldown grays a front while partial cooldown leaves alternatives active",()=>{
+  let state,packet;
+  for(let seed=1;seed<=100;seed++){
+    const candidate=rules.initialState({seed}),compiled=rules.compileConvergence(candidate);
+    if(new Set(compiled.network.options.map(option=>option.family.id)).size>1){state=candidate;packet=compiled;break;}
+  }
+  assert.ok(state&&packet,"expected a mixed-family Network front in the seed sweep");
+  const fully=structuredClone(state);
+  for(const option of packet.network.options)fully.locks[option.family.id]=fully.day+3;
+  const fullPacket=rules.compileConvergence(fully),fullStatus=rules.convergenceFrontStatus(fully,fullPacket.network);
+  assert.equal(fullStatus.cooling,true);assert.equal(fullStatus.days,3);
+  assert.ok(fullPacket.network.options.every(option=>!rules.convergenceOptionAvailable(fully,option)));
+  const partial=structuredClone(state),lockedFamily=packet.network.options[0].family.id;
+  partial.locks[lockedFamily]=partial.day+3;
+  const partialPacket=rules.compileConvergence(partial),partialStatus=rules.convergenceFrontStatus(partial,partialPacket.network);
+  assert.equal(partialStatus.cooling,false);
+  assert.ok(partialPacket.network.options.some(option=>rules.convergenceOptionAvailable(partial,option)));
+  assert.ok(partialPacket.network.options.some(option=>rules.convergenceOptionCooldown(partial,option)>0));
+});
+
 test("network and foreign-intelligence options are tradeoffs rather than scalar upgrades",()=>{
   const network=rules.FAMILIES.find(family=>family.id==="network-posture"),foreign=rules.FAMILIES.find(family=>family.id==="foreign-intelligence");
   assert.equal(network.choices.length,3);

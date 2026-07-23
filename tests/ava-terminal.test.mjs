@@ -58,6 +58,23 @@ const firstAvailable=(state,kind,fraction=0,domain)=>{
   return descriptor;
 };
 
+test("append-only directive registration preserves established Ava P-handles",()=>{
+  const actions=runtime.enumerateAvaActions(newState());
+  const handles=(familyId)=>actions
+    .filter(item=>item.action?.familyId===familyId)
+    .map(item=>item.handle);
+
+  assert.deepEqual(handles("supply"),["P48","P49","P50","P51"]);
+  assert.deepEqual(handles("statecraft"),["P52","P53","P54","P55"]);
+  assert.deepEqual(handles("treaties"),["P56","P57","P58","P59","P60"]);
+  assert.deepEqual(handles("sanctions"),["P61","P62","P63","P64","P65"]);
+  assert.deepEqual(handles("alliance-obligations"),["P66","P67","P68","P69"]);
+  assert.deepEqual(handles("foreign-intelligence"),["P79","P80","P81"]);
+  assert.deepEqual(handles("expenditure"),["P82","P83","P84","P85"]);
+  assert.deepEqual(handles("operational-reserve"),["P86","P87","P88","P89"]);
+  assert.deepEqual(handles("unit-recovery"),["P90","P91","P92","P93"]);
+});
+
 const missionPacket=(state)=>[
   firstAvailable(state,"maneuver",0,"main"),
   firstAvailable(state,"sub-mission",0,"domestic"),
@@ -257,6 +274,25 @@ test("RESOLVE DAY requires confirmation and matches the direct controller",()=>{
   assert.equal(confirmed.state.day,state.day+1);
   assert.equal(confirmed.state.resolutionHistory.length,state.resolutionHistory.length+1);
   assert.deepEqual(confirmed.state,direct.state);
+});
+
+test("Military orders can exhaust the order budget but can never resolve the day",()=>{
+  const opening=newState(8088),military=runtime.enumerateAvaActions(opening).filter(item=>item.kind==="directive"&&item.parentLabel.startsWith("Military /"));
+  assert.ok(military.length>=8);
+  for(const descriptor of military){
+    const state=newState(8088),result=runtime.executeAvaAction(state,descriptor.action);
+    assert.equal(result.executed,true,`${descriptor.label}: ${result.rejection}`);
+    assert.equal(result.state.day,state.day,descriptor.label);
+    assert.equal(result.state.resolutionHistory.length,state.resolutionHistory.length,descriptor.label);
+    assert.equal(result.state.status,state.status,descriptor.label);
+  }
+  const finalOrder={...opening,actions:1},descriptor=runtime.enumerateAvaActions(finalOrder).find(item=>item.kind==="directive"&&item.parentLabel.startsWith("Military /")&&item.available);
+  assert.ok(descriptor);
+  const spent=runtime.executeAvaAction(finalOrder,descriptor.action);
+  assert.equal(spent.executed,true,spent.rejection);assert.equal(spent.state.actions,0);assert.equal(spent.state.day,finalOrder.day);assert.equal(spent.state.resolutionHistory.length,0);
+  const mixed=runtime.buildAvaPlan(opening,[descriptor.action,{kind:"resolve-day"}]);
+  const rejected=runtime.executeAvaPlan(opening,mixed);
+  assert.equal(rejected.executed,false);assert.match(rejected.rejection,/cannot share an order packet/);assert.equal(rejected.state,opening);
 });
 
 test("confirmation is rejected after authoritative state changes",()=>{

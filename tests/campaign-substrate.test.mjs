@@ -52,6 +52,34 @@ test("a stored packet cannot be rerolled by preparatory directives",()=>{
   assert.equal(changed.actions,2);
 });
 
+test("every directive menu heading contains at least two issue families",()=>{
+  const grouped=new Map();
+  for(const family of FAMILIES){
+    const key=`${family.module}/${family.category}`;
+    grouped.set(key,[...(grouped.get(key)??[]),family.label]);
+  }
+  for(const[key,labels]of grouped)assert.ok(labels.length>=2,`${key} exposes only ${labels.join(", ")}`);
+  assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Allocate War Expenditure"]);
+  assert.deepEqual(grouped.get("military/Operations"),["Set Operational Tempo","Manage Operational Reserves"]);
+  assert.deepEqual(grouped.get("military/Personnel Sustainment"),["Process Desertion","Administer Rotation and Recovery"]);
+  assert.deepEqual(grouped.get("diplomacy/Access and Exchange"),["Secure External Supply","Trade Foreign Intelligence"]);
+  assert.deepEqual(grouped.get("diplomacy/Influence and Coercion"),["Conduct Statecraft","Administer Sanctions"]);
+  assert.deepEqual(grouped.get("diplomacy/Commitments and Alliances"),["Bind Foreign Obligations","Service Alliance Obligations"]);
+});
+
+test("new Public Finance, Operations, and Personnel Sustainment families execute real state changes without resolving the day",()=>{
+  for(const[familyId,choiceId,field]of[["expenditure","frontline-procurement","treasury"],["operational-reserve","release-reserve","deployable"],["unit-recovery","walking-wounded","reserves"]]){
+    const state=initialState({seed:5519}),family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),before=state[field];
+    const next=commit(state,family,choice);
+    assert.equal(next.day,state.day,`${familyId} advanced the day`);
+    assert.equal(next.resolutionHistory.length,state.resolutionHistory.length,`${familyId} resolved the day`);
+    assert.equal(next.actions,state.actions-1);
+    assert.equal(next.active[familyId],choiceId);
+    assert.equal(next.locks[familyId],state.day+family.lock);
+    assert.notEqual(next[field],before,`${familyId} did not change ${field}`);
+  }
+});
+
 test("maneuver authorization is enforced by the active packet",()=>{
   const state=initialState({seed:777,theater:"ridge"});
   const situation=situationForState(state);
