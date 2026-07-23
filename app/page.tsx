@@ -1463,7 +1463,7 @@ function Dashboard({
     ],
     [
       "materiel",
-      "Materiel",
+      "Industrial Condition",
       s.materiel,
       `${production.materielChange >= 0 ? "+" : ""}${production.materielChange.toFixed(1)} / DAY`,
     ],
@@ -1545,30 +1545,8 @@ function Dashboard({
         <section>
           <Heading
             title="Industrial Throughput"
-            note={`${s.materiel.toFixed(0)} / 100 condition // ${production.materielChange >= 0 ? "+" : ""}${production.materielChange.toFixed(1)} daily`}
+            note="Allocation, output, use, stock, and coverage"
           />
-          <div
-            className={`production-health ${s.materiel >= 85 ? "good" : s.materiel >= 50 ? "warn" : "bad"}`}
-          >
-            <div>
-              <small>INDUSTRIAL CONDITION</small>
-              <b>{s.materiel.toFixed(0)}%</b>
-              <span>
-                {s.materiel >= 85
-                  ? "NOMINAL"
-                  : s.materiel >= 50
-                    ? "STRAINED"
-                    : "CRITICAL"}
-              </span>
-            </div>
-            <i>
-              <em style={{ width: `${s.materiel}%` }} />
-            </i>
-            <strong>
-              {production.materielChange >= 0 ? "+" : ""}
-              {production.materielChange.toFixed(1)} / DAY
-            </strong>
-          </div>
           <div className="production">
             <div className="prod-row head">
               <span>Line</span>
@@ -2018,28 +1996,30 @@ function ModulePage({
             {moduleName(page)} // DAY {s.day}
           </b>
         </div>
-        <section className="module-report">
-          <div>
-            <small>DAY</small>
-            <b>{s.day}</b>
-          </div>
-          <div>
-            <small>ORDERS AVAILABLE</small>
-            <b>
-              {s.actions} / {DAILY_ORDERS}
-            </b>
-          </div>
-          <div>
-            <small>ISSUE FAMILY</small>
-            <b>{selectedFamily?.label ?? "NONE"}</b>
-          </div>
-          <div>
-            <small>COOLDOWN</small>
-            <b>
-              {locked ? `${locked} DAY${locked === 1 ? "" : "S"}` : "READY"}
-            </b>
-          </div>
-        </section>
+        {page !== "military" && (
+          <section className="module-report">
+            <div>
+              <small>DAY</small>
+              <b>{s.day}</b>
+            </div>
+            <div>
+              <small>ORDERS AVAILABLE</small>
+              <b>
+                {s.actions} / {DAILY_ORDERS}
+              </b>
+            </div>
+            <div>
+              <small>ISSUE FAMILY</small>
+              <b>{selectedFamily?.label ?? "NONE"}</b>
+            </div>
+            <div>
+              <small>COOLDOWN</small>
+              <b>
+                {locked ? `${locked} DAY${locked === 1 ? "" : "S"}` : "READY"}
+              </b>
+            </div>
+          </section>
+        )}
         <div
           className={`os-layout ${page === "diplomacy" ? "diplomacy-menu-layout" : ""}`}
         >

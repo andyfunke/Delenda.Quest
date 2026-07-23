@@ -27,9 +27,9 @@ test("every theater opens with a stored graph-backed Situation Packet",()=>{
     assert.equal(situation.day,1);
     assert.equal(situation.theater,theater.id);
     assert.ok(state.theaterSectors.some(x=>x.id===situation.sectorId));
-    assert.ok(situation.maneuvers.length>=3);
+    assert.equal(situation.maneuvers.length,3);
     assert.ok(situation.maneuvers.every(id=>MANEUVERS.some(x=>x.id===id)));
-    assert.match(situation.resolutionTicket,/^campaign-substrate-v1:/);
+    assert.match(situation.resolutionTicket,/^campaign-substrate-v2:/);
   }
 });
 

@@ -799,7 +799,7 @@ function DailySurface({
             title={packet.operational.sector}
             brief="Ground, force, and casualty consequences resolve from the stored operational ticket."
           >
-            {availableManeuvers.slice(0, 4).map((m) => {
+            {availableManeuvers.map((m) => {
               const p = projectOperations(s, m);
               return (
                 <DecisionOption

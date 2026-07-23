@@ -219,15 +219,23 @@ test("the reference tactical plate and munitions stockpile label are preserved e
   assert.doesNotMatch(page,/Net expenditure/i);
 });
 
-test("dashboard uses plain operational headings and the established minimum type size",async()=>{
-  const[page,css,account]=await Promise.all([
+test("dashboard groups Industrial Condition with attrition and keeps Military free of the generic report strip",async()=>{
+  const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
   ]);
   for(const heading of ["Live Expenditure","Production Capacity","Industrial Throughput","Systemic Attrition"]){
     assert.match(page,new RegExp(`title="${heading}"`));
   }
+  const dashboard=page.slice(page.indexOf("function Dashboard"),page.indexOf("function ProductionCircuit"));
+  const modulePage=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
+  assert.match(dashboard,/"Industrial Condition"/);
+  assert.doesNotMatch(dashboard,/className=\{`production-health/);
+  assert.match(modulePage,/page !== "military"/);
+  assert.equal((modulePage.match(/<section className="module-report">/g)??[]).length,1);
+  assert.doesNotMatch(briefing,/availableManeuvers\.slice/);
   assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
   assert.doesNotMatch(css,/(?:font-size|font):[^;}]*\b6px\b/);
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);

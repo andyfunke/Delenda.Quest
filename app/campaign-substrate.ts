@@ -81,12 +81,19 @@ export type ManeuverAftermathRule = {
   successFact:string; failureFact:string; cleanFact?:string; ttl:number;
 };
 
-export const CONTENT_PACK_VERSION="campaign-substrate-v1";
+export const CONTENT_PACK_VERSION="campaign-substrate-v2";
 
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
 const hashInt=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
 export const stableHash=(text:string)=>hashInt(text)/4294967295;
 export const deterministicRoll=(ticket:string,maneuverId:string)=>stableHash(`${ticket}:${maneuverId}`);
+const dailyManeuverDocket=(state:CampaignStateView,template:SituationTemplate)=>
+  [...template.maneuvers]
+    .sort((left,right)=>
+      stableHash(`${state.campaignSeed}:${state.day}:${template.id}:maneuver:${left}`)-
+        stableHash(`${state.campaignSeed}:${state.day}:${template.id}:maneuver:${right}`)||
+      left.localeCompare(right))
+    .slice(0,3);
 export const phaseIdForDay=(day:number):CampaignPhaseId=>day<=5?"contact":day<=12?"compression":day<=20?"exhaustion":"terminal";
 export const outcomeBandForMargin=(margin:number):OutcomeBand=>margin>=.2?"clean":margin>=0?"executed":margin>=-.2?"disrupted":"collapse";
 export const outcomeBandLabel:Record<OutcomeBand,string>={clean:"CLEAN EXECUTION",executed:"EXECUTED WITH FRICTION",disrupted:"DISRUPTED",collapse:"OPERATIONAL COLLAPSE"};
@@ -304,11 +311,12 @@ export const compileSituation=(state:CampaignStateView,templates:SituationTempla
   if(!candidates.length){const template=templates.find(x=>BLUEPRINT_RULES[x.id]?.theaters.includes(state.theater))??templates[0];const rule=BLUEPRINT_RULES[template.id];const sector=targetSector(rule,sectors);const bands=operationalBandsFor(state,sector);candidates=[{template,rule,sector,bands,score:0}];}
   candidates.sort((a,b)=>b.score-a.score||a.template.id.localeCompare(b.template.id));const chosen=candidates[0];
   const facts=activeFacts(state,chosen.sector.id).map(x=>FACT_CATALOG[x.id]?.label??x.id);
-  const aftermathFacts=[...new Set(chosen.template.maneuvers.flatMap(id=>{const rule=MANEUVER_AFTERMATH[id];return rule?[rule.successFact,rule.failureFact,...(rule.cleanFact?[rule.cleanFact]:[])]:[]}).map(id=>FACT_CATALOG[id]?.label??id))];
+  const maneuvers=dailyManeuverDocket(state,chosen.template);
+  const aftermathFacts=[...new Set(maneuvers.flatMap(id=>{const rule=MANEUVER_AFTERMATH[id];return rule?[rule.successFact,rule.failureFact,...(rule.cleanFact?[rule.cleanFact]:[])]:[]}).map(id=>FACT_CATALOG[id]?.label??id))];
   const ticket=`${CONTENT_PACK_VERSION}:${hashInt(`${state.campaignSeed}:${state.day}:${chosen.template.id}:${chosen.sector.id}:resolution`).toString(16).padStart(8,"0")}`;
   const selectionBasis=`${candidates.length} ELIGIBLE // ${phase.toUpperCase()} PHASE // ${chosen.bands.frontPosture.toUpperCase()} FRONT // ${chosen.bands.supply.toUpperCase()} SUPPLY // ${condition?.label.toUpperCase()??"NO STRATEGIC CONDITION"}`;
   return{
-    ...chosen.template,id:`${chosen.template.id}:d${state.day}:${chosen.sector.id}`,day:state.day,blueprintId:chosen.template.id,problemClass:chosen.rule.problemClass,sectorId:chosen.sector.id,contentPackVersion:CONTENT_PACK_VERSION,
+    ...chosen.template,maneuvers,id:`${chosen.template.id}:d${state.day}:${chosen.sector.id}`,day:state.day,blueprintId:chosen.template.id,problemClass:chosen.rule.problemClass,sectorId:chosen.sector.id,contentPackVersion:CONTENT_PACK_VERSION,
     theater:state.theater,sector:chosen.sector.name,headline:compiledText(chosen.template.headline,chosen.sector),briefing:compiledText(chosen.template.briefing,chosen.sector),question:compiledText(chosen.template.question,chosen.sector),
     terrain:chosen.sector.terrain,ground:chosen.sector.ground,network:networkLabel(chosen.sector.network),supply:supplyLabel(chosen.bands.supply),intelligence:intelLabel(state,chosen.bands),
     selectionScore:Number(chosen.score.toFixed(2)),candidateCount:candidates.length,selectionBasis,resolutionTicket:ticket,triggeringFacts:facts,bands:chosen.bands,standingOrder:chosen.rule.standingOrder,aftermathFacts,

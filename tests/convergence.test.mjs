@@ -8,11 +8,28 @@ test("daily convergence compiles one operational, domestic, and network problem"
   const left=rules.compileConvergence(state),right=rules.compileConvergence(structuredClone(state));
   assert.deepEqual(left,right);
   assert.equal(left.day,1);
-  assert.ok(left.operational.maneuvers.length>=3);
+  assert.equal(left.operational.maneuvers.length,3);
   assert.equal(left.domestic.options.length,3);
   assert.equal(left.network.options.length,3);
   assert.equal(new Set(left.domestic.options.map(option=>option.id)).size,3);
   assert.equal(new Set(left.network.options.map(option=>option.id)).size,3);
+  assert.deepEqual(left.operational.maneuvers,right.operational.maneuvers);
+});
+
+test("the authoritative campaign docket rotates exactly three maneuvers and survives reloads",()=>{
+  const state=rules.initialState({seed:1729,theater:"lowland"});
+  const dockets=new Set();
+  for(let day=1;day<=8;day+=1){
+    state.day=day;
+    state.currentSituation=null;
+    const compiled=rules.compileConvergence(state);
+    assert.equal(compiled.operational.maneuvers.length,3);
+    assert.equal(new Set(compiled.operational.maneuvers).size,3);
+    const restored=rules.restoreCampaignState(structuredClone(state));
+    assert.deepEqual(rules.compileConvergence(restored).operational.maneuvers,compiled.operational.maneuvers);
+    dockets.add(compiled.operational.maneuvers.join(","));
+  }
+  assert.ok(dockets.size>1,"campaign maneuver choices should rotate across days");
 });
 
 test("the enumerated overlay separates mechanical archetypes from authored content frames",()=>{
