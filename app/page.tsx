@@ -300,14 +300,14 @@ const metricInfo = (metric: Metric, s: GameState, live: Live) =>
       ],
     ],
     desertion: [
-      "Desertion",
+      "Desertions",
       fmt(live.netDesertion, true),
-      `${fmt(live.deserted, true)} attempts · ${fmt(live.retained, true)} retained · ${fmt(live.intercepted, true)} intercepted`,
+      "actual net flight today",
       `Desertion is a continuous personnel flow distinct from casualties. Retention policy can persuade soldiers to remain; patrols intercept a further share by removing personnel from the front. Zero net flight is attainable only when those disclosed controls cover every attempt.`,
       [
-        `Net flight today: ${fmt(live.netDesertion, true)}`,
-        `Pressure: ${s.desertionPressure.toFixed(0)}%`,
-        `Patrol commitment: ${fmt(s.patrolCommitment, true)}`,
+        `Actual net desertions today: ${fmt(live.netDesertion, true)}`,
+        `Attempted flight today: ${fmt(live.deserted, true)}`,
+        `Prevented by policy and patrols: ${fmt(live.retained + live.intercepted, true)}`,
       ],
     ],
     doctrine: [
@@ -1403,9 +1403,9 @@ function LiveLedger({
             )
           }
         >
-          <span>Desertion</span>
+          <span>Desertions</span>
           <b>{fmtStrategic(live.netDesertion)}</b>
-          <small>Net Flight</small>
+          <small>Actual Net Flight Today</small>
         </button>
         <button onClick={() => inspect("materiel")}>
           <span>Munitions</span>
@@ -3692,8 +3692,13 @@ function MetricDrawer({
               <b>{fmt(live.netDesertion, true)}</b>
             </div>
             <div>
-              <Term id="desertion-pressure">DESERTION PRESSURE</Term>
-              <b>{s.desertionPressure.toFixed(0)} / 100</b>
+              <Term id="net-flight">CAMPAIGN NET DESERTIONS</Term>
+              <b>
+                {fmt(
+                  Math.max(0, s.deserters - s.retained - s.intercepted),
+                  true,
+                )}
+              </b>
             </div>
             <div>
               <Term id="patrol-commitment">PATROL COMMITMENT</Term>

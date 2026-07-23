@@ -357,6 +357,10 @@ test("the Ossuary Mile field aphorism is operationally intelligible",()=>{
 test("desertion is nonzero by default and zero must be earned through disclosed retention plus patrols",()=>{
   let state=initialState({seed:8801,theater:"lowland"});const desertion=FAMILIES.find(family=>family.id==="desertion"),patrols=desertion.choices.find(choice=>choice.id==="patrols"),rations=desertion.choices.find(choice=>choice.id==="rations");
   const opening=estimateDay(state);assert.ok(opening.desertion>0);assert.ok(opening.netDesertion>0);assert.equal(opening.retained,0);assert.equal(opening.intercepted,0);
+  const untreated=resolve(initialState({seed:8801,theater:"lowland"})),record=untreated.resolutionHistory[0];
+  assert.ok(record.personnel.desertionAttempts>0);assert.ok(record.personnel.netDesertion>0);
+  assert.equal(untreated.deserters,record.personnel.desertionAttempts);
+  assert.equal(untreated.armed,record.closing.armed);
   state=commit(state,desertion,patrols);assert.equal(state.patrolCommitment,4800);assert.ok(projectOperations(state).operationallyAvailable<state.deployable);assert.match(directiveRejection(state,desertion,patrols),/locked/);
   state=resolve(state);state=resolve(state);assert.match(directiveRejection(state,desertion,patrols),/already established/);state=commit(state,desertion,rations);const mitigated=estimateDay(state);
   assert.ok(mitigated.desertion>0);assert.ok(mitigated.retained>0);assert.ok(mitigated.intercepted>0);assert.equal(mitigated.netDesertion,0);

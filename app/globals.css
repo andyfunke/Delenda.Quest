@@ -12073,15 +12073,17 @@ small,
 }
 .briefing-secondary-fronts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--b-line);
-  border: 1px solid var(--b-line);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  background: transparent;
+  border: 0;
 }
 
 .briefing-secondary-ledger {
   background: var(--b-panel);
+  border: 1px solid var(--b-line);
   min-width: 0;
+  width: 100%;
 }
 
 .briefing-secondary-ledger > header {
@@ -12167,12 +12169,6 @@ small,
 
 .briefing-secondary-options button small {
   color: var(--b-faint);
-}
-
-@media (max-width: 900px) {
-  .briefing-secondary-fronts {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Command Windows keep the established paper interface while sharing the
@@ -12707,11 +12703,11 @@ small,
 
 /* Campaign consequence boxes are decision copy, not footnotes. */
 .campaign-workspace .campaign-consequences h3 {
-  font-size: 13px;
+  font-size: 15px;
 }
 .campaign-workspace .campaign-consequences li {
-  font: 650 18px/1.45 var(--ui);
-  padding: 13px 0;
+  font: 700 clamp(20px, 1.65vw, 24px) / 1.4 var(--ui);
+  padding: 16px 0;
 }
 
 @media (max-width: 700px) {
@@ -12722,6 +12718,6 @@ small,
     font-size: 14px;
   }
   .campaign-workspace .campaign-consequences li {
-    font-size: 16px;
+    font-size: 18px;
   }
 }

@@ -122,7 +122,9 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
-  assert.match(css,/\.briefing-secondary-fronts\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+  const secondaryFrontRules=css.slice(css.indexOf(".briefing-secondary-fronts"),css.indexOf(".briefing-secondary-ledger"));
+  assert.match(secondaryFrontRules,/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.doesNotMatch(secondaryFrontRules,/1fr 1fr/);
   assert.doesNotMatch(briefing,/COMMAND CHANNEL/);
   assert.match(css,/@keyframes ava-alt-attention/);
   assert.match(css,/@keyframes ava-main-attention/);
@@ -286,9 +288,12 @@ test("opportunities interrupt without opening the decision menu and collapse int
   for(const field of ["desiredOutput","requestedUse","fulfilledUse","unmetUse","equilibrium"])assert.match(circuits,new RegExp(field));
   for(const heading of ["Allocation","Production","Current","Required","Live Stock","Balance"])assert.match(page,new RegExp(`<span>${heading}<\\/span>`));
   assert.doesNotMatch(page,/Current \/ Desired/);
-  assert.match(page,/<span>Desertion<\/span>[\s\S]{0,180}<small>Net Flight<\/small>/);
+  assert.match(page,/<span>Desertions<\/span>[\s\S]{0,180}<small>Actual Net Flight Today<\/small>/);
   const liveLedger=page.slice(page.indexOf("function LiveLedger"),page.indexOf("function Dashboard"));
   assert.doesNotMatch(liveLedger,/Net Flight \{fmtStrategic|attempts ·/);
+  const desertionInspector=page.slice(page.indexOf('{metric === "desertion"'),page.indexOf('<section className="factors">',page.indexOf('{metric === "desertion"')));
+  assert.doesNotMatch(desertionInspector,/DESERTION PRESSURE|\/ 100/);
+  assert.match(desertionInspector,/CAMPAIGN NET DESERTIONS/);
   assert.match(css,/\.prod-row\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\(78px,[\s\S]*minmax\(138px/);
   assert.match(css,/\.ava\s*\{[\s\S]*--type-body:\s*450 14px[\s\S]*--type-label:\s*750 12px/);
   assert.match(css,/\.ava,\s*\n\.ava \*,[\s\S]*font-family:\s*var\(--ui\)\s*!important/);
@@ -327,7 +332,7 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.match(css,/\.production-command-window[\s\S]*?\.production-target-inspector[\s\S]*?> \.menu-choice-list\s*\{[\s\S]*?margin:\s*0/);
   assert.match(css,/\.desktop-module \.directive-menu-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
   assert.match(css,/\.desktop-module \.directive-glance h3\s*\{[\s\S]*?clamp\(24px/);
-  assert.match(css,/\.campaign-workspace \.campaign-consequences li\s*\{[\s\S]*?18px/);
+  assert.match(css,/\.campaign-workspace \.campaign-consequences li\s*\{[\s\S]*?clamp\(20px,\s*1\.65vw,\s*24px\)/);
   assert.match(page,/className="menu-inspector doctrine-inspector doctrine-empty-state"/);
   assert.match(page,/NO PRINCIPLE SELECTED/);
   assert.match(page,/className="selection-dossier doctrine-selection-dossier"/);
