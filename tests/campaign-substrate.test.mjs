@@ -6,7 +6,7 @@ const {
   ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_FINISH_DISTRIBUTION, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  calculateCampaignScore, campaignBalanceProfile, directiveRejection, earlyVictoryAcceleration, estimateDay, finishByDayProbability, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, directiveRejection, earlyVictoryAcceleration, estimateDay, finishByDayProbability, maneuverChance, outcomeBandForMargin, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -62,7 +62,7 @@ test("a stored packet cannot be rerolled by preparatory directives",()=>{
   assert.equal(changed.actions,2);
 });
 
-test("every directive menu heading contains at least two issue families",()=>{
+test("directive menus expose the expanded parent and child corpus",()=>{
   const grouped=new Map();
   for(const family of FAMILIES){
     const key=`${family.module}/${family.category}`;
@@ -72,9 +72,17 @@ test("every directive menu heading contains at least two issue families",()=>{
   assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Allocate War Expenditure"]);
   assert.deepEqual(grouped.get("military/Operations"),["Set Operational Tempo","Manage Operational Reserves"]);
   assert.deepEqual(grouped.get("military/Personnel Sustainment"),["Process Desertion","Administer Rotation and Recovery"]);
-  assert.deepEqual(grouped.get("diplomacy/Access and Exchange"),["Secure External Supply","Trade Foreign Intelligence"]);
-  assert.deepEqual(grouped.get("diplomacy/Influence and Coercion"),["Conduct Statecraft","Administer Sanctions"]);
-  assert.deepEqual(grouped.get("diplomacy/Commitments and Alliances"),["Bind Foreign Obligations","Service Alliance Obligations"]);
+  assert.deepEqual(grouped.get("diplomacy/Access and Exchange"),["Secure External Supply","Trade Foreign Intelligence","Negotiate Industrial Accords"]);
+  assert.deepEqual(grouped.get("diplomacy/Influence and Coercion"),["Conduct Statecraft","Administer Sanctions","Conduct Information Diplomacy"]);
+  assert.deepEqual(grouped.get("diplomacy/Commitments and Alliances"),["Bind Foreign Obligations","Service Alliance Obligations","Broker Coalition Burdens"]);
+
+  const byModule=(module)=>FAMILIES.filter(family=>family.module===module);
+  assert.equal(byModule("national").length,6);
+  assert.ok(byModule("national").every(family=>family.choices.length>=3));
+  assert.equal(byModule("military").length,12);
+  assert.ok(byModule("military").every(family=>family.choices.length>=4));
+  assert.equal(byModule("diplomacy").length,9);
+  assert.ok(byModule("diplomacy").every(family=>family.choices.length>=3));
 });
 
 test("new Public Finance, Operations, and Personnel Sustainment families execute real state changes without resolving the day",()=>{
@@ -88,6 +96,22 @@ test("new Public Finance, Operations, and Personnel Sustainment families execute
     assert.equal(next.locks[familyId],state.day+family.lock);
     assert.notEqual(next[field],before,`${familyId} did not change ${field}`);
   }
+});
+
+test("expanded directive families execute owned state changes and persistent diplomacy",()=>{
+  for(const[familyId,choiceId,field]of[["production","common-spares","maintenanceDebt"],["branch-priority","drone-operators","intelligence"],["industrial-accords","licensed-tooling","materiel"],["information-diplomacy","broadcast-surrender","intelligence"],["burden-sharing","refugee-rail","legitimacy"]]){
+    const state=initialState({seed:5520}),family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),before=state[field];
+    const next=commit(state,family,choice);
+    assert.equal(next.day,state.day);
+    assert.equal(next.actions,state.actions-1);
+    assert.notEqual(next[field],before,`${familyId}/${choiceId} did not change ${field}`);
+    if(family.module==="diplomacy")assert.ok(next.activeDiplomacy.some(action=>action.familyId===familyId&&action.choiceId===choiceId&&action.expiresDay>next.day));
+  }
+  const state=initialState({seed:5521}),family=FAMILIES.find(item=>item.id==="industrial-accords"),choice=family.choices.find(item=>item.id==="licensed-tooling");
+  const committed=commit(state,family,choice),before=state.actors.find(actor=>actor.id==="orison"),after=projectDiplomacy(committed).actors.find(actor=>actor.id==="orison");
+  assert.ok(after.trustChange>0);
+  assert.ok(after.dependencyChange>0);
+  assert.ok(after.aidPipeline>before.aidPipeline);
 });
 
 test("maneuver authorization is enforced by the active packet",()=>{

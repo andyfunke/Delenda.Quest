@@ -65,7 +65,7 @@ const firstAvailable=(state,kind,fraction=0,domain)=>{
   return descriptor;
 };
 
-test("append-only directive registration preserves established Ava P-handles",()=>{
+test("expanded directive registration preserves established Ava P-handles",()=>{
   const actions=runtime.enumerateAvaActions(newState());
   const handles=(familyId)=>actions
     .filter(item=>item.action?.familyId===familyId)
@@ -77,9 +77,18 @@ test("append-only directive registration preserves established Ava P-handles",()
   assert.deepEqual(handles("sanctions"),["P61","P62","P63","P64","P65"]);
   assert.deepEqual(handles("alliance-obligations"),["P66","P67","P68","P69"]);
   assert.deepEqual(handles("foreign-intelligence"),["P79","P80","P81"]);
-  assert.deepEqual(handles("expenditure"),["P82","P83","P84","P85"]);
+  assert.deepEqual(handles("expenditure"),["P82","P83","P84","P85","P102"]);
   assert.deepEqual(handles("operational-reserve"),["P86","P87","P88","P89"]);
   assert.deepEqual(handles("unit-recovery"),["P90","P91","P92","P93"]);
+  assert.equal(actions.filter(item=>item.kind==="directive").length,115);
+  assert.deepEqual(handles("production"),["P1","P2","P3","P4","P5","P94"]);
+  assert.deepEqual(handles("network-posture"),["P70","P71","P72","P99"]);
+  assert.deepEqual(handles("network-authentication"),["P73","P74","P75","P100"]);
+  assert.deepEqual(handles("network-custody"),["P76","P77","P78","P101"]);
+  assert.deepEqual(handles("branch-priority"),["P103","P104","P105","P106"]);
+  assert.deepEqual(handles("industrial-accords"),["P107","P108","P109"]);
+  assert.deepEqual(handles("information-diplomacy"),["P110","P111","P112"]);
+  assert.deepEqual(handles("burden-sharing"),["P113","P114","P115"]);
 });
 
 const missionPacket=(state)=>[

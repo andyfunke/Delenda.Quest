@@ -41,6 +41,34 @@ const shortHash = (text: string) => hashInt(text).toString(16).padStart(8, "0");
 export const avaStateRevision = (state: GameState) =>
   `D${state.day}-${shortHash(JSON.stringify(state))}`;
 
+// P1–P93 shipped before the expanded directive corpus. New choices are
+// enumerated after that immutable block so saved commands and player memory do
+// not change when a family gains another child.
+const POST_V55_DIRECTIVE_KEYS = new Set([
+  "production/common-spares",
+  "industry/shop-councils",
+  "finance/customs-future",
+  "home-front/salvage-bureaus",
+  "casualty-politics/survivor-estates",
+  "network-posture/burst-windows",
+  "network-authentication/one-time-pads",
+  "network-custody/split-archive",
+  "expenditure/empty-ceremonial",
+  "branch-priority/infantry-cadres",
+  "branch-priority/armored-crews",
+  "branch-priority/battery-schools",
+  "branch-priority/drone-operators",
+  "industrial-accords/licensed-tooling",
+  "industrial-accords/component-clearing",
+  "industrial-accords/reverse-engineering",
+  "information-diplomacy/publish-captured-orders",
+  "information-diplomacy/embed-correspondents",
+  "information-diplomacy/broadcast-surrender",
+  "burden-sharing/joint-procurement",
+  "burden-sharing/air-defense-host",
+  "burden-sharing/refugee-rail",
+]);
+
 const directiveDescriptor = (
   state: GameState,
   family: (typeof FAMILIES)[number],
@@ -133,9 +161,19 @@ export const enumerateAvaActions = (
         summary: `${option.choice.flavor} WHY TODAY: ${prompt.convergence.map((edge) => edge.summary).join(" ")}`,
       });
     });
-  FAMILIES.flatMap((family) =>
+  const directiveEntries = FAMILIES.flatMap((family) =>
     family.choices.map((choice) => ({ family, choice })),
-  ).forEach(({ family, choice }, index) =>
+  );
+  const stableDirectiveEntries = [
+    ...directiveEntries.filter(
+      ({ family, choice }) =>
+        !POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+    ),
+    ...directiveEntries.filter(({ family, choice }) =>
+      POST_V55_DIRECTIVE_KEYS.has(`${family.id}/${choice.id}`),
+    ),
+  ];
+  stableDirectiveEntries.forEach(({ family, choice }, index) =>
     actions.push(directiveDescriptor(state, family, choice, index)),
   );
   const opportunity = opportunityStatusForFraction(state, opportunityFraction);

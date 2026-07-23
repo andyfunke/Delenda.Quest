@@ -153,7 +153,7 @@ test("full family cooldown grays a front while partial cooldown leaves alternati
 
 test("network and foreign-intelligence options are tradeoffs rather than scalar upgrades",()=>{
   const network=rules.FAMILIES.find(family=>family.id==="network-posture"),foreign=rules.FAMILIES.find(family=>family.id==="foreign-intelligence");
-  assert.equal(network.choices.length,3);
+  assert.equal(network.choices.length,4);
   assert.equal(foreign.choices.length,3);
   assert.deepEqual(new Set(network.choices.map(choice=>choice.networkPosture)),new Set(["broadcast","dark","distributed"]));
   assert.ok(network.choices.every(choice=>choice.exact.length>=3&&choice.risk.length>=1));

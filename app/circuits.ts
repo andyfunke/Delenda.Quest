@@ -70,6 +70,7 @@ const policyProfile=(state:GameState)=>{
   if(industry==="disperse"){output*=.96;debt-=1;materiel+=.35;}
   if(industry==="overtime"){output*=1.18;debt+=3.5;materiel-=.8;}
   if(industry==="maintenance"){output*=.78;debt-=8;materiel+=1.8;}
+  if(industry==="shop-councils"){output*=1.05;debt-=2;materiel+=.4;}
   if(finance==="profit-tax")output*=.96;
   return{output,debt,materiel};
 };
@@ -154,9 +155,11 @@ const networkPolicyProfile=(state:GameState)=>{
   if(authentication==="triple-challenge"){conversion-=.05;interferenceShield+=.09;classification+=.02;}
   if(authentication==="delegated-keys"){conversion+=.08;interferenceShield+=.01;}
   if(authentication==="rolling-codes"){conversion+=.03;interferenceShield+=.05;classification+=.01;}
+  if(authentication==="one-time-pads"){conversion-=.02;interferenceShield+=.08;classification+=.04;}
   if(custody==="central-archive"){conversion-=.04;interferenceShield+=.06;classification+=.02;}
   if(custody==="field-custody"){conversion+=.05;interferenceShield+=.02;}
   if(custody==="burn-after-use"){interferenceShield+=.04;classification+=.01;}
+  if(custody==="split-archive"){conversion+=.02;interferenceShield+=.05;classification+=.02;}
   return{conversion,interferenceShield,classification};
 };
 export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsContext>={
@@ -224,8 +227,8 @@ export const domesticCircuit:Circuit<GameState,DomesticLedger,DomesticContext>={
     const state:GameState=JSON.parse(JSON.stringify(input));const legitimacyOpening=state.legitimacy,resistanceOpening=state.resistance;
     const casualtyBurden=context.friendlyLosses/8500,forcedIntakeBurden=state.forced/28000,shortageBurden=context.shortages*.65,atrocityBurden=state.atrocityExposure/180,fiscalBurden=state.treasury<40?(40-state.treasury)/35:0;
     let policyLegitimacy=0,policyResistance=0;const home=state.active["home-front"],casualties=state.active["casualty-politics"];
-    if(home==="ration-equally"){policyLegitimacy+=1.2;policyResistance-=.8;}if(home==="priority-industry"){policyLegitimacy-=.8;policyResistance+=1.4;}if(home==="curfew"){policyLegitimacy-=1.5;policyResistance-=1.1;}if(home==="local-councils"){policyLegitimacy+=.7;policyResistance-=1.5;}
-    if(casualties==="publish-rolls")policyLegitimacy+=.8;if(casualties==="sealed-ledger"){policyLegitimacy-=.7;policyResistance+=.5;}if(casualties==="public-mourning")policyLegitimacy+=1.4;if(casualties==="victory-accounting"){policyLegitimacy-=.4;policyResistance+=.7;}
+    if(home==="ration-equally"){policyLegitimacy+=1.2;policyResistance-=.8;}if(home==="priority-industry"){policyLegitimacy-=.8;policyResistance+=1.4;}if(home==="curfew"){policyLegitimacy-=1.5;policyResistance-=1.1;}if(home==="local-councils"){policyLegitimacy+=.7;policyResistance-=1.5;}if(home==="salvage-bureaus"){policyLegitimacy+=.4;policyResistance-=.4;}
+    if(casualties==="publish-rolls")policyLegitimacy+=.8;if(casualties==="sealed-ledger"){policyLegitimacy-=.7;policyResistance+=.5;}if(casualties==="public-mourning")policyLegitimacy+=1.4;if(casualties==="victory-accounting"){policyLegitimacy-=.4;policyResistance+=.7;}if(casualties==="survivor-estates"){policyLegitimacy+=1;policyResistance-=.3;}
     const legitimacyChange=policyLegitimacy-casualtyBurden-shortageBurden-atrocityBurden-fiscalBurden+context.directorLegitimacy;
     const resistanceChange=policyResistance+forcedIntakeBurden+casualtyBurden*.35+shortageBurden*.7-Math.max(0,state.legitimacy-45)/180+context.directorResistance;
     const desertionPressureChange=context.friendlyLosses/4500+(state.readiness<45?3:0)-state.legitimacy/120+Math.max(0,state.resistance-35)/30;
@@ -247,6 +250,10 @@ export const diplomacyCircuit:Circuit<GameState,DiplomacyLedger,Record<string,ne
       if(actor.id==="vey"){if(enabled("supply","port")){trustChange+=1.5;dependencyChange+=1.4;leverageChange+=.8;}if(enabled("supply","transit")){trustChange+=1;dependencyChange+=.5;}if(enabled("treaties","transit-treaty")){trustChange+=2;actor.aidPipeline=Math.min(100,actor.aidPipeline+1);}if(enabled("sanctions","secondary-sanctions")){trustChange-=2.5;actor.sanctionsExposure+=2;}}
       if(actor.id==="kestrel"){if(enabled("supply","shadow")){trustChange+=.7;dependencyChange+=1.6;actor.sanctionsExposure+=1.5;}if(enabled("treaties","secret-annex")){trustChange+=1.2;leverageChange+=2;actor.betrayalRisk+=1.5;}}
       if(actor.id==="cineric"){if(enabled("statecraft","summit")){trustChange+=1.2;leverageChange-=.5;}if(enabled("statecraft","backchannel")){trustChange+=.8;leverageChange+=.5;}if(enabled("statecraft","ultimatum")){trustChange-=2;leverageChange+=1.5;}if(enabled("statecraft","denial")){trustChange-=.8;leverageChange+=.7;}if(enabled("treaties","nonaggression")){trustChange+=1.8;leverageChange-=.8;}if(enabled("sanctions","total-embargo")){trustChange-=3;leverageChange+=2;actor.sanctionsExposure+=3;}if(enabled("sanctions","targeted-controls")){trustChange-=1.4;leverageChange+=1;actor.sanctionsExposure+=1.5;}if(enabled("sanctions","humanitarian-exemption")){trustChange+=.5;leverageChange-=.3;}if(enabled("sanctions","lift-sanctions")){trustChange+=2.5;leverageChange-=2;actor.sanctionsExposure=Math.max(0,actor.sanctionsExposure-4);}}
+      if(actor.id==="orison"){if(enabled("industrial-accords","licensed-tooling")){trustChange+=1;dependencyChange+=.6;actor.aidPipeline=Math.min(100,actor.aidPipeline+.4);}if(enabled("burden-sharing","joint-procurement")){trustChange+=1.4;dependencyChange+=.7;actor.obligation=Math.min(100,actor.obligation+1);}if(enabled("burden-sharing","air-defense-host")){trustChange+=1.8;actor.obligation=Math.min(100,actor.obligation+1.5);}}
+      if(actor.id==="vey"){if(enabled("industrial-accords","component-clearing")){trustChange+=1.2;dependencyChange+=.5;actor.aidPipeline=Math.min(100,actor.aidPipeline+.5);}if(enabled("information-diplomacy","embed-correspondents")){trustChange+=.7;leverageChange-=.2;}if(enabled("burden-sharing","refugee-rail")){trustChange+=1.6;leverageChange-=.8;}}
+      if(actor.id==="kestrel"&&enabled("industrial-accords","reverse-engineering")){trustChange+=.7;leverageChange+=1.2;actor.sanctionsExposure+=.8;}
+      if(actor.id==="cineric"){if(enabled("information-diplomacy","publish-captured-orders")){trustChange-=1.4;leverageChange+=.6;}if(enabled("information-diplomacy","broadcast-surrender")){trustChange+=.8;leverageChange-=.4;}}
       actor.trust=clamp(actor.trust+trustChange,0,100);actor.leverage=clamp(actor.leverage+leverageChange,0,100);actor.dependency=clamp(actor.dependency+dependencyChange,0,100);actor.sanctionsExposure=clamp(actor.sanctionsExposure,0,100);actor.betrayalRisk=clamp((actor.dependency*.45+actor.leverage*.3+(100-actor.trust)*.35+(actor.role==="broker"?12:0))/100,0,.95);
       const deliveryFactor=actor.role==="rival"?0:actor.aidPipeline*(actor.trust/100)*(1-actor.betrayalRisk);const munitionsDelivered=Math.round(deliveryFactor*145),treasuryDelivered=deliveryFactor*.035,intelligenceDelivered=Math.round(deliveryFactor/18);
       state.production.munitions.stock+=munitionsDelivered;state.treasury+=treasuryDelivered;state.intelligence+=intelligenceDelivered;
