@@ -10,5 +10,5 @@ interface D1Database {
 }
 
 declare module "cloudflare:workers" {
-  export const env: { DB?: D1Database };
+  export const env: { DB?: D1Database; DELENDA_ADMIN_EMAILS?: string };
 }

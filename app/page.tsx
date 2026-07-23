@@ -55,6 +55,8 @@ import { DomesticStatePanel } from "./DomesticStatePanel";
 import { DiplomacyPanel } from "./DiplomacyPanel";
 import { CampaignSetup } from "./CampaignSetup";
 import { AccountPage } from "./AccountPage";
+import { AdminPage } from "./AdminPage";
+import { BugReporter } from "./BugReporter";
 import { THEATER_SECTORS } from "./campaign-substrate";
 import { openWikiApplet } from "./wiki-events";
 import { compileAvaCommand } from "./ava/compiler";
@@ -76,6 +78,8 @@ import {
   installInteractionTelemetry,
   recordAvaTelemetry,
   recordCampaignOutcome,
+  recordModuleDwell,
+  recordModuleSwitch,
   recordPageView,
   submitCampaignRecord,
 } from "./telemetry";
@@ -128,6 +132,7 @@ type Metric =
   | "desertion"
   | "doctrine";
 type Message = { who: "AVA" | "YOU"; text: string };
+type Page = Module | "admin";
 type Live = ReturnType<typeof liveProjection>;
 
 const DAY_MS = 86_400_000;
@@ -597,19 +602,19 @@ const GLOSSARY: Record<
     related: ["Site Telemetry", "Ava Telemetry", "Account"],
   },
   uberscore: {
-    summary: "Cumulative account standing earned when campaigns close.",
-    body: "Each completed run produces a Campaign Score from outcome, ground, force preservation, civil condition, readiness, and duration. Base Uberscore is Campaign Score divided by ten. The active Friend Multiplier is applied once at campaign close, and the resulting Uberscore remains permanently attached to that Campaign Record. Uberscore unlocks and ranks the account; it never changes campaign power.",
+    summary: "Cumulative Player Rating earned when campaigns close.",
+    body: "Each run produces a Campaign Score from campaign minimum and maximum production, suffered casualties, inflicted casualties, and duration. Completion always earns credit; abandoned campaigns earn partial credit for played days. Base Player Rating is Campaign Score divided by ten, then friend and asynchronous same-seed match multipliers apply once at campaign close. Player Rating ranks the account and never changes campaign power.",
     related: ["Campaign Record", "Friend Multiplier", "Service Record"],
   },
   "friend-multiplier": {
-    summary: "A social multiplier applied to Uberscore at campaign close.",
-    body: "Each reciprocal connected friend adds 5% to Uberscore earned, up to ten friends and a maximum multiplier of ×1.50. A currently enrolled player and a player who registers from an invitation count identically. Pending addresses do not count until the friendship activates. The multiplier never alters forces, kilometers, production, combat, or difficulty.",
-    related: ["Uberscore", "Friends", "Campaign Record"],
+    summary: "A social multiplier applied to Player Rating at campaign close.",
+    body: "Each reciprocal connected friend adds 5% to Player Rating earned, up to ten friends and a maximum multiplier of ×1.50. Pending invitations do not count until the friendship activates. The multiplier never alters forces, kilometers, production, combat, or difficulty.",
+    related: ["Player Rating", "Friends", "Campaign Record"],
   },
   "service-record": {
     summary: "The private profile ledger of every completed campaign.",
-    body: "The Service Record lists every victory and defeat, Campaign Score, Uberscore earned, multiplier at completion, exact-campaign rank, and the outward link to its public Campaign Record. The private Service Record contains account identity. Its public artifacts use a generated commander pseudonym and never link back to the profile.",
-    related: ["Campaign Record", "Uberscore", "Privacy"],
+    body: "The Service Record lists every victory, defeat, and abandoned run, Campaign Score, Player Rating earned, multiplier at completion, exact-campaign rank, and the outward link to its public Campaign Record. The private Service Record contains account identity. Public artifacts use the player alias and never link back to private identity.",
+    related: ["Campaign Record", "Player Rating", "Privacy"],
   },
   "campaign-record": {
     summary: "The canonical hosted artifact issued for one completed run.",
@@ -3171,7 +3176,10 @@ function CampaignPage({
         ]
       : (current?.exact ?? []);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
-  const allSubOptions = [...packet.domestic.options, ...packet.network.options];
+  const allSubOptions = [
+    ...(packet.activeDomains.includes("domestic") ? packet.domestic.options : []),
+    ...(packet.activeDomains.includes("network") ? packet.network.options : []),
+  ];
   const subOption =
     allSubOptions.find((option) => option.id === selectedSub) ?? null;
   const subPrompt =
@@ -3334,8 +3342,10 @@ function CampaignPage({
                 </button>
               ))}
             </section>
-            {renderSubMenu(packet.domestic, "DOMESTIC FRONT")}
-            {renderSubMenu(packet.network, "COMMAND NETWORK")}
+            {packet.activeDomains.includes("domestic") &&
+              renderSubMenu(packet.domestic, "DOMESTIC FRONT")}
+            {packet.activeDomains.includes("network") &&
+              renderSubMenu(packet.network, "COMMAND NETWORK")}
           </nav>
           {current ? (
             <article className="menu-inspector maneuver-detail">
@@ -3730,7 +3740,7 @@ const portableId = () =>
 
 export default function Home() {
   const [s, setS] = useState<GameState>(initialState);
-  const [page, setPage] = useState<Module>("dashboard");
+  const [page, setPage] = useState<Page>("dashboard");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
     "command",
   );
@@ -3750,10 +3760,7 @@ export default function Home() {
   const [clock, setClock] = useState(initialClock);
   const [now, setNow] = useState(() => Date.now());
   const [ledgerNow, setLedgerNow] = useState(() => Date.now());
-  const [dispatch, setDispatch] = useState<{
-    open: boolean;
-    day: number;
-  } | null>(null);
+  const [turnBlackout, setTurnBlackout] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [seedOverride, setSeedOverride] = useState<number | null>(null);
@@ -3761,18 +3768,23 @@ export default function Home() {
     null,
   );
   const [runToken, setRunToken] = useState("");
+  const [multiplayerRun, setMultiplayerRun] = useState(false);
   const [issuedRecordSlug, setIssuedRecordSlug] = useState<string | null>(null);
   const [wikiApplet, setWikiApplet] = useState<string | null>(null);
   const [opportunityOpen, setOpportunityOpen] = useState(false);
   const [rotationReady, setRotationReady] = useState(false);
+  const [adminAccess, setAdminAccess] = useState(false);
   const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
   );
   const [messages, setMessages] = useState<Message[]>([]);
+  const avaMessagesRef = useRef<HTMLDivElement>(null);
   const [wikiArticle, setWikiArticle] = useState("resolution");
   const priorDay = useRef(s.day);
+  const priorTelemetryModule = useRef<Page>("dashboard");
+  const moduleEnteredAt = useRef(Date.now());
   useEffect(() => {
     if (priorDay.current === s.day) return;
     priorDay.current = s.day;
@@ -3780,6 +3792,14 @@ export default function Home() {
     setBriefingModule("campaign");
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [s.day]);
+  useEffect(() => {
+    if (!ava) return;
+    const frame = window.requestAnimationFrame(() => {
+      const element = avaMessagesRef.current;
+      if (element) element.scrollTop = element.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ava, messages.length]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("wiki"),
@@ -3808,6 +3828,7 @@ export default function Home() {
             archetype: data.archetype,
             adversaryPersonality: data.adversary,
           });
+          setMultiplayerRun(true);
           setReset(true);
         })
         .catch(() =>
@@ -3826,9 +3847,19 @@ export default function Home() {
           state?: unknown;
           clock?: { start?: number; end?: number };
           runToken?: string;
+          multiplayerRun?: boolean;
         };
-        const restored = restoreCampaignState(record.state);
+        let restored = restoreCampaignState(record.state);
         if (restored) {
+          const savedEnd=record.clock?.end;
+          if(typeof savedEnd==="number"&&savedEnd<Date.now()){
+            const elapsed=Math.min(31,Math.max(1,Math.floor((Date.now()-savedEnd)/DAY_MS)+1));
+            for(let index=0;index<elapsed&&restored.status==="active";index+=1){
+              const result=executeAvaAction(restored,{kind:"resolve-day"},1);
+              if(!result.executed)break;
+              restored=result.state;
+            }
+          }
           setS(restored);
           setHasSave(true);
           setRunToken(
@@ -3836,12 +3867,14 @@ export default function Home() {
               ? record.runToken
               : portableId(),
           );
+          setMultiplayerRun(!!record.multiplayerRun);
           if (
             record.clock &&
             typeof record.clock.start === "number" &&
             typeof record.clock.end === "number"
           )
-            setClock({ start: record.clock.start, end: record.clock.end });
+            if(record.clock.end>Date.now())setClock({ start: record.clock.start, end: record.clock.end });
+            else {const resumed=Date.now();setClock({start:resumed,end:resumed+DAY_MS})}
         }
       } else setRunToken(portableId());
     } catch {
@@ -3850,7 +3883,10 @@ export default function Home() {
     setHydrated(true);
   }, []);
   useEffect(() => {
-    void fetch("/api/account", { cache: "no-store" }).catch(() => undefined);
+    void fetch("/api/account", { cache: "no-store" })
+      .then(response=>response.ok?response.json():null)
+      .then((account:{isAdmin?:boolean}|null)=>setAdminAccess(!!account?.isAdmin))
+      .catch(() => undefined);
   }, []);
   useEffect(() => {
     let live = true;
@@ -4005,11 +4041,11 @@ export default function Home() {
     try {
       window.localStorage.setItem(
         SAVE_KEY,
-        JSON.stringify({ state: s, clock, runToken, savedAt: Date.now() }),
+        JSON.stringify({ state: s, clock, runToken, multiplayerRun, savedAt: Date.now() }),
       );
       setHasSave(true);
     } catch {}
-  }, [s, clock, runToken, hydrated]);
+  }, [s, clock, runToken, multiplayerRun, hydrated]);
   useEffect(() => {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -4117,6 +4153,11 @@ export default function Home() {
   useEffect(() => installInteractionTelemetry(() => page), [page]);
   useEffect(() => {
     if (hydrated) recordPageView(`module:${page}`);
+    if(hydrated&&priorTelemetryModule.current!==page){
+      recordModuleDwell(priorTelemetryModule.current,(Date.now()-moduleEnteredAt.current)/1000);
+      recordModuleSwitch(priorTelemetryModule.current,page);
+      priorTelemetryModule.current=page;moduleEnteredAt.current=Date.now();
+    }
   }, [page, hydrated]);
   useEffect(() => {
     if (hydrated && page === "wiki")
@@ -4131,7 +4172,7 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated || s.status === "active" || !runToken) return;
     let live = true;
-    void submitCampaignRecord(s, runToken)
+    void submitCampaignRecord(s, runToken,{multiplayer:multiplayerRun})
       .then((record: unknown) => {
         const slug = (record as { publicSlug?: string } | null)?.publicSlug;
         if (live && slug) setIssuedRecordSlug(slug);
@@ -4140,7 +4181,7 @@ export default function Home() {
     return () => {
       live = false;
     };
-  }, [s, runToken, hydrated]);
+  }, [s, runToken, multiplayerRun, hydrated]);
   const fraction = hydrated
     ? Math.max(
         0,
@@ -4228,6 +4269,8 @@ export default function Home() {
   ]);
   const theater = THEATERS.find((x) => x.id === s.theater) ?? THEATERS[0];
   const startCampaign = (config: CampaignConfig) => {
+    if(s.status==="active"&&s.resolutionHistory.length>0&&runToken)
+      void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
     const next = initialState(config);
     const n = Date.now();
     setS(next);
@@ -4244,6 +4287,7 @@ export default function Home() {
     setLedgerNow(n);
     setReset(false);
     setSeedOverride(null);
+    setMultiplayerRun(!!challengeConfig);
     setChallengeConfig(null);
     setMessages([]);
     setSystemNotice(null);
@@ -4396,7 +4440,8 @@ export default function Home() {
     setAvaSession(initialAvaTerminalSession());
     setPendingManeuver(null);
     setDayModal(false);
-    setDispatch({ open: false, day: s.day });
+    setTurnBlackout(true);
+    window.setTimeout(() => setTurnBlackout(false), 240);
     const n = Date.now();
     setClock({ start: n, end: n + DAY_MS });
     setNow(n);
@@ -4425,12 +4470,12 @@ export default function Home() {
     if (!raw) return;
     setMessages((m) => [...m, { who: "YOU", text: raw }]);
     const result = compileAvaCommand(raw, {
-      currentModule: interfaceMode === "briefing" ? briefingModule : page,
+      currentModule: interfaceMode === "briefing" ? briefingModule : page==="admin"?"account":page,
       entities: avaEntities,
       selected: selectedAvaEntity,
     });
     if (result.status === "clarify") {
-      recordAvaTelemetry(result, page, "clarification");
+      recordAvaTelemetry(result, page==="admin"?"account":page, "clarification");
       const candidates = result.candidates?.length
         ? `\n\nVALID INTERPRETATIONS\n${result.candidates.map((candidate) => `[${candidate.handle ?? candidate.id}] ${candidate.label}`).join("\n")}`
         : "";
@@ -4468,7 +4513,8 @@ export default function Home() {
       announceOpenDay(terminal.state);
       setPendingManeuver(null);
       if (terminal.state.day !== s.day) {
-        setDispatch({ open: false, day: s.day });
+        setTurnBlackout(true);
+        window.setTimeout(() => setTurnBlackout(false), 240);
         const n = Date.now();
         setClock({ start: n, end: n + DAY_MS });
         setNow(n);
@@ -4477,7 +4523,7 @@ export default function Home() {
     }
     recordAvaTelemetry(
       result,
-      page,
+      page==="admin"?"account":page,
       terminal.rejection ? "rejected" : "executed",
     );
     setMessages((m) => [...m, { who: "AVA", text: terminal.text }]);
@@ -4489,6 +4535,8 @@ export default function Home() {
   };
   return (
     <main>
+      {turnBlackout && <div className="turn-blackout" aria-hidden="true" />}
+      <BugReporter module={interfaceMode === "briefing" ? briefingModule : page} interfaceMode={interfaceMode} />
       {dailyAphorism && (
         <aside className={`daily-aphorism-ribbon ${interfaceMode}`}>
           <span>DAILY APHORISM // {dailyAphorism.id}</span>
@@ -4641,6 +4689,12 @@ export default function Home() {
               >
                 ACCOUNT
               </button>
+              {adminAccess && <button
+                className={page === "admin" ? "active" : ""}
+                onClick={() => setPage("admin")}
+              >
+                ADMIN
+              </button>}
             </div>
           </div>
           <div className="frame">
@@ -4678,6 +4732,8 @@ export default function Home() {
                   setReset(true);
                 }}
               />
+            ) : page === "admin" ? (
+              <AdminPage />
             ) : (
               <ModulePage
                 page={page}
@@ -4747,7 +4803,7 @@ export default function Home() {
                 <small>
                   PATTERN ANALYSIS DIRECTORATE //{" "}
                   {moduleName(
-                    interfaceMode === "briefing" ? briefingModule : page,
+                    interfaceMode === "briefing" ? briefingModule : page==="admin"?"account":page,
                   )}
                 </small>
               </p>
@@ -4779,7 +4835,7 @@ export default function Home() {
                 : "NO ORDER AWAITING CONFIRMATION"}
             </span>
           </div>
-          <div className="messages">
+          <div className="messages" ref={avaMessagesRef}>
             {messages.map((m, i) => (
               <div
                 aria-live={m.who === "AVA" ? "polite" : undefined}
@@ -4901,44 +4957,6 @@ export default function Home() {
               setChallengeConfig(null);
             }}
           />
-        </Overlay>
-      )}
-      {dispatch && (
-        <Overlay close={() => setDispatch(null)} kind="center">
-          <div className={`dispatch ${dispatch.open ? "opened" : ""}`}>
-            <span className="eyebrow">
-              EYES OF THE COMMANDER ONLY // DAY {dispatch.day}
-            </span>
-            <div className="seal">DELENDA QUEST // 27-B</div>
-            {dispatch.open ? (
-              <>
-                <Epigraph
-                  quote="Classification is power."
-                  source="AVA MOORE, Pattern Analysis Directorate"
-                />
-                <h2>Enemy firing schedule recovered</h2>
-                <p>
-                  Signals officers reconstructed a forty-minute gap in the
-                  interdiction cycle. Intelligence increases by one in the
-                  campaign record. The report is reproducible; the seal was
-                  only theater.
-                </p>
-                <button onClick={() => setDispatch(null)}>FILE DISPATCH</button>
-              </>
-            ) : (
-              <>
-                <h2>Sealed Dispatch</h2>
-                <p>
-                  Contents entered into custody after resolution. Open once.
-                </p>
-                <button
-                  onClick={() => setDispatch({ ...dispatch, open: true })}
-                >
-                  BREAK SEAL
-                </button>
-              </>
-            )}
-          </div>
         </Overlay>
       )}
     </main>

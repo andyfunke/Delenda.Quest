@@ -114,12 +114,12 @@ const reportText = (
   const standard = [
     context,
     answer,
-    `CALCULATION\n${report.calculation.equation}\n${report.calculation.rows.map((row) => `${row.label}: ${row.value}`).join("\n")}`,
-    `CUMULATIVE INTELLIGENCE\n${report.history.observations.join("\n")}`,
     judgment,
   ];
   if (detail === "deep")
     standard.push(
+      `CALCULATION\n${report.calculation.equation}\n${report.calculation.rows.map((row) => `${row.label}: ${row.value}`).join("\n")}`,
+      `CUMULATIVE INTELLIGENCE\n${report.history.observations.join("\n")}`,
       `DEPENDENCIES\n${report.links.map((link) => link.label.toUpperCase()).join("\n") || "No further causal dependency is declared."}`,
       `LEDGER SCOPE\nRESOLVED DAYS: ${report.history.resolvedDays}\nREQUESTED DAYS: ${report.history.requestedDays ?? "ALL AVAILABLE"}\nOBSERVED ENEMY ORDERS: ${report.history.observedOrders}`,
     );
@@ -166,8 +166,12 @@ const missionText = (state: GameState, fraction: number) => {
   return [
     "MISSIONS [SEALED D+0]",
     `MAIN CAMPAIGN / ${packet.operational.sector}\n${packet.operational.question}\n${listed(main)}`,
-    `DOMESTIC FRONT / ${packet.domestic.title}\nPRESSURE: ${packet.domestic.pressureBand.toUpperCase()}\n${packet.domestic.question}\nWHY TODAY: ${packet.domestic.convergence.map((edge) => edge.summary).join(" ")}\n${listed(domestic)}`,
-    `COMMAND NETWORK / ${packet.network.title}\nPRESSURE: ${packet.network.pressureBand.toUpperCase()}\n${packet.network.question}\nWHY TODAY: ${packet.network.convergence.map((edge) => edge.summary).join(" ")}\n${listed(network)}`,
+    packet.activeDomains.includes("domestic")
+      ? `DOMESTIC FRONT / ${packet.domestic.title}\nPRESSURE: ${packet.domestic.pressureBand.toUpperCase()}\n${packet.domestic.question}\nWHY TODAY: ${packet.domestic.convergence.map((edge) => edge.summary).join(" ")}\n${listed(domestic)}`
+      : "DOMESTIC FRONT: NO ADDITIONAL CAMPAIGN TODAY",
+    packet.activeDomains.includes("network")
+      ? `COMMAND NETWORK / ${packet.network.title}\nPRESSURE: ${packet.network.pressureBand.toUpperCase()}\n${packet.network.question}\nWHY TODAY: ${packet.network.convergence.map((edge) => edge.summary).join(" ")}\n${listed(network)}`
+      : "COMMAND NETWORK: NO ADDITIONAL CAMPAIGN TODAY",
     opportunity.length
       ? `TARGET OF OPPORTUNITY\n${listed(opportunity)}`
       : "TARGET OF OPPORTUNITY: NONE ACTIVE",

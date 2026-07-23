@@ -131,6 +131,7 @@ export const enumerateAvaActions = (
     ["domestic", packet.domestic, "D"],
     ["network", packet.network, "N"],
   ] as const)
+    if (packet.activeDomains.includes(domain))
     prompt.options.forEach((option, index) => {
       const rejection = convergenceOptionRejection(state, option);
       actions.push({

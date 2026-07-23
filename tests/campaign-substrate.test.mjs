@@ -10,7 +10,7 @@ const {
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
-  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v1");
+  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v2");
   assert.equal(SITUATIONS.length,15);
   assert.equal(Object.keys(BLUEPRINT_RULES).length,15);
   assert.equal(Object.keys(FACT_CATALOG).length,25);
@@ -183,7 +183,7 @@ test("immediate opportunities alter the same-day operation when their effect is 
   assert.notEqual(resolve(committed).operationsLedger.groundMovement,resolve(state).operationsLedger.groundMovement);
 });
 
-test("the opportunity corpus is rare, unique, timed, and wiki-addressable",()=>{
+test("the opportunity corpus is unique, full-day, spaced one to three days apart, and wiki-addressable",()=>{
   assert.equal(OPPORTUNITY_TEMPLATES.length,100);
   assert.equal(new Set(OPPORTUNITY_TEMPLATES.map(item=>item.id)).size,100);
   assert.ok(OPPORTUNITY_TEMPLATES.every(item=>item.headline&&item.individual&&item.responses.length===2));
@@ -201,16 +201,19 @@ test("the opportunity corpus is rare, unique, timed, and wiki-addressable",()=>{
     const packet=opportunityForState(candidate);total+=1;
     if(!packet)continue;
     occurrences+=1;ids.push(packet.id);
-    assert.ok(packet.opensAtFraction>=.08);
-    assert.ok(packet.closesAtFraction<1);
-    assert.ok(packet.closesAtFraction>packet.opensAtFraction);
-    assert.equal(opportunityStatusForFraction(candidate,packet.opensAtFraction-.001).status,"upcoming");
+    assert.equal(packet.opensAtFraction,0);
+    assert.equal(packet.closesAtFraction,1);
     assert.equal(opportunityStatusForFraction(candidate,(packet.opensAtFraction+packet.closesAtFraction)/2).status,"active");
     assert.equal(opportunityStatusForFraction(candidate,packet.closesAtFraction).status,"expired");
+    const safeResponse=packet.responses.find(response=>response.chance===1);
+    assert.ok(safeResponse,"every opportunity must offer a guaranteed macro gain");
+    assert.ok(Object.values(safeResponse.success).some(value=>typeof value==="number"&&value!==0));
   }
   assert.equal(new Set(ids).size,ids.length);
-  assert.ok(occurrences/total>.15&&occurrences/total<.5);
-  assert.equal(OPPORTUNITY_FREQUENCY,.33);
+  const occurrenceDays=[];
+  for(let day=1;day<=30;day++)if(opportunityForState({...state,day,currentSituation:null}))occurrenceDays.push(day);
+  assert.ok(occurrenceDays.slice(1).every((day,index)=>day-occurrenceDays[index]>=1&&day-occurrenceDays[index]<=3));
+  assert.equal(OPPORTUNITY_FREQUENCY,.5);
 });
 
 test("the force report uses one local personnel chain and one disclosed effective ratio",()=>{
@@ -301,7 +304,7 @@ test("competent command resolves an ebbing campaign inside the terminal window",
   for(let seed=1;seed<=6;seed++)for(const theater of THEATERS){
     let state=initialState({seed:seed*7919,theater:theater.id});
     while(state.status==="active"){
-      const opportunity=opportunityForState(state);if(opportunity)state=commitOpportunity(state,opportunity.responses[0]);
+      const opportunity=opportunityForState(state);if(opportunity)state=commitOpportunity(state,opportunity.responses.find(response=>response.chance===1)??opportunity.responses[0]);
       for(const [familyId,choiceId] of plan){
         if(state.actions<=1)break;
         const family=FAMILIES.find(item=>item.id===familyId),choice=family.choices.find(item=>item.id===choiceId),next=commit(state,family,choice);

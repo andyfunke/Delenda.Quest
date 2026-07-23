@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { accountSnapshot, inviteFriend, removeFriend, updateAllowFriends } from "../../../db/accounts";
+import { accountSnapshot, inviteFriend, removeFriendByAlias, updateAlias, updateAllowFriends } from "../../../db/accounts";
 import { chatGPTSignInPath, getChatGPTUser } from "../../chatgpt-auth";
+import { isAdmin } from "../../../db/admin";
 
 export async function GET(){
   const user=await getChatGPTUser();
   if(!user)return NextResponse.json({authenticated:false,signIn:chatGPTSignInPath("/?account=1")},{status:401});
-  return NextResponse.json({authenticated:true,...await accountSnapshot(user)});
+  return NextResponse.json({authenticated:true,isAdmin:await isAdmin(user),...await accountSnapshot(user)});
 }
 
 export async function POST(request:Request){
@@ -15,12 +16,15 @@ export async function POST(request:Request){
 
 export async function DELETE(request:Request){
   const user=await getChatGPTUser();if(!user)return NextResponse.json({error:"Sign in before changing friends."},{status:401});
-  const body=await request.json() as {email?:string};await removeFriend(user,body.email??"");return NextResponse.json({ok:true});
+  const body=await request.json() as {alias?:string};await removeFriendByAlias(user,body.alias??"");return NextResponse.json({ok:true});
 }
 
 export async function PATCH(request:Request){
   const user=await getChatGPTUser();if(!user)return NextResponse.json({error:"Sign in before changing account settings."},{status:401});
-  const body=await request.json() as {allowFriends?:unknown};
-  if(typeof body.allowFriends!=="boolean")return NextResponse.json({error:"allowFriends must be a boolean."},{status:400});
-  return NextResponse.json(await updateAllowFriends(user,body.allowFriends));
+  const body=await request.json() as {allowFriends?:unknown;alias?:unknown};
+  try{
+    if(typeof body.alias==="string")return NextResponse.json(await updateAlias(user,body.alias));
+    if(typeof body.allowFriends==="boolean")return NextResponse.json(await updateAllowFriends(user,body.allowFriends));
+    return NextResponse.json({error:"No supported account setting was supplied."},{status:400});
+  }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Account setting failed."},{status:400});}
 }

@@ -32,6 +32,16 @@ test("the authoritative campaign docket rotates exactly three maneuvers and surv
   assert.ok(dockets.size>1,"campaign maneuver choices should rotate across days");
 });
 
+test("additional Campaign fronts follow the exact four-way 25 percent rotation",()=>{
+  const counts={none:0,both:0,domestic:0,network:0};
+  for(let seed=1;seed<=400;seed+=1){
+    const packet=rules.compileConvergence(rules.initialState({seed,theater:"lowland"}));
+    const key=packet.activeDomains.length===0?"none":packet.activeDomains.length===2?"both":packet.activeDomains[0];
+    counts[key]+=1;
+  }
+  for(const count of Object.values(counts))assert.ok(count>=75&&count<=125,JSON.stringify(counts));
+});
+
 test("the enumerated overlay separates mechanical archetypes from authored content frames",()=>{
   assert.deepEqual(rules.convergenceMatrixAudit(),{domestic:12,network:12,version:"sub-missions-v3",contentVersion:"sub-mission-content-v1",optionRefs:72,domesticFrames:48,networkFrames:48,totalFrames:96,realizationLayers:72,compiledVariants:288});
   assert.deepEqual(rules.validateSubMissionRegistry(),[]);
@@ -73,8 +83,9 @@ test("a campaign consumes enumerated frames without exact-copy repetition",()=>{
   assert.ok(seen.domestic.size>=27);assert.ok(seen.network.size>=27);
 });
 
-test("one briefing issue packet consumes the same three authoritative orders",()=>{
-  const state=rules.initialState({seed:4409,theater:"river"}),before=rules.situationForState(state),packet=rules.compileConvergence(state);
+test("one briefing issue packet consumes the same three authoritative orders when both additional Campaign fronts rotate in",()=>{
+  const state=rules.initialState({seed:1,theater:"river"}),before=rules.situationForState(state),packet=rules.compileConvergence(state);
+  assert.deepEqual(packet.activeDomains,["domestic","network"]);
   const network=packet.network.options.find(option=>option.choice.networkPosture!==state.networkPosture)??packet.network.options[0];
   const result=rules.commitConvergence(state,{maneuverId:before.maneuvers[0],domesticId:packet.domestic.options[0].id,networkId:network.id});
   assert.equal(result.issued.length,3);
@@ -88,7 +99,7 @@ test("one briefing issue packet consumes the same three authoritative orders",()
 });
 
 test("daily sub-missions remain sealed through same-day orders and rotate only after resolution",()=>{
-  const state=rules.initialState({seed:7219,theater:"ridge"}),before=rules.compileConvergence(state),option=before.domestic.options[0];
+  const state=rules.initialState({seed:1,theater:"ridge"}),before=rules.compileConvergence(state),option=before.domestic.options[0];
   const committed=rules.commitConvergence(state,{domesticId:option.id}).state,afterCommit=rules.compileConvergence(committed);
   assert.equal(afterCommit.domestic.id,before.domestic.id);assert.equal(afterCommit.domestic.stateFingerprint,before.domestic.stateFingerprint);assert.equal(afterCommit.domestic.resolutionTicket,before.domestic.resolutionTicket);
   const next=rules.resolve(committed),afterResolve=rules.compileConvergence(next);
@@ -96,7 +107,7 @@ test("daily sub-missions remain sealed through same-day orders and rotate only a
 });
 
 test("each secondary front accepts one daily response, then cools while remaining inspectable",()=>{
-  const state=rules.initialState({seed:4409}),packet=rules.compileConvergence(state);
+  const state=rules.initialState({seed:1}),packet=rules.compileConvergence(state);
   const first=packet.domestic.options[0],second=packet.domestic.options.find(option=>option.family.id!==first.family.id)??packet.domestic.options[1];
   const committed=rules.commitConvergence(state,{domesticId:first.id});
   assert.equal(committed.issued.length,1);
@@ -114,7 +125,7 @@ test("full family cooldown grays a front while partial cooldown leaves alternati
   let state,packet;
   for(let seed=1;seed<=100;seed++){
     const candidate=rules.initialState({seed}),compiled=rules.compileConvergence(candidate);
-    if(new Set(compiled.network.options.map(option=>option.family.id)).size>1){state=candidate;packet=compiled;break;}
+    if(compiled.activeDomains.includes("network")&&new Set(compiled.network.options.map(option=>option.family.id)).size>1){state=candidate;packet=compiled;break;}
   }
   assert.ok(state&&packet,"expected a mixed-family Network front in the seed sweep");
   const fully=structuredClone(state);

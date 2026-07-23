@@ -80,6 +80,7 @@ const missionPacket=(state)=>[
   firstAvailable(state,"sub-mission",0,"domestic"),
   firstAvailable(state,"sub-mission",0,"network"),
 ];
+const fullDocketState=()=>newState(1);
 
 const stageMissionPacket=(state)=>{
   const descriptors=missionPacket(state);
@@ -93,7 +94,7 @@ const confirmPending=(state,session,fraction=0)=>{
 };
 
 test("MISSIONS is a DOM-free executable docket with Main, Domestic, and Network handles",()=>{
-  const state=newState();
+  const state=fullDocketState();
   const result=run("missions",state);
 
   assert.equal(result.state,state,"read-only terminal commands must preserve the state object");
@@ -108,7 +109,7 @@ test("MISSIONS is a DOM-free executable docket with Main, Domestic, and Network 
 });
 
 test("a Main/Domestic/Network packet stages without mutating campaign state",()=>{
-  const state=newState();
+  const state=fullDocketState();
   const before=structuredClone(state);
   const{descriptors,staged}=stageMissionPacket(state);
 
@@ -121,7 +122,7 @@ test("a Main/Domestic/Network packet stages without mutating campaign state",()=
 });
 
 test("ISSUE PLAN preflights, state-bound confirmation executes, and terminal matches direct controller",()=>{
-  const initial=newState();
+  const initial=fullDocketState();
   const{staged}=stageMissionPacket(initial);
   const issued=run("issue plan",initial,staged.session);
 
@@ -164,9 +165,8 @@ test("terminal reports preserve requested historical windows and expose report s
   assert.equal(losses.report?.topic,"losses");
   assert.equal(losses.report?.history.requestedDays,5);
   assert.equal(losses.report?.history.resolvedDays,5);
-  assert.match(losses.text,/CALCULATION/);
-  assert.match(losses.text,/CUMULATIVE INTELLIGENCE/);
-  assert.match(losses.text,/FRIENDLY COMBAT LOSS/);
+  assert.doesNotMatch(losses.text,/CALCULATION|CUMULATIVE INTELLIGENCE|FRIENDLY COMBAT LOSS/);
+  assert.match(losses.text,/ANSWER/);
 
   const network=run("report network",state);
   assert.equal(network.report?.topic,"network");

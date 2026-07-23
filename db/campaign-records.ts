@@ -1,7 +1,7 @@
 import { and, desc, eq, or } from "drizzle-orm";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import { getDb } from "./index";
-import { campaignRecords, friendships } from "./schema";
+import { campaignRecords, friendships, users } from "./schema";
 import { ensureAccount } from "./accounts";
 
 export const SCORING_VERSION="dq-score-v1";
@@ -23,7 +23,7 @@ export type CampaignRecordSubmission={
   archetype:string;
   adversary:string;
   contentVersion:string;
-  outcome:"victory"|"defeat";
+  outcome:"victory"|"defeat"|"abandoned";
   days:number;
   deployable:number;
   openingDeployable:number;
@@ -33,6 +33,8 @@ export type CampaignRecordSubmission={
   readiness:number;
   decisions:RecordedDecision[];
   completedAt:number;
+  multiplayer?:boolean;
+  productionMin?:number;productionMax?:number;sufferedMin?:number;sufferedMax?:number;inflictedMin?:number;inflictedMax?:number;
 };
 
 type StoredRecord=typeof campaignRecords.$inferSelect;
@@ -55,21 +57,20 @@ const parseDecisions=(value:string):RecordedDecision[]=>{
   }catch{return[]}
 };
 
-const publicPseudonym=async(email:string)=>`COMMANDER ${((await digest(`delenda:pseudonym:${email}`)).slice(0,6)).toUpperCase()}`;
 const campaignKeyFor=(input:CampaignRecordSubmission)=>[cleanId(input.contentVersion,30),Math.trunc(number(input.campaignSeed,1,2_147_483_647)),cleanId(input.theater,30),cleanId(input.archetype,50),cleanId(input.adversary,50)].join(":");
 
 const scoresFor=(input:CampaignRecordSubmission,friendCount:number)=>{
   const preservation=clamp(input.deployable/Math.max(1,input.openingDeployable),0,1.25);
-  const outcomeBase=input.outcome==="victory"?4_800:1_200;
-  const territorial=clamp(Math.round((input.front+3.4)*240),-2_000,3_000);
-  const force=Math.round(preservation*2_000);
-  const civil=Math.round(number(input.legitimacy,0,100)*10+(100-number(input.resistance,0,100))*7);
-  const readiness=Math.round(number(input.readiness,0,100)*5);
-  const tempo=clamp(1_000-Math.round(number(input.days,1,365)*35),-800,965);
-  const campaignScore=clamp(outcomeBase+territorial+force+civil+readiness+tempo,0,10_000);
+  const production=Math.round((number(input.productionMin,-100_000,1_000_000)+number(input.productionMax,-100_000,1_000_000))*0.012);
+  const suffered=Math.round(2600-(number(input.sufferedMin,0,1_000_000)+number(input.sufferedMax,0,1_000_000))*.018);
+  const inflicted=Math.round((number(input.inflictedMin,0,1_000_000)+number(input.inflictedMax,0,1_000_000))*.018);
+  const duration=Math.round(Math.max(0,31-number(input.days,1,365))*65);
+  const completion=input.outcome==="victory"?3200:input.outcome==="defeat"?1600:Math.min(900,number(input.days,1,365)*35);
+  const campaignScore=clamp(completion+production+suffered+inflicted+duration,0,10_000);
   const baseUberscore=Math.round(campaignScore/10);
   const friendMultiplier=100+Math.min(FRIEND_BONUS_CAP,friendCount)*FRIEND_BONUS_PER_CONNECTION;
-  const uberscoreEarned=Math.round(baseUberscore*friendMultiplier/100);
+  const multiplayerMultiplier=input.multiplayer?125:100;
+  const uberscoreEarned=Math.round(baseUberscore*friendMultiplier/100*multiplayerMultiplier/100);
   return{campaignScore,baseUberscore,friendMultiplier,uberscoreEarned,forcePreserved:Math.round(preservation*1000)};
 };
 
@@ -82,18 +83,22 @@ const friendCountFor=async(email:string)=>{
 const sanitizeSubmission=(input:CampaignRecordSubmission):CampaignRecordSubmission=>({
   submissionId:cleanId(input.submissionId,100),campaignId:clean(input.campaignId,100),campaignSeed:Math.trunc(number(input.campaignSeed,1,2_147_483_647)),
   theater:cleanId(input.theater,30),archetype:cleanId(input.archetype,50),adversary:cleanId(input.adversary,50),contentVersion:cleanId(input.contentVersion,30),
-  outcome:input.outcome==="victory"?"victory":"defeat",days:Math.trunc(number(input.days,1,365)),deployable:Math.round(number(input.deployable,0,10_000_000)),openingDeployable:Math.round(number(input.openingDeployable,1,10_000_000)),
+  outcome:input.outcome==="victory"?"victory":input.outcome==="abandoned"?"abandoned":"defeat",days:Math.trunc(number(input.days,1,365)),deployable:Math.round(number(input.deployable,0,10_000_000)),openingDeployable:Math.round(number(input.openingDeployable,1,10_000_000)),
   front:number(input.front,-100,100),legitimacy:number(input.legitimacy,0,100),resistance:number(input.resistance,0,100),readiness:number(input.readiness,0,100),completedAt:Math.trunc(number(input.completedAt,1,Date.now()+86_400_000)),
   decisions:(Array.isArray(input.decisions)?input.decisions:[]).slice(0,240).map(row=>({decisionId:cleanId(row.decisionId,100),decisionLabel:clean(row.decisionLabel,120),choiceId:cleanId(row.choiceId,100),choiceLabel:clean(row.choiceLabel,120)})).filter(row=>row.decisionId&&row.choiceId),
+  multiplayer:!!input.multiplayer,productionMin:number(input.productionMin,-100_000,1_000_000),productionMax:number(input.productionMax,-100_000,1_000_000),sufferedMin:number(input.sufferedMin,0,1_000_000),sufferedMax:number(input.sufferedMax,0,1_000_000),inflictedMin:number(input.inflictedMin,0,1_000_000),inflictedMax:number(input.inflictedMax,0,1_000_000),
 });
 
 export async function createCampaignRecord(user:ChatGPTUser,raw:CampaignRecordSubmission){
   const db=await getDb(),email=await ensureAccount(user),input=sanitizeSubmission(raw);
+  const access=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
+  if(!access?.accountEnabled)throw new Error("Account record services are disabled.");
   if(!input.submissionId||!input.campaignId||!input.theater||!input.contentVersion)throw new Error("Campaign record is incomplete.");
   const id=await digest(`delenda:record:${email}:${input.submissionId}`);
   const existing=(await db.select().from(campaignRecords).where(eq(campaignRecords.id,id)).limit(1))[0];
   if(existing)return decorateRecord(existing,await cohortFor(existing));
-  const friendCount=await friendCountFor(email),scores=scoresFor(input,friendCount),publicSlug=token(),campaignKey=campaignKeyFor(input),pseudonym=await publicPseudonym(email);
+  const account=(await db.select({alias:users.alias}).from(users).where(eq(users.email,email)).limit(1))[0];
+  const friendCount=await friendCountFor(email),scores=scoresFor(input,friendCount),publicSlug=token(),campaignKey=campaignKeyFor(input),pseudonym=account?.alias??"UnknownCommander";
   await db.insert(campaignRecords).values({id,ownerEmail:email,publicSlug,pseudonym,campaignKey,campaignId:input.campaignId,campaignSeed:input.campaignSeed,theater:input.theater,archetype:input.archetype,adversary:input.adversary,contentVersion:input.contentVersion,scoringVersion:SCORING_VERSION,outcome:input.outcome,days:input.days,...scores,friendCount,frontMillimeters:Math.round(input.front*1000),decisions:JSON.stringify(input.decisions),completedAt:input.completedAt}).onConflictDoNothing();
   const record=(await db.select().from(campaignRecords).where(eq(campaignRecords.id,id)).limit(1))[0];
   if(!record)throw new Error("Campaign record could not be issued.");

@@ -25,9 +25,19 @@ export type ConvergencePrompt={
 export type ConvergencePacket={
   id:string;day:number;operational:ReturnType<typeof situationForState>;
   domestic:ConvergencePrompt;network:ConvergencePrompt;matrixVersion:string;
+  activeDomains:ConvergenceDomain[];
 };
 
 export const CONVERGENCE_MATRIX_VERSION=SUB_MISSION_SCHEMA_VERSION;
+
+export const convergenceDomainsForState=(state:GameState):ConvergenceDomain[]=>{
+  let value=(Math.imul(state.campaignSeed|0,0x45d9f3b)^Math.imul(state.day,0x27d4eb2d))>>>0;
+  value=Math.imul(value^(value>>>16),0x45d9f3b)>>>0;
+  const rotation=value%4;
+  if(rotation===0)return[];
+  if(rotation===1)return["domestic","network"];
+  return rotation===2?["domestic"]:["network"];
+};
 
 const resolveOptions=(domain:ConvergenceDomain,contentId:string,pairs:Array<{familyId:string;choiceId:string}>)=>pairs.map(({familyId,choiceId})=>{
   const family=FAMILIES.find(item=>item.id===familyId);const choice=family?.choices.find(item=>item.id===choiceId);
@@ -43,7 +53,7 @@ const compilePrompt=(domain:ConvergenceDomain,reference:CompiledSubMissionRef,da
 
 export const compileConvergence=(state:GameState):ConvergencePacket=>{
   const docket=state.currentSubMissions?.day===state.day&&state.currentSubMissions.version===SUB_MISSION_SCHEMA_VERSION?state.currentSubMissions:compileSubMissionDocket(state,state.subMissionHistory??[]);
-  return{id:`${SUB_MISSION_SCHEMA_VERSION}:${state.campaignSeed}:${state.day}`,day:state.day,operational:situationForState(state),domestic:compilePrompt("domestic",docket.domestic,state.day),network:compilePrompt("network",docket.network,state.day),matrixVersion:SUB_MISSION_SCHEMA_VERSION};
+  return{id:`${SUB_MISSION_SCHEMA_VERSION}:${state.campaignSeed}:${state.day}`,day:state.day,operational:situationForState(state),domestic:compilePrompt("domestic",docket.domestic,state.day),network:compilePrompt("network",docket.network,state.day),matrixVersion:SUB_MISSION_SCHEMA_VERSION,activeDomains:convergenceDomainsForState(state)};
 };
 
 export const convergenceFrontIssued=(state:GameState,domain:ConvergenceDomain)=>state.decisions.some(decision=>decision.day===state.day&&decision.domain===domain);
@@ -60,6 +70,7 @@ export const convergenceFrontStatus=(state:GameState,prompt:ConvergencePrompt)=>
 };
 
 export const convergenceOptionRejection=(state:GameState,option:ConvergenceOption)=>{
+  if(!convergenceDomainsForState(state).includes(option.domain))return `${option.domain==="domestic"?"Domestic Front":"Command Network"} is not present in today's campaign docket.`;
   if(convergenceFrontIssued(state,option.domain))return `${option.domain==="domestic"?"Domestic Front":"Command Network"} already received today's response and reopens after resolution.`;
   return directiveRejection(state,option.family,option.choice);
 };

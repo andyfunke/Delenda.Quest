@@ -823,7 +823,8 @@ function DailySurface({
               );
             })}
           </DecisionCard>
-          <div className="briefing-secondary-fronts">
+          {packet.activeDomains.length > 0 && <div className="briefing-secondary-fronts">
+            {packet.activeDomains.includes("domestic") && (
             <SecondaryFrontLedger
               s={s}
               prompt={packet.domestic}
@@ -831,6 +832,8 @@ function DailySurface({
               selected={selectedDomestic}
               select={setSelectedDomestic}
             />
+            )}
+            {packet.activeDomains.includes("network") && (
             <SecondaryFrontLedger
               s={s}
               prompt={packet.network}
@@ -838,7 +841,8 @@ function DailySurface({
               selected={selectedNetwork}
               select={setSelectedNetwork}
             />
-          </div>
+            )}
+          </div>}
         </div>
         <div className="briefing-issue">
           <span>

@@ -1,7 +1,7 @@
 import type { AvaCompileResult } from "./ava/schema";
 import { DOCTRINES, FAMILIES, MANEUVERS, initialState, type GameState, type Module } from "./game";
 
-type ClientCounter={type:"counter";category:"page_view"|"element_interaction"|"ava_command";subject:string;context?:string;count?:number};
+type ClientCounter={type:"counter";category:"page_view"|"element_interaction"|"ava_command"|"module_dwell"|"module_switch";subject:string;context?:string;count?:number};
 type ClientOutcome={type:"campaign_outcome";campaignId:string;outcome:"victory"|"defeat";days:number;theater:string;archetype:string;adversary:string;decisions:Record<string,number>};
 type ClientEvent=ClientCounter|ClientOutcome;
 
@@ -12,7 +12,7 @@ const flush=()=>{
   if(typeof window==="undefined"||!queue.length)return;
   const events=queue.splice(0,50);const body=JSON.stringify({events});
   if(document.visibilityState==="hidden"&&navigator.sendBeacon){navigator.sendBeacon("/api/telemetry",new Blob([body],{type:"application/json"}));return;}
-  void fetch("/api/telemetry",{method:"POST",headers:{"Content-Type":"application/json"},body,keepalive:true,credentials:"omit"}).catch(()=>undefined);
+  void fetch("/api/telemetry",{method:"POST",headers:{"Content-Type":"application/json"},body,keepalive:true,credentials:"same-origin"}).catch(()=>undefined);
 };
 
 const enqueue=(event:ClientEvent)=>{
@@ -23,6 +23,8 @@ const enqueue=(event:ClientEvent)=>{
 
 export const recordPageView=(subject:string,context="site")=>enqueue({type:"counter",category:"page_view",subject,context});
 export const recordElementInteraction=(subject:string,context:string)=>enqueue({type:"counter",category:"element_interaction",subject,context});
+export const recordModuleDwell=(module:string,seconds:number)=>enqueue({type:"counter",category:"module_dwell",subject:`module:${module}`,context:"seconds",count:Math.max(1,Math.round(seconds))});
+export const recordModuleSwitch=(from:string,to:string)=>enqueue({type:"counter",category:"module_switch",subject:`${from}-to-${to}`,context:"navigation"});
 
 export const recordAvaTelemetry=(result:AvaCompileResult,module:Module,outcome:"executed"|"clarification"|"rejected")=>{
   const intent=result.status==="compiled"?result.instruction.kind:"uncompiled";
@@ -62,10 +64,13 @@ const serviceDecisions=(state:GameState)=>{
   return rows;
 };
 
-export const submitCampaignRecord=async(state:GameState,submissionId:string)=>{
-  if(state.status==="active"||!submissionId)return null;
+export const submitCampaignRecord=async(state:GameState,submissionId:string,options:{abandoned?:boolean;multiplayer?:boolean}={})=>{
+  if((state.status==="active"&&!options.abandoned)||!submissionId)return null;
   const opening=initialState({seed:state.campaignSeed,archetype:state.stateArchetype,adversaryPersonality:state.adversaryPersonality,theater:state.theater});
-  const response=await fetch("/api/campaign-records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({submissionId,campaignId:state.campaignId,campaignSeed:state.campaignSeed,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,contentVersion:state.contentPackVersion,outcome:state.status,days:state.day,deployable:state.deployable,openingDeployable:opening.deployable,front:state.front,legitimacy:state.legitimacy,resistance:state.resistance,readiness:state.readiness,decisions:serviceDecisions(state),completedAt:Date.now()}),keepalive:true});
+  const production=state.resolutionHistory.map(day=>day.production.lines.reduce((sum,line)=>sum+line.net,0)),suffered=state.resolutionHistory.map(day=>day.personnel.combatLosses),inflicted=state.resolutionHistory.map(day=>day.operations.enemyLosses);
+  const range=(values:number[])=>({min:values.length?Math.min(...values):0,max:values.length?Math.max(...values):0});
+  const productionRange=range(production),sufferedRange=range(suffered),inflictedRange=range(inflicted);
+  const response=await fetch("/api/campaign-records",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({submissionId,campaignId:state.campaignId,campaignSeed:state.campaignSeed,theater:state.theater,archetype:state.stateArchetype,adversary:state.adversaryPersonality,contentVersion:state.contentPackVersion,outcome:options.abandoned?"abandoned":state.status,days:Math.max(1,state.day-1),deployable:state.deployable,openingDeployable:opening.deployable,front:state.front,legitimacy:state.legitimacy,resistance:state.resistance,readiness:state.readiness,decisions:serviceDecisions(state),completedAt:Date.now(),multiplayer:options.multiplayer,productionMin:productionRange.min,productionMax:productionRange.max,sufferedMin:sufferedRange.min,sufferedMax:sufferedRange.max,inflictedMin:inflictedRange.min,inflictedMax:inflictedRange.max}),keepalive:true});
   if(response.status===401)return null;
   if(!response.ok){const result=await response.json().catch(()=>({})) as {error?:string};throw new Error(result.error??"Campaign Record could not be issued.")}
   return response.json();
@@ -80,7 +85,7 @@ const stableElementKey=(element:HTMLElement)=>{
   return classes.length?`${element.tagName.toLowerCase()}.${classes.join(".")}`:element.tagName.toLowerCase();
 };
 
-export const installInteractionTelemetry=(module:()=>Module)=>{
+export const installInteractionTelemetry=(module:()=>string)=>{
   const onClick=(event:MouseEvent)=>{
     const target=(event.target as Element|null)?.closest<HTMLElement>("button,a,[role=button],input,summary");
     if(!target||target.closest("[data-no-telemetry]"))return;

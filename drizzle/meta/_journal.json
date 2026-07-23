@@ -36,6 +36,13 @@
       "when": 1784784971473,
       "tag": "0004_nervous_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784812524351,
+      "tag": "0005_lonely_solo",
+      "breakpoints": true
     }
   ]
 }

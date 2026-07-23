@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { campaignOutcomes, telemetryCounters } from "./schema";
 
-type CounterCategory="page_view"|"element_interaction"|"ava_command";
+type CounterCategory="page_view"|"element_interaction"|"ava_command"|"module_dwell"|"module_switch";
 type CounterEvent={type:"counter";category:CounterCategory;subject:string;context?:string;count?:number};
 type CampaignOutcomeEvent={type:"campaign_outcome";campaignId:string;outcome:"victory"|"defeat";days:number;theater:string;archetype:string;adversary:string;decisions:Record<string,number>};
 export type TelemetryEvent=CounterEvent|CampaignOutcomeEvent;

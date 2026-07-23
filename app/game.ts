@@ -544,13 +544,17 @@ export const OPPORTUNITY_TEMPLATES:OpportunityTemplate[]=OPPORTUNITY_SPINES.map(
     contingent:[`${Math.round(chance*100)}% exploitation confidence`,...opportunityEffectLines(profile.success).map(line=>`SUCCESS // ${line}`),...opportunityEffectLines(profile.failure).map(line=>`FAILURE // ${line}`)],
     chance,cost,commit:profile.commit,success:profile.success,failure:profile.failure,
   };
-  const alternateChance=Math.min(.96,.82+(index%4)*.03);
+  const alternateChance=1;
+  const guaranteedAlternate:OpportunityEffect={
+    ...profile.alternate,
+    friendlyPressure:Math.max(profile.alternate.friendlyPressure??0,.2),
+  };
   const alternate:OpportunityResponse={
     id:`${spine.id}-exploit`,label:spine.alternate,
     flavor:authoredFlavor.alternate,
-    exact:["No strategic order consumed","Resolution: immediate"],
-    contingent:[`${Math.round(alternateChance*100)}% exploitation confidence`,...opportunityEffectLines(profile.alternate).map(line=>`SUCCESS // ${line}`),"FAILURE // Intelligence −1 point"],
-    chance:alternateChance,success:profile.alternate,failure:{intelligence:-1},
+    exact:["No strategic order consumed",...opportunityEffectLines(guaranteedAlternate).map(line=>`GUARANTEED // ${line}`),"Resolution: immediate"],
+    contingent:["No sealed failure branch"],
+    chance:alternateChance,success:guaranteedAlternate,
   };
   return{...spine,categoryLabel:OPPORTUNITY_CATEGORY_LABELS[spine.category],responses:[primary,alternate]};
 });
@@ -582,13 +586,22 @@ export const situationForState = (state:GameState):CompiledSituation => {
   return compileSituationForState(state);
 };
 
-export const OPPORTUNITY_FREQUENCY=.33;
-const opportunityOccurs=(seed:number,day:number)=>hash(`${seed}:${day}:target-of-opportunity:occurrence`)<OPPORTUNITY_FREQUENCY;
+export const OPPORTUNITY_FREQUENCY=1/2;
+const opportunitySchedule=(seed:number,throughDay:number)=>{
+  const days:number[]=[];let day=1+Math.floor(hash(`${seed}:target-of-opportunity:first`)*3),occurrence=0;
+  while(day<=throughDay){
+    days.push(day);
+    occurrence+=1;
+    day+=1+Math.floor(hash(`${seed}:target-of-opportunity:interval:${occurrence}`)*3);
+  }
+  return days;
+};
+const opportunityOccurs=(seed:number,day:number)=>opportunitySchedule(seed,day).includes(day);
 const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>hash(`${seed}:target-of-opportunity:deck:${a.id}`)-hash(`${seed}:target-of-opportunity:deck:${b.id}`));
 
 export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
   if(!opportunityOccurs(state.campaignSeed,state.day))return null;
-  let occurrence=0;for(let day=1;day<state.day;day+=1)if(opportunityOccurs(state.campaignSeed,day))occurrence+=1;
+  const occurrence=opportunitySchedule(state.campaignSeed,state.day-1).length;
   const assignment=(state.opportunityAssignments??[]).find(item=>item.campaignId===state.campaignId&&item.day===state.day);
   const fullDeck=opportunityOrder(state.campaignSeed);
   const remaining=fullDeck.filter(item=>!(state.accountOpportunityIds??[]).includes(item.id));
@@ -598,9 +611,8 @@ export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
     : deck[occurrence%deck.length];
   if(!template)return null;
   const situation=situationForState(state);
-  const opensAtFraction=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-open`)*.68;
-  const duration=.08+hash(`${state.campaignSeed}:${state.day}:${template.id}:window-duration`)*.14;
-  const closesAtFraction=Math.min(.94,opensAtFraction+duration);
+  const opensAtFraction=0;
+  const closesAtFraction=1;
   return{...template,sector:situation.sector,occurrence:occurrence+1,opensAtFraction,closesAtFraction,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
 };
 

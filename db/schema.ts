@@ -3,10 +3,16 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 export const users=sqliteTable("users",{
   email:text("email").primaryKey(),
   displayName:text("display_name").notNull(),
+  alias:text("alias"),
+  aliasChangedAt:integer("alias_changed_at").notNull().default(0),
   allowFriends:integer("allow_friends",{mode:"boolean"}).notNull().default(true),
+  accountEnabled:integer("account_enabled",{mode:"boolean"}).notNull().default(true),
+  socialEnabled:integer("social_enabled",{mode:"boolean"}).notNull().default(true),
+  telemetryEnabled:integer("telemetry_enabled",{mode:"boolean"}).notNull().default(true),
+  aliasRenameUnlocked:integer("alias_rename_unlocked",{mode:"boolean"}).notNull().default(false),
   createdAt:integer("created_at").notNull(),
   lastSeenAt:integer("last_seen_at").notNull(),
-});
+},table=>[uniqueIndex("users_alias_unique").on(table.alias)]);
 
 export const campaignRecords=sqliteTable("campaign_records",{
   id:text("id").primaryKey(),
@@ -21,7 +27,7 @@ export const campaignRecords=sqliteTable("campaign_records",{
   adversary:text("adversary").notNull(),
   contentVersion:text("content_version").notNull(),
   scoringVersion:text("scoring_version").notNull(),
-  outcome:text("outcome",{enum:["victory","defeat"]}).notNull(),
+  outcome:text("outcome",{enum:["victory","defeat","abandoned"]}).notNull(),
   days:integer("days").notNull(),
   campaignScore:integer("campaign_score").notNull(),
   baseUberscore:integer("base_uberscore").notNull(),
@@ -70,7 +76,7 @@ export const campaignPacks=sqliteTable("campaign_packs",{
 
 export const telemetryCounters=sqliteTable("telemetry_counters",{
   key:text("key").primaryKey(),
-  category:text("category",{enum:["page_view","element_interaction","ava_command"]}).notNull(),
+  category:text("category",{enum:["page_view","element_interaction","ava_command","module_dwell","module_switch"]}).notNull(),
   subject:text("subject").notNull(),
   context:text("context").notNull(),
   count:integer("count").notNull().default(0),
@@ -78,6 +84,23 @@ export const telemetryCounters=sqliteTable("telemetry_counters",{
 },table=>[
   index("telemetry_counters_category_idx").on(table.category),
   index("telemetry_counters_subject_idx").on(table.subject),
+]);
+
+export const bugReports=sqliteTable("bug_reports",{
+  id:text("id").primaryKey(),
+  route:text("route").notNull(),
+  elementKey:text("element_key").notNull(),
+  elementText:text("element_text").notNull(),
+  gridX:integer("grid_x").notNull(),
+  gridY:integer("grid_y").notNull(),
+  module:text("module").notNull(),
+  interfaceMode:text("interface_mode").notNull(),
+  reportText:text("report_text").notNull(),
+  status:text("status",{enum:["open","reviewed","closed"]}).notNull().default("open"),
+  createdAt:integer("created_at").notNull(),
+},table=>[
+  index("bug_reports_status_idx").on(table.status),
+  index("bug_reports_route_idx").on(table.route),
 ]);
 
 export const campaignOutcomes=sqliteTable("campaign_outcomes",{

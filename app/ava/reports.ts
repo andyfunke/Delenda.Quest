@@ -1270,7 +1270,7 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
     flavor: flavor(state, "service-record"),
     calculation: {
       equation:
-        "campaign ledger + verified identity → score + cohort rank + Uberscore + public record",
+        "campaign ledger + verified identity → score + cohort rank + Player Rating + public record",
       rows: [
         {
           label: "CAMPAIGN ID",
@@ -1314,7 +1314,7 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
     history: historyLayer(state, records, requested, [
       closed
         ? "The closed campaign may now be presented to the records office; this field report does not claim that a permanent record has been issued."
-        : "Campaign Score, Uberscore, cohort rank, and public citation do not exist until record issuance.",
+        : "Campaign Score, Player Rating, cohort rank, and public citation do not exist until record issuance.",
     ]),
     recommendation: closed
       ? "Open the records office to verify whether this completed campaign received a permanent record. Until then, no score, rank, or public citation is claimed."

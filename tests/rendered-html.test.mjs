@@ -282,7 +282,7 @@ test("every command module opens with one canonical conceptual epigraph",async()
   assert.match(css,/\.modern-module-epigraph cite\s*\{[\s\S]*?font:\s*normal 9\.5px var\(--mono\)/);
 });
 
-test("social metagame keeps power separate and issues portable campaign records",async()=>{
+test("social metagame uses private aliases, Player Rating, and portable campaign records",async()=>{
   const[account,setup,records,recordPage]=await Promise.all([
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/CampaignSetup.tsx",import.meta.url),"utf8"),
@@ -290,10 +290,16 @@ test("social metagame keeps power separate and issues portable campaign records"
     readFile(new URL("../app/record/[slug]/page.tsx",import.meta.url),"utf8"),
   ]);
   assert.match(account,/Service Record/);
-  assert.match(account,/Existing players and newly registered players count identically/);
+  assert.match(account,/PLAYER RATING/);
+  assert.match(account,/Only player aliases appear here/);
+  assert.doesNotMatch(account,/friend\.email|friend\.displayName/);
   assert.match(records,/FRIEND_BONUS_PER_CONNECTION=5/);
   assert.match(records,/FRIEND_BONUS_CAP=10/);
   assert.match(records,/friendMultiplier/);
+  assert.match(records,/productionMin/);
+  assert.match(records,/sufferedMin/);
+  assert.match(records,/inflictedMin/);
+  assert.match(records,/input\.multiplayer\?125:100/);
   assert.match(recordPage,/CAMPAIGN COMMAND CERTIFICATE/);
   assert.match(recordPage,/decisionComparisons/);
   assert.match(recordPage,/SIMULATION ACCOMPLISHMENT/);
