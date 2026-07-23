@@ -20,22 +20,21 @@ export function CampaignSetup({current,hasSave,seedOverride,configOverride,onSta
   const[config]=useState<CampaignConfig>(()=>configOverride??randomCampaign(seedOverride));
   const challenged=!!configOverride;
   return <div className="campaign-setup campaign-issuance os-window" role="dialog" aria-modal="true" aria-labelledby="campaign-generator-title">
-    <div className="os-titlebar"><span>{challenged?"SEALED FRIEND CHALLENGE":"NEW CAMPAIGN"}</span><b>OPENING STATE ASSIGNED</b></div>
+    <div className="os-titlebar"><span>{challenged?"SEALED FRIEND CHALLENGE":"NEW CAMPAIGN"}</span><b>{challenged?"THE SAME WAR AWAITS":"COMMAND AWAITS"}</b></div>
     <button className="campaign-setup-close" aria-label="Close campaign issuance" onClick={onClose}>×</button>
     <header>
-      <span className="eyebrow">{challenged?"IDENTICAL CAMPAIGN CONDITIONS // COMPARATIVE RUN":"AUTHORED RANDOM CAMPAIGN // NO CONFIGURATION REQUIRED"}</span>
-      <h2 id="campaign-generator-title">{challenged?"Accept the same war.":"Assume command."}</h2>
-      <p>{challenged?"The opening state, enemy disposition, hidden opportunities, reinforcement schedule, and resolution sequence match the originating Campaign Record. Your orders alone create the divergence.":"DELENDA.QUEST has selected the state, theater, opposition, and concealed operational sequence. The campaign will disclose only what command would know."}</p>
+      <span className="eyebrow">{challenged?"A WAR REMEMBERED // AN OUTCOME UNSETTLED":"THE FRONT HAS OUTLIVED ITS EXPLANATIONS"}</span>
+      <h2 id="campaign-generator-title">{challenged?"Return to the line.":"Assume command."}</h2>
+      <p>{challenged?"Another commander entered this war before you. The ground is the same. The enemy is the same. What survives your command will not be.":"The state has spent its confidence, the army has spent its reserves, and the enemy has mistaken endurance for surrender. The remaining question has been assigned to you."}</p>
     </header>
-    <section className="campaign-sealed-brief">
-      <small>CAMPAIGN ISSUANCE</small>
-      <b>{challenged?"SEALED COMPARISON READY":"RANDOM ASSIGNMENT READY"}</b>
-      <p>No generation variables are exposed. Renewing command issues a different authored campaign at any time.</p>
-    </section>
+    <blockquote className="campaign-opening-quote">
+      <p>“The commander does not choose whether men are spent, but whether they are spent before or after they are useful.”</p>
+      <cite>Comm. Het Claxton, Command Ethics Appendix</cite>
+    </blockquote>
     <footer className="campaign-generator-actions">
-      <div><b>AUTOSAVE // THIS DEVICE</b><small>{hasSave?`Campaign ${current.campaignId}, Day ${current.day}, can be resumed.`:"No prior campaign is stored on this device."}</small></div>
-      <button disabled={!hasSave} onClick={onResume}>Resume existing campaign</button>
-      <button onClick={onClose}>Cancel</button>
+      <div><b>{hasSave?"COMMAND INTERRUPTED":"THE LINE IS OPEN"}</b><small>{hasSave?`The Day ${current.day} command may still be resumed.`:"There is no unfinished command to recover."}</small></div>
+      {hasSave && <button onClick={onResume}>Resume campaign</button>}
+      <button onClick={onClose}>Return</button>
       <button className="primary" onClick={()=>onStart(config)}>{challenged?"Accept challenge":"Begin campaign"}</button>
     </footer>
   </div>;

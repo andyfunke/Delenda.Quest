@@ -4289,6 +4289,7 @@ export default function Home() {
       urgent: boolean;
       opportunity?: boolean;
     }[] = [];
+    if (s.status !== "active") return alerts;
     const packet = opportunityWindow.packet;
     if (opportunityWindow.status === "active" && packet) {
       const legalResponses = packet.responses.filter(
@@ -4606,7 +4607,8 @@ export default function Home() {
           <cite>{dailyAphorism.source}</cite>
         </aside>
       )}
-      {opportunityWindow.status === "active" &&
+      {s.status === "active" &&
+        opportunityWindow.status === "active" &&
         opportunityWindow.packet &&
         !opportunityInterruptAcknowledged && (
           <section
@@ -4640,7 +4642,8 @@ export default function Home() {
             </button>
           </section>
         )}
-      {opportunityWindow.status === "expired" &&
+      {s.status === "active" &&
+        opportunityWindow.status === "expired" &&
         opportunityWindow.packet && (
           <div className={`global-opportunity-missed ${interfaceMode}`}>
             <span>TARGET MISSED // PERMANENT LEDGER</span>
@@ -4821,7 +4824,18 @@ export default function Home() {
           ) : (
             <small>SIGN IN TO ISSUE A PERMANENT CAMPAIGN RECORD</small>
           )}
-          <button onClick={() => setReset(true)}>Begin new campaign</button>
+          <div className="end-actions">
+            <button
+              className="secondary"
+              onClick={() => {
+                setPage("dashboard");
+                window.scrollTo({ top: 0, left: 0 });
+              }}
+            >
+              Main page
+            </button>
+            <button onClick={() => setReset(true)}>Begin new campaign</button>
+          </div>
         </div>
       )}
       {systemNotice && (
@@ -4834,8 +4848,10 @@ export default function Home() {
           <span>DISMISS ×</span>
         </button>
       )}
-      {majorAlerts.length > 0 && (
-        <div className={`ava-alert-cluster ${ava ? "ava-open" : ""}`}>
+      {interfaceMode === "command" && !ava && (
+        <div className="ava-command-dock">
+          {majorAlerts.length > 0 && (
+            <div className="ava-alert-cluster">
           {alertMenuOpen && (
             <section className="ava-alert-menu" role="dialog" aria-label="AVA alerts">
               <header>
@@ -4870,11 +4886,10 @@ export default function Home() {
             <span>!</span>
             <b>{majorAlerts.length}</b>
           </button>
-        </div>
-      )}
-      {interfaceMode === "command" && (
-        <button
-          className={`ava-button ${ava ? "hide" : ""}`}
+            </div>
+          )}
+          <button
+          className="ava-button"
           data-telemetry="ava.open-console"
           onClick={openAvaConsole}
         >
@@ -4887,7 +4902,8 @@ export default function Home() {
             </small>
           </div>
           <i>&gt;</i>
-        </button>
+          </button>
+        </div>
       )}
       {ava && (
         <aside
@@ -5041,7 +5057,7 @@ export default function Home() {
         <Overlay close={() => setReset(false)} kind="center">
           <CampaignSetup
             current={s}
-            hasSave={hasSave}
+            hasSave={hasSave && s.status === "active"}
             seedOverride={seedOverride}
             configOverride={challengeConfig}
             onStart={startCampaign}

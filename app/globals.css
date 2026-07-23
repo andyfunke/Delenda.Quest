@@ -5596,16 +5596,22 @@ small,
   width: min(1220px, 96vw);
 }
 .campaign-setup-close {
-  background: #d4d0c8;
-  border: 2px outset #fff;
-  font-size: 18px;
+  align-items:center;
+  background: #111;
+  border: 3px solid #fff;
+  box-shadow:0 0 0 2px #111;
+  color:#fff;
+  cursor:pointer;
+  display:flex;
+  font-size: 40px;
   font-weight: 900;
-  height: 28px;
-  line-height: 18px;
+  height: 56px;
+  justify-content:center;
+  line-height: 1;
   position: absolute;
-  right: 7px;
-  top: 30px;
-  width: 30px;
+  right: 14px;
+  top: 42px;
+  width: 56px;
   z-index: 3;
 }
 .campaign-setup-close:active {
@@ -8020,29 +8026,20 @@ small,
   line-height: 1.55;
   max-width: 650px;
 }
-.campaign-sealed-brief {
-  background: #111;
-  color: #fff;
-  margin: 0 44px 32px;
-  padding: 24px;
+.campaign-opening-quote {
+  border-left:6px solid #111;
+  margin:0 44px 32px;
+  padding:10px 0 10px 24px;
 }
-.campaign-sealed-brief small,
-.campaign-sealed-brief b {
-  display: block;
-  font-family: monospace;
+.campaign-opening-quote p {
+  font:700 21px/1.35 var(--font-display,serif);
+  margin:0 0 12px;
+  max-width:650px;
 }
-.campaign-sealed-brief small {
-  color: #aaa;
-  font-size: 11px;
-}
-.campaign-sealed-brief b {
-  color: var(--acid);
-  font-size: 17px;
-  margin: 9px 0;
-}
-.campaign-sealed-brief p {
-  font: 12px/1.5 monospace;
-  margin: 0;
+.campaign-opening-quote cite {
+  font:900 11px/1.4 var(--mono,monospace);
+  letter-spacing:.08em;
+  text-transform:uppercase;
 }
 .campaign-issuance .campaign-generator-actions {
   grid-template-columns: minmax(220px, 1fr) auto auto auto;
@@ -11758,14 +11755,23 @@ small,
   }
 }
 
-.ava-alert-cluster {
-  bottom: 18px;
-  position: fixed;
-  right: 306px;
-  z-index: 72;
+.ava-command-dock {
+  align-items:stretch;
+  bottom:18px;
+  display:flex;
+  gap:12px;
+  position:fixed;
+  right:18px;
+  z-index:72;
 }
-.ava-alert-cluster.ava-open {
-  right: min(466px, calc(100vw - 56px));
+.ava-command-dock .ava-button {
+  bottom:auto;
+  position:relative;
+  right:auto;
+}
+.ava-alert-cluster {
+  align-self:stretch;
+  position:relative;
 }
 .ava-urgent-icon {
   align-items: center;
@@ -11804,7 +11810,7 @@ small,
   max-height: min(560px, calc(100vh - 100px));
   overflow: auto;
   position: absolute;
-  right: 0;
+  left: 0;
   width: min(390px, calc(100vw - 32px));
 }
 .ava-alert-menu > header {
@@ -11849,11 +11855,23 @@ small,
   padding: 9px 10px;
 }
 @media (max-width: 700px) {
-  .ava-alert-cluster,
-  .ava-alert-cluster.ava-open {
-    bottom: 76px;
-    right: 18px;
+  .ava-command-dock {
+    bottom:18px;
+    right:18px;
   }
+  .ava-alert-menu {
+    left:auto;
+    right:0;
+  }
+}
+.end-actions {
+  display:flex;
+  gap:10px;
+}
+.end-actions .secondary {
+  background:#fff;
+  border:2px solid #fff;
+  color:#111;
 }
 .daily-aphorism-ribbon {
   position: relative;
