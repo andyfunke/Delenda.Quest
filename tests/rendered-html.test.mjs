@@ -201,23 +201,29 @@ test("bubblettes, Military hover geometry, and foreign actor choices preserve th
   assert.doesNotMatch(packet,/AUTHORIZED MANEUVERS|CONNECTED SYSTEMS/);
 });
 
-test("the theater plate compiles mutable geometry and preserves the munitions stockpile label",async()=>{
+test("the theater plate compiles deterministic 45/90 geometry and preserves the munitions stockpile label",async()=>{
   const[page,briefing,map]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/TheaterGeometry.tsx",import.meta.url),"utf8"),
   ]);
-  for(const input of ["sector.control","sector.supplyAccess","sector.infrastructure","sector.fortification","sector.network","s.front","s.maneuver","s.situationHistory","s.operationalFacts"])assert.match(map,new RegExp(input.replace(".","\\.")));
+  for(const input of ["sector.control","sector.supplyAccess","sector.network","state.front","state.maneuver","state.situationHistory","state.operationalFacts","operation.committed","operation.frontageDemand"])assert.match(map,new RegExp(input.replace(".","\\.")));
   assert.match(map,/compileTheaterGeometry/);
+  assert.match(map,/geometrySegmentsAreValid/);
+  assert.match(map,/data-angle-contract="45-90-only"/);
+  assert.match(map,/primitiveFor/);
+  assert.doesNotMatch(map,/bezier|quadratic|curveTo/i);
   assert.match(map,/formation-arrow primary/);
   assert.match(map,/formation-arrow adjacent/);
   assert.match(map,/enemy-formation-arrow/);
-  assert.match(map,/posture-\$\{g\.posture\}/);
+  assert.match(map,/posture-\$\{geometry\.posture\}/);
   assert.match(map,/>\s*18th\s*</);
-  assert.match(map,/MUTABLE FRONT \/ SALIENT/);
-  assert.match(map,/FRIENDLY \/ FORMATION MOVEMENT/);
+  assert.match(map,/ACTIVE FRONTAGE/);
+  assert.match(map,/FRIENDLY \/ FORCE SURFACE/);
   assert.match(map,/ENEMY PRESSURE/);
-  assert.match(map,/SUPPLY/);assert.match(map,/NETWORK/);
+  assert.match(map,/33% ADVANTAGE PATH SURFACE/);
+  assert.match(map,/67% LOSS-EXPOSURE SURFACE/);
+  assert.match(map,/DESIGN HORIZON/);
   assert.match(page,/<small>Stockpile<\/small>/);assert.match(briefing,/STOCKPILE/);
   assert.doesNotMatch(page,/Net expenditure/i);
 });

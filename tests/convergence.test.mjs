@@ -75,9 +75,10 @@ test("the enumerated overlay separates mechanical archetypes from authored conte
 
 test("a campaign consumes enumerated frames without exact-copy repetition",()=>{
   let state=rules.initialState({seed:99173,theater:"lowland"});const seen={domestic:new Set(),network:new Set()};
-  while(state.status==="active"){
+  for(let day=1;day<=30;day+=1){
     const packet=rules.compileConvergence(state);
     for(const domain of ["domestic","network"]){assert.ok(!seen[domain].has(packet[domain].id),`${domain} repeated ${packet[domain].id}`);seen[domain].add(packet[domain].id)}
+    state.status="active";
     state=rules.resolve(state);
   }
   assert.ok(seen.domestic.size>=27);assert.ok(seen.network.size>=27);

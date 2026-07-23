@@ -19,6 +19,7 @@ import {
 import { compileConvergence } from "../convergence";
 import type { AvaInstruction, AvaReportCard, AvaReportTopic } from "./schema";
 import { avaReportOpening as flavor } from "./voice";
+import { campaignScoreForState } from "../campaign-score-state";
 
 type ReportInstruction =
   | Extract<AvaInstruction, { kind: "REPORT" }>
@@ -1260,13 +1261,14 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
   const records = recent(state, requested),
     openingArmed = state.resolutionHistory.at(-1)?.opening.armed ?? state.armed,
     preserved = openingArmed ? (state.armed / openingArmed) * 100 : 100,
-    closed = state.status !== "active";
+    closed = state.status !== "active",
+    score = campaignScoreForState(state);
   return {
     topic: "service-record",
     title: "Campaign service record",
     direct: closed
-      ? `Campaign ${state.campaignId} is ${state.status}. Its campaign ledger is complete; permanent Service Record issuance and ranking occur at the records office.`
-      : `Campaign ${state.campaignId} remains active on Day ${state.day}. No permanent Service Record can be issued before the campaign closes.`,
+      ? `Campaign ${state.campaignId} is ${state.status}. Its transparent Campaign Score is ${score.total.toLocaleString()}; permanent cohort rank and Player Rating issuance occur at the records office.`
+      : `If Campaign ${state.campaignId} were terminated now, its partial Campaign Score would be ${score.total.toLocaleString()}. The completed result remains unissued while the campaign is active.`,
     flavor: flavor(state, "service-record"),
     calculation: {
       equation:
@@ -1288,11 +1290,12 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
                 : "neutral",
           conceptId: "service-record",
         },
-        {
-          label: "RESOLVED DAYS",
-          value: String(state.resolutionHistory.length),
-          conceptId: "resolution",
-        },
+        {label:"COMPLETION",value:signed(score.completion,0),conceptId:"service-record"},
+        {label:"PRODUCTION RANGE",value:signed(score.production,0),tone:score.production>=0?"gain":"loss",conceptId:"production-target"},
+        {label:"CASUALTY CONTROL",value:signed(score.casualtyControl,0),tone:"gain",conceptId:"combat-losses"},
+        {label:"INFLICTED LOSSES",value:signed(score.inflictedLosses,0),tone:"gain",conceptId:"enemy-force"},
+        {label:"EARLY-VICTORY ACCELERATION",value:signed(score.earlyVictory,0),tone:score.earlyVictory>0?"gain":"neutral",conceptId:"service-record"},
+        {label:"CAMPAIGN SCORE",value:score.total.toLocaleString(),tone:"gain",conceptId:"service-record"},
         {
           label: "CURRENT FRONT",
           value: `${signed(state.front)} KM`,
@@ -1313,8 +1316,8 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
     },
     history: historyLayer(state, records, requested, [
       closed
-        ? "The closed campaign may now be presented to the records office; this field report does not claim that a permanent record has been issued."
-        : "Campaign Score, Player Rating, cohort rank, and public citation do not exist until record issuance.",
+        ? "The score is calculated from the completed ledger. Cohort rank and Player Rating are added only when the records office persists the result."
+        : "This is the surrender/termination value of the present ledger, not a prediction of the final score.",
     ]),
     recommendation: closed
       ? "Open the records office to verify whether this completed campaign received a permanent record. Until then, no score, rank, or public citation is claimed."

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { publicCampaignRecord } from "../../../db/campaign-records";
 import { APHORISMS } from "../../aphorisms";
 import { RecordActions } from "./RecordActions";
+import { scoreBreakdownLines } from "../../campaign-balance";
 
 const host="https://delenda-quest.andrew-i-funke.chatgpt.site";
 const label=(value:string)=>value.replaceAll("-"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -21,7 +22,7 @@ export default async function CampaignRecordPage({params}:{params:Promise<{slug:
   const renderedAt=new Date();
   const visual=hash(record.publicSlug)%6;
   const epigraph=APHORISMS[hash(`${record.publicSlug}:certificate`)%APHORISMS.length];
-  const scoreLaw="completion + production range + casualty control + inflicted losses + duration; clamped 0–10,000";
+  const scoreLaw=scoreBreakdownLines(record.scoreBreakdown);
   const credential={name:`Campaign Command Certificate: ${record.outcome==="victory"?"Victory":"Defeat"} in ${label(record.theater)}`,issuer:"DELENDA.QUEST",issueDate,credentialId:`DQ-${record.publicSlug}`};
   const summary=`DELENDA.QUEST // ${record.campaignId}\n${record.outcome.toUpperCase()} · DAY ${record.days}\nCampaign Score: ${record.campaignScore.toLocaleString()} · Rank ${record.campaignRank}/${record.cohortSize}\nPlayer Rating: ${record.uberscore.toLocaleString()} · Global Rank ${record.globalRank}/${record.commanderCount}\n${record.forcePreserved.toFixed(1)}% Opening Force Remaining · ${record.front>=0?"+":""}${record.front.toFixed(1)} km`;
   return <main className="public-record">
@@ -31,7 +32,7 @@ export default async function CampaignRecordPage({params}:{params:Promise<{slug:
       <div className="record-certificate-content"><div className="record-seal">DQ</div><small>CAMPAIGN COMMAND CERTIFICATE // {record.publicSlug}</small>
       <h1>{record.outcome}</h1><p>{record.pseudonym} assumed command in <b>{label(record.theater)}</b> and brought Campaign Record <b>{record.campaignId}</b> to {record.outcome} on Day {record.days}.</p>
       <blockquote>“{epigraph.text}”<cite>{epigraph.source}</cite></blockquote>
-      <section className="record-scoreboard"><div className="score-disclosure" tabIndex={0}><span>CAMPAIGN SCORE ⓘ</span><b>{record.campaignScore.toLocaleString()}</b><small>RANK {record.campaignRank} / {record.cohortSize}</small><em>{scoreLaw}</em></div><div><span>PLAYER RATING EARNED</span><b>+{record.uberscoreEarned.toLocaleString()}</b><small>{record.friendCount} FRIENDS // ×{record.friendMultiplier.toFixed(2)}</small></div><div><span>CUMULATIVE PLAYER RATING</span><b>{record.uberscore.toLocaleString()}</b><small>GLOBAL RANK {record.globalRank} / {record.commanderCount}</small></div></section>
+      <section className="record-scoreboard"><div className="score-disclosure" tabIndex={0}><span>CAMPAIGN SCORE ⓘ</span><b>{record.campaignScore.toLocaleString()}</b><small>RANK {record.campaignRank} / {record.cohortSize}</small><em>{scoreLaw.map(line=><i key={line}>{line}</i>)}</em></div><div><span>PLAYER RATING EARNED</span><b>+{record.uberscoreEarned.toLocaleString()}</b><small>{record.friendCount} FRIENDS // ×{record.friendMultiplier.toFixed(2)}</small></div><div><span>CUMULATIVE PLAYER RATING</span><b>{record.uberscore.toLocaleString()}</b><small>GLOBAL RANK {record.globalRank} / {record.commanderCount}</small></div></section>
       <section className="record-result-grid"><div><span>OPENING FORCE REMAINING</span><b>{record.forcePreserved.toFixed(1)}%</b></div><div><span>FINAL LINE</span><b>{record.front>=0?"+":""}{record.front.toFixed(1)} KM</b></div><div><span>DURATION</span><b>{record.days} DAYS</b></div><div><span>PUBLIC LOCATION</span><b>{record.publicGeo}</b></div></section>
       <footer><span>ISSUED {new Date(record.completedAt).toLocaleString()}</span><span>RENDERED {renderedAt.toLocaleString()}</span><span>SIMULATION ACCOMPLISHMENT // NOT ACCREDITATION</span></footer></div>
     </article>

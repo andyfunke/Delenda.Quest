@@ -1,0 +1,1 @@
+ALTER TABLE `campaign_records` ADD `score_breakdown` text DEFAULT '{}' NOT NULL;

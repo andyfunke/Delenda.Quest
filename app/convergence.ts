@@ -7,7 +7,7 @@ import {
   compileSubMissionDocket, subMissionArchetypeById, subMissionFrameById,
   type CompiledSubMissionRef, type SubMissionConvergenceEdge, type SubMissionDomain, type SubMissionPressureBand,
 } from "./submission-schema";
-export { FAMILIES, initialState, resolve, situationForState } from "./game";
+export { FAMILIES, initialState, resolve, restoreCampaignState, situationForState } from "./game";
 export {
   DOMESTIC_SUB_MISSIONS, NETWORK_SUB_MISSIONS, SUB_MISSION_CONTENT_VERSION,
   SUB_MISSION_FRAMES, SUB_MISSION_SCHEMA_VERSION, validateSubMissionRegistry,

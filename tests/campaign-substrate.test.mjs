@@ -3,10 +3,10 @@ import test from "node:test";
 
 const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
-  BLUEPRINT_RULES, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
+  ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_FINISH_DISTRIBUTION, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
-  directiveRejection, estimateDay, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, directiveRejection, earlyVictoryAcceleration, estimateDay, finishByDayProbability, maneuverChance, outcomeBandForMargin, projectAdversary, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -134,9 +134,12 @@ test("same seed and orders replay to identical campaign state",()=>{
 test("targets of opportunity are deterministic and do not spend a strategic order",()=>{
   let state=null,initialPacket=null;
   for(let seed=1;seed<500&&!initialPacket;seed++){
-    const candidate=initialState({seed,theater:"river"});
-    const found=opportunityForState(candidate);
-    if(found){state=candidate;initialPacket=found;}
+    const opening=initialState({seed,theater:"river"});
+    for(let day=2;day<=30&&!initialPacket;day++){
+      const candidate={...opening,day,currentSituation:null};
+      const found=opportunityForState(candidate);
+      if(found){state=candidate;initialPacket=found;}
+    }
   }
   assert.ok(state&&initialPacket);
   const packet=opportunityForState(state),again=opportunityForState(state);
@@ -154,9 +157,12 @@ test("targets of opportunity are deterministic and do not spend a strategic orde
 test("opened and expired opportunities remain pinned in the permanent no-repeat ledger",()=>{
   let state=null,packet=null;
   for(let seed=1;seed<500&&!packet;seed++){
-    const candidate=initialState({seed,theater:"river"});
-    const found=opportunityForState(candidate);
-    if(found){state=candidate;packet=found;}
+    const opening=initialState({seed,theater:"river"});
+    for(let day=2;day<=30&&!packet;day++){
+      const candidate={...opening,day,currentSituation:null};
+      const found=opportunityForState(candidate);
+      if(found){state=candidate;packet=found;}
+    }
   }
   assert.ok(state&&packet);
   const opened=recordOpportunityOpened(state,packet,1234);
@@ -173,17 +179,20 @@ test("opened and expired opportunities remain pinned in the permanent no-repeat 
 test("immediate opportunities alter the same-day operation when their effect is operational",()=>{
   let state=null,committed=null;
   for(let seed=1;seed<2000&&!committed;seed++){
-    const candidate=initialState({seed,theater:"river"});
-    const packet=opportunityForState(candidate);if(!packet)continue;
-    const next=commitOpportunity(candidate,packet.responses[0]);
-    if(next.opportunityHistory[0]?.friendlyPressure){state=candidate;committed=next;}
+    const opening=initialState({seed,theater:"river"});
+    for(let day=2;day<=30&&!committed;day++){
+      const candidate={...opening,day,currentSituation:null};
+      const packet=opportunityForState(candidate);if(!packet)continue;
+      const next=commitOpportunity(candidate,packet.responses[0]);
+      if(next.opportunityHistory[0]?.friendlyPressure){state=candidate;committed=next;}
+    }
   }
   assert.ok(state&&committed);
   assert.notEqual(projectOperations(committed).groundMovement,projectOperations(state).groundMovement);
   assert.notEqual(resolve(committed).operationsLedger.groundMovement,resolve(state).operationsLedger.groundMovement);
 });
 
-test("the opportunity corpus is unique, full-day, spaced one to three days apart, and wiki-addressable",()=>{
+test("the opportunity corpus is unique, full-day, one-in-five eligible, and separated by three-day windows",()=>{
   assert.equal(OPPORTUNITY_TEMPLATES.length,100);
   assert.equal(new Set(OPPORTUNITY_TEMPLATES.map(item=>item.id)).size,100);
   assert.ok(OPPORTUNITY_TEMPLATES.every(item=>item.headline&&item.individual&&item.responses.length===2));
@@ -212,8 +221,9 @@ test("the opportunity corpus is unique, full-day, spaced one to three days apart
   assert.equal(new Set(ids).size,ids.length);
   const occurrenceDays=[];
   for(let day=1;day<=30;day++)if(opportunityForState({...state,day,currentSituation:null}))occurrenceDays.push(day);
-  assert.ok(occurrenceDays.slice(1).every((day,index)=>day-occurrenceDays[index]>=1&&day-occurrenceDays[index]<=3));
-  assert.equal(OPPORTUNITY_FREQUENCY,.5);
+  assert.equal(occurrenceDays.includes(1),false);
+  assert.ok(occurrenceDays.slice(1).every((day,index)=>day-occurrenceDays[index]>=3));
+  assert.equal(OPPORTUNITY_FREQUENCY,.2);
 });
 
 test("depleted stockpiles preserve industrial output and cap fulfilled use instead of inventing negative stock",()=>{
@@ -224,7 +234,8 @@ test("depleted stockpiles preserve industrial output and cap fulfilled use inste
   assert.equal(line.desiredOutput,line.requestedUse);
   assert.equal(line.fulfilledUse,Math.min(line.requestedUse,line.opening+line.output));
   assert.equal(line.unmetUse,Math.max(0,line.requestedUse-line.fulfilledUse));
-  assert.equal(line.closing,0);
+  assert.equal(line.closing,line.opening+line.output-line.fulfilledUse);
+  assert.ok(line.closing>=0);
   assert.equal(line.equilibrium,line.output-line.desiredOutput);
 });
 
@@ -286,8 +297,38 @@ test("restoration rejects malformed saved sub-mission dockets and preserves reso
   const malformedHistory=structuredClone(state);delete malformedHistory.resolutionHistory[0].adversaryObserved;const filtered=restoreCampaignState(malformedHistory);assert.equal(filtered.resolutionHistory.length,0);
 });
 
-test("first-day loss exposure is daily while an inert command loses at the thirty-day horizon",()=>{
-  assert.equal(NO_ACTION_DAILY_FRONT_LOSS,-.29);
+test("the generated path surface is one-third advantage and two-thirds loss exposure",()=>{
+  assert.equal(ADVANTAGE_PATH_SURFACE,1/3);
+  assert.equal(LOSS_PATH_SURFACE,2/3);
+  const state=initialState({seed:1729,theater:"lowland"}),situation=situationForState(state);
+  const roles=situation.maneuvers.map(id=>regulatedPathwayForState(state,MANEUVERS.find(item=>item.id===id)));
+  assert.equal(roles.filter(role=>role==="advantage").length,1);
+  assert.equal(roles.filter(role=>role==="loss-exposure").length,2);
+});
+
+test("the campaign finish horizon is a disclosed bell curve with a negligible Day-15 tail",()=>{
+  const total=CAMPAIGN_FINISH_DISTRIBUTION.reduce((sum,item)=>sum+item.probability,0);
+  const late=CAMPAIGN_FINISH_DISTRIBUTION.filter(item=>item.day>=28).reduce((sum,item)=>sum+item.probability,0);
+  assert.ok(Math.abs(total-1)<1e-12);
+  assert.ok(late>.6);
+  assert.ok(finishByDayProbability(15)<.000001);
+  assert.equal(CAMPAIGN_FINISH_DISTRIBUTION.toSorted((a,b)=>b.probability-a.probability)[0].day,29);
+});
+
+test("early victories earn an exponential score acceleration while losses do not",()=>{
+  const day28=earlyVictoryAcceleration(28,"victory"),day24=earlyVictoryAcceleration(24,"victory"),day20=earlyVictoryAcceleration(20,"victory"),day15=earlyVictoryAcceleration(15,"victory");
+  assert.equal(day28,0);
+  assert.ok(day24>0);
+  assert.ok(day20-day24>day24-day28);
+  assert.ok(day15-day20>day20-day24);
+  assert.equal(earlyVictoryAcceleration(15,"defeat"),0);
+  const score=calculateCampaignScore({outcome:"victory",days:15,productionMin:0,productionMax:0,sufferedMin:0,sufferedMax:0,inflictedMin:0,inflictedMax:0});
+  assert.equal(score.earlyVictory,2600);
+  assert.equal(score.total,8400);
+});
+
+test("first-day loss exposure is daily while an inert command loses inside ten days",()=>{
+  assert.equal(NO_ACTION_DAILY_FRONT_LOSS,-1.1);
   for(const theater of THEATERS){
     const opening=initialState({seed:1729,theater:theater.id});
     const situation=situationForState(opening);
@@ -303,14 +344,14 @@ test("first-day loss exposure is daily while an inert command loses at the thirt
     assert.equal(state.status,"defeat");
     terminalDays.push(state.day-1);
   }
-  assert.ok(Math.min(...terminalDays)>=26);
-  assert.ok(Math.max(...terminalDays)<=31);
+  assert.ok(Math.min(...terminalDays)>=8);
+  assert.ok(Math.max(...terminalDays)<=10);
   const average=terminalDays.reduce((total,day)=>total+day,0)/terminalDays.length;
-  assert.ok(average>=28&&average<=30.5);
+  assert.ok(average>=8&&average<=9.5);
 });
 
-test("competent command resolves an ebbing campaign inside the terminal window",()=>{
-  assert.equal(TERMINAL_RESOLUTION_DAY,24);
+test("competent command resolves against the seed-specific bell-curve horizon",()=>{
+  assert.equal(TERMINAL_RESOLUTION_DAY,15);
   const plan=[["tempo","surge"],["statecraft","backchannel"],["production","eyes"],["industry","maintenance"],["training-standard","specialist"],["desertion","rations"],["supply","shadow"],["casualty-politics","public-mourning"]];
   const terminal=[];
   for(let seed=1;seed<=6;seed++)for(const theater of THEATERS){
@@ -337,9 +378,10 @@ test("competent command resolves an ebbing campaign inside the terminal window",
   const victories=terminal.filter(state=>state.status==="victory"),defeats=terminal.filter(state=>state.status==="defeat");
   assert.ok(victories.length>=terminal.length*.5);
   assert.ok(terminal.every(state=>state.day-1>=TERMINAL_RESOLUTION_DAY&&state.day-1<=30));
+  assert.ok(victories.every(state=>state.day-1>=campaignBalanceProfile(state.campaignSeed).designHorizonDay));
   const victoryAverage=victories.reduce((total,state)=>total+state.day-1,0)/victories.length;
   const defeatAverage=defeats.reduce((total,state)=>total+state.day-1,0)/defeats.length;
-  assert.ok(victoryAverage>=26&&victoryAverage<=29);
+  assert.ok(victoryAverage>=26&&victoryAverage<=30);
   assert.ok(defeatAverage>=28&&defeatAverage<=30);
 });
 

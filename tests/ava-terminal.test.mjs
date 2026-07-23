@@ -222,12 +222,16 @@ test("available doctrine can be internalized through a state-bound zero-order co
 
 const stateWithOpportunity=()=>{
   for(let seed=1;seed<=2000;seed+=1){
-    const state=newState(seed),status=game.opportunityStatusForFraction(state,0);
-    if(!status.packet)continue;
-    const fraction=(status.packet.opensAtFraction+status.packet.closesAtFraction)/2;
-    if(game.opportunityStatusForFraction(state,fraction).status==="active")return{state,fraction,packet:status.packet};
+    const opening=newState(seed);
+    for(let day=2;day<=30;day+=1){
+      const state=game.restoreCampaignState({...opening,day,currentSituation:null,currentSubMissions:null});
+      const status=game.opportunityStatusForFraction(state,0);
+      if(!status.packet)continue;
+      const fraction=(status.packet.opensAtFraction+status.packet.closesAtFraction)/2;
+      if(game.opportunityStatusForFraction(state,fraction).status==="active")return{state,fraction,packet:status.packet};
+    }
   }
-  assert.fail("no deterministic Day 1 opportunity found in seed sweep");
+  assert.fail("no deterministic post-Day-1 opportunity found in seed sweep");
 };
 
 test("opportunity forecast discloses branches but never resolves or reveals the sealed branch",()=>{

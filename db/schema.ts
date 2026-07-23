@@ -30,6 +30,7 @@ export const campaignRecords=sqliteTable("campaign_records",{
   outcome:text("outcome",{enum:["victory","defeat","abandoned"]}).notNull(),
   days:integer("days").notNull(),
   campaignScore:integer("campaign_score").notNull(),
+  scoreBreakdown:text("score_breakdown").notNull().default("{}"),
   baseUberscore:integer("base_uberscore").notNull(),
   friendCount:integer("friend_count").notNull(),
   friendMultiplier:integer("friend_multiplier").notNull(),

@@ -56,7 +56,7 @@ const resources:Resource[]=["munitions","armor","flight","drones"];
 const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,drones:12.6};
 const baseUse:Record<Resource,number>={munitions:21000,armor:74,flight:17,drones:355};
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
-export const NO_ACTION_DAILY_FRONT_LOSS=-0.29;
+export const NO_ACTION_DAILY_FRONT_LOSS=-1.1;
 export const enemyDeploymentShareForPosture=(posture:string)=>posture.includes("Reconstitute") ? .28 : posture.includes("Concentrated") ? .72 : posture.includes("Exploit") ? .62 : posture.includes("Counterstroke") ? .58 : posture.includes("Defense") ? .38 : .48;
 const allocationFor=(target:GameState["target"],resource:Resource)=>target==="balanced"?25:resource===target?46:18;
 

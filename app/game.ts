@@ -11,6 +11,7 @@ import { composeWarDispatch } from "./war-dispatch";
 import { OPPORTUNITY_CATEGORY_LABELS, OPPORTUNITY_SPINES, type OpportunityCategory } from "./opportunity-corpus";
 import { OPPORTUNITY_RESPONSE_FLAVOR } from "./opportunity-flavor";
 import { SUB_MISSION_CONTENT_VERSION, SUB_MISSION_SCHEMA_VERSION, compileSubMissionDocket, subMissionArchetypeById, subMissionFrameById, type DailySubMissionDocket, type SubMissionDomain, type SubMissionHistoryRecord } from "./submission-schema";
+import { EARLIEST_MODELED_VICTORY_DAY, campaignBalanceProfile } from "./campaign-balance";
 
 export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
@@ -66,7 +67,7 @@ export type DailyResolutionRecord = {
 
 export type GameState = {
   saveVersion:number; contentPackVersion:string; campaignId:string; campaignSeed:number; stateArchetype:string; adversaryPersonality:string; theater:Theater;
-  day: number; actions: number; status: "active" | "victory" | "defeat";
+  day: number; actions: number; status: "active" | "victory" | "defeat"; victorySecuredDay:number|null;
   population: number; workforce: number; armed: number; deployable: number;
   voluntary: number; forced: number; queue: number; training: number; duration: number; quality: number;
   trainingCohorts: TrainingCohort[]; reserves:number; forceGenerationLedger:ForceGenerationLedger|null;
@@ -398,7 +399,7 @@ FAMILIES.filter(family=>family.module==="diplomacy").forEach(family=>family.choi
 export const activeDiplomacyForState=(state:GameState)=>state.activeDiplomacy.filter(action=>action.startedDay<=state.day&&action.expiresDay>state.day);
 
 export const DEFAULT_CAMPAIGN:CampaignConfig={seed:1729,archetype:"industrial-republic",adversaryPersonality:"adaptive",theater:"lowland"};
-export const TERMINAL_RESOLUTION_DAY=24;
+export const TERMINAL_RESOLUTION_DAY=EARLIEST_MODELED_VICTORY_DAY;
 const validTheater=(value:unknown):value is Theater=>THEATERS.some(x=>x.id===value);
 export const sanitizeSeed=(value:number)=>Math.max(1,Math.min(2_147_483_647,Math.abs(Math.trunc(Number.isFinite(value)?value:DEFAULT_CAMPAIGN.seed))));
 
@@ -429,7 +430,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
   };
   const s:GameState={
     saveVersion:4,contentPackVersion:CONTENT_PACK_VERSION,campaignId:`DQ-${config.seed.toString(36).toUpperCase().padStart(6,"0")}-${config.theater.slice(0,3).toUpperCase()}`,campaignSeed:config.seed,stateArchetype:config.archetype,adversaryPersonality:config.adversaryPersonality,theater:config.theater,
-    day: 1, actions: DAILY_ORDERS, status: "active", population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
+    day: 1, actions: DAILY_ORDERS, status: "active", victorySecuredDay:null, population: 18420000, workforce: 11200000, armed: 620000, deployable: 431000,
     voluntary: 9000, forced: 0, queue: 76000, training: 48000, duration: 6, quality: 78,
     trainingCohorts: [{id:"D0-C1",admittedDay:0,headcount:42000,daysRemaining:2,quality:82},{id:"D0-C2",admittedDay:0,headcount:38000,daysRemaining:4,quality:76}], reserves: 53000, forceGenerationLedger:null,
     readiness: 64, equipment: 71, materiel: 68, treasury: 220, legitimacy: 58, resistance: 14, dependency: 9, intelligence: 42,
@@ -589,13 +590,19 @@ export const situationForState = (state:GameState):CompiledSituation => {
 export const OPPORTUNITY_FREQUENCY=1/5;
 /*
  * Random assignments use one sealed five-sided roll per player day. A single
- * face opens the assignment, keeping the rate below the one-in-three ceiling.
- * Day 1 is an onboarding day and can never open one.
+ * face opens the assignment. A raw trigger is suppressed when either of the
+ * preceding two days also rolled the trigger face, so assignments can never
+ * occupy the same three-day window. Day 1 is an onboarding day and can never
+ * open one.
  */
 const opportunityRoll=(seed:number,day:number)=>
   1+Math.floor(hash(`${seed}:target-of-opportunity:roll:${day}`)*5);
-const opportunityOccurs=(seed:number,day:number)=>
+const opportunityRawTrigger=(seed:number,day:number)=>
   day>1&&opportunityRoll(seed,day)===1;
+const opportunityOccurs=(seed:number,day:number)=>
+  opportunityRawTrigger(seed,day)&&
+  !opportunityRawTrigger(seed,day-1)&&
+  !opportunityRawTrigger(seed,day-2);
 const opportunitySchedule=(seed:number,throughDay:number)=>{
   const days:number[]=[];
   for(let day=2;day<=throughDay;day+=1)
@@ -700,13 +707,40 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     situationHistory:Array.isArray(candidate.situationHistory)?candidate.situationHistory:base.situationHistory,currentSituation:candidate.currentSituation??null,
     currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
     resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
-    active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs};
+    active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs,victorySecuredDay:typeof candidate.victorySecuredDay==="number"?candidate.victorySecuredDay:null};
   normalize(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
+const maneuverGeometryFit=(state:GameState,maneuver:Maneuver)=>{
+  const situation=situationForState(state),problem=situation.problemClass;
+  let fit=maneuver.success;
+  if(problem==="command"){if(maneuver.id==="network")fit+=.36;if(maneuver.id==="route")fit+=.12;}
+  if(problem==="logistics"){if(maneuver.id==="route")fit+=.36;if(maneuver.id==="reinforce")fit+=.1;}
+  if(problem==="assault"){if(maneuver.id==="breach")fit+=.34;if(maneuver.id==="interdict")fit+=.2;}
+  if(problem==="crossing"){if(maneuver.id==="route")fit+=.34;if(maneuver.id==="network")fit+=.12;}
+  if(problem==="force-preservation"){if(maneuver.id==="reinforce"||maneuver.id==="abandon")fit+=.27;}
+  if(problem==="exploitation"&&maneuver.id==="exploit")fit+=.36;
+  if(problem==="counterstroke"){if(maneuver.id==="interdict")fit+=.3;if(maneuver.id==="reinforce")fit+=.2;}
+  if(problem==="observation"){if(maneuver.id==="network")fit+=.3;if(maneuver.id==="interdict")fit+=.14;}
+  const terrain=`${situation.terrain} ${situation.ground}`.toLowerCase();
+  if(terrain.includes("ridge")&&(maneuver.id==="breach"||maneuver.id==="interdict"))fit+=.1;
+  if(terrain.includes("mined")&&(maneuver.id==="breach"||maneuver.id==="route"))fit+=.1;
+  if(terrain.includes("flood")&&maneuver.id==="route")fit+=.12;
+  if(terrain.includes("industrial")&&maneuver.id==="network")fit+=.08;
+  if(["famine","critical","strained"].includes(situation.bands.supply)&&maneuver.id==="route")fit+=.12;
+  if(["severed","degraded"].includes(situation.bands.network)&&maneuver.id==="network")fit+=.12;
+  return fit+hash(`${state.campaignSeed}:${state.day}:${situation.id}:path:${maneuver.id}`)*.0001;
+};
+export const regulatedPathwayForState=(state:GameState,maneuver:Maneuver)=>{
+  const docket=situationForState(state).maneuvers.map(id=>maneuverById(id)).filter((item):item is Maneuver=>!!item);
+  const ranked=[...docket].sort((left,right)=>maneuverGeometryFit(state,right)-maneuverGeometryFit(state,left));
+  if(!docket.some(item=>item.id===maneuver.id))return"outside-docket" as const;
+  return ranked[0]?.id===maneuver.id?"advantage" as const:"loss-exposure" as const;
+};
 export type ManeuverChanceTerm={id:string;label:string;points:number;conceptId:string};
 export const explainManeuverChance = (s:GameState,m:Maneuver,director:CampaignDirector=directorForState(s)) => {
   const doctrine=(m.id==="interdict"&&s.unlocked.includes("long-range")?.09:0)+(m.id==="breach"&&s.unlocked.includes("forced-passage")?.12:0)+(m.id==="network"&&s.unlocked.includes("relay-discipline")?.06:0);
+  const pathRole=regulatedPathwayForState(s,m);
   const terms:ManeuverChanceTerm[]=[
     {id:"base",label:"Maneuver base",points:m.success*100,conceptId:"execution-confidence"},
     {id:"intelligence",label:"Intelligence",points:(s.intelligence-42)*.2,conceptId:"intelligence"},
@@ -717,6 +751,7 @@ export const explainManeuverChance = (s:GameState,m:Maneuver,director:CampaignDi
     {id:"doctrine",label:"Internalized doctrine",points:doctrine*100,conceptId:"execution-confidence"},
     {id:"adaptation",label:`Enemy adaptation // ${s.adversary?.adaptation[m.id]??0}`,points:-Math.min(12,(s.adversary?.adaptation[m.id]??0)*1.5),conceptId:"enemy-adaptation"},
     {id:"condition",label:`Campaign condition // ${director.event.label}`,points:director.modifiers.confidence*100,conceptId:"campaign-synopsis"},
+    {id:"path-regulation",label:pathRole==="advantage"?"Generated advantage pathway // 1 of 3":"Generated loss-exposure pathway // 2 of 3",points:pathRole==="advantage"?8:pathRole==="loss-exposure"?-4:0,conceptId:"campaign-synopsis"},
   ];
   const unclamped=terms.reduce((total,term)=>total+term.points,0)/100;
   return{terms,unclamped,result:Math.max(.05,Math.min(.95,unclamped)),clamp:[.05,.95] as const};
@@ -857,7 +892,7 @@ export const liveProjection = (s: GameState, fraction: number) => {
 
 export const projectProduction = (s:GameState) => {const director=directorForState(s);return executeCircuit(productionCircuit,s,{supplyMultiplier:tempoProfile(s.tempo)[1],resourceUse:maneuverById(s.maneuver)?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance}).ledger;};
 export const projectForceGeneration = (s:GameState) => executeCircuit(forceGenerationCircuit,s,{preview:true}).ledger;
-const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForState(s);const director=directorForState(s);const adversaryPreview=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});const projected={...adversaryPreview.state,adversaryLedger:adversaryPreview.ledger};const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(projected.tempo);const shortages=Object.values(projected.production).filter(x=>x.stock<x.use*2).length;const opportunityPressure=projected.opportunityHistory.find(record=>record.day===projected.day)?.friendlyPressure??0;return executeCircuit(operationsCircuit,projected,{situation,maneuver,roll,confidence:maneuver?maneuverChance(projected,maneuver):1,tempoCasualty,tempoSupply:tempoSupply*(maneuver?.supply??1),tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion}).ledger;};
+const operationProjection=(s:GameState,maneuver:Maneuver|null,roll:number)=>{const situation=situationForState(s);const director=directorForState(s);const balance=campaignBalanceProfile(s.campaignSeed);const adversaryPreview=executeCircuit(adversaryCircuit,s,{roll:hash(`${s.campaignSeed}:${s.day}:adversary:${maneuver?.id??"standing"}`),situation,playerManeuver:maneuver});const projected={...adversaryPreview.state,adversaryLedger:adversaryPreview.ledger};const [tempoCasualty,tempoSupply,tempoPressure]=tempoProfile(projected.tempo);const shortages=Object.values(projected.production).filter(x=>x.stock<x.use*2).length;const opportunityPressure=projected.opportunityHistory.find(record=>record.day===projected.day)?.friendlyPressure??0;return executeCircuit(operationsCircuit,projected,{situation,maneuver,roll,confidence:maneuver?maneuverChance(projected,maneuver):1,tempoCasualty,tempoSupply:tempoSupply*(maneuver?.supply??1),tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityPressure+(maneuver?balance.pacingPressure:0),directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion}).ledger;};
 export const projectOperations = (s:GameState,maneuver:Maneuver|null=maneuverById(s.maneuver)??null) => {const situation=situationForState(s);return operationProjection(s,maneuver,deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"));};
 export const projectOperationRange = (s:GameState,maneuver:Maneuver) => {const confidence=maneuverChance(s,maneuver);return{success:operationProjection(s,maneuver,confidence-.1),failure:operationProjection(s,maneuver,confidence+.1)};};
 export const projectOutcomeBands=(s:GameState,maneuver:Maneuver)=>{const confidence=maneuverChance(s,maneuver);return{
@@ -904,7 +939,7 @@ export const resolve = (state: GameState) => {
   const productionResult=executeCircuit(productionCircuit,s,{supplyMultiplier:tempoSupply,resourceUse:maneuver?.resourceUse,directorOutput:director.modifiers.productionOutput,directorUse:director.modifiers.supplyUse,directorMaintenance:director.modifiers.maintenance});Object.assign(s,productionResult.state);s.productionLedger=productionResult.ledger;
   const forceResult=executeCircuit(forceGenerationCircuit,s,{});Object.assign(s,forceResult.state);s.forceGenerationLedger=forceResult.ledger;const grads=forceResult.ledger.effectiveGraduates;
   const immediateOpportunityPressure=opportunityResult.pressure?0:s.opportunityHistory.find(record=>record.day===s.day)?.friendlyPressure??0;
-  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"),confidence:maneuver?maneuverChance(s,maneuver,director):1,tempoCasualty,tempoSupply:tempoSupply*maneuverSupply,tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityResult.pressure+immediateOpportunityPressure,directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move,outcomeBand,margin}=operationResult.ledger;
+  const shortages=Object.values(s.production).filter((x)=>x.stock<x.use*2).length;const balance=campaignBalanceProfile(s.campaignSeed);const operationResult=executeCircuit(operationsCircuit,s,{situation,maneuver,roll:deterministicRoll(situation.resolutionTicket,maneuver?.id??"standing"),confidence:maneuver?maneuverChance(s,maneuver,director):1,tempoCasualty,tempoSupply:tempoSupply*maneuverSupply,tempoPressure,shortages,directorCasualty:director.modifiers.casualty,directorFriendlyPressure:director.modifiers.friendlyPressure+opportunityResult.pressure+immediateOpportunityPressure+(maneuver?balance.pacingPressure:0),directorEnemyPressure:director.modifiers.enemyPressure,directorSupplyConversion:director.modifiers.supplyConversion});s.operationsLedger=operationResult.ledger;const {succeeded,friendlyLosses:losses,enemyLosses:enemyLoss,groundMovement:move,outcomeBand,margin}=operationResult.ledger;
   const desert=estimateDay(s,director); s.deserters+=desert.desertion;s.retained+=desert.retained; s.intercepted+=desert.intercepted; s.armed-=losses+desert.netDesertion; s.deployable-=losses+desert.netDesertion;s.adversary.force=Math.max(0,s.adversary.force-enemyLoss);s.enemy=Math.round(s.adversary.force*s.adversary.estimateBias); s.population-=Math.round(losses*.72);
   s.front+=move;if(maneuver?.id==="network"&&succeeded)s.intelligence+=3;const aftermath=resolveSituationAftermath(s,situation,maneuver?.id??null,outcomeBand,margin,move);s.theaterSectors=aftermath.theaterSectors;s.operationalFacts=aftermath.operationalFacts;s.situationHistory=aftermath.situationHistory;
   let doctrineGain=0; if(maneuver&&succeeded){doctrineGain=Math.max(10,Math.round(enemyLoss/1000*8+Math.max(0,move)*20));s.doctrine+=doctrineGain;s.doctrineEarned+=doctrineGain;s.affinityProofs[maneuver.vector]=(s.affinityProofs[maneuver.vector]??0)+1;s.doctrineWinAwards.unshift({day:s.day,action:maneuver.label,verified:`${fmtStrategic(enemyLoss)} enemy losses // ${describeGroundMovement(move).display}`,reward:doctrineGain});}
@@ -916,8 +951,11 @@ export const resolve = (state: GameState) => {
   for(const domain of ["domestic","network"] as const){const mission=docket[domain];const issued=todayDirectives.find(decision=>decision.domain===domain&&decision.missionId===mission.contentId);s.subMissionHistory.unshift({day:s.day,domain,archetypeId:mission.archetypeId,frameId:mission.frameId,realizationId:mission.realizationId,contentId:mission.contentId,category:mission.category,pressureBand:mission.pressureBand,resolutionTicket:mission.resolutionTicket,optionId:issued?.choiceId??null,familyId:issued?.familyId??null,choiceId:issued?.choiceId??null,outcome:issued?"issued":"lapsed"});}
   const closing=strategicSnapshot(s);s.resolutionHistory.unshift({schemaVersion:1,resolvedDay:s.day,phaseId:director.phase.id,eventId:director.event.id,sector:situation.sector,blueprintId:situation.blueprintId,opening,closing,orders:{used:DAILY_ORDERS-s.actions,unused:s.actions,maneuverId:maneuver?.id??null,directives:todayDirectives.map(decision=>({familyId:decision.familyId,choiceId:decision.choiceId,family:decision.family,choice:decision.choice,domain:decision.domain,missionId:decision.missionId}))},operations:operationResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,domestic:domesticResult.ledger,diplomacy:diplomacyResult.ledger,adversaryObserved:{estimatedForce:adversaryResult.ledger.estimatedForce,estimateLow:adversaryResult.ledger.estimateLow,estimateHigh:adversaryResult.ledger.estimateHigh,observedOrders:[...adversaryResult.ledger.observedOrders],hiddenOrders:adversaryResult.ledger.hiddenOrders,signals:[...adversaryResult.ledger.signals]},personnel:{combatLosses:losses,desertionAttempts:desert.desertion,retained:desert.retained,intercepted:desert.intercepted,netDesertion:desert.netDesertion,effectiveGraduates:forceResult.ledger.effectiveGraduates,deployableAssigned:forceResult.ledger.deployableAssigned},outcome:{groundMovement:move,outcomeBand,doctrineGain,factsCreated:aftermath.createdFacts.map(fact=>fact.id)}});
   s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, ...dispatch, epigraph:director.event.quote });
-  const resolvedDay=s.day-1,terminalResolutionOpen=resolvedDay>=TERMINAL_RESOLUTION_DAY;
-  if((terminalResolutionOpen&&s.front>=12)||(s.day>30&&s.front>0))s.status="victory";
+  const resolvedDay=s.day-1,terminalResolutionOpen=resolvedDay>=balance.designHorizonDay;
+  if(s.front>=12&&s.victorySecuredDay===null)s.victorySecuredDay=resolvedDay;
+  const inertCommand=s.resolutionHistory.every(record=>record.orders.used===0&&record.orders.maneuverId===null);
+  if((terminalResolutionOpen&&s.victorySecuredDay!==null)||(s.day>30&&s.front>0))s.status="victory";
+  if(inertCommand&&resolvedDay>=balance.inertDefeatDay)s.status="defeat";
   if((terminalResolutionOpen&&s.front<=-12)||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
   normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);s.adversary.objective=s.currentSituation.sector;return s;
 };
@@ -925,4 +963,5 @@ export const resolve = (state: GameState) => {
 export const fmt = (n: number, full=false) => full?Math.round(n).toLocaleString():new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(n);
 export const coverage = (s: GameState, r: Resource) => s.production[r].stock/Math.max(1,s.production[r].use);
 export const assessment = (s: GameState) => { const ratio=projectOperations(s).forceRatio; return ratio>1.15?["Local advantage","good"]:ratio>.9?["Contested","warn"]:["Enemy advantage","bad"] as [string,Tone]; };
-export { BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, NO_ACTION_DAILY_FRONT_LOSS, auditCampaignSubstrate, outcomeBandForMargin };
+export { BLUEPRINT_RULES, CONTENT_PACK_VERSION, FACT_CATALOG, NO_ACTION_DAILY_FRONT_LOSS, auditCampaignSubstrate, outcomeBandForMargin, campaignBalanceProfile };
+export { CAMPAIGN_FINISH_DISTRIBUTION, ADVANTAGE_PATH_SURFACE, LOSS_PATH_SURFACE, calculateCampaignScore, earlyVictoryAcceleration, finishByDayProbability } from "./campaign-balance";

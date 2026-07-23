@@ -100,6 +100,8 @@ import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
 import { MODULE_EPIGRAPHS, setDailyModuleEpigraph } from "./module-epigraphs";
 import { APHORISMS, aphorismForDay, type Aphorism } from "./aphorisms";
+import { campaignScoreForState } from "./campaign-score-state";
+import { scoreBreakdownLines } from "./campaign-balance";
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -603,7 +605,7 @@ const GLOSSARY: Record<
   },
   uberscore: {
     summary: "Cumulative Player Rating earned when campaigns close.",
-    body: "Each run produces a Campaign Score from campaign minimum and maximum production, suffered casualties, inflicted casualties, and duration. Completion always earns credit; abandoned campaigns earn partial credit for played days. Base Player Rating is Campaign Score divided by ten, then friend and asynchronous same-seed match multipliers apply once at campaign close. Player Rating ranks the account and never changes campaign power.",
+    body: "Each run produces a Campaign Score from completion, campaign minimum and maximum production, casualty control, inflicted casualties, and an exponential early-victory term. Day 28 is the acceleration pivot; only victories earn acceleration, and the bonus rises increasingly quickly toward the near-asymptotic Day 15 tail. Completion always earns credit; abandoned campaigns earn partial credit for played days. Base Player Rating is Campaign Score divided by ten, then friend and asynchronous same-seed match multipliers apply once at campaign close. Player Rating ranks the account and never changes campaign power.",
     related: ["Campaign Record", "Friend Multiplier", "Service Record"],
   },
   "friend-multiplier": {
@@ -4194,6 +4196,10 @@ export default function Home() {
       live = false;
     };
   }, [s, runToken, multiplayerRun, hydrated]);
+  const terminalScore = useMemo(
+    () => campaignScoreForState(s),
+    [s],
+  );
   const fraction = hydrated
     ? Math.max(
         0,
@@ -4816,7 +4822,11 @@ export default function Home() {
               ? "The enemy operational system has broken beyond the prewar line."
               : "The state can no longer convert its remaining capacity into a viable front."}
           </p>
-          {issuedCampaignScore!==null&&<div className="end-score" tabIndex={0}><small>CAMPAIGN SCORE ⓘ</small><b>{issuedCampaignScore.toLocaleString()}</b><span>completion + production range + casualty control + inflicted losses + duration; clamped 0–10,000</span></div>}
+          <div className="end-score" tabIndex={0}>
+            <small>CAMPAIGN SCORE ⓘ</small>
+            <b>{(issuedCampaignScore??terminalScore.total).toLocaleString()}</b>
+            <span>{scoreBreakdownLines(terminalScore).map(line=><i key={line}>{line}</i>)}</span>
+          </div>
           {issuedRecordSlug ? (
             <a className="end-record" href={`/record/${issuedRecordSlug}`}>
               OPEN CAMPAIGN RECORD →

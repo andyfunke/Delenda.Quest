@@ -279,7 +279,7 @@ const reportTopic = (
   if (/\b(effects|locks|active policies)\b/.test(input)) return "effects";
   if (/\b(opportunities|opportunity)\b/.test(input)) return "opportunities";
   if (/\b(decision ledger|decisions)\b/.test(input)) return "decision-ledger";
-  if (/\b(service record)\b/.test(input)) return "service-record";
+  if (/\b(service record|campaign score|player rating|score if|current score|surrender value|termination value)\b/.test(input)) return "service-record";
   if (/\b(daily brief|briefing)\b/.test(input)) return "daily-brief";
   return moduleTopic(targetModule);
 };
