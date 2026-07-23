@@ -1,12 +1,11 @@
 import {
-  estimateDay,
-  projectDomestic,
   projectForceGeneration,
   projectProduction,
   situationForState,
   type GameState,
 } from "../game";
 import type { AvaReportTopic } from "./schema";
+import { projectAvaEnvelope } from "./projection";
 
 export type AvaVoiceMode =
   | "identity"
@@ -24,6 +23,7 @@ export type AvaVoiceCue = {
   topic?: AvaReportTopic;
   label?: string;
   mode?: AvaVoiceMode;
+  variant?: number;
 };
 
 const recentCombatLosses = (state: GameState, days = 5) =>
@@ -42,9 +42,10 @@ export const avaReportOpening = (
 ) => {
   const situation = situationForState(state),
     production = projectProduction(state),
-    domestic = projectDomestic(state),
+    envelope = projectAvaEnvelope(state),
+    domestic = envelope.domestic,
     force = projectForceGeneration(state),
-    personnel = estimateDay(state),
+    personnel = envelope.personnel,
     losses = recentCombatLosses(state);
 
   switch (topic) {
@@ -105,17 +106,35 @@ export const avaReportOpening = (
   }
 };
 
+const choose = (lines: readonly string[], variant = 0) =>
+  lines[Math.abs(variant) % lines.length];
+
 const responseOpening = (state: GameState, cue: AvaVoiceCue) => {
+  const variant = cue.variant ?? 0;
   switch (cue.mode) {
     case "identity":
       return {
         label: cue.label ?? "IDENTITY",
-        line: "I am the part of command that does not need to believe you. I need the position to leave evidence.",
+        line: choose(
+          [
+            "I am the part of command that does not need to believe you. I need the position to leave evidence.",
+            "My name is Ava. I keep the distinction between what command intended and what the state can prove.",
+            "I speak for the ledger only after the ledger has survived contact with the day.",
+          ],
+          variant,
+        ),
       };
     case "orientation":
       return {
         label: cue.label ?? "ORIENTATION",
-        line: "You called. The war continued while we were silent.",
+        line: choose(
+          [
+            "You called. The war continued while we were silent.",
+            "The position has not been waiting for our attention.",
+            "Ask the consequential question. The rest can remain noise.",
+          ],
+          variant,
+        ),
       };
     case "grammar":
       return {
@@ -125,7 +144,14 @@ const responseOpening = (state: GameState, cue: AvaVoiceCue) => {
     case "rejection":
       return {
         label: cue.label ?? "REJECTION",
-        line: "The war has refused that order. Its reasons are less negotiable than mine.",
+        line: choose(
+          [
+            "The war has refused that order. Its reasons are less negotiable than mine.",
+            "That order cannot enter the state. A rejected premise is cheaper than a rejected formation.",
+            "The command is invalid here. Nothing has been spent to make that fact persuasive.",
+          ],
+          variant,
+        ),
       };
     case "confirmation":
       return {
@@ -135,7 +161,14 @@ const responseOpening = (state: GameState, cue: AvaVoiceCue) => {
     case "receipt":
       return {
         label: cue.label ?? "ORDER",
-        line: "The order is no longer language. The field owns it now.",
+        line: choose(
+          [
+            "The order is no longer language. The field owns it now.",
+            "The sentence has become a condition of the battlefield.",
+            "Issued. What was reversible in speech is now accountable in state.",
+          ],
+          variant,
+        ),
       };
     case "plan":
       return {
@@ -145,7 +178,14 @@ const responseOpening = (state: GameState, cue: AvaVoiceCue) => {
     case "correction":
       return {
         label: cue.label ?? "CORRECTION",
-        line: "Then my answer failed. I will reduce the position to one decision or expose the arithmetic until it cannot hide.",
+        line: choose(
+          [
+            "Then my answer failed. I will reduce the position to the distinction that actually changes the order.",
+            "Correction accepted. The state is unchanged; only the question has become more exact.",
+            "Then the error belongs in my interpretation, not in your next order.",
+          ],
+          variant,
+        ),
       };
     case "acknowledgment":
       return {

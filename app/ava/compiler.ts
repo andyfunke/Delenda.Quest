@@ -8,6 +8,21 @@ import type {
   AvaModule,
   AvaReportTopic,
 } from "./schema";
+import {
+  compileSemanticQuery,
+  genericSemanticQuery,
+  normalizeSemanticInput,
+  parseAvaShellInput,
+  type SemanticCompilation,
+} from "./grammar";
+export {
+  AVA_CAMPAIGN_LANGUAGE_CORPUS,
+  AVA_UTTERANCE_COLLISIONS,
+  AVA_UTTERANCE_COVERAGE,
+  AVA_UTTERANCE_INDEX,
+  normalizeSemanticInput,
+  stableUtteranceHash,
+} from "./grammar";
 
 const filler = new Set([
   "a",
@@ -86,6 +101,7 @@ const trace = (
   rule: string,
   input: string,
   entities: AvaEntity[] = [],
+  semantic?: SemanticCompilation,
 ): AvaCompilerTrace => {
   const tokens = words(input),
     known = new Set([...commandWords, ...filler]);
@@ -95,6 +111,14 @@ const trace = (
     .forEach((token) => known.add(token));
   return {
     rule,
+    rawInput: input,
+    normalizedInput: normalizeSemanticInput(input).normalized,
+    normalizedTokens: normalizeSemanticInput(input).tokens,
+    recognizedConcepts: semantic?.concepts ?? [],
+    semanticQuery: semantic?.query,
+    contextualResolutions: semantic?.contextualResolutions ?? [],
+    grammarProvenance: semantic?.grammarProvenance,
+    exactIndexHit: semantic?.exactIndexHit ?? false,
     tokenCount: tokens.length,
     entityKinds: [...new Set(entities.map((entity) => entity.kind))],
     unresolvedTokenCount: tokens.filter((token) => !known.has(token)).length,
@@ -125,6 +149,10 @@ const compiled = (
 ): AvaCompileResult => ({
   status: "compiled",
   instruction,
+  semantic: genericSemanticQuery(instruction, {
+    currentModule: "campaign",
+    entities,
+  }),
   trace: trace(rule, input, entities),
 });
 
@@ -284,7 +312,7 @@ const reportTopic = (
   return moduleTopic(targetModule);
 };
 
-export function compileAvaCommand(
+function compileLegacyCommand(
   raw: string,
   context: AvaCompilerContext,
 ): AvaCompileResult {
@@ -672,4 +700,125 @@ export function compileAvaCommand(
       : "I could not map that to the current command grammar. Type HELP or MISSIONS.",
     direct,
   );
+}
+
+const shouldUseSemanticInstruction = (
+  input: string,
+  semantic: SemanticCompilation,
+) => {
+  const query = semantic.query;
+  if (/^(?:missions?|orders?)$/.test(input)) return false;
+  const explicitHandleComparison =
+    query.operation === "COMPARE" &&
+    /\b[mdnxp]\d+\b/i.test(input);
+  return (
+    query.operation === "ADVISE" ||
+    query.operation === "RANK" ||
+    query.operation === "RECOMMEND" ||
+    query.operation === "JUSTIFY" ||
+    (query.operation === "COMPARE" && !explicitHandleComparison) ||
+    query.operation === "CORRECT" ||
+    query.operation === "CHALLENGE" ||
+    query.overlays.length > 0 ||
+    query.reference !== undefined ||
+    (query.subject.type === "CAMPAIGN_CHOICE" &&
+      /mission|operation|maneuver|option|choice/.test(input)) ||
+    query.subject.type === "MISSION_OBJECTIVE"
+  );
+};
+
+const applySemanticTrace = (
+  result: AvaCompileResult,
+  raw: string,
+  semantic: SemanticCompilation,
+): AvaCompileResult => {
+  const normalized = normalizeSemanticInput(raw);
+  const enriched: AvaCompilerTrace = {
+    ...result.trace,
+    rawInput: raw,
+    normalizedInput: normalized.normalized,
+    normalizedTokens: normalized.tokens,
+    recognizedConcepts: semantic.concepts,
+    semanticQuery: semantic.query,
+    contextualResolutions: semantic.contextualResolutions,
+    grammarProvenance: semantic.grammarProvenance,
+    exactIndexHit: semantic.exactIndexHit,
+  };
+  return result.status === "compiled"
+    ? { ...result, semantic: semantic.query, trace: enriched }
+    : { ...result, semantic: semantic.query, trace: enriched };
+};
+
+export function compileAvaCommand(
+  raw: string,
+  context: AvaCompilerContext,
+): AvaCompileResult {
+  const semantic = compileSemanticQuery(raw, context);
+  const shell = parseAvaShellInput(raw);
+  if (shell) {
+    const instruction: AvaInstruction = { kind: "SHELL", shell };
+    return {
+      status: "compiled",
+      instruction,
+      semantic: genericSemanticQuery(instruction, context),
+      trace: {
+        rule: `shell-${shell.command.toLowerCase()}`,
+        rawInput: raw,
+        normalizedInput: raw.trim(),
+        normalizedTokens: [shell.command.toLowerCase(), ...shell.args],
+        recognizedConcepts: [
+          {
+            kind: "SHELL_COMMAND",
+            canonical: shell.command,
+            source: shell.raw,
+          },
+        ],
+        semanticQuery: genericSemanticQuery(instruction, context),
+        contextualResolutions: [],
+        grammarProvenance: [`SHELL:${shell.command}`],
+        exactIndexHit: true,
+        tokenCount: 1 + shell.args.length,
+        entityKinds: [],
+        unresolvedTokenCount: 0,
+      },
+    };
+  }
+  if (
+    /^(?:stage|unstage|issue|commit|confirm|resolve|end|internalize|learn|respond|exploit|clear\s+plan)\b/i.test(
+      raw.trim(),
+    ) &&
+    (/[\u0000|;><`]/.test(raw) || /&&|\$\(/.test(raw))
+  )
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "unsupported-command-operator",
+        prompt:
+          "Command operators, redirects, substitutions, and chained commands are disabled. Enter one Ava or shell command at a time.",
+        trace: trace("unsafe-syntax", normalizeAvaInput(raw)),
+      },
+      raw,
+      semantic,
+    );
+  const normalized = normalizeSemanticInput(raw).normalized;
+  if (shouldUseSemanticInstruction(normalized, semantic)) {
+    const instruction: AvaInstruction = {
+      kind: "SEMANTIC",
+      query: semantic.query,
+    };
+    return {
+      status: "compiled",
+      instruction,
+      semantic: semantic.query,
+      trace: trace(
+        semantic.exactIndexHit ? "semantic-index" : "semantic-composition",
+        raw,
+        context.entities.filter((entity) =>
+          semantic.query.subject.entityIds.includes(entity.id),
+        ),
+        semantic,
+      ),
+    };
+  }
+  return applySemanticTrace(compileLegacyCommand(raw, context), raw, semantic);
 }

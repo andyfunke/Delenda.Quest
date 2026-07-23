@@ -50,15 +50,18 @@ test("the extended report registry covers every terminal information surface",()
 });
 
 test("new reports preserve authority boundaries and exact ledger values",()=>{
-  const state=resolvedState(4),production=game.projectProduction(state),adversary=game.projectAdversary(state),personnel=game.estimateDay(state),force=game.projectForceGeneration(state);
+  const state=resolvedState(4),production=game.projectProduction(state),personnel=game.estimateDay(state),force=game.projectForceGeneration(state);
   const resources=reports.buildAvaReport({kind:"REPORT",topic:"resources",days:3,scope:"current"},state);
   assert.equal(row(resources,"MUNITIONS COVERAGE"),`${production.lines.find(line=>line.resource==="munitions").coverage.toFixed(1)} DAYS · ${production.lines.find(line=>line.resource==="munitions").status.toUpperCase()}`);
   const people=reports.buildAvaReport({kind:"REPORT",topic:"personnel",days:3,scope:"current"},state);
   assert.equal(row(people,"NET FLIGHT"),`−${game.fmt(personnel.netDesertion,true)}`);
-  assert.equal(row(people,"PROJECTED NET DEPLOYABLE"),`${force.deployableAssigned-personnel.casualty-personnel.netDesertion>=0?"+":"−"}${Math.abs(force.deployableAssigned-personnel.casualty-personnel.netDesertion).toFixed(0)}`);
+  const disclosedLoss=Number(row(people,"COMBAT LOSS").replace(/[^\d]/g,""));
+  const disclosedNet=force.deployableAssigned-disclosedLoss-personnel.netDesertion;
+  assert.equal(row(people,"PROJECTED NET DEPLOYABLE"),`${disclosedNet>=0?"+":"−"}${Math.abs(disclosedNet).toFixed(0)}`);
   const enemy=reports.buildAvaReport({kind:"REPORT",topic:"adversary",days:3,scope:"current"},state);
   assert.ok(!enemy.calculation.rows.some(item=>item.label.includes("ACTUAL")),"hidden actual enemy force must not be emitted");
-  for(const label of ["OPERATIONS ORDER","PRODUCTION ORDER","COUNTERMEASURE"]){const value=row(enemy,label);assert.ok(value==="UNCLASSIFIED"||adversary.observedOrders.includes(value),`${label} must come from observed orders`) }
+  const observedOrders=state.adversaryLedger?.observedOrders??[];
+  for(const label of ["OPERATIONS ORDER","PRODUCTION ORDER","COUNTERMEASURE"]){const value=row(enemy,label);assert.ok(value==="UNCLASSIFIED"||observedOrders.includes(value),`${label} must come from observed orders`) }
   const service=reports.buildAvaReport({kind:"REPORT",topic:"service-record",scope:"account"},state);
   assert.ok(!service.calculation.rows.some(item=>/GAMESTATE|CONTENT VERSION|SERVICE DATA/.test(item.label+" "+item.value)));
 });

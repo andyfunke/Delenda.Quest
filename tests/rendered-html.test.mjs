@@ -133,7 +133,9 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(reports,/sector network condition \+ network posture/);
   assert.match(css,/\.bubblette\.pinned\s*>\s*\.bubblette-panel/);assert.match(css,/min-height:\s*0\s*!important/);
   assert.match(css,/position:\s*fixed/);assert.match(css,/translate\(-50%,\s*-50%\)/);
-  assert.ok(css.lastIndexOf("Final semantic cascade guard")>css.lastIndexOf("Shared pinned inspection graph"),"the pale content and type authority must be the final cascade block");
+  assert.ok(css.lastIndexOf("Definitive readability and terminal-type contract")>css.lastIndexOf("Shared pinned inspection graph"),"the definitive readability contract must follow legacy component rules");
+  assert.ok(css.lastIndexOf("Global readability floor for frequently used command surfaces")>css.lastIndexOf("Campaign is a decision surface"),"the 12px player-facing floor must close the cascade");
+  assert.match(css,/\.campaign-workspace \.campaign-consequences h3\s*\{[\s\S]{0,120}font-size:\s*12px/);
   assert.match(bubblette,/bubblette-scrim/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);assert.match(bubblette,/details\.slice\(0, 4\)/);
   assert.doesNotMatch(bubblette,/activeId|CONNECTED SYSTEMS|setActiveId/);
   assert.ok((bubblette.match(/openWikiApplet\(/g)??[]).length<=2,"only explicit detail and Field Manual actions may leave a bubblette");
@@ -275,8 +277,15 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(css,/\.global-opportunity-interrupt[\s\S]*background:\s*#fff/);
   assert.match(css,/\.global-opportunity-interrupt \.interrupt-close[\s\S]*font:\s*900 48px/);
   for(const field of ["desiredOutput","requestedUse","fulfilledUse","unmetUse","equilibrium"])assert.match(circuits,new RegExp(field));
-  assert.match(page,/Current \/ Desired/);
-  assert.match(page,/EQUILIBRIUM/);
+  for(const heading of ["Allocation","Production","Current","Required","Live Stock","Balance"])assert.match(page,new RegExp(`<span>${heading}<\\/span>`));
+  assert.doesNotMatch(page,/Current \/ Desired/);
+  assert.match(page,/<span>Desertion<\/span>[\s\S]{0,180}<small>Net Flight<\/small>/);
+  const liveLedger=page.slice(page.indexOf("function LiveLedger"),page.indexOf("function Dashboard"));
+  assert.doesNotMatch(liveLedger,/Net Flight \{fmtStrategic|attempts ·/);
+  assert.match(css,/\.prod-row\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\(78px,[\s\S]*minmax\(138px/);
+  assert.match(css,/\.ava\s*\{[\s\S]*--type-body:\s*450 14px[\s\S]*--type-label:\s*750 12px/);
+  assert.match(css,/\.ava,\s*\n\.ava \*,[\s\S]*font-family:\s*var\(--ui\)\s*!important/);
+  assert.match(css,/\.ava-button > span,[\s\S]{0,220}\.ava > footer button\s*\{[\s\S]{0,80}font-size:\s*12px/);
 });
 
 test("dashboard owns strategic reporting while command modules preserve the paper UI and route reports to Ava",async()=>{
@@ -313,6 +322,39 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
   assert.doesNotMatch(css,/(?:font-size|font):[^;}]*\b6px\b/);
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
+});
+
+test("Ava archives, disclosed forecasts, and workbook calculus remain explicit infrastructure",async()=>{
+  const[page,storage,workbook,projection,reports,setup]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/storage.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/workbook.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/projection.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/CampaignSetup.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(storage,/objectStoreNames\.contains\(ARCHIVE_STORE\)/);
+  assert.doesNotMatch(storage,/deleteObjectStore/);
+  assert.doesNotMatch(storage,/\bhistory\b|\bmessages\b|rawInput|raw prompt/i);
+  assert.match(storage,/deleteAvaShellArchive/);
+  assert.match(page,/disabled=\{!avaArchiveHydrated\}/);
+  assert.match(page,/maxLength=\{512\}/);
+  assert.match(page,/SESSION-ONLY FILE \/\/ DOWNLOAD BEFORE RELOAD/);
+  assert.match(setup,/Ava files are campaign-local/);
+  for(const sheet of [
+    "Industrial Throughput",
+    "Calculation Inputs",
+    "Force Generation",
+    "Diplomatic Calculus",
+    "Directive Calculus",
+    "Doctrine Calculus",
+    "Resolution History",
+    "Campaign Score",
+  ])assert.match(workbook,new RegExp(sheet));
+  assert.match(projection,/readiness:\s*65/);
+  assert.match(projection,/equipment:\s*65/);
+  assert.match(projection,/adversaryLedger:\s*null/);
+  assert.doesNotMatch(reports,/projectOperations|projectAdversary|estimateDay|projectDomestic/);
 });
 
 test("every command module opens with one canonical conceptual epigraph",async()=>{

@@ -56,6 +56,185 @@ export type AvaReportTopic =
   | "opportunities"
   | "service-record";
 
+export type AvaScopeDomain = "MAIN" | "DOMESTIC" | "NETWORK";
+export type AvaScopeGroup =
+  | "MAIN"
+  | "DOMESTIC"
+  | "NETWORK"
+  | "SECONDARY"
+  | "ALL";
+export type AvaSemanticOperation =
+  | "ADVISE"
+  | "EXPLAIN"
+  | "COMPARE"
+  | "RANK"
+  | "SUMMARIZE"
+  | "INSPECT"
+  | "CALCULATE"
+  | "PREDICT"
+  | "DIAGNOSE"
+  | "RECOMMEND"
+  | "WARN"
+  | "IDENTIFY"
+  | "DEFINE"
+  | "LIST"
+  | "JUSTIFY"
+  | "CHALLENGE"
+  | "CONFIRM"
+  | "CORRECT";
+export type AvaSemanticSubject =
+  | "CAMPAIGN_CHOICE"
+  | "MISSION_OBJECTIVE"
+  | "METRIC"
+  | "DIRECTIVE"
+  | "REPORT"
+  | "SCORE"
+  | "ACTION"
+  | "SYSTEM"
+  | "UNKNOWN";
+export type AvaEvaluationCriterion =
+  | "OVERALL_VALUE"
+  | "LOWEST_RISK"
+  | "HIGHEST_UPSIDE"
+  | "LOWEST_MATERIEL_COST"
+  | "PRODUCTION"
+  | "FRONT"
+  | "LONG_TERM"
+  | "IMMEDIATE"
+  | "REVERSIBILITY"
+  | "SUSTAINABILITY"
+  | "STRONGEST"
+  | "CHEAPEST";
+export type AvaHypotheticalOverlay = {
+  kind:
+    | "WITHOUT_EFFECT"
+    | "ASSUME_STATE"
+    | "ASSUME_ACTION"
+    | "IGNORE_COST"
+    | "REMOVE_ENTITY"
+    | "EXPECT_EVENT";
+  target: string;
+  value?: number | string;
+  unit?: string;
+  sourceText: string;
+};
+export type AvaSourceSpan = {
+  start: number;
+  end: number;
+  text: string;
+};
+export type AvaSemanticQuery = {
+  operation: AvaSemanticOperation;
+  subject: {
+    type: AvaSemanticSubject;
+    entityIds: string[];
+  };
+  scope: {
+    group?: AvaScopeGroup;
+    domains: AvaScopeDomain[];
+    excludedDomains: AvaScopeDomain[];
+  };
+  metric?: string;
+  timeframe:
+    | "CURRENT_DOCKET"
+    | "CURRENT_DAY"
+    | "HISTORICAL"
+    | "PROJECTED";
+  comparisonMode?: "PAIR" | "RANK" | "FILTER" | "THRESHOLD";
+  criteria: AvaEvaluationCriterion[];
+  polarity: "AFFIRMATIVE" | "NEGATED";
+  quantity?: { kind: "ORDINAL" | "CARDINAL"; value: number };
+  certainty?: "CERTAIN" | "LIKELY" | "UNCERTAIN";
+  requestedDetail: "JUDGMENT" | "REASONS" | "CALCULUS";
+  perspective: "PLAYER";
+  reference?: {
+    type:
+      | "LAST_SUBJECT"
+      | "LAST_RECOMMENDATION"
+      | "OTHER_ENTITY"
+      | "SELECTED_ENTITY"
+      | "PRIOR_REASON";
+  };
+  outputForm: "TERMINAL" | "REPORT" | "SPREADSHEET";
+  overlays: AvaHypotheticalOverlay[];
+  confidence: number;
+  sourceSpans: Record<string, AvaSourceSpan>;
+};
+
+export type AvaDiscourseState = {
+  lastSubject?: AvaSemanticSubject;
+  lastEntities: string[];
+  lastRecommended?: string;
+  lastMetric?: string;
+  lastScope: AvaScopeDomain[];
+  lastTimeframe?: AvaSemanticQuery["timeframe"];
+  currentScreen?: AvaModule;
+  selectedObject?: string;
+  openApplet?: string;
+  unresolvedAmbiguity?: string;
+  previousCorrection?: string;
+  suppressedAdviceScopes: AvaScopeDomain[];
+  realizationHistory: string[];
+};
+
+export type AvaAnswerPlan = {
+  answerType:
+    | "DIRECT_JUDGMENT"
+    | "COMPARATIVE_RECOMMENDATION"
+    | "CONDITIONAL_SPLIT"
+    | "EXPLANATION"
+    | "PARTIAL_UNDERSTANDING"
+    | "CORRECTION";
+  directAnswer?: string;
+  rankedOptions: string[];
+  decisiveReasons: string[];
+  tradeoffs: string[];
+  cautions: string[];
+  assumptions: string[];
+  alternatives: Array<{ criterion: string; optionId: string }>;
+  calculationDisclosure: "NONE" | "COMMAND_SURFACE" | "FULL";
+  stateRevision: string;
+  structureId: string;
+  clauseIds: string[];
+};
+
+export type AvaShellCommandName =
+  | "REJECT"
+  | "PWD"
+  | "CD"
+  | "LS"
+  | "CAT"
+  | "GREP"
+  | "FIND"
+  | "HELP"
+  | "WHOAMI"
+  | "HISTORY"
+  | "CLEAR"
+  | "DOWNLOAD";
+export type AvaShellInstruction = {
+  command: AvaShellCommandName;
+  args: string[];
+  raw: string;
+};
+
+export type AvaVirtualFile = {
+  path: string;
+  kind: "text" | "workbook";
+  mode: string;
+  owner: "commander" | "ava" | "root";
+  createdDay: number;
+  content?: string;
+  topic?: AvaReportTopic | "command-dashboard";
+  stateRevision: string;
+  asOfFraction?: number;
+  workbookBytes?: number[];
+};
+export type AvaShellSession = {
+  cwd: string;
+  history: string[];
+  files: AvaVirtualFile[];
+};
+
 export type AvaActionRef =
   | { kind: "maneuver"; maneuverId: string }
   | { kind: "directive"; familyId: string; choiceId: string; actorId?: string }
@@ -143,6 +322,8 @@ export type AvaInstruction =
   | { kind: "HELP"; subject?: string }
   | { kind: "STATUS" }
   | { kind: "ADVISE" }
+  | { kind: "SEMANTIC"; query: AvaSemanticQuery }
+  | { kind: "SHELL"; shell: AvaShellInstruction }
   | { kind: "LIST"; scope?: string }
   | {
       kind: "REPORT";
@@ -185,22 +366,41 @@ export type AvaFailureCode =
   | "unrecognized"
   | "missing-target"
   | "ambiguous-target"
-  | "unsupported-combination";
+  | "unsupported-combination"
+  | "unsupported-command-operator";
 
 export type AvaCompilerTrace = {
   rule: string;
+  rawInput: string;
+  normalizedInput: string;
+  normalizedTokens: string[];
+  recognizedConcepts: Array<{
+    kind: string;
+    canonical: string;
+    source: string;
+  }>;
+  semanticQuery?: AvaSemanticQuery;
+  contextualResolutions: string[];
+  grammarProvenance?: string[];
+  exactIndexHit: boolean;
   tokenCount: number;
   entityKinds: AvaEntityKind[];
   unresolvedTokenCount: number;
 };
 
 export type AvaCompileResult =
-  | { status: "compiled"; instruction: AvaInstruction; trace: AvaCompilerTrace }
+  | {
+      status: "compiled";
+      instruction: AvaInstruction;
+      semantic: AvaSemanticQuery;
+      trace: AvaCompilerTrace;
+    }
   | {
       status: "clarify";
       failure: AvaFailureCode;
       prompt: string;
       candidates?: AvaEntity[];
+      semantic?: AvaSemanticQuery;
       trace: AvaCompilerTrace;
     };
 
@@ -208,6 +408,8 @@ export type AvaCompilerContext = {
   currentModule: AvaModule;
   entities: AvaEntity[];
   selected?: AvaEntity | null;
+  discourse?: AvaDiscourseState;
+  openApplet?: string | null;
 };
 
 export type AvaCommandHelp = {
@@ -409,12 +611,25 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
     examples: ["help", "help forecast"],
     mutates: false,
   },
+  {
+    command: "UNIX SHELL",
+    purpose:
+      "Navigate Ava's sealed campaign filesystem and retrieve saved reports without touching the host system.",
+    examples: [
+      "pwd",
+      "cd ~/home",
+      "ls reports/current",
+      "grep -i losses reports/current/daily-brief.txt",
+      "download reports/current/command-dashboard.xlsx",
+    ],
+    mutates: false,
+  },
 ];
 
 // This is also the future LLM tool contract. A language model may emit these
 // objects later, but it never bypasses the deterministic validator or executor.
 export const AVA_INSTRUCTION_SCHEMA = {
-  version: "delenda.quest.ava.instruction.v3",
+  version: "delenda.quest.ava.instruction.v4",
   intents: AVA_COMMAND_HELP.map((item) => item.command.split(" ")[0]),
   execution: "fail-closed",
   rawPromptStorage: false,

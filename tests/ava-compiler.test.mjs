@@ -40,7 +40,12 @@ test("reports resolve module aliases",()=>{
 });
 
 test("advice language compiles to the deterministic advisory layer",()=>{
-  for(const phrase of ["what should I do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){assert.deepEqual(instruction(phrase),{kind:"ADVISE"})}
+  for(const phrase of ["what should I do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled");
+    assert.equal(result.instruction.kind,"SEMANTIC");
+    assert.equal(result.semantic.operation,"ADVISE");
+  }
 });
 
 test("a bare report stays bounded to the command surface",()=>{
@@ -61,10 +66,102 @@ test("authorized orders compile through aliases",()=>{
 
 test("comparison requires and resolves two maneuvers",()=>{
   const result=instruction("compare reinforce the salient with exploit the gap");
-  assert.equal(result.kind,"COMPARE");assert.deepEqual(result.entities.map(item=>item.id),["salient","gap"]);
+  assert.equal(result.kind,"SEMANTIC");
+  assert.equal(result.query.operation,"COMPARE");
+  assert.deepEqual(result.query.subject.entityIds,["salient","gap"]);
+
+  const explicit=instruction("compare M1 M2");
+  assert.equal(explicit.kind,"COMPARE");
+  assert.deepEqual(explicit.entities.map(item=>item.id),["salient","gap"]);
 });
 
 test("mutations fail closed without a unique staged target",()=>{
   const issue=mod.compileAvaCommand("issue order",context);assert.equal(issue.status,"clarify");assert.equal(issue.failure,"missing-target");
   const result=mod.compileAvaCommand("make it better",context);assert.equal(result.status,"clarify");assert.match(result.prompt,/could not map that/i);
+});
+
+test("campaign corpus compiles to typed semantic structures without collisions",()=>{
+  assert.equal(mod.AVA_UTTERANCE_COLLISIONS.length,0);
+  assert.ok(mod.AVA_UTTERANCE_COVERAGE.recognizedUtterances>=4800);
+  assert.ok(mod.AVA_CAMPAIGN_LANGUAGE_CORPUS.length>=20);
+  for(const expected of mod.AVA_CAMPAIGN_LANGUAGE_CORPUS){
+    const result=mod.compileAvaCommand(expected.utterance,context);
+    assert.equal(result.status,"compiled",expected.id);
+    assert.equal(result.instruction.kind,"SEMANTIC",expected.id);
+    assert.equal(result.semantic.operation,expected.operation,expected.id);
+    assert.equal(result.semantic.subject.type,expected.subject,expected.id);
+    if(expected.scope)assert.equal(result.semantic.scope.group,expected.scope,expected.id);
+    if(expected.forbiddenScope)assert.notEqual(result.semantic.scope.group,expected.forbiddenScope,expected.id);
+    assert.ok(result.trace.normalizedTokens.length,expected.id);
+    assert.ok(result.trace.grammarProvenance.length,expected.id);
+  }
+});
+
+test("secondary is a reusable scope while ordinal and attachment neighbors remain distinct",()=>{
+  const secondary=mod.compileAvaCommand("which side operation fucks me least",context);
+  assert.equal(secondary.status,"compiled");
+  assert.equal(secondary.semantic.scope.group,"SECONDARY");
+  assert.deepEqual(secondary.semantic.scope.domains,["DOMESTIC","NETWORK"]);
+  assert.equal(secondary.semantic.criteria[0],"LOWEST_RISK");
+
+  for(const phrase of [
+    "what is the secondary objective of the main mission",
+    "show me the second mission",
+    "is production secondary to military readiness",
+    "which mission has secondary effects",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.notEqual(result.semantic.scope.group,"SECONDARY",phrase);
+  }
+});
+
+test("shell grammar is recognized before natural-language normalization",()=>{
+  for(const [raw,command,args] of [
+    ["pwd","PWD",[]],
+    ["cd ~/home","CD",["~/home"]],
+    ["cd ..","CD",[".."]],
+    ["cd /var","CD",["/var"]],
+    ["grep -inr net reports","GREP",["-inr","net","reports"]],
+    ["find reports -name *.xlsx","FIND",["reports","-name","*.xlsx"]],
+    ["download reports/current/command-dashboard.xlsx","DOWNLOAD",["reports/current/command-dashboard.xlsx"]],
+  ]){
+    const result=mod.compileAvaCommand(raw,context);
+    assert.equal(result.status,"compiled",raw);
+    assert.equal(result.instruction.kind,"SHELL",raw);
+    assert.equal(result.instruction.shell.command,command,raw);
+    assert.deepEqual(result.instruction.shell.args,args,raw);
+  }
+  assert.notEqual(instruction("find the safest mission").kind,"SHELL");
+  assert.notEqual(instruction("clear plan").kind,"SHELL");
+});
+
+test("shell operators fail closed without turning ordinary comparisons into security errors",()=>{
+  for(const raw of [
+    "grep x /etc && resolve day",
+    "cd /var; issue M1",
+    "cat /etc/issue > M1",
+    "pwd; stage M1",
+  ]){
+    const result=mod.compileAvaCommand(raw,context);
+    assert.equal(result.status,"compiled",raw);
+    assert.equal(result.instruction.kind,"SHELL",raw);
+    assert.equal(result.instruction.shell.command,"REJECT",raw);
+  }
+  const mutation=mod.compileAvaCommand("issue M1 > /tmp/order",context);
+  assert.equal(mutation.status,"clarify");
+  assert.equal(mutation.failure,"unsupported-command-operator");
+
+  for(const raw of [
+    "is risk > 50%?",
+    "compare domestic; network",
+    "compare domestic & network",
+  ]){
+    const result=mod.compileAvaCommand(raw,context);
+    assert.notEqual(
+      result.status==="clarify" ? result.failure : "",
+      "unsupported-command-operator",
+      raw,
+    );
+  }
 });

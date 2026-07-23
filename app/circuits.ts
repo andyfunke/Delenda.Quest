@@ -7,7 +7,9 @@ export type Circuit<S,L,C> = { id:string; resolve:(state:S,context:C)=>CircuitRe
 export const executeCircuit = <S,L,C>(circuit:Circuit<S,L,C>,state:S,context:C)=>circuit.resolve(state,context);
 
 export type ProductionLineLedger = {
-  resource:Resource; allocation:number; opening:number; output:number; desiredOutput:number;
+  resource:Resource; allocation:number; baseOutput:number; specializationFactor:number;
+  directorOutputFactor:number; baseUse:number; supplyMultiplier:number;
+  resourceUseFactor:number; directorUseFactor:number; opening:number; output:number; desiredOutput:number;
   requestedUse:number; fulfilledUse:number; unmetUse:number; use:number; closing:number;
   coverage:number; net:number; equilibrium:number; status:"stable"|"strained"|"critical";
 };
@@ -86,12 +88,13 @@ export const productionCircuit:Circuit<GameState,ProductionLedger,ProductionCont
     const lines=resources.map(resource=>{
       const line=state.production[resource];
       const specialization=state.target===resource?1.12:1;
+      const resourceUseFactor=context.resourceUse?.[resource]??1;
       const output=Math.max(0,Math.round(baseOutput[resource]*line.allocation*workforceFactor*conditionFactor*policy.output*specialization*retoolFactor*context.directorOutput));
-      const requestedUse=Math.max(0,Math.round(baseUse[resource]*context.supplyMultiplier*(context.resourceUse?.[resource]??1)*context.directorUse));
+      const requestedUse=Math.max(0,Math.round(baseUse[resource]*context.supplyMultiplier*resourceUseFactor*context.directorUse));
       const opening=line.stock,available=opening+output,fulfilledUse=Math.min(requestedUse,available),unmetUse=Math.max(0,requestedUse-fulfilledUse);
       const closing=available-fulfilledUse,coverage=closing/Math.max(1,requestedUse);
       line.output=output;line.use=requestedUse;line.stock=closing;
-      return{resource,allocation:line.allocation,opening,output,desiredOutput:requestedUse,requestedUse,fulfilledUse,unmetUse,use:requestedUse,closing,coverage,net:output-requestedUse,equilibrium:output-requestedUse,status:unmetUse>0||coverage<2?"critical" as const:coverage<5?"strained" as const:"stable" as const};
+      return{resource,allocation:line.allocation,baseOutput:baseOutput[resource],specializationFactor:specialization,directorOutputFactor:context.directorOutput,baseUse:baseUse[resource],supplyMultiplier:context.supplyMultiplier,resourceUseFactor,directorUseFactor:context.directorUse,opening,output,desiredOutput:requestedUse,requestedUse,fulfilledUse,unmetUse,use:requestedUse,closing,coverage,net:output-requestedUse,equilibrium:output-requestedUse,status:unmetUse>0||coverage<2?"critical" as const:coverage<5?"strained" as const:"stable" as const};
     });
     const utilization=lines.reduce((n,line)=>n+line.allocation,0)/100;
     state.maintenanceDebt=clamp(state.maintenanceDebt+policy.debt+utilization*.7+(retooled?2.5:0)+context.directorMaintenance,0,100);

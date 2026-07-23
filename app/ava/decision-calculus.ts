@@ -329,3 +329,8 @@ export const renderDecisionCalculus = (
 // Rendering needs the positive side of the balance without carrying the full state.
 const projectForceGenerationForRender = (option: ManeuverCalculus) =>
   option.replacementBalance + option.expectedLosses;
+/**
+ * @deprecated Quarantined legacy calculator. Ava's runtime does not import this
+ * module; deterministic counsel is compiled through advisory.ts and
+ * projection.ts.
+ */

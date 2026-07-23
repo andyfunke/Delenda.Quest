@@ -11007,9 +11007,8 @@ small,
 }
 
 /*
- * Final semantic cascade guard.
- * Keep this block at the actual EOF so legacy component rules cannot restore
- * black content fields or collapse Ava's textual hierarchy.
+ * Legacy semantic cascade guard. Later component additions may refine these
+ * surfaces; the definitive readability contract is kept at the actual EOF.
  */
 :root {
   --muted: #50534c;
@@ -12295,5 +12294,216 @@ small,
 @media (max-width: 700px) {
   .campaign-workspace .campaign-consequences {
     grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * Definitive readability and terminal-type contract.
+ * Dashboard data stays compact without falling below readable label sizes.
+ * Ava is one crisp sans-serif instrument; hierarchy comes from weight, color,
+ * and spacing instead of tiny monospace or oversized literary type.
+ */
+.live-ledger span {
+  font: 800 12px/1.3 var(--ui);
+  letter-spacing: 0.04em;
+}
+.live-ledger small {
+  color: var(--muted);
+  font: 600 13px/1.35 var(--ui);
+}
+.prod-row {
+  font: 600 14px/1.35 var(--ui);
+  grid-template-columns:
+    minmax(78px, 0.65fr)
+    minmax(128px, 1fr)
+    minmax(86px, 0.7fr)
+    minmax(86px, 0.7fr)
+    minmax(104px, 0.8fr)
+    minmax(138px, 1fr);
+  min-height: 58px;
+  padding: 0 16px;
+}
+.prod-row.head {
+  font: 800 12px/1.3 var(--ui);
+  letter-spacing: 0.045em;
+  min-height: 38px;
+}
+.prod-row strong {
+  font-family: var(--ui);
+}
+.heading > span,
+.metric small,
+.metric em {
+  font-size: 12px;
+}
+
+.ava {
+  --type-body: 450 14px/1.55 var(--ui);
+  --type-data: 500 13px/1.5 var(--ui);
+  --type-grammar: 500 12px/1.5 var(--ui);
+  --type-label: 750 12px/1.3 var(--ui);
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--ui);
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+.ava,
+.ava *,
+.ava *::before,
+.ava *::after {
+  font-family: var(--ui) !important;
+}
+.ava-text-block.narrative p,
+.ava.terminal-full .ava-text-block.narrative p {
+  font: 500 15px/1.5 var(--ui);
+  letter-spacing: 0;
+}
+.ava-text-block.direct p,
+.ava.terminal-full .ava-text-block.direct p,
+.ava-text-block.recommendation p,
+.ava.terminal-full .ava-text-block.recommendation p {
+  font: 650 14px/1.5 var(--ui);
+}
+.ava-line strong,
+.messages .ava-evidence {
+  font: 700 14px/1.5 var(--ui) !important;
+}
+.ava-state span,
+.messages > div > span,
+.ava form label,
+.ava-window-controls button,
+.ava footer {
+  font-size: 12px !important;
+}
+.ava-shell-output {
+  color: var(--ava-text);
+  font: 500 13px/1.55 var(--ui) !important;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 700px) {
+  .prod-row {
+    grid-template-columns: 90px 132px 90px 90px 106px 106px;
+    min-width: 650px;
+  }
+}
+
+/*
+ * Global readability floor for frequently used command surfaces.
+ * These elements previously used 9–11px display type. Compact does not mean
+ * illegible: 12px is the smallest player-facing label in the primary UI.
+ */
+.admin-grid button,
+.bubblette-panel > header small,
+.bubblette-pin-hint,
+.bubblette-panel dt,
+.bubblette-panel dd,
+.bubblette-panel dt button,
+.bubblette-actions button,
+.bubblette-detail-control,
+.campaign-empty-heading span,
+.campaign-empty-context span,
+.campaign-empty-context small,
+.campaign-empty-question > span,
+.campaign-empty-question > small,
+.global-opportunity-interrupt span,
+.global-opportunity-missed span,
+.global-opportunity-interrupt em,
+.ava-alert-menu > header,
+.ava-alert-menu article b,
+.ava-alert-menu article button,
+.daily-aphorism-ribbon span,
+.daily-aphorism-ribbon cite,
+.briefing-secondary-ledger > header span,
+.briefing-secondary-ledger > header b,
+.briefing-secondary-ledger dt,
+.briefing-secondary-ledger dd,
+.briefing-secondary-options button span,
+.briefing-secondary-options button small,
+.campaign-intro-order-state small,
+.campaign-workspace .campaign-consequences h3 {
+  font-size: 12px;
+}
+.briefing-secondary-options button b {
+  font-size: 13px;
+}
+.daily-aphorism-ribbon q {
+  font-size: 14px;
+}
+.ava-urgent-icon b {
+  font: 900 12px/18px var(--ui);
+  height: 18px;
+  width: 18px;
+}
+.ava-alert-menu,
+.ava-alert-menu *,
+.ava-command-dock,
+.ava-command-dock * {
+  font-family: var(--ui);
+}
+
+.campaign-workspace
+  .tree-menu.maneuver-list
+  .tree-group
+  > .tree-group-heading
+  small,
+.campaign-workspace
+  .tree-menu.maneuver-list
+  .tree-group
+  > button:not(.tree-group-heading)
+  > small {
+  font-size: 12px !important;
+}
+.ava-button > span,
+.ava-button b,
+.ava-button small,
+.ava header > div > span,
+.ava header b,
+.ava form button,
+.ava > footer button {
+  font-size: 12px;
+}
+.ava-command-dock,
+.ava-command-dock *,
+.ava-alert-menu,
+.ava-alert-menu * {
+  font-family: var(--ui) !important;
+}
+.prod-row > :nth-child(1),
+.prod-row > :nth-child(n + 3) {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.prod-row > :nth-child(2) {
+  text-align: left;
+}
+.campaign-workspace .maneuver-detail:not(.campaign-empty-state) {
+  padding-top: 15px;
+}
+.ava-state,
+.ava > footer {
+  flex-wrap: wrap;
+}
+.ava form label {
+  overflow-wrap: anywhere;
+}
+.ava-alert-menu {
+  bottom: calc(100% + 2px);
+}
+
+@media (max-width: 700px) {
+  .ava-command-dock {
+    left: 10px;
+    right: 10px;
+  }
+  .ava-command-dock .ava-button {
+    flex: 1 1 auto;
+    width: auto;
+  }
+  .ava-alert-cluster {
+    flex: 0 0 64px;
   }
 }

@@ -70,6 +70,12 @@ import {
   runAvaInstruction,
   type AvaTerminalSession,
 } from "./ava/terminal";
+import { restoreAvaShellSession } from "./ava/filesystem";
+import {
+  deleteAvaShellArchive,
+  loadAvaShellArchive,
+  saveAvaShellArchive,
+} from "./ava/storage";
 import { voiceAvaResponse } from "./ava/voice";
 import {
   installInteractionTelemetry,
@@ -145,7 +151,11 @@ type Metric =
   | "front"
   | "desertion"
   | "doctrine";
-type Message = { who: "AVA" | "YOU"; text: string };
+type Message = {
+  who: "AVA" | "YOU";
+  text: string;
+  kind?: "ava" | "shell";
+};
 type Page = Module | "admin";
 type Live = ReturnType<typeof liveProjection>;
 
@@ -1398,12 +1408,7 @@ function LiveLedger({
         >
           <span>Desertion</span>
           <b>{fmtStrategic(live.netDesertion)}</b>
-          <small>
-            Net Flight {fmtStrategic(live.netDesertion)} ·{" "}
-            {fmtStrategic(live.deserted)} attempts ·{" "}
-            {fmtStrategic(live.retained)} retained ·{" "}
-            {fmtStrategic(live.intercepted)} intercepted
-          </small>
+          <small>Net Flight</small>
         </button>
         <button onClick={() => inspect("materiel")}>
           <span>Munitions</span>
@@ -1536,20 +1541,20 @@ function Dashboard({
         <section>
           <Heading
             title="Industrial Throughput"
-            note="Allocation, output, use, stock, and coverage"
+            note="Current industrial position"
           />
           <div className="production">
             <div className="prod-row head">
-              <span>Line</span>
               <span>Allocation</span>
-              <span>Current / Desired</span>
+              <span>Production</span>
+              <span>Current</span>
+              <span>Required</span>
               <span>Live Stock</span>
-              <span>Equilibrium</span>
+              <span>Balance</span>
             </div>
             {(Object.keys(s.production) as Resource[]).map((r) => {
               const l = s.production[r],
-                projected = production.lines.find((line) => line.resource === r)!,
-                days = coverage(s, r);
+                projected = production.lines.find((line) => line.resource === r)!;
               return (
                 <button
                   className="prod-row"
@@ -1558,14 +1563,13 @@ function Dashboard({
                     inspect(r === "munitions" ? "materiel" : "equipment")
                   }
                 >
+                  <span>{l.allocation}%</span>
                   <strong>
                     <i className={r} />
                     {resourceLabel[r]}
                   </strong>
-                  <span>{l.allocation}%</span>
-                  <span>
-                    <b>{fmt(projected.output)}</b> / {fmt(projected.desiredOutput)}
-                  </span>
+                  <span><b>{fmt(projected.output)}</b></span>
+                  <span>{fmt(projected.desiredOutput)}</span>
                   <span>{fmt(live.production[r])}</span>
                   <span
                     className={
@@ -3798,12 +3802,24 @@ export default function Home() {
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
   );
+  const [avaArchiveHydrated, setAvaArchiveHydrated] = useState(false);
+  const [avaArchiveWritable, setAvaArchiveWritable] = useState(false);
+  const avaArchiveShell = useMemo(
+    () => ({
+      cwd: avaSession.shell.cwd,
+      history: [],
+      files: avaSession.shell.files,
+    }),
+    [avaSession.shell.cwd, avaSession.shell.files],
+  );
   const [messages, setMessages] = useState<Message[]>([]);
   const avaMessagesRef = useRef<HTMLDivElement>(null);
   const [wikiArticle, setWikiArticle] = useState("resolution");
   const priorDay = useRef(s.day);
+  const activeArchiveKey = useRef("");
   const priorTelemetryModule = useRef<Page>("dashboard");
-  const moduleEnteredAt = useRef(Date.now());
+  const [initialModuleEnteredAt] = useState(Date.now);
+  const moduleEnteredAt = useRef(initialModuleEnteredAt);
   useEffect(() => {
     if (priorDay.current === s.day) return;
     priorDay.current = s.day;
@@ -3880,13 +3896,15 @@ export default function Home() {
               restored=result.state;
             }
           }
-          setS(restored);
-          setHasSave(true);
-          setRunToken(
+          const restoredState = restored;
+          const restoredRunToken =
             typeof record.runToken === "string" && record.runToken
               ? record.runToken
-              : portableId(),
-          );
+              : portableId();
+          setS(restored);
+          setHasSave(true);
+          activeArchiveKey.current = restoredRunToken;
+          setRunToken(restoredRunToken);
           setMultiplayerRun(!!record.multiplayerRun);
           if (
             record.clock &&
@@ -3895,10 +3913,64 @@ export default function Home() {
           )
             if(record.clock.end>Date.now())setClock({ start: record.clock.start, end: record.clock.end });
             else {const resumed=Date.now();setClock({start:resumed,end:resumed+DAY_MS})}
+          void loadAvaShellArchive(
+            restoredRunToken,
+            restoredState.campaignId,
+          )
+            .then((archive) => {
+              if (activeArchiveKey.current !== restoredRunToken) return;
+              const archived = restoreAvaShellSession(archive, restoredState);
+              setAvaSession((current) => {
+                const byPath = new Map(
+                  [...archived.files, ...current.shell.files].map((file) => [
+                    file.path,
+                    file,
+                  ]),
+                );
+                const interacted =
+                  current.shell.history.length > 0 ||
+                  current.shell.files.length > 0 ||
+                  current.shell.cwd !== initialAvaTerminalSession().shell.cwd;
+                return {
+                  ...current,
+                  shell: {
+                    cwd: interacted ? current.shell.cwd : archived.cwd,
+                    history: current.shell.history,
+                    files: [...byPath.values()],
+                  },
+                };
+              });
+              setAvaArchiveWritable(true);
+              setAvaArchiveHydrated(true);
+            })
+            .catch(() => {
+              if (activeArchiveKey.current !== restoredRunToken) return;
+              setAvaArchiveWritable(false);
+              setAvaArchiveHydrated(true);
+              setSystemNotice(
+                "AVA ARCHIVE READ FAILED // SAVED REPORTS WERE NOT MODIFIED; RELOAD TO RETRY",
+              );
+            });
+        } else {
+          const nextRunToken = portableId();
+          activeArchiveKey.current = nextRunToken;
+          setRunToken(nextRunToken);
+          setAvaArchiveWritable(true);
+          setAvaArchiveHydrated(true);
         }
-      } else setRunToken(portableId());
+      } else {
+        const nextRunToken = portableId();
+        activeArchiveKey.current = nextRunToken;
+        setRunToken(nextRunToken);
+        setAvaArchiveWritable(true);
+        setAvaArchiveHydrated(true);
+      }
     } catch {
-      setRunToken(portableId());
+      const nextRunToken = portableId();
+      activeArchiveKey.current = nextRunToken;
+      setRunToken(nextRunToken);
+      setAvaArchiveWritable(true);
+      setAvaArchiveHydrated(true);
     }
     setHydrated(true);
   }, []);
@@ -4066,6 +4138,34 @@ export default function Home() {
       setHasSave(true);
     } catch {}
   }, [s, clock, runToken, multiplayerRun, hydrated]);
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !avaArchiveHydrated ||
+      !avaArchiveWritable ||
+      !runToken ||
+      activeArchiveKey.current !== runToken
+    )
+      return;
+    void saveAvaShellArchive(
+      runToken,
+      s.campaignId,
+      avaArchiveShell,
+    ).catch(() => {
+      if (activeArchiveKey.current !== runToken) return;
+      setAvaArchiveWritable(false);
+      setSystemNotice(
+        "AVA ARCHIVE WRITE FAILED // SAVED REPORTS WERE NOT MODIFIED; CURRENT REPORTS REMAIN DOWNLOADABLE",
+      );
+    });
+  }, [
+    hydrated,
+    avaArchiveHydrated,
+    avaArchiveWritable,
+    runToken,
+    s.campaignId,
+    avaArchiveShell,
+  ]);
   useEffect(() => {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -4346,8 +4446,13 @@ export default function Home() {
       void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
     const next = initialState(config);
     const n = Date.now();
+    const nextRunToken = portableId();
+    if (runToken) void deleteAvaShellArchive(runToken).catch(() => undefined);
     setS(next);
-    setRunToken(portableId());
+    activeArchiveKey.current = nextRunToken;
+    setRunToken(nextRunToken);
+    setAvaArchiveWritable(true);
+    setAvaArchiveHydrated(true);
     setIssuedRecordSlug(null);
     setIssuedCampaignScore(null);
     setPage("dashboard");
@@ -4515,7 +4620,12 @@ export default function Home() {
     }
     const next = result.state;
     setS(next);
-    setAvaSession(initialAvaTerminalSession());
+    setAvaSession((current) => ({
+      ...initialAvaTerminalSession(),
+      shell: current.shell,
+      discourse: current.discourse,
+      voiceCursor: current.voiceCursor,
+    }));
     setPendingManeuver(null);
     setDayModal(false);
     setTurnBlackout(true);
@@ -4548,11 +4658,36 @@ export default function Home() {
   const submitAvaCommand = (command: string) => {
     const raw = command.trim();
     if (!raw) return;
+    if (!avaArchiveHydrated) {
+      setMessages((current) => [
+        ...current,
+        {
+          who: "AVA",
+          text:
+            "ARCHIVE SYNC\nThe campaign report archive is still being verified. Hold the command for a moment; no input was executed.",
+        },
+      ]);
+      return;
+    }
     setMessages((m) => [...m, { who: "YOU", text: raw }]);
+    const currentModule =
+      interfaceMode === "briefing"
+        ? briefingModule
+        : page === "admin"
+          ? "account"
+          : page;
+    const discourse = {
+      ...avaSession.discourse,
+      currentScreen: currentModule,
+      selectedObject: selectedAvaEntity?.id,
+      openApplet: wikiApplet ?? undefined,
+    };
     const result = compileAvaCommand(raw, {
-      currentModule: interfaceMode === "briefing" ? briefingModule : page==="admin"?"account":page,
+      currentModule,
       entities: avaEntities,
       selected: selectedAvaEntity,
+      discourse,
+      openApplet: wikiApplet,
     });
     if (result.status === "clarify") {
       recordAvaTelemetry(result, page==="admin"?"account":page, "clarification");
@@ -4574,11 +4709,34 @@ export default function Home() {
     }
     const terminal = runAvaInstruction(
       s,
-      avaSession,
+      { ...avaSession, discourse },
       result.instruction,
       fraction,
+      result.semantic,
+      result.trace,
     );
+    const terminalText =
+      terminal.report && !avaArchiveWritable
+        ? `${terminal.text}\n\nSESSION-ONLY FILE // DOWNLOAD BEFORE RELOAD`
+        : terminal.text;
     setAvaSession(terminal.session);
+    if (terminal.download) {
+      const bytes = terminal.download.bytes;
+      const data = bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      ) as ArrayBuffer;
+      const url = window.URL.createObjectURL(
+        new Blob([data], { type: terminal.download.mime }),
+      );
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = terminal.download.filename;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    }
     if (terminal.navigate) {
       if (interfaceMode === "briefing")
         window.dispatchEvent(
@@ -4606,7 +4764,18 @@ export default function Home() {
       page==="admin"?"account":page,
       terminal.rejection ? "rejected" : "executed",
     );
-    setMessages((m) => [...m, { who: "AVA", text: terminal.text }]);
+    setMessages((m) => [
+      ...(terminal.clearScreen ? [] : m),
+      ...(terminalText
+        ? [
+            {
+              who: "AVA" as const,
+              text: terminalText,
+              kind: terminal.outputKind ?? "ava",
+            },
+          ]
+        : []),
+    ]);
   };
   const run = (e: FormEvent) => {
     e.preventDefault();
@@ -4987,6 +5156,8 @@ export default function Home() {
                 <div className="message-body">
                   {m.who === "YOU" ? (
                     <p className="ava-player-line">{m.text}</p>
+                  ) : m.kind === "shell" ? (
+                    <pre className="ava-shell-output">{m.text}</pre>
                   ) : (
                     <AvaTextRenderer text={m.text} />
                   )}
@@ -4995,13 +5166,23 @@ export default function Home() {
             ))}
           </div>
           <form onSubmit={run} data-no-telemetry>
-            <label>COMMAND</label>
+            <label htmlFor="ava-command-input">
+              commander@delenda:
+              {avaSession.shell.cwd.replace("/home/commander", "~") || "/"}$
+            </label>
             <div>
               <span>&gt;</span>
               <input
+                id="ava-command-input"
+                disabled={!avaArchiveHydrated}
+                maxLength={512}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="missions, what should I do, stage M2 D1 N3, issue plan..."
+                placeholder={
+                  avaArchiveHydrated
+                    ? "Ask Ava, or use cd, ls, grep, find, download..."
+                    : "Synchronizing report archive..."
+                }
               />
               <button data-telemetry="ava.run-command">RUN</button>
             </div>
@@ -5015,8 +5196,8 @@ export default function Home() {
               COMMAND MANUAL
             </button>
             <span>
-              MISSIONS // ADVISE // REPORT // STAGE // FORECAST // ISSUE //
-              CONFIRM // RESOLVE
+              MISSIONS // ADVISE // REPORT // STAGE // CD // LS // GREP //
+              FIND // DOWNLOAD
             </span>
             <button onClick={() => openWikiApplet("site-telemetry")}>
               SIGNAL POLICY

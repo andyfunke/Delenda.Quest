@@ -1,26 +1,14 @@
 import {
   FAMILIES,
   MANEUVERS,
-  coverage,
-  directorForState,
-  estimateDay,
   explainManeuverChance,
   fmt,
-  projectDomestic,
-  projectForceGeneration,
-  projectOperations,
-  projectProduction,
   situationForState,
   type GameState,
 } from "../game";
 import { CONCEPTS, calculationFor } from "../concepts";
 import { compileConvergence } from "../convergence";
 import { buildAvaReport } from "./reports";
-import {
-  compileDecisionCalculus,
-  renderDecisionCalculus,
-  renderManeuverCalculus,
-} from "./decision-calculus";
 import {
   actionKey,
   avaStateRevision,
@@ -46,6 +34,20 @@ import {
 } from "./schema";
 import { createAvaTextFrame, renderAvaTextFrame } from "./text-schema";
 import { voiceAvaResponse, type AvaVoiceCue } from "./voice";
+import {
+  executeAvaShell,
+  initialAvaShellSession,
+  saveAvaReportSnapshot,
+} from "./filesystem";
+import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
+import { answerSemanticQuery } from "./advisory";
+import { projectAvaEnvelope } from "./projection";
+import type {
+  AvaAnswerPlan,
+  AvaCompilerTrace,
+  AvaDiscourseState,
+  AvaSemanticQuery,
+} from "./schema";
 
 export type AvaDetail = "glance" | "standard" | "deep";
 export type AvaTerminalSession = {
@@ -53,6 +55,9 @@ export type AvaTerminalSession = {
   confirmation: AvaConfirmation | null;
   lastText: string;
   detail: AvaDetail;
+  shell: ReturnType<typeof initialAvaShellSession>;
+  discourse: AvaDiscourseState;
+  voiceCursor: number;
 };
 export type AvaTerminalResult = {
   state: GameState;
@@ -62,6 +67,23 @@ export type AvaTerminalResult = {
   navigate?: string;
   executed: boolean;
   rejection?: string;
+  outputKind?: "ava" | "shell";
+  clearScreen?: boolean;
+  download?: {
+    virtualPath: string;
+    filename: string;
+    mime: string;
+    bytes: Uint8Array;
+    stateRevision: string;
+  };
+  answerPlan?: AvaAnswerPlan;
+  trace?: {
+    compiler?: AvaCompilerTrace;
+    semantic?: AvaSemanticQuery;
+    retrievedFacts: string[];
+    answerPlan?: AvaAnswerPlan;
+    renderedResponse: string;
+  };
 };
 
 export const initialAvaTerminalSession = (): AvaTerminalSession => ({
@@ -69,6 +91,24 @@ export const initialAvaTerminalSession = (): AvaTerminalSession => ({
   confirmation: null,
   lastText: "",
   detail: "standard",
+  shell: initialAvaShellSession(),
+  discourse: {
+    lastEntities: [],
+    lastScope: [],
+    suppressedAdviceScopes: [],
+    realizationHistory: [],
+  },
+  voiceCursor: 0,
+});
+
+const resetIssuedPlan = (
+  session: AvaTerminalSession,
+): AvaTerminalSession => ({
+  ...initialAvaTerminalSession(),
+  detail: session.detail,
+  shell: session.shell,
+  discourse: session.discourse,
+  voiceCursor: session.voiceCursor,
 });
 
 const withHeader = (state: GameState, body: string) =>
@@ -229,38 +269,78 @@ const diffText = (before: GameState, after: GameState) =>
     .join("\n") ||
   "No immediate ledger total changes. The order changes posture, timing, access, or an active policy instead.";
 
+const actionProjection = (
+  state: GameState,
+  action: AvaActionRef,
+  fraction: number,
+) => {
+  const preview = executeAvaAction(state, action, fraction);
+  if (!preview.executed) return { preview };
+  return {
+    preview,
+    projection: projectAvaEnvelope(preview.state),
+  };
+};
+
+const projectionLines = (
+  state: GameState,
+  action: AvaActionRef,
+  fraction: number,
+) => {
+  const projection = actionProjection(state, action, fraction);
+  if (!projection.preview.executed)
+    return [`ORDER REJECTED: ${projection.preview.rejection}`];
+  const disclosed = projection.projection;
+  if (!disclosed)
+    return ["No disclosed projection is available."];
+  return [
+    `Projected friendly loss: ${fmt(disclosed.friendlyLoss, true)} (${fmt(disclosed.friendlyLossLow, true)}–${fmt(disclosed.friendlyLossHigh, true)})`,
+    `Projected Net Flight: ${fmt(disclosed.personnel.netDesertion, true)}`,
+    `Projected ground movement: ${disclosed.groundMovement >= 0 ? "+" : ""}${disclosed.groundMovement.toFixed(1)} km (${disclosed.groundLow.toFixed(1)} to ${disclosed.groundHigh.toFixed(1)})`,
+    `Industrial shortages: ${disclosed.production.shortages}`,
+    `Domestic collapse risk: ${(disclosed.domestic.collapseRisk * 100).toFixed(1)}%`,
+    `Disclosure: ${disclosed.disclosure}`,
+  ];
+};
+
 const forecastText = (
   state: GameState,
   action: AvaActionRef | undefined,
   fraction: number,
 ) => {
   if (!action) {
-    const operation = projectOperations(state),
-      personnel = estimateDay(state);
-    return `STANDING PROJECTION [PROJECTED D+0]\nFriendly loss ${fmt(personnel.casualty, true)} · net flight ${fmt(personnel.netDesertion, true)} · ground ${operation.groundMovement >= 0 ? "+" : ""}${operation.groundMovement.toFixed(1)} km.`;
+    const projection = projectAvaEnvelope(state);
+    return `STANDING PROJECTION [PROJECTED D+0]\nFriendly loss ${fmt(projection.friendlyLoss, true)} · Net Flight ${fmt(projection.personnel.netDesertion, true)} · ground ${projection.groundMovement >= 0 ? "+" : ""}${projection.groundMovement.toFixed(1)} km.`;
   }
   const descriptor = descriptorForAction(state, action, fraction);
   if (!descriptor)
     return "The referenced order is no longer in the current docket.";
   if (action.kind === "resolve-day")
-    return "Day resolution is sealed. Use PROJECTION for disclosed circuit outputs; Ava will not execute resolution to reveal hidden results during a forecast.";
+    return "The day has not resolved. Use PROJECTION for the disclosed estimate; Ava will not execute the day merely to reveal its outcome.";
   if (action.kind === "opportunity-response")
-    return `${renderAvaAction(descriptor)}\n\nThe response resolves immediately from a sealed ticket. Forecasting does not reveal which contingent branch will occur.`;
+    return `${renderAvaAction(descriptor)}\n\nThe response resolves immediately. Forecasting does not reveal which contingent branch will occur.`;
   if (action.kind === "maneuver") {
-    const packet = compileDecisionCalculus(state);
-    const option = packet.options.find(
-      (candidate) => candidate.maneuver.id === action.maneuverId,
-    );
-    if (option)
+    const maneuver = MANEUVERS.find((item) => item.id === action.maneuverId);
+    const preview = actionProjection(state, action, fraction);
+    if (maneuver && preview.preview.executed) {
+      const chance = explainManeuverChance(state, maneuver);
       return [
         "FIELD NOTE / PROJECTION\nA projection is the battlefield confessing under controlled pressure. It tells the truth only about the orders already on the table.",
-        renderManeuverCalculus(option, descriptor.handle),
-        `PRINCIPAL UNCERTAINTY\n${packet.uncertainty}`,
+        renderAvaAction(descriptor),
+        `PROJECTED DAY CONSEQUENCE\n${projectionLines(state, action, fraction).join("\n")}`,
+        `CALCULATION\nExecution confidence = base chance + readiness + equipment + intelligence + doctrine + operational fit − enemy adaptation\n${chance.terms
+          .map(
+            (term) =>
+              `${term.label}: ${term.points >= 0 ? "+" : ""}${term.points.toFixed(1)} points`,
+          )
+          .join("\n")}\nResult: ${(chance.result * 100).toFixed(1)}%`,
+        "PRINCIPAL UNCERTAINTY\nThe confidence estimate does not disclose or pre-resolve the sealed day outcome.",
         `DECLARED CHANGE [PROJECTED]\n${diffText(
           state,
-          executeAvaAction(state, action, fraction).state,
+          preview.preview.state,
         )}`,
       ].join("\n\n");
+    }
   }
   const preview = executeAvaAction(state, action, fraction);
   return preview.executed
@@ -325,7 +405,7 @@ const metricValue = (state: GameState, id: string) =>
     legitimacy: state.legitimacy,
     resistance: state.resistance,
     front: state.front,
-    desertion: estimateDay(state).netDesertion,
+    desertion: projectAvaEnvelope(state).personnel.netDesertion,
     doctrine: state.doctrine,
     intelligence: state.intelligence,
     "execution-confidence": (() => {
@@ -432,133 +512,63 @@ const explainText = (
     .join("\n\n");
 };
 
-const commandUtility = (state: GameState) => {
-  const operations = projectOperations(state),
-    domestic = projectDomestic(state),
-    force = projectForceGeneration(state),
-    production = projectProduction(state),
-    personnel = estimateDay(state);
-  return (
-    operations.groundMovement * 18 +
-    operations.forceRatio * 22 -
-    personnel.casualty / 600 -
-    personnel.netDesertion / 350 +
-    force.effectiveGraduates / 450 -
-    production.shortages * 10 +
-    coverage(state, "munitions") * 1.5 +
-    state.readiness * 0.18 +
-    state.equipment * 0.15 +
-    state.materiel * 0.1 +
-    state.legitimacy * 0.22 -
-    state.resistance * 0.24 -
-    domestic.collapseRisk * 40 -
-    domestic.strikeRisk * 18 +
-    state.intelligence * 0.08 -
-    state.dependency * 0.05
-  );
-};
-
-const accumulatedIntel = (state: GameState) => {
-  const records = state.resolutionHistory,
-    orders = records.flatMap(
-      (record) => record.adversaryObserved.observedOrders,
-    ),
-    counts = new Map<string, number>();
-  for (const order of orders) counts.set(order, (counts.get(order) ?? 0) + 1);
-  const recurring = [...counts].sort((a, b) => b[1] - a[1])[0],
-    adaptation = Object.entries(state.adversary.adaptation).sort(
-      (a, b) => b[1] - a[1],
-    )[0],
-    latest = records[0];
-  return [
-    `[LEDGER D1–D${Math.max(0, state.day - 1)}] ${records.length} resolved days · ${orders.length} enemy orders observed.`,
-    recurring
-      ? `[INFERRED] Most persistent observed pattern: ${recurring[0]} · ${recurring[1]} observations.`
-      : "[UNKNOWN] No enemy order pattern exists before the first resolution.",
-    adaptation && adaptation[1] > 0
-      ? `[STATE] Enemy adaptation is highest against ${adaptation[0]} at ${adaptation[1].toFixed(0)} / 8.`
-      : "[STATE] No maneuver-specific enemy adaptation has yet accumulated.",
-    latest
-      ? `[UNKNOWN] ${latest.adversaryObserved.hiddenOrders} enemy order${latest.adversaryObserved.hiddenOrders === 1 ? " remains" : "s remain"} unclassified in the latest resolved day.`
-      : "[UNKNOWN] The first enemy order packet remains sealed until resolution.",
-  ].join("\n");
-};
-
-const adviceText = (state: GameState, fraction: number) => {
-  const report = buildAvaReport({ kind: "ADVISE" }, state),
-    situation = situationForState(state),
-    catalog = enumerateAvaActions(state, fraction);
-  if (state.status !== "active")
-    return {
-      report,
-      text: `${report.direct}\n\n${accumulatedIntel(state)}\n\nCOMMANDS\n> retrospective\n> service record report`,
-    };
-  if (state.actions === 0) {
-    const resolution = catalog.find((item) => item.kind === "resolve-day");
-    return {
-      report,
-      text: `The orders are closed. Review the projection, then stage ${resolution ? `[${resolution.handle}] ${resolution.label}` : "day resolution"}.\n\n${accumulatedIntel(state)}\n\nCOMMANDS\n> projection\n> resolve day`,
-    };
-  }
-  const opportunity = catalog.find(
-    (item) => item.kind === "opportunity-response" && item.available,
-  );
-  if (opportunity)
-    return {
-      report: {
-        ...report,
-        recommendation: `Resolve [${opportunity.handle}] ${opportunity.label} before its window closes.`,
-      },
-      text: [
-        `TIME-SENSITIVE INTERRUPTION\n[${opportunity.handle}] ${opportunity.label}`,
-        `DEADLINE\nThe live target window is open now. ${opportunity.summary}`,
-        `OWNED SACRIFICE\n${opportunity.owned.join(" · ") || "No immediate ledger change is attached."}`,
-        `CONTINGENT EXPOSURE\n${opportunity.contingent.join(" · ") || "No contingent exposure is attached."}`,
-        `RECOMMENDATION\nResolve the timed opening first. The ordinary maneuver calculus remains available, but the opportunity does not.`,
-        `COMMANDS\n> forecast ${opportunity.handle}\n> stage ${opportunity.handle}\n> missions`,
-      ].join("\n\n"),
-    };
-
-  const packet = compileDecisionCalculus(state);
-  const main = catalog.filter(
-    (item) => item.kind === "maneuver" && item.available,
-  );
-  const handles = new Map(
-    main.flatMap((descriptor) =>
-      descriptor.action.kind === "maneuver"
-        ? [[descriptor.action.maneuverId, descriptor.handle] as const]
-        : [],
-    ),
-  );
-  const primaryHandle = handles.get(packet.recommendation.maneuver.id);
-  const alternativeHandle = packet.alternative
-    ? handles.get(packet.alternative.maneuver.id)
-    : undefined;
-  if (!primaryHandle)
-    return {
-      report,
-      text: `${report.direct}\n\nNo legal order remains under the present constraints.\n\nGRAMMAR\n> status\n> list all`,
-    };
-  const recommendation = `Stage [${primaryHandle}] ${packet.recommendation.maneuver.label}${packet.coupledOrder ? ` and pair it with ${packet.coupledOrder}` : ""}.`;
-  return {
-    report: { ...report, recommendation },
-    text: [
-      `FIELD NOTE / JUDGMENT\nCommander. ${/corridor|route/i.test(`${situation.terrain} ${situation.headline}`) ? "The corridor is not a route; it is a rate." : "The position is not a picture; it is a rate."}`,
-      `FIELD CONTEXT\n${situation.headline}. ${situation.briefing}`,
-      renderDecisionCalculus(packet, handles),
-      `RECOMMENDATION\n${recommendation}`,
-      `CUMULATIVE INTELLIGENCE\n${accumulatedIntel(state)}`,
-      `COMMANDS\n> forecast ${primaryHandle}${alternativeHandle ? `\n> compare ${primaryHandle} ${alternativeHandle}` : ""}\n> stage ${primaryHandle}\n> missions`,
-    ].join("\n\n"),
-  };
-};
-
 function executeAvaInstruction(
   state: GameState,
   session: AvaTerminalSession,
   instruction: AvaInstruction,
   opportunityFraction = 0,
 ): AvaTerminalResult {
+  if (instruction.kind === "SHELL") {
+    const shellResult = executeAvaShell(
+      state,
+      session.shell,
+      instruction.shell,
+      opportunityFraction,
+    );
+    const next = { ...session, shell: shellResult.shell };
+    const download = shellResult.download
+      ? {
+          virtualPath: shellResult.download.path,
+          filename: shellResult.download.path.split("/").at(-1) ??
+            avaWorkbookFilename(
+              state,
+              shellResult.download.topic ?? "command-dashboard",
+            ),
+          mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          bytes: shellResult.download.workbookBytes
+            ? Uint8Array.from(shellResult.download.workbookBytes)
+            : buildAvaWorkbook(
+                state,
+                shellResult.download.topic ?? "command-dashboard",
+                opportunityFraction,
+              ),
+          stateRevision: shellResult.download.stateRevision,
+        }
+      : undefined;
+    return finalize(state, next, shellResult.text, {
+      outputKind: "shell",
+      clearScreen: shellResult.clearScreen,
+      download,
+    });
+  }
+  if (instruction.kind === "SEMANTIC") {
+    const answer = answerSemanticQuery(
+      state,
+      instruction.query,
+      session.discourse,
+      opportunityFraction,
+    );
+    const next = { ...session, discourse: answer.discourse };
+    return finalize(state, next, withHeader(state, answer.text), {
+      answerPlan: answer.answerPlan,
+      trace: {
+        semantic: instruction.query,
+        retrievedFacts: answer.retrievedFacts,
+        answerPlan: answer.answerPlan,
+        renderedResponse: answer.text,
+      },
+    });
+  }
   if (instruction.kind === "GREETING")
     return finalize(
       state,
@@ -686,17 +696,70 @@ function executeAvaInstruction(
     );
   }
   if (instruction.kind === "ADVISE") {
-    const advice = adviceText(state, opportunityFraction);
-    return finalize(state, session, withHeader(state, advice.text), {
-      report: advice.report,
-    });
+    const answer = answerSemanticQuery(
+      state,
+      {
+        operation: "ADVISE",
+        subject: { type: "CAMPAIGN_CHOICE", entityIds: [] },
+        scope: {
+          group: "ALL",
+          domains: ["MAIN", "DOMESTIC", "NETWORK"],
+          excludedDomains: [],
+        },
+        timeframe: "CURRENT_DOCKET",
+        criteria: ["OVERALL_VALUE"],
+        polarity: "AFFIRMATIVE",
+        requestedDetail: "JUDGMENT",
+        perspective: "PLAYER",
+        outputForm: "TERMINAL",
+        overlays: [],
+        confidence: 1,
+        sourceSpans: {},
+      },
+      session.discourse,
+      opportunityFraction,
+    );
+    return finalize(
+      state,
+      { ...session, discourse: answer.discourse },
+      withHeader(state, answer.text),
+      {
+        answerPlan: answer.answerPlan,
+        trace: {
+          retrievedFacts: answer.retrievedFacts,
+          answerPlan: answer.answerPlan,
+          renderedResponse: answer.text,
+        },
+      },
+    );
   }
   if (instruction.kind === "REPORT") {
     const report = buildAvaReport(instruction, state);
+    const saved = saveAvaReportSnapshot(
+      session.shell,
+      state,
+      report,
+      opportunityFraction,
+    );
+    if (saved.error)
+      return finalize(
+        state,
+        session,
+        withHeader(
+          state,
+          `${reportText(report, session.detail)}\n\n${saved.error}`,
+        ),
+        { report },
+      );
+    const next = { ...session, shell: saved.shell };
+    const path = saved.workbookPath!;
     return finalize(
       state,
-      session,
-      withHeader(state, reportText(report, session.detail)),
+      next,
+      withHeader(
+        state,
+        `${reportText(report, session.detail)}\n\nFILE\n${path}\nUse: download ${path}`,
+      ),
       { report },
     );
   }
@@ -845,29 +908,48 @@ function executeAvaInstruction(
       leftAction?.kind === "maneuver" &&
       rightAction?.kind === "maneuver"
     ) {
-      const packet = compileDecisionCalculus(state);
-      const left = packet.options.find(
-        (option) => option.maneuver.id === leftAction.maneuverId,
-      );
-      const right = packet.options.find(
-        (option) => option.maneuver.id === rightAction.maneuverId,
-      );
-      if (left && right)
+      const left = actionProjection(state, leftAction, opportunityFraction);
+      const right = actionProjection(state, rightAction, opportunityFraction);
+      if (
+        left.preview.executed &&
+        right.preview.executed &&
+        left.projection &&
+        right.projection
+      ) {
+        const lossDelta =
+          left.projection.friendlyLoss - right.projection.friendlyLoss;
+        const groundDelta =
+          left.projection.groundMovement - right.projection.groundMovement;
+        const shortageDelta =
+          left.projection.production.shortages -
+          right.projection.production.shortages;
+        const dominates =
+          lossDelta <= 0 &&
+          groundDelta >= 0 &&
+          shortageDelta <= 0 &&
+          (lossDelta < 0 || groundDelta > 0 || shortageDelta < 0);
         return finalize(
           state,
           session,
           withHeader(
             state,
             [
-              "COMPARISON / SHARED DECISION CALCULUS",
-              renderManeuverCalculus(left, descriptors[0].handle),
+              "COMPARISON / DISCLOSED PROJECTION",
+              `[${descriptors[0].handle}] ${descriptors[0].label}\n${projectionLines(state, leftAction, opportunityFraction).join("\n")}`,
               "VERSUS",
-              renderManeuverCalculus(right, descriptors[1].handle),
-              `DELTA\nSCORE ${(left.score - right.score).toFixed(2)} · LOSSES ${fmt(left.expectedLosses - right.expectedLosses, true)} · GROUND ${(left.groundMovement - right.groundMovement).toFixed(2)} KM · SUSTAINMENT ${(left.sustainmentDays - right.sustainmentDays).toFixed(1)} DAYS`,
-              `JUDGMENT\n${left.score >= right.score ? descriptors[0].label : descriptors[1].label} ranks first because the same declared equations and fired rules produce the higher score. No order was issued.`,
+              `[${descriptors[1].handle}] ${descriptors[1].label}\n${projectionLines(state, rightAction, opportunityFraction).join("\n")}`,
+              `DELTA\nFriendly loss: ${lossDelta >= 0 ? "+" : ""}${fmt(lossDelta, true)} · Ground: ${groundDelta >= 0 ? "+" : ""}${groundDelta.toFixed(1)} km · Industrial shortages: ${shortageDelta >= 0 ? "+" : ""}${shortageDelta}`,
+              `JUDGMENT\n${
+                dominates
+                  ? `${descriptors[0].label} dominates on disclosed loss, ground, and shortage consequences.`
+                  : lossDelta >= 0 && groundDelta <= 0 && shortageDelta >= 0
+                    ? `${descriptors[1].label} dominates on disclosed loss, ground, and shortage consequences.`
+                    : "Neither order dominates. One buys ground or continuity by accepting a different loss."
+              } No order was issued.`,
             ].join("\n\n"),
           ),
         );
+      }
     }
     return finalize(
       state,
@@ -897,7 +979,7 @@ function executeAvaInstruction(
           { rejection: result.rejection },
         );
       const confirmation = session.confirmation,
-        next = { ...initialAvaTerminalSession(), detail: session.detail };
+        next = resetIssuedPlan(session);
       return finalize(
         result.state,
         next,
@@ -1019,7 +1101,7 @@ function executeAvaInstruction(
         withHeader(state, `CONFIRM REJECTED: ${result.rejection}`),
         { rejection: result.rejection },
       );
-    const next = { ...initialAvaTerminalSession(), detail: session.detail };
+    const next = resetIssuedPlan(session);
     return finalize(
       result.state,
       next,
@@ -1154,21 +1236,64 @@ export function runAvaInstruction(
   session: AvaTerminalSession,
   instruction: AvaInstruction,
   opportunityFraction = 0,
+  semantic?: AvaSemanticQuery,
+  compilerTrace?: AvaCompilerTrace,
 ): AvaTerminalResult {
   const result = executeAvaInstruction(
       state,
       session,
       instruction,
       opportunityFraction,
-    ),
-    voiced = voiceAvaResponse(
+    );
+  if (result.outputKind === "shell")
+    return {
+      ...result,
+      trace: {
+        compiler: compilerTrace,
+        semantic,
+        retrievedFacts: [],
+        renderedResponse: result.text,
+      },
+    };
+  const query =
+    instruction.kind === "SEMANTIC" ? instruction.query : semantic;
+  const discourse = query
+    ? {
+        ...result.session.discourse,
+        lastSubject:
+          result.session.discourse.lastSubject ?? query.subject.type,
+        lastMetric: query.metric ?? result.session.discourse.lastMetric,
+        lastScope:
+          query.scope.domains.length
+            ? query.scope.domains
+            : result.session.discourse.lastScope,
+        lastTimeframe: query.timeframe,
+        currentScreen: result.session.discourse.currentScreen,
+      }
+    : result.session.discourse;
+  const voiced = voiceAvaResponse(
       result.state,
       result.text,
-      voiceCueForInstruction(instruction, result, session),
+      {
+        ...voiceCueForInstruction(instruction, result, session),
+        variant: session.voiceCursor,
+      },
     );
   return {
     ...result,
     text: voiced,
-    session: { ...result.session, lastText: voiced },
+    session: {
+      ...result.session,
+      discourse,
+      voiceCursor: result.session.voiceCursor + 1,
+      lastText: voiced,
+    },
+    trace: {
+      compiler: compilerTrace,
+      semantic: query,
+      retrievedFacts: result.trace?.retrievedFacts ?? [],
+      answerPlan: result.answerPlan,
+      renderedResponse: voiced,
+    },
   };
 }

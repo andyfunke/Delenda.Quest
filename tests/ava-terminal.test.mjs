@@ -10,22 +10,28 @@ const game=await import(process.env.DELENDA_AVA_GAME_BUNDLE);
 const newState=(seed=1729)=>game.initialState({...game.DEFAULT_CAMPAIGN,seed});
 const newSession=()=>terminal.initialAvaTerminalSession();
 
-const compile=(raw,state,fraction=0,selected=null)=>{
+const compile=(raw,state,fraction=0,selected=null,discourse)=>{
   const result=compiler.compileAvaCommand(raw,{
     currentModule:"campaign",
     entities:contextModule.avaEntitiesForState(state,fraction),
     selected,
+    discourse,
   });
   assert.equal(result.status,"compiled",`${raw}: ${JSON.stringify(result)}`);
-  return result.instruction;
+  return result;
 };
 
-const run=(raw,state,session=newSession(),fraction=0)=>terminal.runAvaInstruction(
-  state,
-  session,
-  compile(raw,state,fraction),
-  fraction,
-);
+const run=(raw,state,session=newSession(),fraction=0)=>{
+  const compiled=compile(raw,state,fraction,null,session.discourse);
+  return terminal.runAvaInstruction(
+    state,
+    session,
+    compiled.instruction,
+    fraction,
+    compiled.semantic,
+    compiled.trace,
+  );
+};
 
 test("every Ava response opens with ruthless state-bound and instruction-bounded field voice",()=>{
   const state=newState();
@@ -252,7 +258,7 @@ test("opportunity forecast discloses branches but never resolves or reveals the 
   assert.deepEqual(forecast.state,before);
   assert.equal(forecast.executed,false);
   assert.equal(forecast.state.opportunityHistory.length,0);
-  assert.match(forecast.text,/sealed ticket/i);
+  assert.match(forecast.text,/does not reveal which contingent branch/i);
   assert.match(forecast.text,/does not reveal which contingent branch/i);
   assert.doesNotMatch(forecast.text,new RegExp(packet.ticket.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),"forecast output must not expose the resolution ticket");
   assert.doesNotMatch(forecast.text,/opening was exploited|opening closed without the intended effect/i);
@@ -325,26 +331,209 @@ test("confirmation is rejected after authoritative state changes",()=>{
   assert.match(rejected.text,/CONFIRM REJECTED/);
 });
 
-test("advise, forecast, and compare share an explicit maneuver calculus",()=>{
+test("ordinary advice is narrative while explicit forecast and compare expose bounded command calculus",()=>{
   const state=newState(1729);
   const advice=run("what should I do",state);
-  assert.match(advice.text,/corridor viability = \(.+relay uptime × .+road throughput\) ÷ .+enemy fires/i);
-  assert.match(advice.text,/sustainment floor/i);
-  assert.match(advice.text,/replacement balance/i);
-  assert.match(advice.text,/outcome envelope/i);
-  assert.match(advice.text,/rules fired/i);
-  assert.match(advice.text,/DERIVATIVE RECOMMENDATION/i);
+  assert.match(advice.text,/^FIELD NOTE \/ JUDGMENT/);
+  assert.match(advice.text,/\n\n(?:ANSWER|DISTINCTION|ELIMINATION)\n/);
+  assert.match(advice.text,/\n\n(?:WHY|TRADEOFF)\n/);
+  assert.doesNotMatch(advice.text,/CALCULATION|equation|option score|rules fired|corridor viability/i);
+  assert.ok(advice.answerPlan);
+  assert.equal(advice.answerPlan.calculationDisclosure,"NONE");
+  assert.ok(advice.trace?.semantic);
+  assert.ok(advice.trace?.retrievedFacts.length);
 
   const forecast=run("forecast M1",state);
-  assert.match(forecast.text,/corridor viability =/i);
-  assert.match(forecast.text,/sustainment:/i);
+  assert.match(forecast.text,/CALCULATION/);
+  assert.match(forecast.text,/controlled success\/disruption branches/i);
   assert.match(forecast.text,/principal uncertainty/i);
-  assert.match(forecast.text,/outcome envelope/i);
+  assert.match(forecast.text,/disclosed enemy-force estimate/i);
+  assert.doesNotMatch(forecast.text,/resolution roll|ticket:[A-Za-z0-9]/i);
 
   const comparison=run("compare M1 M2",state);
-  assert.match(comparison.text,/SHARED DECISION CALCULUS/i);
-  assert.match(comparison.text,/rules fired/i);
-  assert.match(comparison.text,/SUSTAINMENT/i);
+  assert.match(comparison.text,/DISCLOSED PROJECTION/i);
+  assert.match(comparison.text,/disclosed loss, ground, and shortage|Neither order dominates/i);
+  assert.doesNotMatch(comparison.text,/SHARED DECISION CALCULUS|rules fired|SCORE/i);
+});
+
+test("Ava varies authored structure deterministically without changing the grounded conclusion",()=>{
+  const state=newState(1729);
+  const first=run("what should I do",state);
+  const second=run("what should I do",state,first.session);
+  assert.notEqual(first.text,second.text);
+  assert.notEqual(first.answerPlan?.structureId,second.answerPlan?.structureId);
+  assert.equal(first.answerPlan?.directAnswer,second.answerPlan?.directAnswer);
+  assert.equal(first.answerPlan?.stateRevision,second.answerPlan?.stateRevision);
+});
+
+test("the sealed Ava shell navigates a realistic fake filesystem and denies protected paths",()=>{
+  const state=newState(1);
+  let session=newSession();
+  const execute=(command)=>{
+    const result=run(command,state,session);
+    session=result.session;
+    assert.equal(result.outputKind,"shell",command);
+    assert.deepEqual(result.state,state,command);
+    return result;
+  };
+
+  assert.equal(execute("pwd").text,"/home/commander/home");
+  assert.equal(execute("cd ..").session.shell.cwd,"/home/commander");
+  assert.equal(execute("cd ~/home").session.shell.cwd,"/home/commander/home");
+  assert.equal(execute("cd /var").session.shell.cwd,"/var");
+  assert.match(execute("ls -al").text,/cache[\s\S]*lib[\s\S]*log[\s\S]*tmp/);
+  assert.match(execute("cd /var/log").text,/Permission denied/);
+  assert.match(execute("cd /var/log/../tmp").text,/Permission denied/);
+  assert.equal(execute("cd /home/commander/home").session.shell.cwd,"/home/commander/home");
+  assert.match(execute("grep -inr net reports").text,/NET FLIGHT|NETWORK/i);
+  assert.equal(execute('grep -r "(.|..)+Z" reports').text,"");
+  assert.match(execute("grep x /does-not-exist").text,/No such file or directory/);
+  assert.match(execute("grep x reports").text,/Is a directory/);
+  assert.match(execute("find reports -maxdepth 2 -name *.xlsx").text,/command-dashboard\.xlsx/);
+  assert.match(execute("find /does-not-exist").text,/No such file or directory/);
+  assert.match(execute("history").text,/pwd[\s\S]*cd \.\.[\s\S]*find reports/);
+  const cleared=execute("clear");
+  assert.equal(cleared.clearScreen,true);
+  assert.equal(cleared.text,"");
+});
+
+test("Ava report workbooks are real downloadable xlsx files with formulas preserved in cells",()=>{
+  const state=newState(1);
+  const report=run("report production",state);
+  const savedPath="/home/commander/home/reports/saved/day-001-production-01.xlsx";
+  assert.match(report.text,/reports\/saved\/day-001-production-01\.xlsx/);
+  assert.ok(report.session.shell.files.some(file=>file.path===savedPath));
+
+  const download=run(
+    `download ${savedPath}`,
+    state,
+    report.session,
+  );
+  assert.equal(download.outputKind,"shell");
+  assert.ok(download.download);
+  assert.equal(download.download.mime,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  assert.equal(Buffer.from(download.download.bytes.subarray(0,2)).toString(),"PK");
+  const archive=Buffer.from(download.download.bytes).toString("utf8");
+  for(const marker of [
+    "Industrial Throughput",
+    "ALLOCATION",
+    "PRODUCTION",
+    "CURRENT",
+    "REQUIRED",
+    "LIVE STOCK",
+    "BALANCE",
+    "Net Flight",
+    "Force Generation",
+    "Diplomatic Calculus",
+    "Directive Calculus",
+    "Doctrine Calculus",
+    "Calculation Inputs",
+    "Resolution History",
+    "Ava Decision Ledger",
+    "F2*0.5+E2*0.35-D2*0.55-G2*0.00025",
+    "Campaign Score",
+    "EXP((28-B3)/5.2)",
+  ])assert.match(archive,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),marker);
+  assert.doesNotMatch(archive,/resolutionTicket|raw prompt|accountOpportunityIds/i);
+
+  const resolvePending=run("resolve day",state,download.session);
+  const nextDay=confirmPending(state,resolvePending.session);
+  assert.ok(
+    nextDay.session.shell.files.some(file=>file.path===savedPath),
+    "saved reports must survive order and day transitions",
+  );
+});
+
+test("Ava counsel and exports cannot derive conclusions from sealed enemy condition",()=>{
+  const state=newState(1);
+  const altered=structuredClone(state);
+  altered.adversary.force=Math.round(state.adversary.force*0.42);
+  altered.adversary.readiness=20;
+  altered.adversary.equipment=100;
+
+  const firstAdvice=run("what should I do",state);
+  const alteredAdvice=run("what should I do",altered);
+  assert.equal(firstAdvice.answerPlan?.directAnswer,alteredAdvice.answerPlan?.directAnswer);
+  assert.deepEqual(firstAdvice.answerPlan?.rankedOptions,alteredAdvice.answerPlan?.rankedOptions);
+
+  const firstReport=run("report production",state);
+  const alteredReport=run("report production",altered);
+  const firstWorkbook=firstReport.session.shell.files.find(file=>file.kind==="workbook");
+  const alteredWorkbook=alteredReport.session.shell.files.find(file=>file.kind==="workbook");
+  assert.ok(firstWorkbook?.workbookBytes);
+  assert.ok(alteredWorkbook?.workbookBytes);
+  assert.deepEqual(firstWorkbook.workbookBytes,alteredWorkbook.workbookBytes);
+});
+
+test("saved report snapshots are immutable and sequence changed same-day state",()=>{
+  const state=newState(1);
+  const first=run("report production",state,newSession(),0.5);
+  const firstPath="/home/commander/home/reports/saved/day-001-production-01.xlsx";
+  const firstBytes=[
+    ...first.session.shell.files.find(file=>file.path===firstPath).workbookBytes,
+  ];
+  const changed={...state,workforce:Math.round(state.workforce*0.7)};
+  const second=run("report production",changed,first.session,0.5);
+  const secondPath="/home/commander/home/reports/saved/day-001-production-02.xlsx";
+  assert.ok(second.session.shell.files.some(file=>file.path===secondPath));
+  assert.deepEqual(
+    second.session.shell.files.find(file=>file.path===firstPath).workbookBytes,
+    firstBytes,
+  );
+  assert.notDeepEqual(
+    second.session.shell.files.find(file=>file.path===secondPath).workbookBytes,
+    firstBytes,
+  );
+});
+
+test("contextual repairs revise the semantic query without losing the active docket",()=>{
+  const state=fullDocketState();
+  const first=run("advise me on the secondary missions",state);
+  assert.equal(first.trace?.semantic?.scope.group,"SECONDARY");
+  assert.ok(first.session.discourse.lastRecommended);
+
+  const why=run("why that one",state,first.session);
+  assert.equal(why.trace?.semantic?.operation,"JUSTIFY");
+  assert.equal(why.trace?.semantic?.reference.type,"LAST_RECOMMENDATION");
+  assert.match(why.text,/JUSTIFICATION/);
+
+  const other=run("what about the other one",state,why.session);
+  assert.equal(other.trace?.semantic?.reference.type,"OTHER_ENTITY");
+  assert.notEqual(other.session.discourse.lastRecommended,first.session.discourse.lastRecommended);
+
+  const correction=run("no, I meant the network option",state,other.session);
+  assert.equal(correction.trace?.semantic?.operation,"CORRECT");
+  assert.deepEqual(correction.trace?.semantic?.scope.domains,["NETWORK"]);
+
+  const hypothetical=run(
+    "would you still recommend it without the production gain",
+    state,
+    correction.session,
+  );
+  assert.equal(hypothetical.trace?.semantic?.timeframe,"PROJECTED");
+  assert.equal(hypothetical.trace?.semantic?.overlays[0].kind,"WITHOUT_EFFECT");
+  assert.match(hypothetical.text,/ASSUMPTION/);
+  assert.doesNotMatch(hypothetical.text,/CALCULATION/);
+});
+
+test("negative near-neighbors do not collapse into secondary-scope advice",()=>{
+  const state=fullDocketState();
+  const negated=run("do not advise me on the secondary missions",state);
+  assert.equal(negated.trace?.semantic?.polarity,"NEGATED");
+  assert.match(negated.text,/will not recommend/i);
+
+  const objective=run("what is the secondary objective of the main mission",state);
+  assert.equal(objective.trace?.semantic?.subject.type,"MISSION_OBJECTIVE");
+  assert.notEqual(objective.trace?.semantic?.scope.group,"SECONDARY");
+  assert.match(objective.text,/does not invoke the Domestic and Network/i);
+
+  const ordinal=run("show me the second mission",state);
+  assert.equal(ordinal.trace?.semantic?.quantity.value,2);
+  assert.notEqual(ordinal.trace?.semantic?.scope.group,"SECONDARY");
+
+  const predicate=run("is production secondary to military readiness",state);
+  assert.equal(predicate.trace?.semantic?.operation,"CHALLENGE");
+  assert.match(predicate.text,/related systems with separate state/i);
 });
 
 test("a complete campaign can be prosecuted through Ava text alone",()=>{

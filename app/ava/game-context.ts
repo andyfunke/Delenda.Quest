@@ -23,9 +23,11 @@ export const AVA_METRICS: AvaEntity[] = [
     "equipment",
     "serviceable equipment",
   ]),
-  metric("materiel", "Materiel Condition", [
-    "maintenance",
-    "industrial condition",
+  metric("materiel", "Materiel Condition", ["maintenance condition"]),
+  metric("industrial-condition", "Industrial Condition", [
+    "factory condition",
+    "industrial health",
+    "maintenance debt",
   ]),
   metric("treasury", "Treasury", ["money", "fiscal capacity"]),
   metric("legitimacy", "Legitimacy", ["public support", "governability"]),
@@ -103,15 +105,15 @@ export const avaEntitiesForState = (
     kind: "module",
     label: id[0].toUpperCase() + id.slice(1),
   }));
-  const missions: AvaEntity[] = [packet.domestic, packet.network].map(
-    (prompt) => ({
+  const missions: AvaEntity[] = [packet.domestic, packet.network]
+    .filter((prompt) => packet.activeDomains.includes(prompt.domain))
+    .map((prompt) => ({
       id: prompt.id,
       kind: "mission",
       label: prompt.title,
       aliases: [prompt.archetypeId, prompt.frameId, ...prompt.aliases],
       parentId: prompt.domain,
-    }),
-  );
+    }));
   const actors = state.actors.map<AvaEntity>((actor) => ({
     id: actor.id,
     kind: "foreign-actor",

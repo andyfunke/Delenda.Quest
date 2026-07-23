@@ -39,35 +39,7 @@ const hashInt = (text: string) => {
 const shortHash = (text: string) => hashInt(text).toString(16).padStart(8, "0");
 
 export const avaStateRevision = (state: GameState) =>
-  `D${state.day}-${shortHash(
-    JSON.stringify({
-      day: state.day,
-      status: state.status,
-      actions: state.actions,
-      maneuver: state.maneuver,
-      active: state.active,
-      locks: state.locks,
-      scheduled: state.scheduled,
-      activeDiplomacy: state.activeDiplomacy,
-      unlocked: state.unlocked,
-      decisions: state.decisions,
-      opportunityHistory: state.opportunityHistory,
-      front: state.front,
-      armed: state.armed,
-      deployable: state.deployable,
-      readiness: state.readiness,
-      equipment: state.equipment,
-      materiel: state.materiel,
-      treasury: state.treasury,
-      legitimacy: state.legitimacy,
-      resistance: state.resistance,
-      dependency: state.dependency,
-      intelligence: state.intelligence,
-      production: state.production,
-      currentSituation: state.currentSituation,
-      currentSubMissions: state.currentSubMissions,
-    }),
-  )}`;
+  `D${state.day}-${shortHash(JSON.stringify(state))}`;
 
 const directiveDescriptor = (
   state: GameState,

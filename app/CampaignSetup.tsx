@@ -32,7 +32,7 @@ export function CampaignSetup({current,hasSave,seedOverride,configOverride,onSta
       <cite>Comm. Het Claxton, Command Ethics Appendix</cite>
     </blockquote>
     <footer className="campaign-generator-actions">
-      <div><b>{hasSave?"COMMAND INTERRUPTED":"THE LINE IS OPEN"}</b><small>{hasSave?`The Day ${current.day} command may still be resumed.`:"There is no unfinished command to recover."}</small></div>
+      <div><b>{hasSave?"COMMAND INTERRUPTED":"THE LINE IS OPEN"}</b><small>{hasSave?`The Day ${current.day} command may still be resumed. `:""}Ava files are campaign-local. Download any workbook you intend to retain.</small></div>
       {hasSave && <button onClick={onResume}>Resume campaign</button>}
       <button onClick={onClose}>Return</button>
       <button className="primary" onClick={()=>onStart(config)}>{challenged?"Accept challenge":"Begin campaign"}</button>

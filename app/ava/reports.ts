@@ -4,14 +4,10 @@ import {
   MANEUVERS,
   activeDiplomacyForState,
   coverage,
-  estimateDay,
   fmt,
   maneuverChance,
   opportunityForState,
-  projectAdversary,
-  projectDomestic,
   projectForceGeneration,
-  projectOperations,
   projectProduction,
   situationForState,
   type GameState,
@@ -20,6 +16,10 @@ import { compileConvergence } from "../convergence";
 import type { AvaInstruction, AvaReportCard, AvaReportTopic } from "./schema";
 import { avaReportOpening as flavor } from "./voice";
 import { campaignScoreForState } from "../campaign-score-state";
+import {
+  disclosedAdversaryAssessment,
+  projectAvaEnvelope,
+} from "./projection";
 
 type ReportInstruction =
   | Extract<AvaInstruction, { kind: "REPORT" }>
@@ -311,11 +311,12 @@ function productionReport(state: GameState, requested = 5): AvaReportCard {
 }
 
 function projectionReport(state: GameState): AvaReportCard {
-  const operation = projectOperations(state),
+  const envelope = projectAvaEnvelope(state),
+    operation = envelope,
     production = projectProduction(state),
     force = projectForceGeneration(state),
-    domestic = projectDomestic(state),
-    personnel = estimateDay(state),
+    domestic = envelope.domestic,
+    personnel = envelope.personnel,
     history = recent(state, 5);
   return {
     topic: "projection",
@@ -394,7 +395,7 @@ function projectionReport(state: GameState): AvaReportCard {
 }
 
 function domesticReport(state: GameState, requested = 5): AvaReportCard {
-  const projection = projectDomestic(state),
+  const projection = projectAvaEnvelope(state).domestic,
     records = recent(state, requested),
     legitimacy = records.reduce(
       (sum, record) => sum + record.domestic.legitimacyChange,
@@ -483,7 +484,7 @@ function domesticReport(state: GameState, requested = 5): AvaReportCard {
 }
 
 function operationsReport(state: GameState, requested = 5): AvaReportCard {
-  const operation = projectOperations(state),
+  const operation = projectAvaEnvelope(state),
     situation = situationForState(state),
     records = recent(state, requested),
     movement = records.reduce(
@@ -497,11 +498,11 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
   return {
     topic: "operations",
     title: `Operations report / ${situation.sector}`,
-    direct: `${operation.maneuver} commits ${fmt(operation.committed, true)} local personnel${operation.packageEfficiency < 1 ? ` against a ${fmt(operation.nominalCommitment, true)} nominal requirement` : ""} at a literal ${operation.forceRatio.toFixed(2)} effective-force ratio and projects ${signed(operation.groundMovement)} km.`,
+    direct: `${operation.maneuver} commits ${fmt(operation.committed, true)} local personnel${operation.packageEfficiency < 1 ? ` against a ${fmt(operation.nominalCommitment, true)} nominal requirement` : ""} at an assessed ${operation.forceRatio.toFixed(2)} effective-force ratio and projects ${signed(operation.groundMovement)} km.`,
     flavor: flavor(state, "operations"),
     calculation: {
       equation:
-        "local personnel × disclosed condition conversion = local effective force; friendly effective ÷ enemy effective = literal ratio",
+        "local personnel × disclosed condition conversion = local effective force; friendly effective ÷ assessed enemy effective = forecast ratio",
       rows: [
         {
           label: "OPERATIONALLY AVAILABLE",
@@ -546,13 +547,13 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
           conceptId: "enemy-forward-deployment",
         },
         {
-          label: "LITERAL FORCE RATIO",
+          label: "ASSESSED FORCE RATIO",
           value: operation.forceRatio.toFixed(2),
           tone: operation.forceRatio >= 1 ? "gain" : "loss",
           conceptId: "force-ratio",
         },
         {
-          label: "BOUNDED ATTRITION RATIO",
+          label: "BOUNDED FORECAST RATIO",
           value: operation.boundedForceRatio.toFixed(2),
           conceptId: "force-ratio",
         },
@@ -593,7 +594,7 @@ function operationsReport(state: GameState, requested = 5): AvaReportCard {
 }
 
 function networkReport(state: GameState, requested = 5): AvaReportCard {
-  const operation = projectOperations(state),
+  const operation = projectAvaEnvelope(state),
     packet = compileConvergence(state).network,
     records = recent(state, requested),
     history = state.subMissionHistory
@@ -664,8 +665,8 @@ function networkReport(state: GameState, requested = 5): AvaReportCard {
 }
 
 function intelligenceReport(state: GameState, requested = 5): AvaReportCard {
-  const adversary = projectAdversary(state),
-    operation = projectOperations(state),
+  const adversary = disclosedAdversaryAssessment(state),
+    operation = projectAvaEnvelope(state),
     records = recent(state, requested),
     observedOrders = records.flatMap(
       (record) => record.adversaryObserved.observedOrders,
@@ -742,7 +743,7 @@ function intelligenceReport(state: GameState, requested = 5): AvaReportCard {
 }
 
 function adversaryReport(state: GameState, requested = 5): AvaReportCard {
-  const adversary = projectAdversary(state),
+  const adversary = disclosedAdversaryAssessment(state),
     records = recent(state, requested),
     past = records.flatMap((record) => record.adversaryObserved.observedOrders),
     operations =
@@ -834,7 +835,7 @@ function adversaryReport(state: GameState, requested = 5): AvaReportCard {
 
 function personnelReport(state: GameState, requested = 5): AvaReportCard {
   const force = projectForceGeneration(state),
-    personnel = estimateDay(state),
+    personnel = projectAvaEnvelope(state).personnel,
     records = recent(state, requested),
     combat = records.reduce(
       (sum, record) => sum + record.personnel.combatLosses,
@@ -1338,10 +1339,11 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
 
 function dailyBriefReport(state: GameState): AvaReportCard {
   const packet = compileConvergence(state),
-    operation = projectOperations(state),
+    envelope = projectAvaEnvelope(state),
+    operation = envelope,
     production = projectProduction(state),
-    domestic = projectDomestic(state),
-    personnel = estimateDay(state),
+    domestic = envelope.domestic,
+    personnel = envelope.personnel,
     opportunity = opportunityForState(state),
     advice = adviceReport(state),
     maneuvers = packet.operational.maneuvers
@@ -1386,7 +1388,7 @@ function dailyBriefReport(state: GameState): AvaReportCard {
     },
     ...maneuvers.map((maneuver, index) => ({
       label: `M${index + 1} / ${maneuver.label.toUpperCase()}`,
-      value: `${Math.round(maneuverChance(state, maneuver) * 100)}% CONFIDENCE · ${fmt(projectOperations(state, maneuver).committed, true)} COMMITTED`,
+      value: `${Math.round(maneuverChance(state, maneuver) * 100)}% CONFIDENCE · ${fmt(projectAvaEnvelope(state, maneuver).committed, true)} COMMITTED`,
       conceptId: `maneuver-${slug(maneuver.label)}`,
     })),
     ...(activeDomestic
@@ -1473,7 +1475,7 @@ function overviewReport(
   if (topic === "production") return productionReport(state);
   if (topic === "projection") return projectionReport(state);
   if (topic === "domestic") return domesticReport(state);
-  const operation = projectOperations(state),
+  const operation = projectAvaEnvelope(state),
     force = projectForceGeneration(state),
     history = recent(state, 5);
   let title = "Strategic status",
@@ -1490,7 +1492,7 @@ function overviewReport(
       conceptId: "enemy-forward-deployment",
     },
     {
-      label: "LITERAL RATIO",
+      label: "ASSESSED RATIO",
       value: operation.forceRatio.toFixed(2),
       conceptId: "force-ratio",
     },
@@ -1588,11 +1590,12 @@ function overviewReport(
 }
 
 function adviceReport(state: GameState): AvaReportCard {
-  const operation = projectOperations(state),
+  const envelope = projectAvaEnvelope(state),
+    operation = envelope,
     production = projectProduction(state),
-    domestic = projectDomestic(state),
+    domestic = envelope.domestic,
     force = projectForceGeneration(state),
-    personnel = estimateDay(state),
+    personnel = envelope.personnel,
     situation = situationForState(state);
   const terminalPrimary =
     state.status !== "active"
@@ -1657,7 +1660,7 @@ function adviceReport(state: GameState): AvaReportCard {
         operation.forceRatio < 0.9 ? 36 + (1 - operation.forceRatio) * 40 : 0,
       priority: 5,
       label: "Change the local exchange",
-      reason: `Literal local force ratio is ${operation.forceRatio.toFixed(2)}; bounded attrition calculus is ${operation.boundedForceRatio.toFixed(2)}.`,
+      reason: `Assessed local force ratio is ${operation.forceRatio.toFixed(2)}; the bounded forecast ratio is ${operation.boundedForceRatio.toFixed(2)}.`,
       command: `forecast ${situation.maneuvers[0] ?? ""}`.trim(),
       link: "force-ratio",
     },
