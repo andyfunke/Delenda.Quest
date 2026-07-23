@@ -1,11 +1,11 @@
 import {
   FAMILIES,
-  MANEUVERS,
   coverage,
   directorForState,
   estimateDay,
   fmt,
   maneuverChance,
+  maneuversForState,
   projectForceGeneration,
   projectOperations,
   projectOutcomeBands,
@@ -180,9 +180,7 @@ export const compileDecisionCalculus = (state: GameState): DecisionCalculusPacke
     situation.intelligence,
     state.intelligence,
   );
-  const available = situation.maneuvers
-    .map((id) => MANEUVERS.find((candidate) => candidate.id === id))
-    .filter((candidate): candidate is Maneuver => !!candidate);
+  const available = maneuversForState(state);
 
   const options = available.map((maneuver) => {
     const projection = projectOperations(state, maneuver);

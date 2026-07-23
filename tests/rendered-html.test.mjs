@@ -64,6 +64,25 @@ test("campaign UI is consequence-only while Ava retains the campaign report", as
   assert.doesNotMatch(dispatch,/\$\{maneuverLabel\} came apart under concentrated fire/);
 });
 
+test("Campaign order language and daily aphorisms consume compiled rotating state",async()=>{
+  const[page,game,substrate,rotation]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/game.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/campaign-substrate.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/rotation.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(substrate,/maneuverPresentations:Record<string,ManeuverPresentation>/);
+  assert.match(substrate,/compileManeuverPresentations/);
+  assert.match(substrate,/MANEUVER_ORDER_GRAMMAR/);
+  assert.match(game,/maneuversForState/);
+  assert.match(page,/const options = maneuversForState\(s\)/);
+  assert.match(page,/setActiveAphorismDay\(aphorismDayKey\(now\)\)/);
+  assert.match(page,/millisecondsUntilNextLocalDay\(now\)/);
+  assert.match(page,/document\.addEventListener\("visibilitychange",refreshWhenVisible\)/);
+  assert.match(page,/\}, \[activeAphorismDay\]\);/);
+  assert.match(rotation,/const update=input\.context[\s\S]*?\? \{status:input\.status,context:input\.context,updatedAt:now\}[\s\S]*?: \{status:input\.status,updatedAt:now\}/);
+});
+
 test("diplomacy separates foreign actors from diplomatic actions",async()=>{
   const[page,panel]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),

@@ -32,7 +32,8 @@ import {
   fmtStrategic,
   initialState,
   liveProjection,
-  maneuverById,
+  maneuverForState,
+  maneuversForState,
   opportunityResponseRejection,
   opportunityStatusForFraction,
   recordOpportunityExpired,
@@ -110,7 +111,13 @@ import { TheaterGeometry } from "./TheaterGeometry";
 import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
 import { MODULE_EPIGRAPHS, setDailyModuleEpigraph } from "./module-epigraphs";
-import { APHORISMS, aphorismForDay, type Aphorism } from "./aphorisms";
+import {
+  APHORISMS,
+  aphorismDayKey,
+  aphorismForDay,
+  millisecondsUntilNextLocalDay,
+  type Aphorism,
+} from "./aphorisms";
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
 
@@ -1329,7 +1336,7 @@ function SituationCard({
   openCampaign: () => void;
 }) {
   const situation = situationForState(s);
-  const order = maneuverById(s.maneuver);
+  const order = maneuverForState(s,s.maneuver);
   return (
     <section
       className={`situation-card ${order ? "ordered" : ""}`}
@@ -3187,9 +3194,7 @@ function CampaignPage({
 }) {
   const situation = situationForState(s);
   const packet = compileConvergence(s);
-  const options = situation.maneuvers
-    .map((id) => MANEUVERS.find((m) => m.id === id)!)
-    .filter(Boolean);
+  const options = maneuversForState(s);
   const [showIntro, setShowIntro] = useState(() => !introConsumed);
   useEffect(() => {
     if (!introConsumed) consumeIntro();
@@ -3465,11 +3470,11 @@ function CampaignPage({
                     {situation.question}
                   </h3>
                   <div className="campaign-intro-order-state">
-                    {maneuverById(s.maneuver) ? (
+                    {maneuverForState(s,s.maneuver) ? (
                       <>
                         <small>ORDER ISSUED</small>
-                        <b>{maneuverById(s.maneuver)?.label}</b>
-                        <p>{maneuverById(s.maneuver)?.flavor}</p>
+                        <b>{maneuverForState(s,s.maneuver)?.label}</b>
+                        <p>{maneuverForState(s,s.maneuver)?.flavor}</p>
                       </>
                     ) : (
                       <p>
@@ -3810,6 +3815,7 @@ export default function Home() {
   const [rotationReady, setRotationReady] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
   const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
+  const [activeAphorismDay, setActiveAphorismDay] = useState("");
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
@@ -4051,12 +4057,27 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
+    let timeout:number|undefined;
+    const schedule=()=>{
+      const now=new Date();
+      setActiveAphorismDay(aphorismDayKey(now));
+      window.clearTimeout(timeout);
+      timeout=window.setTimeout(schedule,millisecondsUntilNextLocalDay(now)+50);
+    };
+    const refreshWhenVisible=()=>{
+      if(document.visibilityState==="visible")schedule();
+    };
+    schedule();
+    document.addEventListener("visibilitychange",refreshWhenVisible);
+    return()=>{
+      window.clearTimeout(timeout);
+      document.removeEventListener("visibilitychange",refreshWhenVisible);
+    };
+  },[]);
+  useEffect(() => {
+    if(!activeAphorismDay)return;
     let live = true;
-    const dayKey = [
-      new Date().getFullYear(),
-      String(new Date().getMonth() + 1).padStart(2, "0"),
-      String(new Date().getDate()).padStart(2, "0"),
-    ].join("-");
+    const dayKey = activeAphorismDay;
     let deviceKey = "";
     let localSeen: string[] = [];
     let localDays: Record<string, string> = {};
@@ -4139,11 +4160,21 @@ export default function Home() {
         if (!live || !selected) return;
         setDailyModuleEpigraph(selected);
         setDailyAphorism(selected);
+        try {
+          window.localStorage.setItem(
+            APHORISM_LEDGER_KEY,
+            JSON.stringify([...new Set([...localSeen,selected.id])]),
+          );
+          window.localStorage.setItem(
+            APHORISM_DAY_KEY,
+            JSON.stringify({...localDays,[dayKey]:selected.id}),
+          );
+        } catch {}
       });
     return () => {
       live = false;
     };
-  }, []);
+  }, [activeAphorismDay]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("wiki") || params.get("standalone") === "1") {
@@ -5388,7 +5419,7 @@ export default function Home() {
             <h2>Release the day to resolution?</h2>
             <p>
               {s.maneuver
-                ? `${maneuverById(s.maneuver)?.label} will be resolved against ${situationForState(s).sector}. `
+                ? `${maneuverForState(s,s.maneuver)?.label} will be resolved against ${situationForState(s).sector}. `
                 : "No maneuver order exists. Standing tempo will prosecute the day. "}
               {s.actions
                 ? `${s.actions} unused action${s.actions === 1 ? "" : "s"} will expire. `

@@ -7,6 +7,7 @@ import {
   commitOpportunity,
   directiveRejection,
   doctrineStage,
+  maneuversForState,
   maneuverOrderRejection,
   opportunityResponseRejection,
   opportunityStatusForFraction,
@@ -158,15 +159,15 @@ export const enumerateAvaActions = (
   const situation = situationForState(state),
     packet = compileConvergence(state);
   const actions: AvaActionDescriptor[] = [];
-  situation.maneuvers.forEach((id, index) => {
-    const maneuver = MANEUVERS.find((item) => item.id === id);
-    if (!maneuver) return;
+  maneuversForState(state).forEach((maneuver, index) => {
+    const id=maneuver.id;
+    const canonical=MANEUVERS.find((item)=>item.id===id);
     const rejection = maneuverOrderRejection(state, maneuver);
     actions.push({
       id: `maneuver:${id}`,
       handle: `M${index + 1}`,
       label: maneuver.label,
-      aliases: [maneuver.label, maneuver.vector, id],
+      aliases: [maneuver.label, canonical?.label??"", maneuver.vector, id].filter(Boolean),
       kind: "maneuver",
       action: { kind: "maneuver", maneuverId: id },
       domain: "main",

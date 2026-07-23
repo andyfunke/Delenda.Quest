@@ -43,6 +43,28 @@ test("every theater opens with a stored graph-backed Situation Packet",()=>{
   }
 });
 
+test("Main campaign compiles situation-specific order language over stable maneuver calculus",()=>{
+  const visibleLabels=new Set(),canonicalLabels=new Set(MANEUVERS.map(item=>item.label));
+  for(let seed=1;seed<=24;seed++){
+    let state=initialState({seed,theater:THEATERS[(seed-1)%THEATERS.length].id});
+    for(let day=1;day<=18;day++){
+      state={...state,day,currentSituation:null};
+      const situation=situationForState(state);
+      assert.equal(Object.keys(situation.maneuverPresentations).length,3);
+      for(const id of situation.maneuvers){
+        const canonical=MANEUVERS.find(item=>item.id===id),presentation=situation.maneuverPresentations[id];
+        assert.ok(canonical&&presentation);
+        assert.ok(presentation.label.includes(situation.sector));
+        assert.ok(presentation.rationale.length>40);
+        assert.match(presentation.realizationId,new RegExp(`:${id}:L\\d+:R\\d+$`));
+        assert.ok(!canonicalLabels.has(presentation.label),`${presentation.label} fell back to a global maneuver label`);
+        visibleLabels.add(presentation.label);
+      }
+    }
+  }
+  assert.ok(visibleLabels.size>=150,`only ${visibleLabels.size} distinct situation-specific order labels compiled`);
+});
+
 test("selection and resolution tickets are deterministic for identical state",()=>{
   const left=initialState({seed:99173,theater:"industrial",archetype:"officer-regency",adversaryPersonality:"adaptive"});
   const right=initialState({seed:99173,theater:"industrial",archetype:"officer-regency",adversaryPersonality:"adaptive"});
@@ -69,7 +91,7 @@ test("directive menus expose the expanded parent and child corpus",()=>{
     grouped.set(key,[...(grouped.get(key)??[]),family.label]);
   }
   for(const[key,labels]of grouped)assert.ok(labels.length>=2,`${key} exposes only ${labels.join(", ")}`);
-  assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Allocate War Expenditure"]);
+  assert.deepEqual(grouped.get("national/Public Finance"),["Finance Mobilization","Allocate War Expenditure","Set Procurement Prices"]);
   assert.deepEqual(grouped.get("military/Operations"),["Set Operational Tempo","Manage Operational Reserves"]);
   assert.deepEqual(grouped.get("military/Personnel Sustainment"),["Process Desertion","Administer Rotation and Recovery"]);
   assert.deepEqual(grouped.get("diplomacy/Access and Exchange"),["Secure External Supply","Trade Foreign Intelligence","Negotiate Industrial Accords"]);
@@ -82,12 +104,12 @@ test("directive menus expose the expanded parent and child corpus",()=>{
   assert.deepEqual(productionParents,[
     "Industrial Command",
     "Public Finance",
+    "Civilian Conversion",
     "Labor Mobilization",
     "Strategic Distribution",
     "Resource Extraction",
-    "Civilian Conversion",
   ]);
-  assert.equal(production.length,18);
+  assert.equal(production.length,20);
   for(const parent of productionParents){
     assert.ok(production.filter(family=>family.category===parent).length>=3,`${parent} has fewer than three selectable families`);
   }

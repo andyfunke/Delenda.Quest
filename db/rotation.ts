@@ -20,6 +20,9 @@ export async function rotationEntries(user:ChatGPTUser,kind:RotationKind){
 export async function recordRotationItem(user:ChatGPTUser,input:{kind:RotationKind;itemId:string;status:string;context?:string}){
   const db=await getDb(),ownerEmail=await ensureAccount(user),now=Date.now();
   const id=`${ownerEmail}::${input.kind}::${input.itemId}`;
-  await db.insert(accountRotationLedger).values({id,ownerEmail,kind:input.kind,itemId:input.itemId,status:input.status,context:input.context??"",firstSeenAt:now,updatedAt:now}).onConflictDoUpdate({target:[accountRotationLedger.ownerEmail,accountRotationLedger.kind,accountRotationLedger.itemId],set:{status:input.status,context:input.context??"",updatedAt:now}});
+  const update=input.context
+    ? {status:input.status,context:input.context,updatedAt:now}
+    : {status:input.status,updatedAt:now};
+  await db.insert(accountRotationLedger).values({id,ownerEmail,kind:input.kind,itemId:input.itemId,status:input.status,context:input.context??"",firstSeenAt:now,updatedAt:now}).onConflictDoUpdate({target:[accountRotationLedger.ownerEmail,accountRotationLedger.kind,accountRotationLedger.itemId],set:update});
   return{itemId:input.itemId,status:input.status};
 }

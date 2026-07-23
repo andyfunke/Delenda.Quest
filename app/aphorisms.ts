@@ -146,3 +146,15 @@ export const aphorismForDay=(accountKey:string,dayKey:string,seen:string[]=[])=>
   const deck=remaining.length?remaining:ordered;
   return deck[hash(`${accountKey}:${dayKey}:aphorism`)%deck.length];
 };
+
+export const aphorismDayKey=(date:Date=new Date())=>[
+  date.getFullYear(),
+  String(date.getMonth()+1).padStart(2,"0"),
+  String(date.getDate()).padStart(2,"0"),
+].join("-");
+
+export const millisecondsUntilNextLocalDay=(date:Date=new Date())=>{
+  const next=new Date(date);
+  next.setHours(24,0,0,0);
+  return Math.max(1,next.getTime()-date.getTime());
+};

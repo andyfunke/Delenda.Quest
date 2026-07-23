@@ -3,6 +3,7 @@ import {
   MANEUVERS,
   explainManeuverChance,
   fmt,
+  maneuverForSituation,
   situationForState,
   type GameState,
 } from "../game";
@@ -451,9 +452,10 @@ const explainText = (
     concept = CONCEPTS[conceptId],
     value = metricValue(state, entity.id),
     situation = situationForState(state),
-    maneuver =
+    canonicalManeuver =
       MANEUVERS.find((item) => item.id === state.maneuver) ??
-      MANEUVERS.find((item) => situation.maneuvers.includes(item.id));
+      MANEUVERS.find((item) => situation.maneuvers.includes(item.id)),
+    maneuver=canonicalManeuver?maneuverForSituation(canonicalManeuver,situation):undefined;
   const calculation =
     conceptId === "execution-confidence" && maneuver
       ? (() => {

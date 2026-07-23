@@ -1,11 +1,11 @@
 import {
   DAILY_ORDERS,
   FAMILIES,
-  MANEUVERS,
   activeDiplomacyForState,
   coverage,
   fmt,
   maneuverChance,
+  maneuversForState,
   opportunityForState,
   projectForceGeneration,
   projectProduction,
@@ -1346,9 +1346,7 @@ function dailyBriefReport(state: GameState): AvaReportCard {
     personnel = envelope.personnel,
     opportunity = opportunityForState(state),
     advice = adviceReport(state),
-    maneuvers = packet.operational.maneuvers
-      .map((id) => MANEUVERS.find((item) => item.id === id))
-      .filter((item): item is (typeof MANEUVERS)[number] => !!item),
+    maneuvers = maneuversForState(state),
     records = recent(state, 5);
   const activeDomestic = packet.activeDomains.includes("domestic"),
     activeNetwork = packet.activeDomains.includes("network"),

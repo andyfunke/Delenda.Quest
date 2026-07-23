@@ -1,5 +1,5 @@
 import {
-  FAMILIES, MANEUVERS, campaignAlternateDomainsForState, commit, commitManeuver, directiveRejection, situationForState,
+  FAMILIES, MANEUVERS, campaignAlternateDomainsForState, commit, commitManeuver, directiveRejection, maneuverForSituation, situationForState,
   type Choice, type Family, type GameState, type Maneuver,
 } from "./game";
 import {
@@ -78,7 +78,7 @@ export const commitConvergence=(state:GameState,input:{maneuverId?:string;domest
     const result=commit(next,option.family,option.choice);if(result!==next){next=result;const decision=next.decisions[0];if(decision){decision.domain=domain;decision.missionId=prompt.id;decision.resolutionTicket=prompt.resolutionTicket;}issued.push(option.choice.label)}
   }
   const maneuver: Maneuver|undefined=MANEUVERS.find(item=>item.id===input.maneuverId);
-  if(maneuver){const result=commitManeuver(next,maneuver);if(result!==next){next=result;issued.push(maneuver.label)}}
+  if(maneuver){const realized=maneuverForSituation(maneuver,packet.operational);const result=commitManeuver(next,realized);if(result!==next){next=result;issued.push(realized.label)}}
   return{state:next,issued};
 };
 

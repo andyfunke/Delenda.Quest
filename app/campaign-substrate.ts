@@ -85,9 +85,16 @@ export type CompiledSituation = SituationTemplate & {
   day:number; blueprintId:string; problemClass:ProblemClass; sectorId:string; contentPackVersion:string;
   selectionScore:number; candidateCount:number; selectionBasis:string; resolutionTicket:string;
   triggeringFacts:string[]; bands:OperationalBands; standingOrder:string; aftermathFacts:string[];
+  maneuverPresentations:Record<string,ManeuverPresentation>;
 };
 
 export type StrategicConditionInput = {id:string;category:string;label:string};
+
+export type ManeuverPresentation = {
+  label:string;
+  rationale:string;
+  realizationId:string;
+};
 
 export type CampaignStateView = {
   campaignSeed:number; day:number; theater:Theater; front:number; deployable:number; enemy:number;
@@ -114,6 +121,119 @@ const dailyManeuverDocket=(state:CampaignStateView,template:SituationTemplate)=>
         stableHash(`${state.campaignSeed}:${state.day}:${template.id}:maneuver:${right}`)||
       left.localeCompare(right))
     .slice(0,3);
+
+const PROBLEM_TARGETS:Record<ProblemClass,string>={
+  "force-preservation":"line",
+  logistics:"supply corridor",
+  command:"command lattice",
+  assault:"enemy position",
+  crossing:"far bank",
+  exploitation:"opening",
+  counterstroke:"enemy concentration",
+  observation:"contact picture",
+};
+
+const MANEUVER_ORDER_GRAMMAR:Record<string,Array<(sector:string,target:string)=>string>>={
+  reinforce:[
+    (sector,target)=>`Reinforce the ${target} at ${sector}`,
+    sector=>`Commit the Reserve at ${sector}`,
+    (sector,target)=>`Reconstitute the ${sector} ${target}`,
+    sector=>`Hold ${sector} in Strength`,
+  ],
+  interdict:[
+    sector=>`Break the Enemy Fire Plan at ${sector}`,
+    sector=>`Hunt the Guns Covering ${sector}`,
+    sector=>`Blind the Batteries Over ${sector}`,
+    sector=>`Sever Enemy Support at ${sector}`,
+  ],
+  route:[
+    sector=>`Open a Second Route into ${sector}`,
+    (sector,target)=>`Bypass the ${target} at ${sector}`,
+    sector=>`Cut a Protected Approach to ${sector}`,
+    sector=>`Clear the Service Road at ${sector}`,
+  ],
+  abandon:[
+    sector=>`Disengage from ${sector}`,
+    sector=>`Yield ${sector} to Preserve the Formation`,
+    sector=>`Withdraw Behind ${sector}`,
+    sector=>`Recover the Force from ${sector}`,
+  ],
+  exploit:[
+    sector=>`Drive Through the Opening at ${sector}`,
+    sector=>`Turn the Enemy Flank at ${sector}`,
+    sector=>`Commit the Mobile Reserve Beyond ${sector}`,
+    sector=>`Convert Contact into Breakthrough at ${sector}`,
+  ],
+  breach:[
+    sector=>`Force a Lane Through ${sector}`,
+    (sector,target)=>`Open the ${target} at ${sector}`,
+    sector=>`Reduce the Strongpoint at ${sector}`,
+    sector=>`Carry the Obstacle Belt at ${sector}`,
+  ],
+  network:[
+    sector=>`Rebuild Command at ${sector}`,
+    sector=>`Restore Relay Authority at ${sector}`,
+    sector=>`Push a Field Net Through ${sector}`,
+    (sector,target)=>`Reconstruct the ${target} at ${sector}`,
+  ],
+};
+
+const MANEUVER_RATIONALES:Record<string,Array<(sector:string,target:string)=>string>>={
+  reinforce:[
+    (sector,target)=>`The reserve is committed where the ${target} is already consuming formations.`,
+    sector=>`Fresh force enters ${sector} before local weakness becomes theater geometry.`,
+    sector=>`The formation at ${sector} is made real again with personnel, equipment, and time.`,
+  ],
+  interdict:[
+    sector=>`Enemy support around ${sector} is attacked before another formation is asked to survive it.`,
+    ()=>`Observation, drones, airpower, and batteries are concentrated on the system sustaining the position.`,
+    ()=>`The order spends fires to remove the enemy's ability to make movement expensive.`,
+  ],
+  route:[
+    sector=>`Engineers change what ${sector} permits while covering forces purchase the work period.`,
+    ()=>`The operation refuses the approach the enemy has already priced into its fire plan.`,
+    (sector,target)=>`A second path converts the ${target} from a monopoly into a choice.`,
+  ],
+  abandon:[
+    sector=>`Ground at ${sector} is exchanged for a formation that can still be used tomorrow.`,
+    ()=>`The withdrawal reduces exposure, supply demand, and the enemy's authority over the timetable.`,
+    ()=>`Recovery begins before the position converts preservation into rout.`,
+  ],
+  exploit:[
+    sector=>`Mobile force enters ${sector} before enemy concentration becomes enemy coherence.`,
+    ()=>`The operation spends protection to make temporary dislocation permanent.`,
+    ()=>`The reserve crosses the point where support can no longer be guaranteed.`,
+  ],
+  breach:[
+    ()=>`Infantry, armor, engineers, drones, and fires are synchronized on one survivable passage.`,
+    sector=>`The obstacle at ${sector} is attacked as a system rather than crossed one casualty at a time.`,
+    (sector,target)=>`A narrow opening is forced through the ${target} before supporting fire loses authority.`,
+  ],
+  network:[
+    sector=>`Orders, targeting, and movement at ${sector} are made mutually legible again.`,
+    ()=>`Relay teams restore the part of command that must survive distance and interference.`,
+    (sector,target)=>`The ${target} is rebuilt before incompatible local decisions become operational fact.`,
+  ],
+};
+
+const compileManeuverPresentations=(
+  state:CampaignStateView,
+  template:SituationTemplate,
+  rule:SituationBlueprintRule,
+  sector:TheaterSector,
+  maneuverIds:string[],
+):Record<string,ManeuverPresentation>=>Object.fromEntries(maneuverIds.map(id=>{
+  const labels=MANEUVER_ORDER_GRAMMAR[id]??[(name:string)=>`${id.toUpperCase()} AT ${name}`];
+  const rationales=MANEUVER_RATIONALES[id]??[()=>rule.standingOrder];
+  const labelIndex=hashInt(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${id}:order`)%labels.length;
+  const rationaleIndex=hashInt(`${state.campaignSeed}:${template.id}:${sector.id}:${id}:rationale`)%rationales.length;
+  const target=PROBLEM_TARGETS[rule.problemClass];
+  return[id,{
+    label:labels[labelIndex](sector.name,target),
+    rationale:rationales[rationaleIndex](sector.name,target),
+    realizationId:`${template.id}:${sector.id}:${id}:L${labelIndex + 1}:R${rationaleIndex + 1}`,
+  }];
+}));
 export const phaseIdForDay=(day:number):CampaignPhaseId=>day<=5?"contact":day<=12?"compression":day<=20?"exhaustion":"terminal";
 export const outcomeBandForMargin=(margin:number):OutcomeBand=>margin>=.2?"clean":margin>=0?"executed":margin>=-.2?"disrupted":"collapse";
 export const outcomeBandLabel:Record<OutcomeBand,string>={clean:"CLEAN EXECUTION",executed:"EXECUTED WITH FRICTION",disrupted:"DISRUPTED",collapse:"OPERATIONAL COLLAPSE"};
@@ -334,6 +454,7 @@ export const compileSituation=(state:CampaignStateView,templates:SituationTempla
   candidates.sort((a,b)=>b.score-a.score||a.template.id.localeCompare(b.template.id));const chosen=candidates[0];
   const facts=activeFacts(state,chosen.sector.id).map(x=>FACT_CATALOG[x.id]?.label??x.id);
   const maneuvers=dailyManeuverDocket(state,chosen.template);
+  const maneuverPresentations=compileManeuverPresentations(state,chosen.template,chosen.rule,chosen.sector,maneuvers);
   const aftermathFacts=[...new Set(maneuvers.flatMap(id=>{const rule=MANEUVER_AFTERMATH[id];return rule?[rule.successFact,rule.failureFact,...(rule.cleanFact?[rule.cleanFact]:[])]:[]}).map(id=>FACT_CATALOG[id]?.label??id))];
   const ticket=`${CONTENT_PACK_VERSION}:${hashInt(`${state.campaignSeed}:${state.day}:${chosen.template.id}:${chosen.sector.id}:resolution`).toString(16).padStart(8,"0")}`;
   const selectionBasis=`${candidates.length} ELIGIBLE // ${phase.toUpperCase()} PHASE // ${chosen.bands.frontPosture.toUpperCase()} FRONT // ${chosen.bands.supply.toUpperCase()} SUPPLY // ${condition?.label.toUpperCase()??"NO STRATEGIC CONDITION"}`;
@@ -342,6 +463,7 @@ export const compileSituation=(state:CampaignStateView,templates:SituationTempla
     theater:state.theater,sector:chosen.sector.name,headline:compiledText(chosen.template.headline,chosen.sector),briefing:compiledText(chosen.template.briefing,chosen.sector),question:compiledText(chosen.template.question,chosen.sector),
     terrain:chosen.sector.terrain,ground:chosen.sector.ground,network:networkLabel(chosen.sector.network),supply:supplyLabel(chosen.bands.supply),intelligence:intelLabel(state,chosen.bands),
     selectionScore:Number(chosen.score.toFixed(2)),candidateCount:candidates.length,selectionBasis,resolutionTicket:ticket,triggeringFacts:facts,bands:chosen.bands,standingOrder:chosen.rule.standingOrder,aftermathFacts,
+    maneuverPresentations,
   };
 };
 

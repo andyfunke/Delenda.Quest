@@ -249,14 +249,14 @@ export const FAMILIES: Family[] = [
     c("rations", "Guarantee Family Rations", "The household is secured behind the formation.", ["Desertion pressure: -6", "Retains 35% of new flight attempts while active", "Legitimacy: +3", "Treasury: -3.0 B per day"], ["Combined with established patrols, net flight can reach zero"], { delta: { desertionPressure: -6, legitimacy: 3 }, tick: { treasury: -3 } }),
     c("reclassify", "Reclassify Missing as Casualties", "The ledger has restored discipline without locating a man.", ["Reported desertions: -2,000", "Legitimacy: -2", "Doctrine: +2"], ["Audit exposure: 14% to 31%"], { delta: { deserters: -2000, legitimacy: -2 }, doctrine: 2 }),
   ]},
-  { id:"home-front",module:"national",category:"Home Front",label:"Govern Civil Allocation",brief:"Decide which households absorb scarcity and whether administrative order still deserves civilian cooperation.",lock:3,choices:[
+  { id:"home-front",module:"national",category:"Civilian Conversion",label:"Govern Civil Allocation",brief:"Decide which households absorb scarcity and whether administrative order still deserves civilian cooperation.",lock:3,choices:[
     c("ration-equally","Ration Equally","Scarcity becomes legitimate only when privilege is also hungry.",["Daily Legitimacy support: +1.2","Daily Resistance damping: -0.8","Treasury: -2.0 B per day"],["Black-market displacement: 4% to 9%"],{tick:{treasury:-2}}),
     c("priority-industry","Prioritize Industrial Households","The furnace receives calories before the family receives an explanation.",["Production workforce preserved","Daily Legitimacy pressure: -0.8","Daily Resistance pressure: +1.4"],["Industrial output protected while strike risk rises"]),
     c("curfew","Impose Night Curfew","The city will demonstrate tranquility by becoming empty.",["Daily Resistance damping: -1.1","Daily Legitimacy pressure: -1.5","Treasury: -1.0 B per day"],["Evasion and clandestine organization migrate indoors"],{tick:{treasury:-1}}),
     c("local-councils","Delegate to Local Councils","The center retains authority by admitting where it has none.",["Daily Resistance damping: -1.5","Daily Legitimacy support: +0.7","Dependency: +1"],["Regional autonomy demands: 6% to 14%"],{delta:{dependency:1}}),
     c("salvage-bureaus","Open Household Salvage Bureaus","Every kitchen drawer becomes a minor warehouse of the republic.",["Materiel condition: +4","Treasury: +3.0 B","Workforce: -7,000","Daily Legitimacy support: +0.4","Daily Resistance damping: -0.4"],["Informal salvage markets retain custody of some recovered stock"],{delta:{materiel:4,treasury:3,workforce:-7000}}),
   ]},
-  { id:"casualty-politics",module:"national",category:"Home Front",label:"Administer the Butcher's Bill",brief:"Choose how battlefield loss enters households, newspapers, ceremonies, and the state's remaining credibility.",lock:2,choices:[
+  { id:"casualty-politics",module:"national",category:"Civilian Conversion",label:"Administer the Butcher's Bill",brief:"Choose how battlefield loss enters households, newspapers, ceremonies, and the state's remaining credibility.",lock:2,choices:[
     c("publish-rolls","Publish the Rolls","The state names the dead because the households already have.",["Daily Legitimacy support: +0.8","Casualty totals remain exact","Intelligence: -1"],["Enemy battle-damage confidence improves 2% to 5%"],{delta:{intelligence:-1}}),
     c("sealed-ledger","Seal the Ledger","Classification is applied to grief until grief becomes opposition.",["Daily Legitimacy pressure: -0.7","Daily Resistance pressure: +0.5","Enemy casualty intelligence reduced"],["Disclosure scandal: 12% to 24%"]),
     c("public-mourning","Declare Public Mourning","Production stops long enough to prove the dead interrupted something.",["Daily Legitimacy support: +1.4","Treasury: -3.0 B","Materiel condition: -1"],["Casualty tolerance improves while output pauses"],{delta:{treasury:-3,materiel:-1}}),
@@ -695,7 +695,7 @@ export const directorForState=(state:GameState):CampaignDirector=>{const phase=p
 const compileSituationForState=(state:GameState)=>{const event=eventForState(state);return compileSituation(state,SITUATIONS,{id:event.id,category:event.category,label:event.label});};
 export const situationForDay = (day: number) => SITUATIONS[(day - 1) % SITUATIONS.length];
 export const situationForState = (state:GameState):CompiledSituation => {
-  if(state.currentSituation?.day===state.day&&state.currentSituation.contentPackVersion===CONTENT_PACK_VERSION)return state.currentSituation;
+  if(state.currentSituation?.day===state.day&&state.currentSituation.contentPackVersion===CONTENT_PACK_VERSION&&state.currentSituation.maneuverPresentations)return state.currentSituation;
   return compileSituationForState(state);
 };
 
@@ -824,9 +824,29 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
     resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs,victorySecuredDay:typeof candidate.victorySecuredDay==="number"?candidate.victorySecuredDay:null};
-  normalize(state);rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION||!state.currentSituation.maneuverPresentations)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
+export const maneuverForSituation = (
+  maneuver:Maneuver,
+  situation:CompiledSituation,
+):Maneuver=>{
+  const presentation=situation.maneuverPresentations?.[maneuver.id];
+  return presentation
+    ? {...maneuver,label:presentation.label,flavor:presentation.rationale}
+    : maneuver;
+};
+export const maneuverForState=(state:GameState,id:string|null)=>
+  id
+    ? (()=>{const maneuver=maneuverById(id);return maneuver?maneuverForSituation(maneuver,situationForState(state)):undefined;})()
+    : undefined;
+export const maneuversForState=(state:GameState):Maneuver[]=>{
+  const situation=situationForState(state);
+  return situation.maneuvers
+    .map(id=>MANEUVERS.find(maneuver=>maneuver.id===id))
+    .filter((maneuver):maneuver is Maneuver=>!!maneuver)
+    .map(maneuver=>maneuverForSituation(maneuver,situation));
+};
 const maneuverGeometryFit=(state:GameState,maneuver:Maneuver)=>{
   const situation=situationForState(state),problem=situation.problemClass;
   let fit=maneuver.success;
@@ -909,8 +929,8 @@ export const maneuverOrderRejection=(state:GameState,maneuver:Maneuver)=>{
 };
 export const commitManeuver = (state: GameState, maneuver: Maneuver) => {
   if(maneuverOrderRejection(state,maneuver))return state;
-  const s = clone(state); s.maneuver = maneuver.id; s.actions -= 1; add(s,maneuver.ownedDelta);s.readiness += maneuver.readiness ?? 0; s.reciprocity += maneuver.reciprocity ?? 0;
-  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situationForState(s).sector}`, choice: maneuver.label, familyId:"main-campaign", choiceId:maneuver.id }); normalize(s); return s;
+  const s = clone(state),situation=situationForState(s),realized=maneuverForSituation(maneuver,situation); s.maneuver = maneuver.id; s.actions -= 1; add(s,maneuver.ownedDelta);s.readiness += maneuver.readiness ?? 0; s.reciprocity += maneuver.reciprocity ?? 0;
+  s.decisions.unshift({ day: s.day, family: `Operational Direction // ${situation.sector}`, choice: realized.label, familyId:"main-campaign", choiceId:maneuver.id }); normalize(s); return s;
 };
 
 export const opportunityResponseRejection=(state:GameState,response:OpportunityResponse)=>{
@@ -1045,7 +1065,7 @@ const strategicSnapshot=(state:GameState):StrategicSnapshot=>({
 });
 
 export const resolve = (state: GameState) => {
-  if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const maneuver = maneuverById(s.maneuver)??null; const director=directorForState(s);const opening=strategicSnapshot(s);const docket=s.currentSubMissions?.day===s.day?s.currentSubMissions:compileSubMissionDocket(s,s.subMissionHistory);
+  if (state.status !== "active") return state; const s = clone(state); const situation = situationForState(s); const canonicalManeuver = maneuverById(s.maneuver)??null; const maneuver = canonicalManeuver?maneuverForSituation(canonicalManeuver,situation):null; const director=directorForState(s);const opening=strategicSnapshot(s);const docket=s.currentSubMissions?.day===s.day?s.currentSubMissions:compileSubMissionDocket(s,s.subMissionHistory);
   const arrivals = s.scheduled.filter((x) => x.day <= s.day); s.scheduled = s.scheduled.filter((x) => x.day > s.day); arrivals.forEach((x) => add(s, x.delta));
   Object.entries(s.active).forEach(([familyId, choiceId]) => { const f = FAMILIES.find((x) => x.id === familyId); if(f?.module==="diplomacy")return;const ch = f?.choices.find((x) => x.id === choiceId); add(s, ch?.tick); });
   const opportunityResult=resolveLegacyOpportunityForDay(s);

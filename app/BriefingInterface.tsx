@@ -5,12 +5,12 @@ import {
   DAILY_ORDERS,
   DOCTRINES,
   FAMILIES,
-  MANEUVERS,
   coverage,
   directiveRejection,
   estimateDay,
   fmt,
-  maneuverById,
+  maneuverForState,
+  maneuversForState,
   projectDomestic,
   projectForceGeneration,
   projectOperations,
@@ -21,7 +21,6 @@ import {
   type DoctrineVector,
   type Family,
   type GameState,
-  type Maneuver,
   type Module,
 } from "./game";
 import {
@@ -699,9 +698,7 @@ function DailySurface({
       convergenceOptionAvailable(s, selectedDomesticOption)) &&
     (!selectedNetworkOption ||
       convergenceOptionAvailable(s, selectedNetworkOption));
-  const availableManeuvers = packet.operational.maneuvers
-    .map((id) => MANEUVERS.find((item) => item.id === id))
-    .filter((item): item is Maneuver => !!item);
+  const availableManeuvers = maneuversForState(s);
   const issueSelections = () => {
     issue({
       maneuverId:
@@ -748,7 +745,7 @@ function DailySurface({
         <p>
           {packet.operational.briefing}{" "}
           {s.maneuver
-            ? `${maneuverById(s.maneuver)?.label} is already issued.`
+            ? `${maneuverForState(s,s.maneuver)?.label} is already issued.`
             : "No maneuver has been issued; standing tempo prosecutes the day by default."}
         </p>
         <blockquote>
@@ -1228,7 +1225,7 @@ export function BriefingInterface({
             <h2>Release the day to resolution?</h2>
             <p>
               {s.maneuver
-                ? `${maneuverById(s.maneuver)?.label} resolves against ${situationForState(s).sector}. `
+                ? `${maneuverForState(s,s.maneuver)?.label} resolves against ${situationForState(s).sector}. `
                 : "Standing tempo prosecutes the unresolved campaign problem. "}
               {s.actions
                 ? `${s.actions} unused order${s.actions === 1 ? "" : "s"} will lapse. `
