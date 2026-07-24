@@ -3766,11 +3766,25 @@ const portableId = () =>
 
 function WarTicker() {
   const [invokedAt, setInvokedAt] = useState(0);
+  const [crawlSeconds, setCrawlSeconds] = useState(3600);
+  const trackRef = useRef<HTMLDivElement>(null);
   useEffect(() => setInvokedAt(Date.now()), []);
   const items = useMemo(
     () => (invokedAt ? warFeedForInvocation(invokedAt) : []),
     [invokedAt],
   );
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || !items.length) return;
+    const measure = () => {
+      const oneLoopWidth = track.scrollWidth / 2;
+      setCrawlSeconds(Math.max(3600, oneLoopWidth / 5));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [items]);
   const time = (timestamp: number) =>
     new Intl.DateTimeFormat(undefined, {
       month: "2-digit",
@@ -3784,7 +3798,15 @@ function WarTicker() {
       <strong>THEATER WIRE // LAST 24H</strong>
       <div>
         {items.length ? (
-          <div className="war-ticker-track">
+          <div
+            className="war-ticker-track"
+            ref={trackRef}
+            style={
+              {
+                "--war-wire-duration": `${crawlSeconds}s`,
+              } as React.CSSProperties
+            }
+          >
             {[...items, ...items].map((item, index) => (
               <span key={`${item.timestamp}-${index}`}>
                 <time dateTime={new Date(item.timestamp).toISOString()}>

@@ -9129,10 +9129,13 @@ small,
   border-bottom: 1px solid #272c28;
   color: #d8ddd4;
   display: flex;
-  font: 9px/1 var(--mono);
-  font-stretch: expanded;
-  height: 25px;
-  letter-spacing: 0.16em;
+  font-family: "Arial Narrow", "Roboto Condensed", "Aptos Narrow", var(--mono);
+  font-size: 9px;
+  font-stretch: ultra-condensed;
+  font-weight: 650;
+  height: 19px;
+  letter-spacing: -0.015em;
+  line-height: 1;
   overflow: hidden;
   position: relative;
   white-space: nowrap;
@@ -9144,9 +9147,9 @@ small,
   color: #fff;
   display: flex;
   flex: 0 0 auto;
-  font-size: 8px;
-  letter-spacing: 0.2em;
-  padding: 0 12px;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  padding: 0 9px;
   position: relative;
   z-index: 2;
 }
@@ -9158,20 +9161,20 @@ small,
 }
 .war-ticker-track {
   align-items: center;
-  animation: war-wire-scroll 960s linear infinite;
+  animation: war-wire-scroll var(--war-wire-duration, 3600s) linear infinite;
   display: flex;
   width: max-content;
 }
 .war-ticker-track > span {
   align-items: center;
   display: flex;
-  padding: 0 32px;
+  padding: 0 22px;
 }
 .war-ticker-track time {
   color: #e0a458;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  margin-right: 14px;
+  letter-spacing: 0.04em;
+  margin-right: 10px;
 }
 .war-ticker-loading {
   color: #8b9188;
