@@ -352,8 +352,8 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   assert.match(css,/\.production-command-window[\s\S]*?\.production-target-inspector[\s\S]*?> \.menu-choice-list\s*\{[\s\S]*?margin:\s*0/);
   assert.match(css,/\.desktop-module \.directive-menu-inspector\s*\{[\s\S]*?padding:\s*8px 32px 28px/);
   assert.match(css,/\.desktop-module \.directive-glance h3\s*\{[\s\S]*?clamp\(24px/);
-  assert.match(css,/\.campaign-workspace \.campaign-consequences h3\s*\{[\s\S]*?font:\s*800 11pt\/1\.3 Arial, Helvetica, sans-serif/);
-  assert.match(css,/\.campaign-workspace \.campaign-consequences li\s*\{[\s\S]*?font:\s*700 11pt\/1\.45 Arial, Helvetica, sans-serif/);
+  assert.match(css,/\.campaign-workspace \.campaign-consequences h3\s*\{[\s\S]*?font:\s*800 11pt\/1\.3 var\(--ui\)/);
+  assert.match(css,/\.campaign-workspace \.campaign-consequences li\s*\{[\s\S]*?font:\s*700 11pt\/1\.45 var\(--ui\)/);
   assert.match(page,/className="menu-inspector doctrine-inspector doctrine-empty-state"/);
   assert.match(page,/NO PRINCIPLE SELECTED/);
   assert.match(page,/className="selection-dossier doctrine-selection-dossier"/);
