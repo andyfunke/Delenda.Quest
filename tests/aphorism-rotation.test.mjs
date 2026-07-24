@@ -5,13 +5,18 @@ const {
   APHORISMS,
   aphorismDayKey,
   aphorismForDay,
+  campaignAphorismDayKey,
   millisecondsUntilNextLocalDay,
 }=await import(process.env.DELENDA_APHORISM_BUNDLE);
 
 test("daily aphorisms do not repeat until the corpus is exhausted",()=>{
   const seen=[];
   for(let day=1;day<=APHORISMS.length;day++){
-    const selected=aphorismForDay("account@example.test",`2026-08-${String(day).padStart(3,"0")}`,seen);
+    const selected=aphorismForDay(
+      "account@example.test",
+      campaignAphorismDayKey("run-123",day),
+      seen,
+    );
     assert.ok(selected);
     assert.ok(!seen.includes(selected.id),`${selected.id} repeated before the corpus was exhausted`);
     seen.push(selected.id);
@@ -19,18 +24,26 @@ test("daily aphorisms do not repeat until the corpus is exhausted",()=>{
   assert.equal(new Set(seen).size,APHORISMS.length);
 });
 
-test("the same account and local day retain one assigned aphorism",()=>{
+test("the same campaign day retains one assigned aphorism",()=>{
   const seen=["Q001","Q002","Q003"];
-  const left=aphorismForDay("account@example.test","2026-07-23",seen);
-  const right=aphorismForDay("account@example.test","2026-07-23",seen);
+  const dayKey=campaignAphorismDayKey("run-123",7);
+  const left=aphorismForDay("account@example.test",dayKey,seen);
+  const right=aphorismForDay("account@example.test",dayKey,seen);
   assert.deepEqual(left,right);
 });
 
-test("every module header advances with the account-day assignment",()=>{
+test("every module header advances with the in-game campaign day",()=>{
   const modules=["campaign","production","military","diplomacy","doctrine"];
-  const first=aphorismForDay("account@example.test","2026-07-23",[]);
+  const firstKey=campaignAphorismDayKey("run-123",1);
+  const secondKey=campaignAphorismDayKey("run-123",2);
+  const first=aphorismForDay("account@example.test",firstKey,[]);
   assert.ok(first);
-  const second=aphorismForDay("account@example.test","2026-07-24",[first.id]);
+  const second=aphorismForDay(
+    "account@example.test",
+    secondKey,
+    [first.id],
+    first.id,
+  );
   assert.ok(second);
   assert.notEqual(second.id,first.id);
   for(const surface of modules){
@@ -38,6 +51,29 @@ test("every module header advances with the account-day assignment",()=>{
     const renderedSecond=`${surface}:${second.id}:${second.text}`;
     assert.notEqual(renderedSecond,renderedFirst,`${surface} retained the prior account-day quote`);
   }
+});
+
+test("a new campaign run has its own day-one assignment key",()=>{
+  assert.notEqual(
+    campaignAphorismDayKey("run-123",1),
+    campaignAphorismDayKey("run-456",1),
+  );
+});
+
+test("rotation still changes on the next campaign day after corpus exhaustion",()=>{
+  const seen=APHORISMS.map(item=>item.id);
+  const first=aphorismForDay(
+    "account@example.test",
+    campaignAphorismDayKey("run-123",APHORISMS.length+1),
+    seen,
+  );
+  const second=aphorismForDay(
+    "account@example.test",
+    campaignAphorismDayKey("run-123",APHORISMS.length+2),
+    seen,
+    first.id,
+  );
+  assert.notEqual(second.id,first.id);
 });
 
 test("local calendar boundaries compile without UTC drift",()=>{

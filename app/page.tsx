@@ -112,9 +112,8 @@ import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
 import {
   APHORISMS,
-  aphorismDayKey,
   aphorismForDay,
-  millisecondsUntilNextLocalDay,
+  campaignAphorismDayKey,
   type Aphorism,
 } from "./aphorisms";
 import { campaignScoreForState } from "./campaign-score-state";
@@ -3750,7 +3749,7 @@ function MetricDrawer({
 const SAVE_KEY = "delenda.quest.campaign.v1";
 const OPPORTUNITY_LEDGER_KEY = "delenda.quest.opportunity-ledger.v1";
 const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
-const APHORISM_DAY_KEY = "delenda.quest.aphorism-days.v1";
+const APHORISM_ASSIGNMENT_KEY = "delenda.quest.aphorism-assignments.v2";
 const DEVICE_KEY = "delenda.quest.device-key.v1";
 type CampaignInspectorSelection = {
   kind: "main" | "sub";
@@ -3805,8 +3804,10 @@ export default function Home() {
   const [alertMenuOpen, setAlertMenuOpen] = useState(false);
   const [rotationReady, setRotationReady] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
-  const [dailyAphorism, setDailyAphorism] = useState<Aphorism | null>(null);
-  const [activeAphorismDay, setActiveAphorismDay] = useState("");
+  const [dailyAphorismAssignment, setDailyAphorismAssignment] = useState<{
+    dayKey: string;
+    aphorism: Aphorism;
+  } | null>(null);
   const [accountTimeZone, setAccountTimeZone] = useState("UTC");
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
@@ -3828,6 +3829,15 @@ export default function Home() {
     ],
   );
   const [messages, setMessages] = useState<Message[]>([]);
+  const activeAphorismDay = runToken
+    ? campaignAphorismDayKey(runToken, s.day)
+    : "";
+  const previousAphorismDay =
+    runToken && s.day > 1 ? campaignAphorismDayKey(runToken, s.day - 1) : "";
+  const dailyAphorism =
+    dailyAphorismAssignment?.dayKey === activeAphorismDay
+      ? dailyAphorismAssignment.aphorism
+      : null;
   const avaMessagesRef = useRef<HTMLDivElement>(null);
   const avaCompletionRef = useRef<{
     candidates: string[];
@@ -4058,24 +4068,6 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
-    let timeout:number|undefined;
-    const schedule=()=>{
-      const now=new Date();
-      setActiveAphorismDay(aphorismDayKey(now,accountTimeZone));
-      window.clearTimeout(timeout);
-      timeout=window.setTimeout(schedule,millisecondsUntilNextLocalDay(now,accountTimeZone)+50);
-    };
-    const refreshWhenVisible=()=>{
-      if(document.visibilityState==="visible")schedule();
-    };
-    schedule();
-    document.addEventListener("visibilitychange",refreshWhenVisible);
-    return()=>{
-      window.clearTimeout(timeout);
-      document.removeEventListener("visibilitychange",refreshWhenVisible);
-    };
-  },[accountTimeZone]);
-  useEffect(() => {
     if(!activeAphorismDay)return;
     let live = true;
     const dayKey = activeAphorismDay;
@@ -4093,7 +4085,7 @@ export default function Home() {
           (item): item is string => typeof item === "string",
         );
       const days = JSON.parse(
-        window.localStorage.getItem(APHORISM_DAY_KEY) ?? "{}",
+        window.localStorage.getItem(APHORISM_ASSIGNMENT_KEY) ?? "{}",
       ) as unknown;
       if (days && typeof days === "object")
         localDays = Object.fromEntries(
@@ -4124,6 +4116,11 @@ export default function Home() {
         const remoteToday = payload.entries?.find(
           (entry) => entry.context === dayKey,
         )?.itemId;
+        const remotePrevious = previousAphorismDay
+          ? payload.entries?.find(
+              (entry) => entry.context === previousAphorismDay,
+            )?.itemId
+          : undefined;
         const assignedId = remoteToday ?? localDays[dayKey];
         const assigned = APHORISMS.find((item) => item.id === assignedId);
         const selected =
@@ -4132,40 +4129,46 @@ export default function Home() {
             payload.accountKey ?? deviceKey,
             dayKey,
             [...new Set([...localSeen, ...remoteIds])],
+            remotePrevious ?? localDays[previousAphorismDay],
           );
         if (!selected) return;
-        setDailyAphorism(selected);
+        setDailyAphorismAssignment({ dayKey, aphorism: selected });
         const seen = [...new Set([...localSeen, ...remoteIds, selected.id])];
         try {
           window.localStorage.setItem(APHORISM_LEDGER_KEY, JSON.stringify(seen));
           window.localStorage.setItem(
-            APHORISM_DAY_KEY,
+            APHORISM_ASSIGNMENT_KEY,
             JSON.stringify({ ...localDays, [dayKey]: selected.id }),
           );
         } catch {}
-        if (!remoteIds.includes(selected.id))
-          void fetch("/api/rotation/aphorisms", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ itemId: selected.id, dayKey }),
-            keepalive: true,
-          }).catch(() => undefined);
+        void fetch("/api/rotation/aphorisms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemId: selected.id, dayKey }),
+          keepalive: true,
+        }).catch(() => undefined);
       })
       .catch(() => {
         const assigned = APHORISMS.find(
           (item) => item.id === localDays[dayKey],
         );
         const selected =
-          assigned ?? aphorismForDay(deviceKey, dayKey, localSeen);
+          assigned ??
+          aphorismForDay(
+            deviceKey,
+            dayKey,
+            localSeen,
+            localDays[previousAphorismDay],
+          );
         if (!live || !selected) return;
-        setDailyAphorism(selected);
+        setDailyAphorismAssignment({ dayKey, aphorism: selected });
         try {
           window.localStorage.setItem(
             APHORISM_LEDGER_KEY,
             JSON.stringify([...new Set([...localSeen,selected.id])]),
           );
           window.localStorage.setItem(
-            APHORISM_DAY_KEY,
+            APHORISM_ASSIGNMENT_KEY,
             JSON.stringify({...localDays,[dayKey]:selected.id}),
           );
         } catch {}
@@ -4173,7 +4176,7 @@ export default function Home() {
     return () => {
       live = false;
     };
-  }, [activeAphorismDay]);
+  }, [activeAphorismDay, previousAphorismDay]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("wiki") || params.get("standalone") === "1") {

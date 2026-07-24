@@ -141,10 +141,14 @@ const hash=(text:string)=>{
 
 export const aphorismOrder=(accountKey:string)=>[...APHORISMS].sort((left,right)=>hash(`${accountKey}:${left.id}`)-hash(`${accountKey}:${right.id}`));
 
-export const aphorismForDay=(accountKey:string,dayKey:string,seen:string[]=[])=>{
+export const campaignAphorismDayKey=(runToken:string,day:number)=>
+  `campaign:${runToken}:day-${Math.max(1,Math.trunc(day))}`;
+
+export const aphorismForDay=(accountKey:string,dayKey:string,seen:string[]=[],previousId?:string)=>{
   const ordered=aphorismOrder(accountKey);
   const remaining=ordered.filter(item=>!seen.includes(item.id));
-  const deck=remaining.length?remaining:ordered;
+  const restarted=previousId?ordered.filter(item=>item.id!==previousId):ordered;
+  const deck=remaining.length?remaining:restarted.length?restarted:ordered;
   return deck[hash(`${accountKey}:${dayKey}:aphorism`)%deck.length];
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DAILY_ORDERS,
   DOCTRINES,
@@ -688,14 +688,12 @@ function DailySurface({
   epigraph,
   remaining,
   issue,
-  resolveDay,
   setSurface,
 }: {
   s: GameState;
   epigraph: Aphorism | null;
   remaining: string;
   issue: (input: BriefingIssue) => void;
-  resolveDay: () => void;
   setSurface: (surface: Surface) => void;
 }) {
   const packet = useMemo(() => compileConvergence(s), [s]);
@@ -1027,12 +1025,6 @@ function DailySurface({
           </p>
         </div>
       </section>
-      <footer className="briefing-footer">
-        <span>DELENDA QUEST // ONE CAMPAIGN // TWO COMMAND INTERFACES</span>
-        <button disabled={s.status !== "active"} onClick={resolveDay}>
-          RESOLVE DAY {s.day} →
-        </button>
-      </footer>
     </>
   );
 }
@@ -1102,6 +1094,7 @@ export function BriefingInterface({
       !doctrineUnlocked &&
       doctrinePrerequisiteMet &&
       s.doctrine >= doctrineConfirm.stage.cost;
+  const requestResolve = useCallback(() => setConfirmResolve(true), []);
   const navigate = (module: string, family?: string) => {
     setFocusFamilyId(family);
     setSurface(surfaceFor(module));
@@ -1119,16 +1112,15 @@ export function BriefingInterface({
       setManualArticle((event as CustomEvent<string>).detail);
       setSurface("manual");
     };
-    const resolve = () => setConfirmResolve(true);
     window.addEventListener("briefing-open-surface", open);
     window.addEventListener("briefing-open-manual", manual);
-    window.addEventListener("briefing-request-resolve", resolve);
+    window.addEventListener("briefing-request-resolve", requestResolve);
     return () => {
       window.removeEventListener("briefing-open-surface", open);
       window.removeEventListener("briefing-open-manual", manual);
-      window.removeEventListener("briefing-request-resolve", resolve);
+      window.removeEventListener("briefing-request-resolve", requestResolve);
     };
-  }, []);
+  }, [requestResolve]);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -1140,7 +1132,6 @@ export function BriefingInterface({
   }, [doctrineConfirm, confirmResolve]);
   const nav: [Surface, string][] = [
     ["brief", "DAILY CAMPAIGN"],
-    ["state", "STATE"],
     ["production", "PRODUCTION"],
     ["military", "MILITARY"],
     ["diplomacy", "DIPLOMACY"],
@@ -1205,7 +1196,6 @@ export function BriefingInterface({
             epigraph={epigraph}
             remaining={remaining}
             issue={issue}
-            resolveDay={() => setConfirmResolve(true)}
             setSurface={chooseSurface}
           />
         ) : surface === "state" ? (
@@ -1245,6 +1235,15 @@ export function BriefingInterface({
         ) : (
           <ServiceSurface s={s} />
         )}
+        <footer className="briefing-footer">
+          <span>DELENDA QUEST // ONE CAMPAIGN // TWO COMMAND INTERFACES</span>
+          <button
+            disabled={s.status !== "active"}
+            onClick={requestResolve}
+          >
+            RESOLVE DAY {s.day} →
+          </button>
+        </footer>
       </div>
       <button className="briefing-ava" onClick={openAva}>
         <i />

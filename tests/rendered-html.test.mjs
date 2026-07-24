@@ -64,7 +64,7 @@ test("campaign UI is consequence-only while Ava retains the campaign report", as
   assert.doesNotMatch(dispatch,/\$\{maneuverLabel\} came apart under concentrated fire/);
 });
 
-test("Campaign order language and daily aphorisms consume compiled rotating state",async()=>{
+test("Campaign order language and daily aphorisms consume campaign-day rotating state",async()=>{
   const[page,game,substrate,rotation]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game.ts",import.meta.url),"utf8"),
@@ -76,10 +76,11 @@ test("Campaign order language and daily aphorisms consume compiled rotating stat
   assert.match(substrate,/MANEUVER_ORDER_GRAMMAR/);
   assert.match(game,/maneuversForState/);
   assert.match(page,/const options = maneuversForState\(s\)/);
-  assert.match(page,/setActiveAphorismDay\(aphorismDayKey\(now,\s*accountTimeZone\)\)/);
-  assert.match(page,/millisecondsUntilNextLocalDay\(now,\s*accountTimeZone\)/);
-  assert.match(page,/document\.addEventListener\("visibilitychange",refreshWhenVisible\)/);
-  assert.match(page,/\},\s*\[accountTimeZone\]\);/);
+  assert.match(page,/campaignAphorismDayKey\(runToken,\s*s\.day\)/);
+  assert.match(page,/campaignAphorismDayKey\(runToken,\s*s\.day\s*-\s*1\)/);
+  assert.doesNotMatch(page,/setActiveAphorismDay|aphorismDayKey\(now|millisecondsUntilNextLocalDay/);
+  assert.match(page,/\},\s*\[activeAphorismDay,\s*previousAphorismDay\]\);/);
+  assert.match(page,/dailyAphorismAssignment\?\.dayKey === activeAphorismDay/);
   assert.match(rotation,/const update=input\.context[\s\S]*?\? \{status:input\.status,context:input\.context,updatedAt:now\}[\s\S]*?: \{status:input\.status,updatedAt:now\}/);
 });
 
@@ -138,6 +139,35 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(briefing,/focusFamilyId/);
   assert.match(briefing,/onSurfaceChange/);
   assert.match(briefing,/briefing-open-manual/);
+  const dailySurface=briefing.slice(
+    briefing.indexOf("function DailySurface"),
+    briefing.indexOf("const surfaceFor"),
+  );
+  const altInterface=briefing.slice(
+    briefing.indexOf("export function BriefingInterface"),
+  );
+  const nav=altInterface.slice(
+    altInterface.indexOf("const nav:"),
+    altInterface.indexOf("const chooseSurface"),
+  );
+  assert.doesNotMatch(nav,/\["state",\s*"STATE"\]/);
+  for(const label of [
+    "DAILY CAMPAIGN",
+    "PRODUCTION",
+    "MILITARY",
+    "DIPLOMACY",
+    "DOCTRINE",
+    "FIELD MANUAL",
+    "SERVICE RECORD",
+  ])assert.match(nav,new RegExp(`"${label}"`));
+  assert.doesNotMatch(dailySurface,/briefing-footer/);
+  assert.equal((altInterface.match(/className="briefing-footer"/g)??[]).length,1);
+  assert.ok(
+    altInterface.indexOf('className="briefing-footer"')>
+      altInterface.indexOf('surface === "manual"'),
+  );
+  assert.match(altInterface,/window\.addEventListener\("briefing-request-resolve", requestResolve\)/);
+  assert.match(altInterface,/disabled=\{s\.status !== "active"\}[\s\S]{0,100}onClick=\{requestResolve\}/);
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
@@ -401,7 +431,7 @@ test("Ava archives, disclosed forecasts, and workbook calculus remain explicit i
   assert.doesNotMatch(reports,/projectOperations|projectAdversary|estimateDay|projectDomestic/);
 });
 
-test("every command module renders the account-day aphorism as explicit state",async()=>{
+test("every command module renders the campaign-day aphorism as explicit state",async()=>{
   const[page,briefing,css]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
