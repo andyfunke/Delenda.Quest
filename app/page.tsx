@@ -110,7 +110,6 @@ import { Bubblette, type BubbletteDetail } from "./Bubblette";
 import { TheaterGeometry } from "./TheaterGeometry";
 import { FieldManual } from "./FieldManual";
 import { AvaTextRenderer } from "./AvaTextRenderer";
-import { MODULE_EPIGRAPHS, setDailyModuleEpigraph } from "./module-epigraphs";
 import {
   APHORISMS,
   aphorismDayKey,
@@ -384,9 +383,11 @@ function Epigraph({
 function DoctrineControlPanel({
   s,
   select,
+  epigraph,
 }: {
   s: GameState;
   select: (v: DoctrineVector, stage: DoctrineStage) => void;
+  epigraph: Aphorism | null;
 }) {
   const [first] = DOCTRINES;
   const [selectedVector, setSelectedVector] = useState(first.id);
@@ -402,10 +403,7 @@ function DoctrineControlPanel({
   return (
     <div className="module doctrine-page" data-module="DOCTRINE">
       <header>
-        <Epigraph
-          quote={MODULE_EPIGRAPHS.doctrine.quote}
-          source={MODULE_EPIGRAPHS.doctrine.source}
-        />
+        {epigraph && <Epigraph quote={epigraph.text} source={epigraph.source} />}
         <span className="eyebrow">
           Vectors of war // {s.doctrine} Insight Points available
         </span>
@@ -1930,6 +1928,7 @@ function ModulePage({
   s,
   issue,
   focus,
+  epigraph,
 }: {
   page: Exclude<
     Module,
@@ -1938,6 +1937,7 @@ function ModulePage({
   s: GameState;
   issue: (f: Family, c: Choice) => void;
   focus?: string;
+  epigraph: Aphorism | null;
 }) {
   const descriptions: Record<
     "national" | "military" | "diplomacy",
@@ -1961,10 +1961,6 @@ function ModulePage({
   };
   const desc = descriptions[page],
     isProduction = page === "national",
-    epigraph =
-      MODULE_EPIGRAPHS[
-        page === "national" ? "production" : page
-      ],
     families = FAMILIES.filter((f) => f.module === page),
     groups = [...new Set(families.map((f) => f.category))];
   const [selected, setSelected] = useState(focus ?? families[0]?.id ?? "");
@@ -1987,7 +1983,7 @@ function ModulePage({
       data-report-owner="ava"
     >
       <header>
-        <Epigraph quote={epigraph.quote} source={epigraph.source} />
+        {epigraph && <Epigraph quote={epigraph.text} source={epigraph.source} />}
         <span className="eyebrow">{desc[0]}</span>
         <h1>{desc[1]}</h1>
         <p>{desc[2]}</p>
@@ -3166,6 +3162,7 @@ function SubMissionReadout({
 
 function CampaignPage({
   s,
+  epigraph,
   selected,
   setSelected,
   inspectorSelection,
@@ -3176,6 +3173,7 @@ function CampaignPage({
   issueConvergence,
 }: {
   s: GameState;
+  epigraph: Aphorism | null;
   selected: Maneuver | null;
   setSelected: (m: Maneuver | null) => void;
   inspectorSelection: CampaignInspectorSelection | null;
@@ -3293,10 +3291,7 @@ function CampaignPage({
   return (
     <div className="module campaign-page" data-module="CAMPAIGN">
       <header>
-        <Epigraph
-          quote={MODULE_EPIGRAPHS.campaign.quote}
-          source={MODULE_EPIGRAPHS.campaign.source}
-        />
+        {epigraph && <Epigraph quote={epigraph.text} source={epigraph.source} />}
         <span className="eyebrow">
           {situation.theater.toUpperCase()} THEATER // {situation.sector}
         </span>
@@ -4139,7 +4134,6 @@ export default function Home() {
             [...new Set([...localSeen, ...remoteIds])],
           );
         if (!selected) return;
-        setDailyModuleEpigraph(selected);
         setDailyAphorism(selected);
         const seen = [...new Set([...localSeen, ...remoteIds, selected.id])];
         try {
@@ -4164,7 +4158,6 @@ export default function Home() {
         const selected =
           assigned ?? aphorismForDay(deviceKey, dayKey, localSeen);
         if (!live || !selected) return;
-        setDailyModuleEpigraph(selected);
         setDailyAphorism(selected);
         try {
           window.localStorage.setItem(
@@ -5012,6 +5005,7 @@ export default function Home() {
       {interfaceMode === "briefing" ? (
         <BriefingInterface
           s={s}
+          epigraph={dailyAphorism}
           remaining={clockText(remaining)}
           issue={issueConverged}
           issueDirective={issueDirective}
@@ -5130,6 +5124,7 @@ export default function Home() {
             ) : page === "campaign" ? (
               <CampaignPage
                 s={s}
+                epigraph={dailyAphorism}
                 selected={pendingManeuver}
                 setSelected={setPendingManeuver}
                 inspectorSelection={campaignInspectorSelection}
@@ -5142,6 +5137,7 @@ export default function Home() {
             ) : page === "doctrine" ? (
               <DoctrineControlPanel
                 s={s}
+                epigraph={dailyAphorism}
                 select={(vector, stage) =>
                   setPendingDoctrine({ vector, stage })
                 }
@@ -5164,6 +5160,7 @@ export default function Home() {
               <ModulePage
                 page={page}
                 s={s}
+                epigraph={dailyAphorism}
                 focus={focusFamily}
                 issue={issueDirective}
               />

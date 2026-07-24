@@ -34,10 +34,7 @@ import {
 import { FieldManual } from "./FieldManual";
 import { TheaterGeometry } from "./TheaterGeometry";
 import { operationalObjectiveForProblemClass } from "./campaign-substrate";
-import {
-  MODULE_EPIGRAPHS,
-  type ModuleEpigraphKey,
-} from "./module-epigraphs";
+import type { Aphorism } from "./aphorisms";
 import { Bubblette, type BubbletteDetail } from "./Bubblette";
 import { OperationsPacket } from "./OperationsPacket";
 import { CampaignDirectorPanel } from "./CampaignDirectorPanel";
@@ -62,6 +59,7 @@ type Surface =
   | "service";
 type Props = {
   s: GameState;
+  epigraph: Aphorism | null;
   remaining: string;
   issue: (input: BriefingIssue) => void;
   issueDirective: (family: Family, choice: Choice) => void;
@@ -79,11 +77,11 @@ const optionCost = (option: ConvergenceOption) => [
   ...option.choice.risk.map((line) => `RISK // ${line}`),
 ];
 
-function ModernModuleEpigraph({ module }: { module: ModuleEpigraphKey }) {
-  const epigraph = MODULE_EPIGRAPHS[module];
+function ModernModuleEpigraph({ epigraph }: { epigraph: Aphorism | null }) {
+  if (!epigraph) return null;
   return (
     <blockquote className="modern-module-epigraph">
-      “{epigraph.quote}”
+      “{epigraph.text}”
       <cite>— {epigraph.source}</cite>
     </blockquote>
   );
@@ -396,11 +394,13 @@ export function DirectiveSurface({
   module,
   focusFamilyId,
   issue,
+  epigraph,
 }: {
   s: GameState;
   module: "national" | "military" | "diplomacy";
   focusFamilyId?: string;
   issue: (family: Family, choice: Choice) => void;
+  epigraph: Aphorism | null;
 }) {
   const families = useMemo(
       () => FAMILIES.filter((family) => family.module === module),
@@ -427,14 +427,13 @@ export function DirectiveSurface({
   useEffect(() => setSelectedChoiceId(""), [selectedFamilyId, s.day]);
   const moduleLabel =
     module === "national" ? "PRODUCTION" : module.toUpperCase();
-  const moduleEpigraph = module === "national" ? "production" : module;
   return (
     <section
       className="modern-surface modern-directives"
       data-module={moduleLabel}
     >
       <header>
-        <ModernModuleEpigraph module={moduleEpigraph} />
+        <ModernModuleEpigraph epigraph={epigraph} />
         <span>{moduleLabel} // DIRECTIVE CONTROL</span>
         <h1>
           {module === "national"
@@ -557,9 +556,11 @@ export function DirectiveSurface({
 function DoctrineSurface({
   s,
   select,
+  epigraph,
 }: {
   s: GameState;
   select: (vector: DoctrineVector, stage: DoctrineStage) => void;
+  epigraph: Aphorism | null;
 }) {
   const [selectedVectorId,setSelectedVectorId]=useState("");
   const [selectedStageId,setSelectedStageId]=useState("");
@@ -572,7 +573,7 @@ function DoctrineSurface({
   return (
     <section className="modern-surface modern-doctrine-surface">
       <header>
-        <ModernModuleEpigraph module="doctrine" />
+        <ModernModuleEpigraph epigraph={epigraph} />
         <span>DOCTRINE // INSTITUTIONAL MEMORY</span>
         <h1>Doctrine control</h1>
         <div className="doctrine-insight-available"><small>INSIGHT AVAILABLE</small><b>{s.doctrine}</b><span>VERIFIED BATTLEFIELD EVIDENCE</span></div>
@@ -684,12 +685,14 @@ function ServiceSurface({ s }: { s: GameState }) {
 
 function DailySurface({
   s,
+  epigraph,
   remaining,
   issue,
   resolveDay,
   setSurface,
 }: {
   s: GameState;
+  epigraph: Aphorism | null;
   remaining: string;
   issue: (input: BriefingIssue) => void;
   resolveDay: () => void;
@@ -762,7 +765,7 @@ function DailySurface({
   return (
     <>
       <header className="modern-campaign-opening">
-        <ModernModuleEpigraph module="campaign" />
+        <ModernModuleEpigraph epigraph={epigraph} />
       </header>
       <section className="briefing-situation">
         <span>
@@ -1060,6 +1063,7 @@ const surfaceFor = (target: string): Surface =>
 
 export function BriefingInterface({
   s,
+  epigraph,
   remaining,
   issue,
   issueDirective,
@@ -1198,6 +1202,7 @@ export function BriefingInterface({
         {surface === "brief" ? (
           <DailySurface
             s={s}
+            epigraph={epigraph}
             remaining={remaining}
             issue={issue}
             resolveDay={() => setConfirmResolve(true)}
@@ -1208,6 +1213,7 @@ export function BriefingInterface({
         ) : surface === "production" ? (
           <DirectiveSurface
             s={s}
+            epigraph={epigraph}
             module="national"
             focusFamilyId={focusFamilyId}
             issue={issueDirective}
@@ -1215,6 +1221,7 @@ export function BriefingInterface({
         ) : surface === "military" ? (
           <DirectiveSurface
             s={s}
+            epigraph={epigraph}
             module="military"
             focusFamilyId={focusFamilyId}
             issue={issueDirective}
@@ -1222,6 +1229,7 @@ export function BriefingInterface({
         ) : surface === "diplomacy" ? (
           <DirectiveSurface
             s={s}
+            epigraph={epigraph}
             module="diplomacy"
             focusFamilyId={focusFamilyId}
             issue={issueDirective}
@@ -1229,6 +1237,7 @@ export function BriefingInterface({
         ) : surface === "doctrine" ? (
           <DoctrineSurface
             s={s}
+            epigraph={epigraph}
             select={(vector, stage) => setDoctrineConfirm({ vector, stage })}
           />
         ) : surface === "manual" ? (

@@ -400,40 +400,31 @@ test("Ava archives, disclosed forecasts, and workbook calculus remain explicit i
   assert.doesNotMatch(reports,/projectOperations|projectAdversary|estimateDay|projectDomestic/);
 });
 
-test("every command module opens with one canonical conceptual epigraph",async()=>{
-  const[epigraphs,page,briefing,css]=await Promise.all([
-    readFile(new URL("../app/module-epigraphs.ts",import.meta.url),"utf8"),
+test("every command module renders the account-day aphorism as explicit state",async()=>{
+  const[page,briefing,css]=await Promise.all([
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
-  for(const moduleKey of ["campaign","production","military","diplomacy","doctrine"]){
-    assert.match(epigraphs,new RegExp(`\\b${moduleKey}:\\s*\\{`));
-  }
-  for(const line of [
-    "The map is where every other ledger comes to collect.",
-    "Production is the rate at which destruction stops being final.",
-    "A formation exists only while people, equipment, and orders arrive together.",
-    "Between states, every necessity becomes leverage.",
-    "A doctrine is born when a battlefield mistake becomes too useful to condemn.",
-  ])assert.equal((epigraphs.match(new RegExp(line.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"))??[]).length,1);
   const doctrine=page.slice(page.indexOf("function DoctrineControlPanel"),page.indexOf("function Term"));
   const shared=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
   const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
   const directives=briefing.slice(briefing.indexOf("function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
   const altDoctrine=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));
   const altCampaign=briefing.slice(briefing.indexOf("function DailySurface"),briefing.indexOf("export function BriefingInterface"));
-  assert.match(doctrine,/quote=\{MODULE_EPIGRAPHS\.doctrine\.quote\}/);
+  assert.doesNotMatch(page,/MODULE_EPIGRAPHS|setDailyModuleEpigraph/);
+  assert.doesNotMatch(briefing,/MODULE_EPIGRAPHS|setDailyModuleEpigraph/);
+  assert.match(page,/<BriefingInterface[\s\S]*?epigraph=\{dailyAphorism\}/);
+  assert.match(doctrine,/\{epigraph && <Epigraph quote=\{epigraph\.text\} source=\{epigraph\.source\} \/>\}/);
   assert.ok(doctrine.indexOf("<Epigraph")<doctrine.indexOf('<span className="eyebrow">'));
-  assert.match(shared,/quote=\{epigraph\.quote\}/);
+  assert.match(shared,/\{epigraph && <Epigraph quote=\{epigraph\.text\} source=\{epigraph\.source\} \/>\}/);
   assert.ok(shared.indexOf("<Epigraph")<shared.indexOf('<span className="eyebrow">'));
-  assert.match(campaign,/quote=\{MODULE_EPIGRAPHS\.campaign\.quote\}/);
+  assert.match(campaign,/\{epigraph && <Epigraph quote=\{epigraph\.text\} source=\{epigraph\.source\} \/>\}/);
   assert.ok(campaign.indexOf("<Epigraph")<campaign.indexOf('<span className="eyebrow">'));
-  assert.match(directives,/module === "national" \? "production" : module/);
+  assert.match(directives,/<ModernModuleEpigraph epigraph=\{epigraph\} \/>/);
   assert.ok(directives.indexOf("<ModernModuleEpigraph")<directives.indexOf("<span>{moduleLabel}"));
-  assert.ok(altDoctrine.indexOf('<ModernModuleEpigraph module="doctrine" />')<altDoctrine.indexOf("<span>DOCTRINE"));
-  assert.ok(altCampaign.indexOf('<ModernModuleEpigraph module="campaign" />')<altCampaign.indexOf('<section className="briefing-situation">'));
-  assert.doesNotMatch(altCampaign,/MODULE_EPIGRAPHS\.campaign\.(?:quote|source)/);
+  assert.ok(altDoctrine.indexOf('<ModernModuleEpigraph epigraph={epigraph} />')<altDoctrine.indexOf("<span>DOCTRINE"));
+  assert.ok(altCampaign.indexOf('<ModernModuleEpigraph epigraph={epigraph} />')<altCampaign.indexOf('<section className="briefing-situation">'));
   assert.match(css,/\.modern-module-epigraph\s*\{[\s\S]*?font:\s*italic 15px\/1\.55 var\(--serif\)/);
   assert.match(css,/\.modern-module-epigraph cite\s*\{[\s\S]*?font:\s*normal 9\.5px var\(--mono\)/);
 });

@@ -26,6 +26,20 @@ test("the same account and local day retain one assigned aphorism",()=>{
   assert.deepEqual(left,right);
 });
 
+test("every module header advances with the account-day assignment",()=>{
+  const modules=["campaign","production","military","diplomacy","doctrine"];
+  const first=aphorismForDay("account@example.test","2026-07-23",[]);
+  assert.ok(first);
+  const second=aphorismForDay("account@example.test","2026-07-24",[first.id]);
+  assert.ok(second);
+  assert.notEqual(second.id,first.id);
+  for(const surface of modules){
+    const renderedFirst=`${surface}:${first.id}:${first.text}`;
+    const renderedSecond=`${surface}:${second.id}:${second.text}`;
+    assert.notEqual(renderedSecond,renderedFirst,`${surface} retained the prior account-day quote`);
+  }
+});
+
 test("local calendar boundaries compile without UTC drift",()=>{
   const before=new Date(2026,6,23,23,59,59,500);
   const after=new Date(2026,6,24,0,0,0,50);
