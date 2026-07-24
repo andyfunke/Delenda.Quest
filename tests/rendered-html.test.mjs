@@ -124,6 +124,9 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
   assert.match(page,/interfaceMode\s*===\s*\"briefing\"/);
+  assert.match(page,/useState<\"command\" \| \"briefing\">\(\s*\"briefing\"/);
+  assert.match(page,/<WarTicker \/>/);
+  assert.doesNotMatch(page,/daily-aphorism-ribbon/);
   assert.match(page,/executeAvaPlan/);
   assert.match(page,/buildAvaPlan/);
   assert.match(page,/ALT UX/);
@@ -161,6 +164,10 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
     "FIELD MANUAL",
     "SERVICE RECORD",
   ])assert.match(nav,new RegExp(`"${label}"`));
+  assert.ok(nav.indexOf('"DAILY CAMPAIGN"')<nav.indexOf('"DAILY BRIEF"'));
+  assert.match(dailySurface,/className="modern-surface modern-daily-surface"/);
+  assert.match(dailySurface,/<small>FORWARD DEPLOYED<\/small>/);
+  assert.match(dailySurface,/\{fmt\(operation\.committed, true\)\}/);
   assert.doesNotMatch(dailySurface,/briefing-footer/);
   assert.equal((altInterface.match(/className="briefing-footer"/g)??[]).length,1);
   assert.ok(

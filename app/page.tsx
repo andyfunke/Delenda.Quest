@@ -119,6 +119,8 @@ import {
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
 import { accountDayBounds, browserTimeZone } from "./account-time";
+import { avaInterfaceIntent } from "./ava/interface-intent";
+import { warFeedForInvocation } from "./war-feed";
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -3762,11 +3764,49 @@ const portableId = () =>
     .toString(36)
     .padStart(7, "0")}`;
 
+function WarTicker() {
+  const [invokedAt, setInvokedAt] = useState(0);
+  useEffect(() => setInvokedAt(Date.now()), []);
+  const items = useMemo(
+    () => (invokedAt ? warFeedForInvocation(invokedAt) : []),
+    [invokedAt],
+  );
+  const time = (timestamp: number) =>
+    new Intl.DateTimeFormat(undefined, {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(timestamp);
+  return (
+    <aside className="war-ticker" aria-label="Rolling 24-hour theater event feed">
+      <strong>THEATER WIRE // LAST 24H</strong>
+      <div>
+        {items.length ? (
+          <div className="war-ticker-track">
+            {[...items, ...items].map((item, index) => (
+              <span key={`${item.timestamp}-${index}`}>
+                <time dateTime={new Date(item.timestamp).toISOString()}>
+                  {time(item.timestamp)}
+                </time>
+                {item.artifact}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="war-ticker-loading">SYNCHRONIZING THEATER FEED</span>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 export default function Home() {
   const [s, setS] = useState<GameState>(initialState);
   const [page, setPage] = useState<Page>("dashboard");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
-    "command",
+    "briefing",
   );
   const [briefingModule, setBriefingModule] = useState<Module>("campaign");
   const [focusFamily, setFocusFamily] = useState<string | undefined>();
@@ -3774,6 +3814,7 @@ export default function Home() {
   const [dayModal, setDayModal] = useState(false);
   const [reset, setReset] = useState(false);
   const [ava, setAva] = useState(false);
+  const [pendingInterfaceSwitch, setPendingInterfaceSwitch] = useState(false);
   const [avaFullscreen, setAvaFullscreen] = useState(false);
   const [input, setInput] = useState("");
   const [pendingManeuver, setPendingManeuver] = useState<Maneuver | null>(null);
@@ -4750,6 +4791,53 @@ export default function Home() {
       return;
     }
     setMessages((m) => [...m, { who: "YOU", text: raw }]);
+    if (pendingInterfaceSwitch && /^(?:yes|y|confirm|do it|switch)$/i.test(raw)) {
+      const next = interfaceMode === "briefing" ? "command" : "briefing";
+      switchInterface(next);
+      setPendingInterfaceSwitch(false);
+      setMessages((m) => [
+        ...m,
+        {
+          who: "AVA",
+          text: `GRAPHICAL INTERFACE SWITCHED\n${next === "briefing" ? "ALT UX" : "COMMAND WINDOWS"} is now active.`,
+        },
+      ]);
+      return;
+    }
+    if (pendingInterfaceSwitch && /^(?:no|n|cancel|never mind|nevermind)$/i.test(raw)) {
+      setPendingInterfaceSwitch(false);
+      setMessages((m) => [
+        ...m,
+        { who: "AVA", text: "INTERFACE SWITCH CANCELLED\nNo display state changed." },
+      ]);
+      return;
+    }
+    const interfaceIntent = avaInterfaceIntent(raw);
+    if (interfaceIntent === "switch") {
+      const next = interfaceMode === "briefing" ? "command" : "briefing";
+      switchInterface(next);
+      setPendingInterfaceSwitch(false);
+      setMessages((m) => [
+        ...m,
+        {
+          who: "AVA",
+          text: `GRAPHICAL INTERFACE SWITCHED\n${next === "briefing" ? "ALT UX" : "COMMAND WINDOWS"} is now active.`,
+        },
+      ]);
+      return;
+    }
+    if (interfaceIntent === "confirm") {
+      setPendingInterfaceSwitch(true);
+      setMessages((m) => [
+        ...m,
+        {
+          who: "AVA",
+          text:
+            "GRAPHICAL INTERFACE\nWould you like to switch the graphical interface?",
+        },
+      ]);
+      return;
+    }
     const currentModule =
       interfaceMode === "briefing"
         ? briefingModule
@@ -4977,13 +5065,7 @@ export default function Home() {
     <main className={interfaceMode === "briefing" ? "briefing-main" : undefined}>
       {turnBlackout && <div className="turn-blackout" aria-hidden="true" />}
       <BugReporter module={interfaceMode === "briefing" ? briefingModule : page} interfaceMode={interfaceMode} />
-      {dailyAphorism && (
-        <aside className={`daily-aphorism-ribbon ${interfaceMode}`}>
-          <span>DAILY APHORISM // {dailyAphorism.id}</span>
-          <q>{dailyAphorism.text}</q>
-          <cite>{dailyAphorism.source}</cite>
-        </aside>
-      )}
+      <WarTicker />
       {s.status === "active" &&
         opportunityWindow.status === "active" &&
         opportunityWindow.packet &&

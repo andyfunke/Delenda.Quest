@@ -9123,6 +9123,68 @@ small,
   margin: auto;
   padding: 0 24px 120px;
 }
+.war-ticker {
+  align-items: stretch;
+  background: #020302;
+  border-bottom: 1px solid #272c28;
+  color: #d8ddd4;
+  display: flex;
+  font: 10px/1 var(--mono);
+  height: 34px;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+  z-index: 80;
+}
+.war-ticker > strong {
+  align-items: center;
+  background: #c9524a;
+  color: #fff;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  padding: 0 16px;
+  position: relative;
+  z-index: 2;
+}
+.war-ticker > div {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+.war-ticker-track {
+  align-items: center;
+  animation: war-wire-scroll 480s linear infinite;
+  display: flex;
+  width: max-content;
+}
+.war-ticker-track > span {
+  align-items: center;
+  display: flex;
+  padding: 0 24px;
+}
+.war-ticker-track time {
+  color: #e0a458;
+  font-weight: 800;
+  margin-right: 10px;
+}
+.war-ticker-loading {
+  color: #8b9188;
+  padding: 0 20px;
+}
+@keyframes war-wire-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .war-ticker-track {
+    animation-play-state: paused;
+  }
+}
 .briefing-top {
   display: flex;
   justify-content: space-between;
@@ -10214,17 +10276,6 @@ small,
   font: normal 9.5px var(--mono);
   letter-spacing: 0.18em;
   margin-top: 7px;
-}
-.modern-campaign-opening {
-  border-bottom: 1px solid var(--b-line);
-  margin-top: 34px;
-  padding-bottom: 22px;
-}
-.modern-campaign-opening .modern-module-epigraph {
-  margin-bottom: 0;
-}
-.modern-campaign-opening + .briefing-situation {
-  margin-top: 22px;
 }
 .modern-metric-grid {
   background: var(--b-line);
@@ -12424,44 +12475,6 @@ small,
   border:2px solid #fff;
   color:#111;
 }
-.daily-aphorism-ribbon {
-  position: relative;
-  z-index: 3;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px 18px;
-  align-items: baseline;
-  padding: 8px 18px;
-  border-bottom: 1px solid #3e3830;
-  background: #0c0c0b;
-  color: #d8d0c1;
-}
-
-.daily-aphorism-ribbon span {
-  color: #80786c;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.daily-aphorism-ribbon q {
-  font-family: var(--font-display, inherit);
-  font-size: 13px;
-}
-
-.daily-aphorism-ribbon cite {
-  color: #91887a;
-  font-size: 9px;
-  font-style: normal;
-  text-transform: uppercase;
-}
-
-@media (max-width: 800px) {
-  .daily-aphorism-ribbon {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-}
 .briefing-secondary-fronts {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -13151,8 +13164,6 @@ small,
 .ava-alert-menu > header,
 .ava-alert-menu article b,
 .ava-alert-menu article button,
-.daily-aphorism-ribbon span,
-.daily-aphorism-ribbon cite,
 .briefing-secondary-ledger > header span,
 .briefing-secondary-ledger > header b,
 .briefing-secondary-ledger dt,
@@ -13165,9 +13176,6 @@ small,
 }
 .briefing-secondary-options button b {
   font-size: 13px;
-}
-.daily-aphorism-ribbon q {
-  font-size: 14px;
 }
 .ava-urgent-icon b {
   font: 900 12px/18px var(--ui);

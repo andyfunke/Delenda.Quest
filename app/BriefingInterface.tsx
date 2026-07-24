@@ -809,10 +809,8 @@ function DailySurface({
     ],
   ] as const;
   return (
-    <>
-      <header className="modern-campaign-opening">
-        <ModernModuleEpigraph epigraph={epigraph} />
-      </header>
+    <section className="modern-surface modern-daily-surface">
+      <ModernModuleEpigraph epigraph={epigraph} />
       <section className="briefing-situation">
         <span>
           DAILY STRATEGIC SITUATION // {packet.operational.sector.toUpperCase()}{" "}
@@ -832,10 +830,12 @@ function DailySurface({
       </section>
       <section className="briefing-vitals">
         <div>
-          <small>DEPLOYABLE</small>
-          <b>{fmt(s.deployable, true)}</b>
-          <span className="neg">
-            −{fmt(personnel.casualty, true)} projected loss
+          <small>FORWARD DEPLOYED</small>
+          <b>{fmt(operation.committed, true)}</b>
+          <span>
+            ENGAGING ENEMY //{" "}
+            {(operation.commitmentShare * 100).toFixed(1)}% OF OPERATIONALLY
+            AVAILABLE
           </span>
         </div>
         <div>
@@ -1073,7 +1073,7 @@ function DailySurface({
           </p>
         </div>
       </section>
-    </>
+    </section>
   );
 }
 
@@ -1212,8 +1212,8 @@ export function BriefingInterface({
     return () => window.removeEventListener("keydown", close);
   }, [doctrineConfirm, confirmResolve]);
   const nav: [Surface, string][] = [
-    ["daily", "DAILY BRIEF"],
     ["brief", "DAILY CAMPAIGN"],
+    ["daily", "DAILY BRIEF"],
     ["production", "PRODUCTION"],
     ["military", "MILITARY"],
     ["diplomacy", "DIPLOMACY"],

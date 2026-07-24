@@ -7,7 +7,8 @@ GAME_BUNDLE="$(mktemp /tmp/delenda-ava-game.XXXXXX.mjs)"
 TERMINAL_BUNDLE="$(mktemp /tmp/delenda-ava-terminal.XXXXXX.mjs)"
 RUNTIME_BUNDLE="$(mktemp /tmp/delenda-ava-runtime.XXXXXX.mjs)"
 CONTEXT_BUNDLE="$(mktemp /tmp/delenda-ava-context.XXXXXX.mjs)"
-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE"' EXIT
+INTERFACE_BUNDLE="$(mktemp /tmp/delenda-ava-interface.XXXXXX.mjs)"
+trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
@@ -15,7 +16,9 @@ node_modules/.bin/esbuild app/game.ts --bundle --platform=node --format=esm --ou
 node_modules/.bin/esbuild app/ava/terminal.ts --bundle --platform=node --format=esm --outfile="$TERMINAL_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/runtime.ts --bundle --platform=node --format=esm --outfile="$RUNTIME_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/game-context.ts --bundle --platform=node --format=esm --outfile="$CONTEXT_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/ava/interface-intent.ts --bundle --platform=node --format=esm --outfile="$INTERFACE_BUNDLE" >/dev/null
 DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
 DELENDA_AVA_REPORTS_BUNDLE="file://$REPORTS_BUNDLE" DELENDA_AVA_GAME_BUNDLE="file://$GAME_BUNDLE" node --test tests/ava-reports.test.mjs
 DELENDA_AVA_BUNDLE="file://$BUNDLE" \
 DELENDA_AVA_TERMINAL_BUNDLE="file://$TERMINAL_BUNDLE" \
