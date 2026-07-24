@@ -3750,6 +3750,7 @@ const SAVE_KEY = "delenda.quest.campaign.v1";
 const OPPORTUNITY_LEDGER_KEY = "delenda.quest.opportunity-ledger.v1";
 const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
 const APHORISM_ASSIGNMENT_KEY = "delenda.quest.aphorism-assignments.v2";
+const APHORISM_LAST_KEY = "delenda.quest.aphorism-last.v1";
 const DEVICE_KEY = "delenda.quest.device-key.v1";
 type CampaignInspectorSelection = {
   kind: "main" | "sub";
@@ -4074,9 +4075,12 @@ export default function Home() {
     let deviceKey = "";
     let localSeen: string[] = [];
     let localDays: Record<string, string> = {};
+    let localLastId: string | undefined;
     try {
       deviceKey = window.localStorage.getItem(DEVICE_KEY) ?? portableId();
       window.localStorage.setItem(DEVICE_KEY, deviceKey);
+      localLastId =
+        window.localStorage.getItem(APHORISM_LAST_KEY) ?? undefined;
       const seen = JSON.parse(
         window.localStorage.getItem(APHORISM_LEDGER_KEY) ?? "[]",
       ) as unknown;
@@ -4099,12 +4103,20 @@ export default function Home() {
         if (!response.ok)
           return {
             ids: [] as string[],
-            entries: [] as Array<{ itemId: string; context: string }>,
+            entries: [] as Array<{
+              itemId: string;
+              context: string;
+              updatedAt?: number;
+            }>,
             accountKey: null as string | null,
           };
         return (await response.json()) as {
           ids?: string[];
-          entries?: Array<{ itemId: string; context: string }>;
+          entries?: Array<{
+            itemId: string;
+            context: string;
+            updatedAt?: number;
+          }>;
           accountKey?: string | null;
         };
       })
@@ -4121,6 +4133,11 @@ export default function Home() {
               (entry) => entry.context === previousAphorismDay,
             )?.itemId
           : undefined;
+        const remoteLast = payload.entries
+          ?.filter((entry) => typeof entry.updatedAt === "number")
+          .sort(
+            (left, right) => (right.updatedAt ?? 0) - (left.updatedAt ?? 0),
+          )[0]?.itemId;
         const assignedId = remoteToday ?? localDays[dayKey];
         const assigned = APHORISMS.find((item) => item.id === assignedId);
         const selected =
@@ -4129,13 +4146,17 @@ export default function Home() {
             payload.accountKey ?? deviceKey,
             dayKey,
             [...new Set([...localSeen, ...remoteIds])],
-            remotePrevious ?? localDays[previousAphorismDay],
+            localDays[previousAphorismDay] ??
+              remotePrevious ??
+              localLastId ??
+              remoteLast,
           );
         if (!selected) return;
         setDailyAphorismAssignment({ dayKey, aphorism: selected });
         const seen = [...new Set([...localSeen, ...remoteIds, selected.id])];
         try {
           window.localStorage.setItem(APHORISM_LEDGER_KEY, JSON.stringify(seen));
+          window.localStorage.setItem(APHORISM_LAST_KEY, selected.id);
           window.localStorage.setItem(
             APHORISM_ASSIGNMENT_KEY,
             JSON.stringify({ ...localDays, [dayKey]: selected.id }),
@@ -4158,7 +4179,7 @@ export default function Home() {
             deviceKey,
             dayKey,
             localSeen,
-            localDays[previousAphorismDay],
+            localDays[previousAphorismDay] ?? localLastId,
           );
         if (!live || !selected) return;
         setDailyAphorismAssignment({ dayKey, aphorism: selected });
@@ -4167,6 +4188,7 @@ export default function Home() {
             APHORISM_LEDGER_KEY,
             JSON.stringify([...new Set([...localSeen,selected.id])]),
           );
+          window.localStorage.setItem(APHORISM_LAST_KEY, selected.id);
           window.localStorage.setItem(
             APHORISM_ASSIGNMENT_KEY,
             JSON.stringify({...localDays,[dayKey]:selected.id}),

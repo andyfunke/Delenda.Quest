@@ -1,5 +1,3 @@
-import { accountDayKey, millisecondsUntilNextAccountDay } from "./account-time";
-
 export type Aphorism={id:string;text:string;source:string};
 export const APHORISMS:Aphorism[]=[
   {id:"Q001",text:"A commander who spends his reserve early has exchanged uncertainty for regret.",source:"Comm. Het Claxton, Command Ethics Appendix"},
@@ -151,7 +149,3 @@ export const aphorismForDay=(accountKey:string,dayKey:string,seen:string[]=[],pr
   const deck=remaining.length?remaining:restarted.length?restarted:ordered;
   return deck[hash(`${accountKey}:${dayKey}:aphorism`)%deck.length];
 };
-
-export const aphorismDayKey=(date:Date=new Date(),timeZone?:string)=>accountDayKey(date,timeZone);
-
-export const millisecondsUntilNextLocalDay=(date:Date=new Date(),timeZone?:string)=>millisecondsUntilNextAccountDay(date,timeZone);

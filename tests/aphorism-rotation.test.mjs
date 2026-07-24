@@ -3,10 +3,8 @@ import test from "node:test";
 
 const {
   APHORISMS,
-  aphorismDayKey,
   aphorismForDay,
   campaignAphorismDayKey,
-  millisecondsUntilNextLocalDay,
 }=await import(process.env.DELENDA_APHORISM_BUNDLE);
 
 test("daily aphorisms do not repeat until the corpus is exhausted",()=>{
@@ -76,21 +74,18 @@ test("rotation still changes on the next campaign day after corpus exhaustion",(
   assert.notEqual(second.id,first.id);
 });
 
-test("local calendar boundaries compile without UTC drift",()=>{
-  const before=new Date(2026,6,23,23,59,59,500);
-  const after=new Date(2026,6,24,0,0,0,50);
-  assert.equal(aphorismDayKey(before),"2026-07-23");
-  assert.equal(aphorismDayKey(after),"2026-07-24");
-  assert.ok(millisecondsUntilNextLocalDay(before)<=500);
-  assert.ok(millisecondsUntilNextLocalDay(after)>86_000_000);
-});
-
-test("account-selected time zones own the day boundary, including DST days",()=>{
-  const instant=new Date("2026-07-24T06:30:00.000Z");
-  assert.equal(aphorismDayKey(instant,"America/Los_Angeles"),"2026-07-23");
-  assert.equal(aphorismDayKey(instant,"Europe/Paris"),"2026-07-24");
-
-  const beforeSpringMidnight=new Date("2026-03-09T06:59:59.500Z");
-  assert.equal(aphorismDayKey(beforeSpringMidnight,"America/Los_Angeles"),"2026-03-08");
-  assert.ok(millisecondsUntilNextLocalDay(beforeSpringMidnight,"America/Los_Angeles")<=500);
+test("post-exhaustion rotation changes across campaign-run boundaries",()=>{
+  const seen=APHORISMS.map(item=>item.id);
+  const previous=aphorismForDay(
+    "account@example.test",
+    campaignAphorismDayKey("run-123",APHORISMS.length+1),
+    seen,
+  );
+  const next=aphorismForDay(
+    "account@example.test",
+    campaignAphorismDayKey("run-456",1),
+    seen,
+    previous.id,
+  );
+  assert.notEqual(next.id,previous.id);
 });

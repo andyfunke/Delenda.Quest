@@ -14,7 +14,7 @@ export async function rotationIds(user:ChatGPTUser,kind:RotationKind){
 
 export async function rotationEntries(user:ChatGPTUser,kind:RotationKind){
   const db=await getDb(),ownerEmail=await ensureAccount(user);
-  return db.select({itemId:accountRotationLedger.itemId,context:accountRotationLedger.context,status:accountRotationLedger.status}).from(accountRotationLedger).where(and(eq(accountRotationLedger.ownerEmail,ownerEmail),eq(accountRotationLedger.kind,kind)));
+  return db.select({itemId:accountRotationLedger.itemId,context:accountRotationLedger.context,status:accountRotationLedger.status,updatedAt:accountRotationLedger.updatedAt}).from(accountRotationLedger).where(and(eq(accountRotationLedger.ownerEmail,ownerEmail),eq(accountRotationLedger.kind,kind)));
 }
 
 export async function recordRotationItem(user:ChatGPTUser,input:{kind:RotationKind;itemId:string;status:string;context?:string}){
