@@ -12471,76 +12471,171 @@ small,
 }
 
 .briefing-secondary-ledger {
-  background: var(--b-panel);
-  border: 1px solid var(--b-line);
+  background:
+    linear-gradient(135deg, rgba(224, 164, 88, 0.055), transparent 42%),
+    var(--b-panel);
+  border: 1px solid rgba(224, 164, 88, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
   min-width: 0;
+  overflow: hidden;
+  position: relative;
   width: 100%;
 }
 
+.briefing-secondary-ledger[data-domain="network"] {
+  background:
+    linear-gradient(135deg, rgba(111, 179, 184, 0.055), transparent 42%),
+    var(--b-panel);
+  border-color: rgba(111, 179, 184, 0.28);
+}
+
+.briefing-secondary-ledger::after {
+  color: rgba(224, 164, 88, 0.045);
+  content: "D";
+  font: 900 164px/0.8 var(--serif);
+  pointer-events: none;
+  position: absolute;
+  right: 22px;
+  top: 64px;
+}
+
+.briefing-secondary-ledger[data-domain="network"]::after {
+  color: rgba(111, 179, 184, 0.045);
+  content: "N";
+}
+
 .briefing-secondary-ledger > header {
+  align-items: center;
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 11px 14px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--b-line);
 }
 
-.briefing-secondary-ledger > header span,
-.briefing-secondary-ledger > header b {
-  font-size: 9px;
-  letter-spacing: 0.14em;
+.briefing-secondary-ledger > header > div {
+  display: grid;
+  gap: 2px;
 }
 
 .briefing-secondary-ledger > header span {
   color: var(--b-amber);
+  font-size: 11px;
+  letter-spacing: 0.18em;
 }
 
 .briefing-secondary-ledger > header b {
   color: var(--b-faint);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.briefing-secondary-ledger[data-domain="network"] > header span {
+  color: var(--b-cyan);
+}
+
+.briefing-secondary-ledger > header em {
+  color: var(--b-green);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-align: right;
 }
 
-.briefing-secondary-ledger dl {
-  margin: 0;
+.briefing-secondary-ledger > header em.cooling {
+  color: var(--b-red);
 }
 
-.briefing-secondary-ledger dl > div {
+.briefing-secondary-narrative {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(250px, 0.7fr);
   border-bottom: 1px solid var(--b-line);
+  position: relative;
+  z-index: 1;
 }
 
-.briefing-secondary-ledger dt,
-.briefing-secondary-ledger dd {
-  margin: 0;
-  padding: 9px 12px;
-  font-size: 10px;
+.briefing-secondary-heading {
+  padding: 26px 28px 30px;
 }
 
-.briefing-secondary-ledger dt {
+.briefing-secondary-heading small {
   color: var(--b-faint);
-  letter-spacing: 0.12em;
-  border-right: 1px solid var(--b-line);
+  font-size: 10px;
+  letter-spacing: 0.16em;
 }
 
-.briefing-secondary-ledger dd {
+.briefing-secondary-heading h2 {
   color: var(--b-ink);
+  font: 28px/1.08 var(--serif);
+  margin: 8px 0 14px;
+}
+
+.briefing-secondary-heading p {
+  color: var(--b-ink);
+  font: italic 17px/1.45 var(--serif);
+  margin: 0;
+  max-width: 580px;
+}
+
+.briefing-secondary-narrative aside {
+  align-content: center;
+  border-left: 1px solid var(--b-line);
+  display: grid;
+  padding: 24px;
+}
+
+.briefing-secondary-narrative aside > span {
+  color: var(--b-amber);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.briefing-secondary-ledger[data-domain="network"]
+  .briefing-secondary-narrative
+  aside
+  > span {
+  color: var(--b-cyan);
+}
+
+.briefing-secondary-narrative aside p {
+  color: var(--b-dim);
+  font: 14px/1.55 var(--ui);
+  margin: 8px 0 14px;
+}
+
+.briefing-secondary-narrative aside small {
+  color: var(--b-faint);
+  font-size: 9px;
+  letter-spacing: 0.09em;
 }
 
 .briefing-secondary-options {
-  padding: 10px;
+  padding: 12px;
   display: grid;
-  gap: 7px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .briefing-secondary-options button {
-  display: grid;
-  gap: 3px;
-  padding: 10px 12px;
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
   border: 1px solid var(--b-line);
   background: #0d100e;
   color: var(--b-ink);
   text-align: left;
+  transition: background 120ms ease, border-color 120ms ease;
+  width: 100%;
+}
+
+.briefing-secondary-options button:hover:not(:disabled) {
+  background: rgba(224, 164, 88, 0.06);
+  border-color: rgba(224, 164, 88, 0.38);
 }
 
 .briefing-secondary-options button.selected {
@@ -12548,18 +12643,123 @@ small,
   box-shadow: inset 3px 0 var(--b-amber);
 }
 
-.briefing-secondary-options button b {
-  font-size: 11px;
+.briefing-secondary-ledger[data-domain="network"]
+  .briefing-secondary-options
+  button:hover:not(:disabled) {
+  background: rgba(111, 179, 184, 0.06);
+  border-color: rgba(111, 179, 184, 0.38);
 }
 
-.briefing-secondary-options button span,
-.briefing-secondary-options button small {
-  color: var(--b-dim);
-  font-size: 10px;
+.briefing-secondary-ledger[data-domain="network"]
+  .briefing-secondary-options
+  button.selected {
+  border-color: var(--b-cyan);
+  box-shadow: inset 3px 0 var(--b-cyan);
 }
 
-.briefing-secondary-options button small {
+.briefing-secondary-options button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.briefing-secondary-options button > i {
+  border: 1px solid var(--b-dim);
+  border-radius: 50%;
+  flex: none;
+  height: 12px;
+  margin-top: 5px;
+  width: 12px;
+}
+
+.briefing-secondary-options button.selected > i {
+  border: 3px solid var(--b-amber);
+  box-shadow: 0 0 0 2px #3a2a16;
+}
+
+.briefing-secondary-ledger[data-domain="network"]
+  .briefing-secondary-options
+  button.selected
+  > i {
+  border-color: var(--b-cyan);
+  box-shadow: 0 0 0 2px #183033;
+}
+
+.briefing-secondary-option-copy {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.briefing-secondary-option-copy > small {
   color: var(--b-faint);
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.briefing-secondary-option-copy > b {
+  display: block;
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.briefing-secondary-option-copy > span {
+  color: var(--b-dim);
+  display: block;
+  font: 14px/1.5 var(--ui);
+  margin-top: 4px;
+}
+
+.briefing-secondary-option-cost {
+  display: flex;
+  flex: 0 0 220px;
+  flex-direction: column;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.briefing-secondary-option-cost em {
+  font-style: normal;
+}
+
+@media (max-width: 720px) {
+  .briefing-secondary-ledger > header {
+    align-items: flex-start;
+  }
+
+  .briefing-secondary-ledger > header em {
+    max-width: 42%;
+  }
+
+  .briefing-secondary-narrative {
+    grid-template-columns: 1fr;
+  }
+
+  .briefing-secondary-heading {
+    padding: 22px 20px 24px;
+  }
+
+  .briefing-secondary-heading h2 {
+    font-size: 25px;
+  }
+
+  .briefing-secondary-narrative aside {
+    border-left: 0;
+    border-top: 1px solid var(--b-line);
+    padding: 20px;
+  }
+
+  .briefing-secondary-options button {
+    flex-wrap: wrap;
+    padding: 15px;
+  }
+
+  .briefing-secondary-option-cost {
+    flex: 1 0 100%;
+    margin-left: 26px;
+    text-align: left;
+  }
 }
 
 /* Command Windows keep the established paper interface while sharing the

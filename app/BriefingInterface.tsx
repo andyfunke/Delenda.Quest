@@ -248,19 +248,47 @@ function SecondaryFrontLedger({
   select: (id: string) => void;
 }) {
   const status = convergenceFrontStatus(s, prompt);
+  const frontEffect = prompt.convergence
+    .map((edge) => edge.summary)
+    .join(" ");
   return (
-    <section className="briefing-secondary-ledger">
+    <section
+      className="briefing-secondary-ledger"
+      data-domain={prompt.domain}
+    >
       <header>
-        <span>{prompt.domain === "domestic" ? "DOMESTIC FRONT" : "COMMAND NETWORK"}</span>
-        <b>{status.cooling ? status.reason : "RESPONSES AVAILABLE"}</b>
+        <div>
+          <span>
+            {prompt.domain === "domestic"
+              ? "SECONDARY QUEST // DOMESTIC FRONT"
+              : "SECONDARY QUEST // COMMAND NETWORK"}
+          </span>
+          <b>{prompt.category.toUpperCase()}</b>
+        </div>
+        <em className={status.cooling ? "cooling" : ""}>
+          {status.cooling ? status.reason : "RESPONSES AVAILABLE"}
+        </em>
       </header>
-      <dl>
-        <div><dt>SUBJECT</dt><dd>{prompt.title}</dd></div>
-        <div><dt>ORIENTATION</dt><dd>{prompt.operationalAnchor.sector} // {operationalObjectiveForProblemClass(prompt.operationalAnchor.problemClass)}</dd></div>
-        <div><dt>PRESSURE</dt><dd>{prompt.pressureBand.toUpperCase()}</dd></div>
-        <div><dt>QUESTION</dt><dd>{prompt.question}</dd></div>
-        <div><dt>FRONT EFFECT</dt><dd>{prompt.convergence.map((edge) => edge.summary).join(" ")}</dd></div>
-      </dl>
+      <div className="briefing-secondary-narrative">
+        <div className="briefing-secondary-heading">
+          <small>
+            {prompt.pressureBand.toUpperCase()} PRESSURE //{" "}
+            {prompt.operationalAnchor.sector.toUpperCase()}
+          </small>
+          <h2>{prompt.title}</h2>
+          <p>{prompt.question}</p>
+        </div>
+        <aside>
+          <span>HOW THIS REACHES THE FRONT</span>
+          <p>{frontEffect}</p>
+          <small>
+            OPERATIONAL ORIENTATION //{" "}
+            {operationalObjectiveForProblemClass(
+              prompt.operationalAnchor.problemClass,
+            ).toUpperCase()}
+          </small>
+        </aside>
+      </div>
       <div className="briefing-secondary-options">
         {prompt.options.map((option, index) => {
           const unavailable = !convergenceOptionAvailable(s, option);
@@ -272,9 +300,28 @@ function SecondaryFrontLedger({
               aria-pressed={selected === option.id}
               onClick={() => select(selected === option.id ? "" : option.id)}
             >
-              <b>{prefix}{index + 1} // {option.choice.label}</b>
-              <span>{option.choice.flavor}</span>
-              <small>{optionCost(option).join(" · ")}</small>
+              <i aria-hidden="true" />
+              <span className="briefing-secondary-option-copy">
+                <small>RESPONSE {prefix}{index + 1}</small>
+                <b>{option.choice.label}</b>
+                <span>{option.choice.flavor}</span>
+              </span>
+              <span className="briefing-secondary-option-cost">
+                {optionCost(option).map((line, costIndex) => (
+                  <em
+                    className={
+                      line.includes("+")
+                        ? "pos"
+                        : line.includes("-") || line.includes("−")
+                          ? "neg"
+                          : "warn"
+                    }
+                    key={`${line}-${costIndex}`}
+                  >
+                    {line}
+                  </em>
+                ))}
+              </span>
             </button>
           );
         })}
