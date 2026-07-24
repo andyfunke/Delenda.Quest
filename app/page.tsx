@@ -3778,7 +3778,7 @@ function WarTicker() {
     if (!track || !items.length) return;
     const measure = () => {
       const oneLoopWidth = track.scrollWidth / 2;
-      setCrawlSeconds(Math.max(3600, oneLoopWidth / 5));
+      setCrawlSeconds(Math.max(1, oneLoopWidth / 12.5));
     };
     measure();
     const observer = new ResizeObserver(measure);
