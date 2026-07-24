@@ -171,6 +171,8 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
+  assert.match(page,/<main className=\{interfaceMode === "briefing" \? "briefing-main" : undefined\}>/);
+  assert.match(css,/\.briefing-main\s*\{[^}]*background:\s*#0c0e0d;[^}]*padding-bottom:\s*0;/s);
   const secondaryFrontRules=[...css.matchAll(/\.briefing-secondary-fronts\s*\{([^}]*)\}/g)].map((match)=>match[1]);
   assert.ok(secondaryFrontRules.length>0);
   assert.ok(secondaryFrontRules.some((rule)=>/grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(rule)));

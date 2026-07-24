@@ -52,6 +52,10 @@ main {
   min-height: 100vh;
   padding-bottom: 88px;
 }
+.briefing-main {
+  background: #0c0e0d;
+  padding-bottom: 0;
+}
 .top {
   background: #11120f;
   color: #f1efe6;

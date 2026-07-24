@@ -4974,7 +4974,7 @@ export default function Home() {
     setInput(completion.value);
   };
   return (
-    <main>
+    <main className={interfaceMode === "briefing" ? "briefing-main" : undefined}>
       {turnBlackout && <div className="turn-blackout" aria-hidden="true" />}
       <BugReporter module={interfaceMode === "briefing" ? briefingModule : page} interfaceMode={interfaceMode} />
       {dailyAphorism && (
