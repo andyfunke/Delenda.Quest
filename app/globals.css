@@ -9130,7 +9130,7 @@ small,
   color: #d8ddd4;
   display: flex;
   font-family: "Arial Narrow", "Roboto Condensed", "Aptos Narrow", var(--mono);
-  font-size: 8px;
+  font-size: 12px;
   font-stretch: ultra-condensed;
   font-weight: 650;
   height: 19px;
@@ -9147,7 +9147,7 @@ small,
   color: #fff;
   display: flex;
   flex: 0 0 auto;
-  font-size: 7px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   padding: 0 9px;
   position: relative;
