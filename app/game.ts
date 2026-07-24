@@ -850,7 +850,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
     resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs,victorySecuredDay:typeof candidate.victorySecuredDay==="number"?candidate.victorySecuredDay:null};
-  normalize(state);rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION||!state.currentSituation.maneuverPresentations)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);if(state.status==="active"&&state.front<=-12)state.status="defeat";rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION||!state.currentSituation.maneuverPresentations)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
 export const maneuverForSituation = (
@@ -1118,7 +1118,7 @@ export const resolve = (state: GameState) => {
   const inertCommand=s.resolutionHistory.every(record=>record.orders.used===0&&record.orders.maneuverId===null);
   if((terminalResolutionOpen&&s.victorySecuredDay!==null)||(s.day>30&&s.front>0))s.status="victory";
   if(inertCommand&&resolvedDay>=balance.inertDefeatDay)s.status="defeat";
-  if((terminalResolutionOpen&&s.front<=-12)||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
+  if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
   normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);s.adversary.objective=s.currentSituation.sector;return s;
 };
 

@@ -493,6 +493,15 @@ test("first-day loss exposure is daily while an inert command loses inside ten d
   assert.ok(average>=8&&average<=9.5);
 });
 
+test("crossing the negative twelve-kilometer line ends the campaign immediately",()=>{
+  const state=initialState({seed:1729,theater:"lowland"});
+  state.front=-12.2;
+  assert.equal(restoreCampaignState(state).status,"defeat");
+  const crossing=initialState({seed:1729,theater:"lowland"});
+  crossing.front=-11.9;
+  assert.equal(resolve(crossing).status,"defeat");
+});
+
 test("competent command resolves against the seed-specific bell-curve horizon",()=>{
   assert.equal(TERMINAL_RESOLUTION_DAY,15);
   const plan=[["tempo","surge"],["statecraft","backchannel"],["production","eyes"],["industry","maintenance"],["training-standard","specialist"],["desertion","rations"],["supply","shadow"],["casualty-politics","public-mourning"]];
