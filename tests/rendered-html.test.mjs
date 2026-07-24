@@ -33,9 +33,41 @@ test("renders development preview metadata", async () => {
   assert.match(await response.text(), developmentPreviewMeta);
 });
 
+test("landing page owns the default route and preserves the campaign entry surfaces", async () => {
+  const [landing, gameRoute, redirect, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/LandingRedirect.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(landing, /export default function LandingPage/);
+  assert.match(landing, /className="landing-page"/);
+  assert.match(landing, /STRATEGIC EPIGRAPH CANON \/\/ QUOTE BOARD/);
+  assert.match(landing, /href="\/game"/);
+  assert.match(landing, /href="\/game\?wiki=resolution&standalone=1"/);
+  assert.match(landing, /href="\/game\?account=1"/);
+  assert.doesNotMatch(
+    landing,
+    /Order of Battle|Three inheritances\.\s*One front|Recovered from the mud|\bdead\b/i,
+  );
+  assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
+  assert.match(redirect, /window\.location\.replace\(`\/game/);
+  for (const token of [
+    "--b-bg: #0c0e0d",
+    "--b-panel: #131614",
+    "--b-line: #2a302b",
+    "--b-amber: #e0a458",
+    "--b-red: #c9524a",
+    "--b-green: #7ba05b",
+    "--b-cyan: #6fb3b8",
+  ])
+    assert.match(styles, new RegExp(token));
+  assert.match(styles, /\.landing-quote-grid/);
+});
+
 test("campaign UI is consequence-only while Ava retains the campaign report", async () => {
   const [page,packet,dispatch]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/OperationsPacket.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/war-dispatch.ts",import.meta.url),"utf8"),
   ]);
@@ -66,7 +98,7 @@ test("campaign UI is consequence-only while Ava retains the campaign report", as
 
 test("Campaign order language and daily aphorisms consume campaign-day rotating state",async()=>{
   const[page,game,substrate,rotation]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/campaign-substrate.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/rotation.ts",import.meta.url),"utf8"),
@@ -86,7 +118,7 @@ test("Campaign order language and daily aphorisms consume campaign-day rotating 
 
 test("diplomacy separates foreign actors from diplomatic actions",async()=>{
   const[page,panel]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/DiplomacyPanel.tsx",import.meta.url),"utf8"),
   ]);
   assert.match(page,/FOREIGN ACTORS/);
@@ -98,7 +130,7 @@ test("diplomacy separates foreign actors from diplomatic actions",async()=>{
 
 test("menu hierarchy, secondary-front cooldown, and manual day resolution remain explicit",async()=>{
   const[page,briefing,game,styles]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -118,7 +150,7 @@ test("menu hierarchy, secondary-front cooldown, and manual day resolution remain
 
 test("Alt UX is a second renderer over the same convergence substrate",async()=>{
   const[page,briefing,convergence,css]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/convergence.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -196,7 +228,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
   const[page,css,manual,reports,schema,bubblette,avaRenderer,briefing]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8"),readFile(new URL("../app/FieldManual.tsx",import.meta.url),"utf8"),readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),readFile(new URL("../app/submission-schema.ts",import.meta.url),"utf8"),readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),readFile(new URL("../app/AvaTextRenderer.tsx",import.meta.url),"utf8"),readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8"),readFile(new URL("../app/FieldManual.tsx",import.meta.url),"utf8"),readFile(new URL("../app/ava/reports.ts",import.meta.url),"utf8"),readFile(new URL("../app/submission-schema.ts",import.meta.url),"utf8"),readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),readFile(new URL("../app/AvaTextRenderer.tsx",import.meta.url),"utf8"),readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
   ]);
   for(const label of ["MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"])assert.match(page,new RegExp(label));
   assert.match(schema,/DOMESTIC_SUB_MISSIONS/);assert.match(schema,/NETWORK_SUB_MISSIONS/);assert.match(schema,/sub-missions-v3/);assert.match(schema,/SUB_MISSION_CONTENT_VERSION/);
@@ -221,7 +253,7 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
 
 test("campaign's one-time introduction uses the dashboard card grammar and cannot be reselected",async()=>{
   const[page,css]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
   const situationCard=page.slice(page.indexOf("function SituationCard"),page.indexOf("function LiveLedger"));
@@ -265,7 +297,7 @@ test("campaign's one-time introduction uses the dashboard card grammar and canno
 
 test("campaign navigation, military reinforcement, Doctrine inspection, and text roles remain player-facing",async()=>{
   const[page,briefing,bubblette,css,concepts,terminal,voice,avaRenderer]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/Bubblette.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -308,7 +340,7 @@ test("bubblettes, Military hover geometry, and foreign actor choices preserve th
 
 test("the theater plate compiles deterministic 45/90 geometry and preserves the munitions stockpile label",async()=>{
   const[page,briefing,map]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/TheaterGeometry.tsx",import.meta.url),"utf8"),
   ]);
@@ -334,7 +366,7 @@ test("the theater plate compiles deterministic 45/90 geometry and preserves the 
 
 test("opportunities interrupt without opening the decision menu and collapse into AVA's single urgent alert rail",async()=>{
   const[page,css,circuits]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../app/circuits.ts",import.meta.url),"utf8"),
   ]);
@@ -366,7 +398,7 @@ test("opportunities interrupt without opening the decision menu and collapse int
 
 test("dashboard owns strategic reporting while command modules preserve the paper UI and route reports to Ava",async()=>{
   const[page,css,account,briefing]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
@@ -414,7 +446,7 @@ test("dashboard owns strategic reporting while command modules preserve the pape
 
 test("Ava archives, disclosed forecasts, and workbook calculus remain explicit infrastructure",async()=>{
   const[page,storage,workbook,projection,reports,setup]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/ava/storage.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/ava/workbook.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/ava/projection.ts",import.meta.url),"utf8"),
@@ -447,7 +479,7 @@ test("Ava archives, disclosed forecasts, and workbook calculus remain explicit i
 
 test("every command module renders the campaign-day aphorism as explicit state",async()=>{
   const[page,briefing,css]=await Promise.all([
-    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
