@@ -49,6 +49,7 @@ type BriefingIssue = {
   networkId?: string;
 };
 type Surface =
+  | "daily"
   | "brief"
   | "state"
   | "production"
@@ -1029,6 +1030,38 @@ function DailySurface({
   );
 }
 
+function DailyBriefSurface({ s }: { s: GameState }) {
+  const latest = s.reports[0];
+  const quote =
+    latest.epigraph ??
+    "The report is complete when the missing figures stop being requested.";
+  const source =
+    latest.day === 1
+      ? "COMM. HET CLAXTON, Praetor Corps, Third Division"
+      : "CAMPAIGN ARCHIVE";
+  return (
+    <section className={`alt-daily-brief ${latest.tone}`}>
+      <header>
+        <span>MORNING REPORT // DAY {latest.day}</span>
+        <small>FIELD DISPATCH // CAMPAIGN ARCHIVE</small>
+      </header>
+      <blockquote>
+        <span>“{quote}”</span>
+        <cite>— {source}</cite>
+      </blockquote>
+      <article>
+        <small>DAILY BRIEF</small>
+        <h1>{latest.title}</h1>
+        <div>
+          {latest.body.split(/\n{2,}/).map((paragraph, index) => (
+            <p key={`${latest.day}-${index}`}>{paragraph}</p>
+          ))}
+        </div>
+      </article>
+    </section>
+  );
+}
+
 const surfaceFor = (target: string): Surface =>
   target === "national"
     ? "production"
@@ -1041,6 +1074,7 @@ const surfaceFor = (target: string): Surface =>
           : target === "account"
             ? "service"
             : [
+                  "daily",
                   "brief",
                   "state",
                   "production",
@@ -1131,6 +1165,7 @@ export function BriefingInterface({
     return () => window.removeEventListener("keydown", close);
   }, [doctrineConfirm, confirmResolve]);
   const nav: [Surface, string][] = [
+    ["daily", "DAILY BRIEF"],
     ["brief", "DAILY CAMPAIGN"],
     ["production", "PRODUCTION"],
     ["military", "MILITARY"],
@@ -1145,6 +1180,7 @@ export function BriefingInterface({
   };
   useEffect(() => {
     const moduleBySurface: Record<Surface, Module> = {
+      daily: "dashboard",
       brief: "campaign",
       state: "dashboard",
       production: "national",
@@ -1190,7 +1226,9 @@ export function BriefingInterface({
             </button>
           ))}
         </nav>
-        {surface === "brief" ? (
+        {surface === "daily" ? (
+          <DailyBriefSurface s={s} />
+        ) : surface === "brief" ? (
           <DailySurface
             s={s}
             epigraph={epigraph}

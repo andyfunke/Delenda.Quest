@@ -152,6 +152,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   );
   assert.doesNotMatch(nav,/\["state",\s*"STATE"\]/);
   for(const label of [
+    "DAILY BRIEF",
     "DAILY CAMPAIGN",
     "PRODUCTION",
     "MILITARY",
@@ -171,6 +172,10 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
+  assert.match(briefing,/function DailyBriefSurface/);
+  assert.match(briefing,/latest\.epigraph \?\?/);
+  assert.match(briefing,/COMM\. HET CLAXTON, Praetor Corps, Third Division/);
+  assert.match(css,/\.alt-daily-brief > blockquote/);
   assert.match(page,/<main className=\{interfaceMode === "briefing" \? "briefing-main" : undefined\}>/);
   assert.match(css,/\.briefing-main\s*\{[^}]*background:\s*#0c0e0d;[^}]*padding-bottom:\s*0;/s);
   const secondaryFrontRules=[...css.matchAll(/\.briefing-secondary-fronts\s*\{([^}]*)\}/g)].map((match)=>match[1]);

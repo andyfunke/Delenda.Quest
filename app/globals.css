@@ -9200,6 +9200,69 @@ small,
   margin-top: 34px;
   padding: 24px 28px 20px;
 }
+.alt-daily-brief {
+  border-top: 1px solid var(--b-line);
+  margin-top: 34px;
+  min-height: 620px;
+  padding: 34px 0 70px;
+}
+.alt-daily-brief > header {
+  align-items: center;
+  color: var(--b-red);
+  display: flex;
+  font-size: 10px;
+  justify-content: space-between;
+  letter-spacing: 0.22em;
+}
+.alt-daily-brief > header small {
+  color: var(--b-faint);
+  font: 9px var(--mono);
+  letter-spacing: 0.16em;
+}
+.alt-daily-brief > blockquote {
+  border-bottom: 1px solid rgba(224, 164, 88, 0.34);
+  border-top: 1px solid rgba(224, 164, 88, 0.34);
+  color: var(--b-amber);
+  margin: 34px 0 44px;
+  padding: 28px clamp(18px, 7vw, 72px);
+}
+.alt-daily-brief > blockquote span {
+  display: block;
+  font: italic clamp(24px, 4vw, 42px)/1.18 var(--serif);
+  max-width: 850px;
+}
+.alt-daily-brief > blockquote cite {
+  color: var(--b-dim);
+  display: block;
+  font: normal 10px var(--mono);
+  letter-spacing: 0.16em;
+  margin-top: 14px;
+}
+.alt-daily-brief > article {
+  border-left: 3px solid var(--b-red);
+  max-width: 820px;
+  padding: 6px 0 6px 32px;
+}
+.alt-daily-brief.good > article {
+  border-left-color: var(--b-green);
+}
+.alt-daily-brief > article > small {
+  color: var(--b-faint);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+}
+.alt-daily-brief h1 {
+  font: 38px/1.05 var(--serif);
+  margin: 8px 0 24px;
+}
+.alt-daily-brief article div {
+  color: var(--b-dim);
+  font: 15px/1.75 var(--ui);
+  max-width: 720px;
+}
+.alt-daily-brief article p {
+  margin: 0 0 18px;
+}
 .briefing-situation > span,
 .briefing-decisions > header > span {
   font-size: 11px;
@@ -9775,6 +9838,21 @@ small,
   }
   .briefing-footer > span {
     max-width: 45%;
+  }
+  .alt-daily-brief {
+    min-height: 0;
+  }
+  .alt-daily-brief > header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .alt-daily-brief > blockquote {
+    margin: 24px 0 34px;
+    padding: 22px 14px;
+  }
+  .alt-daily-brief > article {
+    padding-left: 18px;
   }
 }
 
