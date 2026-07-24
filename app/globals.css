@@ -13013,11 +13013,11 @@ small,
 /* Campaign consequence boxes are decision copy, not footnotes. */
 .campaign-workspace .campaign-consequences h3 {
   font-family: var(--ui);
-  font-size: 15px;
+  font-size: 12pt;
 }
 .campaign-workspace .campaign-consequences li {
   font-family: var(--ui);
-  font-size: clamp(20px, 1.65vw, 24px);
+  font-size: 12pt;
   padding: 16px 0;
 }
 
@@ -13027,8 +13027,5 @@ small,
   }
   .selection-dossier > p {
     font-size: 14px;
-  }
-  .campaign-workspace .campaign-consequences li {
-    font-size: 18px;
   }
 }
