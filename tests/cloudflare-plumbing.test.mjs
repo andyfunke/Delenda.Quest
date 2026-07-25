@@ -22,7 +22,7 @@ const TABLES = [
   "account_rotation_ledger",
 ];
 
-test("Cloudflare deployment is locked to the Worker already serving delenda.quest", async () => {
+test("Cloudflare deployment reuses an existing Worker and proves the custom domain afterward", async () => {
   const [config,workflow] = await Promise.all([
     readFile(new URL("../cloudflare/wrangler.jsonc", import.meta.url),"utf8").then(JSON.parse),
     readFile(new URL("../.github/workflows/cloudflare-shadow.yml", import.meta.url),"utf8"),
@@ -44,11 +44,15 @@ test("Cloudflare deployment is locked to the Worker already serving delenda.ques
   ]);
   assert.match(workflow,/name: Cloudflare production/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow,/workers\/domains\?hostname=delenda\.quest/);
-  assert.match(workflow,/service}" != "\${expected}/);
+  assert.match(workflow,/wrangler deployments list/);
+  assert.match(workflow,/--name "\${expected}"/);
+  assert.match(workflow,/type == "array" and length > 0/);
   assert.match(workflow,/Deploy the verified production Worker/);
   assert.match(workflow,/npm run test:live/);
-  assert.doesNotMatch(workflow,/deploy-shadow|workflow_dispatch|Require an isolated D1 binding/);
+  assert.doesNotMatch(
+    workflow,
+    /deploy-shadow|workflow_dispatch|Require an isolated D1 binding|workers\/domains/,
+  );
 });
 
 test("Cloudflare Access is verified and the Sites identity path remains intact", async () => {
