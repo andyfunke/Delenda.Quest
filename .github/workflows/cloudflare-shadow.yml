@@ -1,0 +1,81 @@
+name: Cloudflare shadow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy_shadow:
+        description: Deploy the isolated delenda-quest-shadow Worker
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Use the project Node.js version
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate the Cloudflare artifact
+        run: npm run cloudflare:validate
+
+      - name: Run rules tests
+        run: bash scripts/test-rules.sh
+
+      - name: Run Ava tests
+        run: bash scripts/test-ava.sh
+
+      - name: Run rendered and plumbing tests
+        run: node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs
+
+  deploy-shadow:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_shadow
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Use the project Node.js version
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build the Worker artifact
+        run: npm run build
+
+      - name: Require an isolated D1 binding
+        run: |
+          if ! grep -q '"database_id"' cloudflare/wrangler.jsonc; then
+            echo "::error::Provision delenda-quest-shadow and commit its D1 database_id before deployment."
+            exit 1
+          fi
+
+      - name: Deploy only the isolated shadow Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config cloudflare/wrangler.jsonc
