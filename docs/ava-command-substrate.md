@@ -28,7 +28,7 @@ The compiler exports a versioned instruction schema and a pure compilation funct
 
 ## Sealed filesystem and completion
 
-The command input is both Ava's natural-language channel and a sealed shell.
+The command input is both Ava's programmatically enhanced command-recognition channel and a sealed shell.
 Tab completion draws from the compiled utterance corpus, shell commands,
 accessible directories, and live virtual files. Full paths, filenames, and
 unique extensionless stems resolve to the same file. Text files open inline;

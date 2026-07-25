@@ -839,7 +839,7 @@ export const executeAvaShell = (
         "grep [-inr] literal [path] · find [path] [-maxdepth n] [-type f|d] [-name glob]",
         "whoami · history · clear · download file.xlsx",
         "",
-        "Natural-language commands remain available outside this shell grammar.",
+        "Recognized Ava commands remain available outside this shell grammar.",
       ].join("\n"),
     };
   if (command === "CD") {

@@ -80,7 +80,15 @@ test("landing page owns the default route and preserves the campaign entry surfa
   );
   assert.doesNotMatch(
     landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
-    /Q117/,
+    /Q078|Q117/,
+  );
+  assert.match(
+    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
+    /Q016/,
+  );
+  assert.match(
+    landing,
+    /She does not operate\s*through natural language\.\s*Programmatically enhanced command\s*recognition/,
   );
   assert.doesNotMatch(
     landing,

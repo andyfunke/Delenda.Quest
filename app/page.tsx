@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "A fantasy-futurist war simulation of daily command, operational manoeuvre, transparent calculations, and compounding consequences.",
 };
 
-const landingQuoteIds = new Set(["Q002", "Q021", "Q039", "Q078", "Q103"]);
+const landingQuoteIds = new Set(["Q002", "Q016", "Q021", "Q039", "Q103"]);
 const landingQuotes = APHORISMS.filter((quote) => landingQuoteIds.has(quote.id));
 
 const telemetry = [
@@ -145,9 +145,11 @@ export default function LandingPage() {
             <span>AVA MOORE // PATTERN ANALYSIS DIRECTORATE</span>
             <h2 id="ava-title">The assistant studies the commander.</h2>
             <p>
-              Ava is both interface and participant. Ask for advice, surface
-              secondary missions, inspect campaign calculations, traverse the
-              field manual, or issue orders through natural language.
+              Ava is both interface and participant. She does not operate
+              through natural language. Programmatically enhanced command
+              recognition lets you request advice, surface secondary missions,
+              inspect campaign calculations, traverse the field manual, and
+              issue orders.
             </p>
             <blockquote>
               “The commander studies the map. The machine studies the commander.”
