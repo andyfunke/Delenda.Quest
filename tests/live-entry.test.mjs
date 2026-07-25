@@ -6,7 +6,7 @@ const base = new URL(
 );
 const customDomain = base.hostname === "delenda.quest";
 
-for (const pathname of ["/game", "/game/"]) {
+for (const pathname of ["/", "/game", "/game/"]) {
   test(`live ${pathname} renders Daily Campaign and cannot render Stats`, async () => {
     const url = new URL(pathname, base);
     url.searchParams.set("acceptance", `${Date.now()}-${Math.random()}`);

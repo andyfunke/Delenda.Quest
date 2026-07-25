@@ -2,9 +2,6 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
-const developmentPreviewMeta =
-  /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
-
 const sectionBetween = (source, startMarker, endMarker) => {
   const start = source.indexOf(startMarker);
   const end = source.indexOf(endMarker, start + startMarker.length);
@@ -28,7 +25,7 @@ const readTextTree = async (directory) => {
   return output;
 };
 
-test("renders development preview metadata", async () => {
+test("the default route redirects directly to the game", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -48,12 +45,8 @@ test("renders development preview metadata", async () => {
     },
   );
 
-  assert.equal(response.status, 200);
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^text\/html\b/i,
-  );
-  assert.match(await response.text(), developmentPreviewMeta);
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "http://localhost/game");
 
   const signedOutGame = await worker.fetch(
     new Request("http://localhost/game?account=1", {
@@ -110,55 +103,20 @@ test("renders development preview metadata", async () => {
   assert.equal(signedOutCampaign.status, 401);
 });
 
-test("landing page owns the default route and preserves the campaign entry surfaces", async () => {
-  const [landing, gameRoute, redirect, styles] = await Promise.all([
+test("the removed landing page cannot own the default route", async () => {
+  const [rootRoute, gameRoute, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/LandingRedirect.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
-  assert.match(landing, /export default function LandingPage/);
-  assert.match(landing, /className="landing-page"/);
-  assert.match(landing, /STRATEGIC EPIGRAPH CANON \/\/ QUOTE BOARD/);
-  assert.match(landing, /href="\/game"/);
-  assert.match(landing, /href="\/game\?wiki=resolution&standalone=1"/);
-  assert.match(landing, /href="\/game\?account=1"/);
-  assert.match(
-    landing,
-    /Human authored content with a procedural generation engine\.\s*Original quotations and flavor text produce a thematic aesthetic\./,
-  );
-  assert.equal(
-    (
-      landing.match(
-        /The commander studies the map\. The machine studies the commander\./g,
-      ) ?? []
-    ).length,
-    1,
-  );
+  assert.match(rootRoute, /redirect\(`\/game/);
   assert.doesNotMatch(
-    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
-    /Q078|Q117/,
-  );
-  assert.match(
-    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
-    /Q016/,
-  );
-  assert.match(
-    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
-    /Q030/,
-  );
-  assert.match(
-    landing,
-    /She does not operate\s*through natural language\.\s*Programmatically enhanced command\s*recognition/,
-  );
-  assert.doesNotMatch(
-    landing,
-    /Order of Battle|Three inheritances\.\s*One front|Recovered from the mud|\bdead\b/i,
+    rootRoute,
+    /LandingPage|LandingRedirect|landing-page|STRATEGIC EPIGRAPH CANON|ENTER CAMPAIGN/,
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
   assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
   assert.match(gameRoute, /requireChatGPTUser\(returnTo\)/);
-  assert.match(redirect, /window\.location\.replace\(`\/game/);
   for (const token of [
     "--b-bg: #0c0e0d",
     "--b-panel: #131614",
@@ -169,7 +127,6 @@ test("landing page owns the default route and preserves the campaign entry surfa
     "--b-cyan: #6fb3b8",
   ])
     assert.match(styles, new RegExp(token));
-  assert.match(styles, /\.landing-quote-grid/);
 });
 
 test("campaign UI is consequence-only while Ava retains the campaign report", async () => {
