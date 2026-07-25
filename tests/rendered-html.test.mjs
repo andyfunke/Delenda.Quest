@@ -46,11 +46,29 @@ test("landing page owns the default route and preserves the campaign entry surfa
   assert.match(landing, /href="\/game"/);
   assert.match(landing, /href="\/game\?wiki=resolution&standalone=1"/);
   assert.match(landing, /href="\/game\?account=1"/);
+  assert.match(
+    landing,
+    /Human authored content with a procedural generation engine\.\s*Original quotations and flavor text produce a thematic aesthetic\./,
+  );
+  assert.equal(
+    (
+      landing.match(
+        /The commander studies the map\. The machine studies the commander\./g,
+      ) ?? []
+    ).length,
+    1,
+  );
+  assert.doesNotMatch(
+    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
+    /Q117/,
+  );
   assert.doesNotMatch(
     landing,
     /Order of Battle|Three inheritances\.\s*One front|Recovered from the mud|\bdead\b/i,
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
+  assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
+  assert.match(gameRoute, /requireChatGPTUser\(returnTo\)/);
   assert.match(redirect, /window\.location\.replace\(`\/game/);
   for (const token of [
     "--b-bg: #0c0e0d",
@@ -161,7 +179,13 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.doesNotMatch(page,/daily-aphorism-ribbon/);
   assert.match(page,/executeAvaPlan/);
   assert.match(page,/buildAvaPlan/);
-  assert.match(page,/ALT UX/);
+  assert.match(page,/className="command-ux-toggle"/);
+  assert.match(page,/>[\s\n]*SWITCH UX[\s\n]*<\/button>/);
+  assert.match(briefing,/className="briefing-ux-toggle"/);
+  assert.match(briefing,/className="briefing-top-actions"/);
+  assert.match(briefing,/className="briefing-account-menu"/);
+  assert.match(briefing,/>[\s\n]*SETTINGS[\s\n]*<\/button>/);
+  assert.match(briefing,/>[\s\n]*LOG OUT[\s\n]*<\/a>/);
   for(const domain of ["PRIMARY · MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
@@ -207,7 +231,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
       altInterface.indexOf('surface === "manual"'),
   );
   assert.match(altInterface,/window\.addEventListener\("briefing-request-resolve", requestResolve\)/);
-  assert.match(altInterface,/disabled=\{s\.status !== "active"\}[\s\S]{0,100}onClick=\{requestResolve\}/);
+  assert.match(altInterface,/disabled=\{!canResolve\}[\s\S]{0,100}onClick=\{requestResolve\}/);
   assert.match(page,/resolveDay=\{advance\}/);
   assert.doesNotMatch(page,/resolveDay=\{\(\)=>setDayModal\(true\)\}/);
   assert.match(css,/\.briefing-ui/);
@@ -224,6 +248,31 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.doesNotMatch(briefing,/COMMAND CHANNEL/);
   assert.match(css,/@keyframes ava-alt-attention/);
   assert.match(css,/@keyframes ava-main-attention/);
+});
+
+test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
+  const[page,gameRoute,turnRoute,turnStore,schema,account]=await Promise.all([
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/turns.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(gameRoute,/requireChatGPTUser/);
+  assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
+  assert.match(turnRoute,/claimDailyResolution/);
+  assert.match(turnRoute,/setGodMode/);
+  assert.match(turnStore,/lastResolvedDayKey !== dayKey/);
+  assert.match(turnStore,/ne\(accountTurnState\.lastResolvedDayKey, currentDayKey\)/);
+  assert.match(page,/godModeCommand === "enable godmode"/);
+  assert.match(page,/godModeCommand === "disable godmode"/);
+  assert.match(page,/GODMODE ENABLED\\nActual-time daily turnover is disabled/);
+  assert.match(page,/GODMODE DISABLED\\nActual-time daily turnover is restored/);
+  assert.match(page,/void advance\("automatic"\)/);
+  assert.match(page,/DAILY TURN ALREADY USED/);
+  assert.match(account,/Your campaign turns over at midnight here/);
+  assert.doesNotMatch(account,/Campaign play remains available/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
@@ -248,7 +297,9 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
   assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
-  assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
+  assert.doesNotMatch(campaign,/<details|<summary/);
+  assert.equal((page.match(/className="command-account-menu"/g)??[]).length,1);
+  assert.equal((briefing.match(/className="briefing-account-menu"/g)??[]).length,1);
 });
 
 test("campaign's one-time introduction uses the dashboard card grammar and cannot be reselected",async()=>{

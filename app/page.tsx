@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "A fantasy-futurist war simulation of daily command, operational manoeuvre, transparent calculations, and compounding consequences.",
 };
 
-const landingQuoteIds = new Set(["Q002", "Q021", "Q039", "Q078", "Q103", "Q117"]);
+const landingQuoteIds = new Set(["Q002", "Q021", "Q039", "Q078", "Q103"]);
 const landingQuotes = APHORISMS.filter((quote) => landingQuoteIds.has(quote.id));
 
 const telemetry = [
@@ -194,8 +194,8 @@ export default function LandingPage() {
               <h2 id="quotes-title">The archive is part of the war.</h2>
             </div>
             <p>
-              Original quotations rotate through every module. A player does not
-              receive one twice until the available canon is exhausted.
+              Human authored content with a procedural generation engine.
+              Original quotations and flavor text produce a thematic aesthetic.
             </p>
           </header>
           <div className="landing-quote-grid">

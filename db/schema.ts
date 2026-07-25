@@ -15,6 +15,13 @@ export const users=sqliteTable("users",{
   lastSeenAt:integer("last_seen_at").notNull(),
 },table=>[uniqueIndex("users_alias_unique").on(table.alias)]);
 
+export const accountTurnState=sqliteTable("account_turn_state",{
+  ownerEmail:text("owner_email").primaryKey(),
+  godMode:integer("god_mode",{mode:"boolean"}).notNull().default(false),
+  lastResolvedDayKey:text("last_resolved_day_key"),
+  updatedAt:integer("updated_at").notNull(),
+});
+
 export const campaignRecords=sqliteTable("campaign_records",{
   id:text("id").primaryKey(),
   ownerEmail:text("owner_email").notNull(),

@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   CAMPAIGN_EVENTS,
   CAMPAIGN_PHASES,
@@ -121,6 +128,15 @@ import { scoreBreakdownLines } from "./campaign-balance";
 import { accountDayBounds, browserTimeZone } from "./account-time";
 import { avaInterfaceIntent } from "./ava/interface-intent";
 import { warFeedForInvocation } from "./war-feed";
+
+type TurnAccess = {
+  godMode: boolean;
+  dayKey: string;
+  lastResolvedDayKey: string | null;
+  canResolve: boolean;
+  nextTurnAt: number;
+  timeZone: string;
+};
 
 const modules: { id: Module; label: string; n: string }[] = [
   { id: "dashboard", label: "Dashboard", n: "00" },
@@ -3873,6 +3889,8 @@ export default function Home() {
     aphorism: Aphorism;
   } | null>(null);
   const [accountTimeZone, setAccountTimeZone] = useState("UTC");
+  const [turnAccess, setTurnAccess] = useState<TurnAccess | null>(null);
+  const [turnBusy, setTurnBusy] = useState(false);
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
@@ -3911,6 +3929,9 @@ export default function Home() {
   const [wikiArticle, setWikiArticle] = useState("resolution");
   const priorDay = useRef(s.day);
   const activeArchiveKey = useRef("");
+  const overdueTurnCount = useRef(0);
+  const overdueTurnsApplied = useRef(false);
+  const turnClaimInFlight = useRef(false);
   const priorTelemetryModule = useRef<Page>("dashboard");
   const [initialModuleEnteredAt] = useState(Date.now);
   const moduleEnteredAt = useRef(initialModuleEnteredAt);
@@ -3979,17 +4000,14 @@ export default function Home() {
           runToken?: string;
           multiplayerRun?: boolean;
         };
-        let restored = restoreCampaignState(record.state);
+        const restored = restoreCampaignState(record.state);
         if (restored) {
           const savedEnd=record.clock?.end;
-          if(typeof savedEnd==="number"&&savedEnd<Date.now()){
-            const elapsed=Math.min(31,Math.max(1,Math.floor((Date.now()-savedEnd)/DAY_MS)+1));
-            for(let index=0;index<elapsed&&restored.status==="active";index+=1){
-              const result=executeAvaAction(restored,{kind:"resolve-day"},1);
-              if(!result.executed)break;
-              restored=result.state;
-            }
-          }
+          if(typeof savedEnd==="number"&&savedEnd<Date.now())
+            overdueTurnCount.current=Math.min(
+              31,
+              Math.max(1,Math.floor((Date.now()-savedEnd)/DAY_MS)+1),
+            );
           const restoredState = restored;
           const restoredRunToken =
             typeof record.runToken === "string" && record.runToken
@@ -4077,14 +4095,38 @@ export default function Home() {
     setClock(accountDayBounds(detected));
     void fetch("/api/account", { cache: "no-store" })
       .then(response=>response.ok?response.json():null)
-      .then((account:{isAdmin?:boolean;timeZone?:string}|null)=>{
+      .then((account:{
+        isAdmin?:boolean;
+        timeZone?:string;
+        turn?:TurnAccess;
+      }|null)=>{
         setAdminAccess(!!account?.isAdmin);
+        if(account?.turn)setTurnAccess(account.turn);
         if(account?.timeZone){
           setAccountTimeZone(account.timeZone);
           setClock(accountDayBounds(account.timeZone));
         }
       })
       .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const updateBoundary = (event: Event) => {
+      const timeZone = (event as CustomEvent<string>).detail;
+      if (typeof timeZone !== "string") return;
+      setAccountTimeZone(timeZone);
+      setClock(accountDayBounds(timeZone, Date.now()));
+      void fetch("/api/turn", { cache: "no-store" })
+        .then(async (response) =>
+          response.ok ? ((await response.json()) as TurnAccess) : null,
+        )
+        .then((turn) => {
+          if (turn) setTurnAccess(turn);
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener("account-time-zone-changed", updateBoundary);
+    return () =>
+      window.removeEventListener("account-time-zone-changed", updateBoundary);
   }, []);
   useEffect(() => {
     let live = true;
@@ -4461,6 +4503,11 @@ export default function Home() {
   const live = useMemo(() => liveProjection(s, fraction), [s, fraction]);
   const [balance, tone] = useMemo(() => assessment(s), [s]);
   const remaining = clock.end - now;
+  const canResolveDay =
+    s.status === "active" &&
+    !!turnAccess &&
+    (turnAccess.godMode || turnAccess.canResolve) &&
+    !turnBusy;
   const opportunityWindow = opportunityStatusForFraction(s, fraction);
   const opportunityClosesAt = opportunityWindow.packet
     ? new Date(
@@ -4639,6 +4686,8 @@ export default function Home() {
     announceOpenDay(result.state);
   };
   const switchInterface = (mode: "command" | "briefing") => {
+    if (mode === interfaceMode) return;
+    if (mode === "command") setPage(briefingModule);
     setInterfaceMode(mode);
     try {
       window.localStorage.setItem("delenda.quest.interface.v1", mode);
@@ -4755,11 +4804,61 @@ export default function Home() {
     applyDoctrine(pendingDoctrine.vector, pendingDoctrine.stage);
     setPendingDoctrine(null);
   };
-  const advance = () => {
+  const claimTurn = useCallback(async () => {
+    if (turnClaimInFlight.current) return null;
+    turnClaimInFlight.current = true;
+    setTurnBusy(true);
+    try {
+      const response = await fetch("/api/turn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const payload = (await response.json()) as TurnAccess & {
+        allowed?: boolean;
+        error?: string;
+      };
+      if (
+        typeof payload.godMode === "boolean" &&
+        typeof payload.canResolve === "boolean"
+      ) {
+        setTurnAccess(payload);
+        setAccountTimeZone(payload.timeZone);
+      }
+      if (!response.ok && payload.allowed !== false)
+        throw new Error(payload.error ?? "Campaign turnover is unavailable.");
+      return {
+        ...payload,
+        allowed: response.ok && payload.allowed !== false,
+      };
+    } catch (error) {
+      setSystemNotice(
+        error instanceof Error
+          ? `TURNOVER UNAVAILABLE // ${error.message}`
+          : "TURNOVER UNAVAILABLE // ACCOUNT STATE COULD NOT BE VERIFIED",
+      );
+      return null;
+    } finally {
+      turnClaimInFlight.current = false;
+      setTurnBusy(false);
+    }
+  }, []);
+  const advance = useCallback(async (
+    source: "manual" | "automatic" = "manual",
+  ) => {
     const result = executeAvaAction(s, { kind: "resolve-day" }, fraction);
     if (!result.executed) {
       setSystemNotice(`DAY NOT RESOLVED // ${result.rejection}`);
-      return;
+      return false;
+    }
+    const claim = await claimTurn();
+    if (!claim?.allowed) {
+      const zone = claim?.timeZone ?? accountTimeZone;
+      setClock(accountDayBounds(zone, Date.now()));
+      setDayModal(false);
+      setSystemNotice(
+        "DAILY TURN ALREADY USED // ACTUAL-TIME TURNOVER RESUMES AT YOUR NEXT ACCOUNT MIDNIGHT",
+      );
+      return false;
     }
     const next = result.state;
     setS(next);
@@ -4779,7 +4878,76 @@ export default function Home() {
     setLedgerNow(n);
     setOpportunityInterruptAcknowledged(false);
     setAlertMenuOpen(false);
-  };
+    setSystemNotice(
+      claim.godMode
+        ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
+        : source === "automatic"
+          ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
+          : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
+    );
+    return true;
+  }, [accountTimeZone, claimTurn, fraction, s]);
+  useEffect(() => {
+    if (!hydrated || !turnAccess || overdueTurnsApplied.current) return;
+    overdueTurnsApplied.current = true;
+    const elapsed = overdueTurnCount.current;
+    overdueTurnCount.current = 0;
+    if (!elapsed || turnAccess.godMode) return;
+    void claimTurn().then((claim) => {
+      if (!claim?.allowed) return;
+      let resolved = 0;
+      setS((current) => {
+        let next = current;
+        for (
+          let index = 0;
+          index < elapsed && next.status === "active";
+          index += 1
+        ) {
+          const result = executeAvaAction(
+            next,
+            { kind: "resolve-day" },
+            1,
+          );
+          if (!result.executed) break;
+          next = result.state;
+          resolved += 1;
+        }
+        return next;
+      });
+      setPendingManeuver(null);
+      setDayModal(false);
+      setOpportunityInterruptAcknowledged(false);
+      setAlertMenuOpen(false);
+      const current = Date.now();
+      setClock(accountDayBounds(claim.timeZone, current));
+      setNow(current);
+      setLedgerNow(current);
+      window.setTimeout(() => {
+        setSystemNotice(
+          `DAILY TURNOVER CAUGHT UP // ${resolved} CAMPAIGN DAY${resolved === 1 ? "" : "S"} RESOLVED`,
+        );
+      });
+    });
+  }, [claimTurn, hydrated, turnAccess]);
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !turnAccess ||
+      turnAccess.godMode ||
+      turnBusy ||
+      remaining > 0 ||
+      s.status !== "active"
+    )
+      return;
+    void advance("automatic");
+  }, [
+    advance,
+    hydrated,
+    remaining,
+    s.status,
+    turnAccess,
+    turnBusy,
+  ]);
   const openAvaConsole = () => setAva(true);
   const avaEntities = useMemo(
     () => avaEntitiesForState(s, fraction),
@@ -4813,6 +4981,49 @@ export default function Home() {
       return;
     }
     setMessages((m) => [...m, { who: "YOU", text: raw }]);
+    const godModeCommand = raw
+      .toLocaleLowerCase("en-US")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+    if (
+      godModeCommand === "enable godmode" ||
+      godModeCommand === "disable godmode"
+    ) {
+      const enabled = godModeCommand === "enable godmode";
+      try {
+        const response = await fetch("/api/turn", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ godMode: enabled }),
+        });
+        const payload = (await response.json()) as TurnAccess & {
+          error?: string;
+        };
+        if (!response.ok)
+          throw new Error(payload.error ?? "Turn mode did not change.");
+        setTurnAccess(payload);
+        setAccountTimeZone(payload.timeZone);
+        setClock(accountDayBounds(payload.timeZone, Date.now()));
+        setMessages((current) => [
+          ...current,
+          {
+            who: "AVA",
+            text: enabled
+              ? "GODMODE ENABLED\nActual-time daily turnover is disabled. Resolve Day can advance the campaign without a daily limit."
+              : "GODMODE DISABLED\nActual-time daily turnover is restored. The campaign turns over at your account midnight, and Resolve Day is limited to once per account day.",
+          },
+        ]);
+      } catch (error) {
+        setMessages((current) => [
+          ...current,
+          {
+            who: "AVA",
+            text: `TURN MODE UNCHANGED\n${error instanceof Error ? error.message : "The account setting could not be reached."}`,
+          },
+        ]);
+      }
+      return;
+    }
     if (pendingInterfaceSwitch && /^(?:yes|y|confirm|do it|switch)$/i.test(raw)) {
       const next = interfaceMode === "briefing" ? "command" : "briefing";
       switchInterface(next);
@@ -4901,6 +5112,25 @@ export default function Home() {
         },
       ]);
       return;
+    }
+    const confirmingDayResolution =
+      result.instruction.kind === "CONFIRM" &&
+      !!avaSession.confirmation?.plan.actions.some(
+        (action) => action.kind === "resolve-day",
+      );
+    if (confirmingDayResolution) {
+      const claim = await claimTurn();
+      if (!claim?.allowed) {
+        setMessages((current) => [
+          ...current,
+          {
+            who: "AVA",
+            text:
+              "DAILY TURN ALREADY USED\nActual-time turnover is enabled. The next campaign day becomes available at your account midnight.",
+          },
+        ]);
+        return;
+      }
     }
     let darkNetContext: AvaDarkNetContext = {};
     if (
@@ -5136,12 +5366,18 @@ export default function Home() {
           s={s}
           epigraph={dailyAphorism}
           remaining={clockText(remaining)}
+          canResolve={canResolveDay}
+          initialModule={page === "admin" ? "account" : page}
           issue={issueConverged}
           issueDirective={issueDirective}
           resolveDay={advance}
           openAva={openAvaConsole}
           selectDoctrine={applyDoctrine}
           useCommandInterface={() => switchInterface("command")}
+          onNewCampaign={() => {
+            setSeedOverride(null);
+            setReset(true);
+          }}
           onSurfaceChange={setBriefingModule}
         />
       ) : (
@@ -5186,10 +5422,11 @@ export default function Home() {
                 </b>
               </div>
               <button
-                disabled={s.status !== "active"}
-                onClick={() => setDayModal(true)}
+                aria-label="Switch to Alt UX"
+                className="command-ux-toggle"
+                onClick={() => switchInterface("briefing")}
               >
-                Resolve day →
+                SWITCH UX
               </button>
             </div>
           </header>
@@ -5211,8 +5448,12 @@ export default function Home() {
               </button>
             )}
             <div className="strip-tools">
-              <button onClick={() => switchInterface("briefing")}>
-                ALT UX
+              <button
+                className="strip-resolve"
+                disabled={!canResolveDay}
+                onClick={() => setDayModal(true)}
+              >
+                RESOLVE DAY {s.day} →
               </button>
               <button
                 onClick={() => {
@@ -5228,12 +5469,24 @@ export default function Home() {
               >
                 WIKI
               </button>
-              <button
-                className={page === "account" ? "active" : ""}
-                onClick={() => setPage("account")}
-              >
-                ACCOUNT
-              </button>
+              <details className="command-account-menu">
+                <summary>ACCOUNT</summary>
+                <div role="menu">
+                  <button
+                    className={page === "account" ? "active" : ""}
+                    role="menuitem"
+                    onClick={() => setPage("account")}
+                  >
+                    SETTINGS
+                  </button>
+                  <a
+                    role="menuitem"
+                    href="/signout-with-chatgpt?return_to=%2F"
+                  >
+                    LOG OUT
+                  </a>
+                </div>
+              </details>
               {adminAccess && <button
                 className={page === "admin" ? "active" : ""}
                 onClick={() => setPage("admin")}

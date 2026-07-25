@@ -42,6 +42,7 @@ import { DomesticStatePanel } from "./DomesticStatePanel";
 import { DiplomacyPanel } from "./DiplomacyPanel";
 import { AdversaryPanel } from "./AdversaryPanel";
 import { campaignSeedId } from "./campaign-id";
+import { AccountPage } from "./AccountPage";
 
 type BriefingIssue = {
   maneuverId?: string;
@@ -57,17 +58,21 @@ type Surface =
   | "diplomacy"
   | "doctrine"
   | "manual"
-  | "service";
+  | "service"
+  | "account";
 type Props = {
   s: GameState;
   epigraph: Aphorism | null;
   remaining: string;
+  canResolve: boolean;
+  initialModule: Module;
   issue: (input: BriefingIssue) => void;
   issueDirective: (family: Family, choice: Choice) => void;
-  resolveDay: () => void;
+  resolveDay: () => void | Promise<boolean>;
   openAva: () => void;
   selectDoctrine: (vector: DoctrineVector, stage: DoctrineStage) => void;
   useCommandInterface: () => void;
+  onNewCampaign: () => void;
   onSurfaceChange: (module: Module) => void;
 };
 
@@ -88,18 +93,19 @@ function ModernModuleEpigraph({ epigraph }: { epigraph: Aphorism | null }) {
   );
 }
 
-function InterfaceSwitch({
+function UxToggle({
   useCommandInterface,
 }: {
   useCommandInterface: () => void;
 }) {
   return (
-    <div className="briefing-switch" aria-label="Interface mode">
-      <button onClick={useCommandInterface}>COMMAND WINDOWS</button>
-      <button className="active" aria-pressed="true">
-        ALT UX
-      </button>
-    </div>
+    <button
+      aria-label="Switch to Command Windows UX"
+      className="briefing-ux-toggle"
+      onClick={useCommandInterface}
+    >
+      SWITCH UX
+    </button>
   );
 }
 
@@ -1119,7 +1125,7 @@ const surfaceFor = (target: string): Surface =>
         : target === "wiki"
           ? "manual"
           : target === "account"
-            ? "service"
+            ? "account"
             : [
                   "daily",
                   "brief",
@@ -1130,7 +1136,8 @@ const surfaceFor = (target: string): Surface =>
                   "doctrine",
                   "manual",
                   "service",
-                ].includes(target)
+                  "account",
+              ].includes(target)
               ? (target as Surface)
               : "brief";
 
@@ -1138,15 +1145,20 @@ export function BriefingInterface({
   s,
   epigraph,
   remaining,
+  canResolve,
+  initialModule,
   issue,
   issueDirective,
   resolveDay,
   openAva,
   selectDoctrine,
   useCommandInterface,
+  onNewCampaign,
   onSurfaceChange,
 }: Props) {
-  const [surface, setSurface] = useState<Surface>("brief"),
+  const [surface, setSurface] = useState<Surface>(() =>
+    surfaceFor(initialModule),
+  ),
     [focusFamilyId, setFocusFamilyId] = useState<string | undefined>(),
     [manualArticle, setManualArticle] = useState("resolution"),
     [confirmResolve, setConfirmResolve] = useState(false),
@@ -1175,7 +1187,9 @@ export function BriefingInterface({
       !doctrineUnlocked &&
       doctrinePrerequisiteMet &&
       s.doctrine >= doctrineConfirm.stage.cost;
-  const requestResolve = useCallback(() => setConfirmResolve(true), []);
+  const requestResolve = useCallback(() => {
+    if (canResolve) setConfirmResolve(true);
+  }, [canResolve]);
   const navigate = (module: string, family?: string) => {
     setFocusFamilyId(family);
     setSurface(surfaceFor(module));
@@ -1236,6 +1250,7 @@ export function BriefingInterface({
       doctrine: "doctrine",
       manual: "wiki",
       service: "account",
+      account: "account",
     };
     onSurfaceChange(moduleBySurface[surface]);
   }, [surface, onSurfaceChange]);
@@ -1254,11 +1269,35 @@ export function BriefingInterface({
           >
             DELENDA <em>QUEST</em>
           </button>
-          <div>
-            <span>
-              DAY {s.day} // RESOLUTION IN <b>{remaining}</b>
-            </span>
-            <InterfaceSwitch useCommandInterface={useCommandInterface} />
+          <div className="briefing-top-stack">
+            <div className="briefing-status-row">
+              <span>
+                DAY {s.day} // RESOLUTION IN <b>{remaining}</b>
+              </span>
+              <UxToggle useCommandInterface={useCommandInterface} />
+            </div>
+            <div className="briefing-top-actions">
+              <button disabled={!canResolve} onClick={requestResolve}>
+                RESOLVE DAY {s.day} →
+              </button>
+              <details className="briefing-account-menu">
+                <summary>ACCOUNT</summary>
+                <div role="menu">
+                  <button
+                    role="menuitem"
+                    onClick={() => chooseSurface("account")}
+                  >
+                    SETTINGS
+                  </button>
+                  <a
+                    role="menuitem"
+                    href="/signout-with-chatgpt?return_to=%2F"
+                  >
+                    LOG OUT
+                  </a>
+                </div>
+              </details>
+            </div>
           </div>
         </header>
         <nav className="briefing-nav">
@@ -1317,13 +1356,17 @@ export function BriefingInterface({
           />
         ) : surface === "manual" ? (
           <ManualSurface article={manualArticle} navigate={navigate} />
-        ) : (
+        ) : surface === "service" ? (
           <ServiceSurface s={s} />
+        ) : (
+          <section className="modern-surface briefing-account-surface">
+            <AccountPage onNewCampaign={onNewCampaign} />
+          </section>
         )}
         <footer className="briefing-footer">
           <span>DELENDA QUEST // ONE CAMPAIGN // TWO COMMAND INTERFACES</span>
           <button
-            disabled={s.status !== "active"}
+            disabled={!canResolve}
             onClick={requestResolve}
           >
             RESOLVE DAY {s.day} →
@@ -1360,6 +1403,7 @@ export function BriefingInterface({
               </button>
               <button
                 className="primary"
+                disabled={!canResolve}
                 onClick={() => {
                   setConfirmResolve(false);
                   resolveDay();
