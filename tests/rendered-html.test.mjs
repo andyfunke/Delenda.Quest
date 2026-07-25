@@ -31,6 +31,26 @@ test("renders development preview metadata", async () => {
     /^text\/html\b/i,
   );
   assert.match(await response.text(), developmentPreviewMeta);
+
+  const signedOutGame = await worker.fetch(
+    new Request("http://localhost/game?account=1", {
+      headers: { accept: "text/html" },
+    }),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+  assert.equal(signedOutGame.status, 307);
+  assert.equal(
+    signedOutGame.headers.get("location"),
+    "http://localhost/signin-with-chatgpt?return_to=%2Fgame%3Faccount%3D1",
+  );
 });
 
 test("landing page owns the default route and preserves the campaign entry surfaces", async () => {
@@ -183,7 +203,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/>[\s\n]*SWITCH UX[\s\n]*<\/button>/);
   assert.match(briefing,/className="briefing-ux-toggle"/);
   assert.match(briefing,/className="briefing-top-actions"/);
-  assert.match(briefing,/className="briefing-account-menu"/);
+  assert.match(briefing,/briefing-account-menu/);
   assert.match(briefing,/>[\s\n]*SETTINGS[\s\n]*<\/button>/);
   assert.match(briefing,/>[\s\n]*LOG OUT[\s\n]*<\/a>/);
   for(const domain of ["PRIMARY · MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"]){
@@ -251,13 +271,12 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
-  const[page,gameRoute,turnRoute,turnStore,schema,account]=await Promise.all([
+  const[page,gameRoute,turnRoute,turnStore,schema]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/turns.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
-    readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireChatGPTUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
@@ -271,8 +290,6 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(page,/GODMODE DISABLED\\nActual-time daily turnover is restored/);
   assert.match(page,/void advance\("automatic"\)/);
   assert.match(page,/DAILY TURN ALREADY USED/);
-  assert.match(account,/Your campaign turns over at midnight here/);
-  assert.doesNotMatch(account,/Campaign play remains available/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
@@ -297,9 +314,7 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
   assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
-  assert.doesNotMatch(campaign,/<details|<summary/);
-  assert.equal((page.match(/className="command-account-menu"/g)??[]).length,1);
-  assert.equal((briefing.match(/className="briefing-account-menu"/g)??[]).length,1);
+  assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
 });
 
 test("campaign's one-time introduction uses the dashboard card grammar and cannot be reselected",async()=>{

@@ -3891,6 +3891,7 @@ export default function Home() {
   const [accountTimeZone, setAccountTimeZone] = useState("UTC");
   const [turnAccess, setTurnAccess] = useState<TurnAccess | null>(null);
   const [turnBusy, setTurnBusy] = useState(false);
+  const [commandAccountMenuOpen, setCommandAccountMenuOpen] = useState(false);
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
   const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
     initialAvaTerminalSession(),
@@ -4376,6 +4377,7 @@ export default function Home() {
       else if (reset) setReset(false);
       else if (avaFullscreen) setAvaFullscreen(false);
       else if (ava) setAva(false);
+      else if (commandAccountMenuOpen) setCommandAccountMenuOpen(false);
     };
     window.addEventListener("keydown", closeTop);
     return () => window.removeEventListener("keydown", closeTop);
@@ -4388,6 +4390,7 @@ export default function Home() {
     reset,
     ava,
     avaFullscreen,
+    commandAccountMenuOpen,
   ]);
   useEffect(() => {
     const openBriefingSurface = (module: string, family?: string) =>
@@ -4688,6 +4691,7 @@ export default function Home() {
   const switchInterface = (mode: "command" | "briefing") => {
     if (mode === interfaceMode) return;
     if (mode === "command") setPage(briefingModule);
+    else setBriefingModule(page === "admin" ? "account" : page);
     setInterfaceMode(mode);
     try {
       window.localStorage.setItem("delenda.quest.interface.v1", mode);
@@ -4903,11 +4907,7 @@ export default function Home() {
           index < elapsed && next.status === "active";
           index += 1
         ) {
-          const result = executeAvaAction(
-            next,
-            { kind: "resolve-day" },
-            1,
-          );
+          const result = executeAvaAction(next, { kind: "resolve-day" }, 1);
           if (!result.executed) break;
           next = result.state;
           resolved += 1;
@@ -5010,7 +5010,7 @@ export default function Home() {
             who: "AVA",
             text: enabled
               ? "GODMODE ENABLED\nActual-time daily turnover is disabled. Resolve Day can advance the campaign without a daily limit."
-              : "GODMODE DISABLED\nActual-time daily turnover is restored. The campaign turns over at your account midnight, and Resolve Day is limited to once per account day.",
+              : "GODMODE DISABLED\nActual-time daily turnover is restored. Resolve Day is limited to once per account day and resets at account midnight.",
           },
         ]);
       } catch (error) {
@@ -5469,24 +5469,32 @@ export default function Home() {
               >
                 WIKI
               </button>
-              <details className="command-account-menu">
-                <summary>ACCOUNT</summary>
-                <div role="menu">
-                  <button
-                    className={page === "account" ? "active" : ""}
-                    role="menuitem"
-                    onClick={() => setPage("account")}
-                  >
-                    SETTINGS
-                  </button>
-                  <a
-                    role="menuitem"
-                    href="/signout-with-chatgpt?return_to=%2F"
-                  >
-                    LOG OUT
-                  </a>
-                </div>
-              </details>
+              <div className={`command-account-menu ${commandAccountMenuOpen ? "open" : ""}`}>
+                <button
+                  aria-expanded={commandAccountMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setCommandAccountMenuOpen((open) => !open)}
+                >
+                  ACCOUNT
+                </button>
+                {commandAccountMenuOpen && (
+                  <div role="menu">
+                    <button
+                      className={page === "account" ? "active" : ""}
+                      role="menuitem"
+                      onClick={() => {
+                        setCommandAccountMenuOpen(false);
+                        setPage("account");
+                      }}
+                    >
+                      SETTINGS
+                    </button>
+                    <a role="menuitem" href="/signout-with-chatgpt?return_to=%2F">
+                      LOG OUT
+                    </a>
+                  </div>
+                )}
+              </div>
               {adminAccess && <button
                 className={page === "admin" ? "active" : ""}
                 onClick={() => setPage("admin")}
@@ -5796,7 +5804,7 @@ export default function Home() {
             close={() => setOpportunityOpen(false)}
           />
         )}
-      {dayModal && (
+      {dayModal && canResolveDay && (
         <Overlay close={() => setDayModal(false)} kind="center">
           <div className="small-modal">
             <Close onClick={() => setDayModal(false)} />

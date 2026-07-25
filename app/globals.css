@@ -19,184 +19,6 @@
   --type-data: 500 12px/1.45 var(--mono);
   --type-label: 800 10px/1.3 var(--mono);
 }
-
-/* Unified campaign controls: the UX switch lives on the status line while
-   resolution and account actions occupy the former selector row. */
-.briefing-top > .briefing-top-stack {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.briefing-status-row,
-.briefing-top-actions {
-  align-items: center;
-  display: flex;
-  gap: 9px;
-}
-.briefing-status-row > span {
-  color: var(--b-dim);
-  font-size: 12px;
-}
-.briefing-status-row > span b {
-  color: var(--b-amber);
-}
-.briefing-ux-toggle {
-  background: transparent;
-  border: 1px solid var(--b-line);
-  color: var(--b-faint);
-  cursor: pointer;
-  font: 700 8px var(--mono);
-  letter-spacing: 0.14em;
-  padding: 4px 7px;
-}
-.briefing-ux-toggle:hover,
-.briefing-ux-toggle:focus-visible {
-  border-color: var(--b-amber);
-  color: var(--b-amber);
-}
-.briefing-top-actions > button {
-  background: var(--b-amber);
-  border: 0;
-  color: #14110a;
-  cursor: pointer;
-  font: 700 10px var(--mono);
-  letter-spacing: 0.13em;
-  padding: 8px 12px;
-}
-.briefing-top-actions > button:disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-}
-.briefing-account-menu,
-.command-account-menu {
-  position: relative;
-}
-.briefing-account-menu summary,
-.command-account-menu summary {
-  cursor: pointer;
-  list-style: none;
-}
-.briefing-account-menu summary::-webkit-details-marker,
-.command-account-menu summary::-webkit-details-marker {
-  display: none;
-}
-.briefing-account-menu summary {
-  border: 1px solid var(--b-line);
-  color: var(--b-dim);
-  font: 700 9px var(--mono);
-  letter-spacing: 0.14em;
-  padding: 7px 10px;
-}
-.briefing-account-menu[open] summary {
-  border-color: var(--b-amber);
-  color: var(--b-amber);
-}
-.briefing-account-menu > div,
-.command-account-menu > div {
-  display: grid;
-  min-width: 132px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 5px);
-  z-index: 80;
-}
-.briefing-account-menu > div {
-  background: #0a0c0b;
-  border: 1px solid var(--b-line);
-  box-shadow: 0 12px 28px #000a;
-}
-.briefing-account-menu > div button,
-.briefing-account-menu > div a {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--b-line);
-  color: var(--b-ink);
-  cursor: pointer;
-  font: 700 9px var(--mono);
-  letter-spacing: 0.12em;
-  padding: 10px 12px;
-  text-align: left;
-  text-decoration: none;
-}
-.briefing-account-menu > div a {
-  border-bottom: 0;
-}
-.briefing-account-menu > div button:hover,
-.briefing-account-menu > div a:hover {
-  background: var(--b-amber);
-  color: #14110a;
-}
-.briefing-account-surface {
-  max-width: none;
-}
-.day > .command-ux-toggle {
-  background: #181a17 !important;
-  border-left: 1px solid #3a3b35;
-  color: #b7b9b1 !important;
-  font-size: 8px;
-  min-width: 80px;
-  padding: 0 9px;
-}
-.day > .command-ux-toggle:hover {
-  color: var(--acid) !important;
-}
-.strip .strip-tools .strip-resolve {
-  color: #24251f;
-  font-weight: 900;
-  text-decoration: none;
-}
-.strip .strip-tools .strip-resolve:disabled {
-  color: #777970;
-  cursor: not-allowed;
-  text-decoration: line-through;
-}
-.command-account-menu summary {
-  color: #777970;
-  font-family: monospace;
-  font-size: 8px;
-  padding: 4px 0;
-  text-decoration: underline;
-}
-.command-account-menu[open] summary {
-  color: #24251f;
-}
-.command-account-menu > div {
-  background: #d8d5ca;
-  border: 1px solid #85877f;
-  box-shadow: 0 8px 20px #0005;
-}
-.strip .command-account-menu > div button,
-.command-account-menu > div a {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid #aaa;
-  color: #24251f;
-  cursor: pointer;
-  font: 800 9px monospace;
-  padding: 9px 11px;
-  text-align: left;
-  text-decoration: none;
-}
-.command-account-menu > div a {
-  border-bottom: 0;
-}
-.strip .command-account-menu > div button:hover,
-.command-account-menu > div a:hover {
-  background: #24251f;
-  color: var(--acid);
-}
-@media (max-width: 760px) {
-  .briefing-status-row > span {
-    display: none;
-  }
-  .briefing-top-actions {
-    gap: 5px;
-  }
-  .briefing-top-actions > button {
-    padding: 7px 8px;
-  }
-}
 * {
   box-sizing: border-box;
 }
@@ -4779,6 +4601,72 @@ body {
 .strip .strip-tools button:first-child {
   border-right: 1px solid #555;
   padding-right: 14px;
+}
+.day > .command-ux-toggle {
+  background: #181a17 !important;
+  border-left: 1px solid #3a3b35;
+  color: #b7b9b1 !important;
+  font-size: 8px;
+  min-width: 80px;
+  padding: 0 9px;
+}
+.day > .command-ux-toggle:hover {
+  color: var(--acid) !important;
+}
+.strip .strip-tools .strip-resolve {
+  color: #24251f;
+  font-weight: 900;
+  text-decoration: none;
+}
+.strip .strip-tools .strip-resolve:disabled {
+  color: #777970;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.command-account-menu {
+  position: relative;
+}
+.strip .strip-tools .command-account-menu > button {
+  border-right: 0;
+  padding: 4px 0;
+}
+.strip .strip-tools .command-account-menu.open > button {
+  color: #24251f;
+}
+.command-account-menu > div {
+  background: #d8d5ca;
+  border: 1px solid #85877f;
+  box-shadow: 0 8px 20px #0005;
+  display: grid;
+  min-width: 132px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  z-index: 80;
+}
+.strip .command-account-menu > div button,
+.command-account-menu > div a {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #aaa;
+  color: #24251f;
+  cursor: pointer;
+  font: 800 9px monospace;
+  padding: 9px 11px;
+  text-align: left;
+  text-decoration: none;
+}
+.strip .strip-tools .command-account-menu > div button:first-child {
+  border-right: 0;
+  padding: 9px 11px;
+}
+.command-account-menu > div a {
+  border-bottom: 0;
+}
+.strip .command-account-menu > div button:hover,
+.command-account-menu > div a:hover {
+  background: #24251f;
+  color: var(--acid);
 }
 .wiki-utility {
   display: none !important;
@@ -9421,6 +9309,103 @@ small,
   color: #14110a;
   background: var(--b-amber);
 }
+.briefing-top > .briefing-top-stack {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.briefing-status-row,
+.briefing-top-actions {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+}
+.briefing-status-row > span {
+  color: var(--b-dim);
+  font-size: 12px;
+}
+.briefing-status-row > span b {
+  color: var(--b-amber);
+}
+.briefing-ux-toggle {
+  background: transparent;
+  border: 1px solid var(--b-line);
+  color: var(--b-faint);
+  cursor: pointer;
+  font: 700 8px var(--mono);
+  letter-spacing: 0.14em;
+  padding: 4px 7px;
+}
+.briefing-ux-toggle:hover,
+.briefing-ux-toggle:focus-visible {
+  border-color: var(--b-amber);
+  color: var(--b-amber);
+}
+.briefing-top-actions > button {
+  background: var(--b-amber);
+  border: 0;
+  color: #14110a;
+  cursor: pointer;
+  font: 700 10px var(--mono);
+  letter-spacing: 0.13em;
+  padding: 8px 12px;
+}
+.briefing-top-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+.briefing-account-menu {
+  position: relative;
+}
+.briefing-account-menu > button {
+  background: transparent;
+  border: 1px solid var(--b-line);
+  color: var(--b-dim);
+  cursor: pointer;
+  font: 700 9px var(--mono);
+  letter-spacing: 0.14em;
+  padding: 7px 10px;
+}
+.briefing-account-menu.open > button {
+  border-color: var(--b-amber);
+  color: var(--b-amber);
+}
+.briefing-account-menu > div {
+  background: #0a0c0b;
+  border: 1px solid var(--b-line);
+  box-shadow: 0 12px 28px #000a;
+  display: grid;
+  min-width: 132px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  z-index: 80;
+}
+.briefing-account-menu > div button,
+.briefing-account-menu > div a {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--b-line);
+  color: var(--b-ink);
+  cursor: pointer;
+  font: 700 9px var(--mono);
+  letter-spacing: 0.12em;
+  padding: 10px 12px;
+  text-align: left;
+  text-decoration: none;
+}
+.briefing-account-menu > div a {
+  border-bottom: 0;
+}
+.briefing-account-menu > div button:hover,
+.briefing-account-menu > div a:hover {
+  background: var(--b-amber);
+  color: #14110a;
+}
+.briefing-account-surface {
+  max-width: none;
+}
 .briefing-nav {
   display: flex;
   gap: 18px;
@@ -10048,8 +10033,14 @@ small,
   .briefing-top {
     gap: 18px;
   }
-  .briefing-top > div > span {
+  .briefing-status-row > span {
     display: none;
+  }
+  .briefing-top-actions {
+    gap: 5px;
+  }
+  .briefing-top-actions > button {
+    padding: 7px 8px;
   }
   .briefing-nav {
     overflow-x: auto;

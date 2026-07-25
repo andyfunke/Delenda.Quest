@@ -64,8 +64,7 @@ const snapshotFrom = (
     godMode: state.godMode,
     dayKey,
     lastResolvedDayKey: state.lastResolvedDayKey,
-    canResolve:
-      state.godMode || state.lastResolvedDayKey !== dayKey,
+    canResolve: state.godMode || state.lastResolvedDayKey !== dayKey,
     nextTurnAt: accountDayBounds(state.timeZone, now).end,
     timeZone: state.timeZone,
   };
@@ -79,13 +78,14 @@ export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
+  const lastResolvedDayKey = enabled
+    ? state.lastResolvedDayKey
+    : currentDayKey;
   await state.db
     .update(accountTurnState)
     .set({
       godMode: enabled,
-      lastResolvedDayKey: enabled
-        ? state.lastResolvedDayKey
-        : currentDayKey,
+      lastResolvedDayKey,
       updatedAt: now,
     })
     .where(eq(accountTurnState.ownerEmail, state.ownerEmail));
@@ -93,9 +93,7 @@ export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
     {
       ...state,
       godMode: enabled,
-      lastResolvedDayKey: enabled
-        ? state.lastResolvedDayKey
-        : currentDayKey,
+      lastResolvedDayKey,
     },
     now,
   );

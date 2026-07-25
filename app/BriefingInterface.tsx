@@ -1137,7 +1137,7 @@ const surfaceFor = (target: string): Surface =>
                   "manual",
                   "service",
                   "account",
-              ].includes(target)
+                ].includes(target)
               ? (target as Surface)
               : "brief";
 
@@ -1156,12 +1156,11 @@ export function BriefingInterface({
   onNewCampaign,
   onSurfaceChange,
 }: Props) {
-  const [surface, setSurface] = useState<Surface>(() =>
-    surfaceFor(initialModule),
-  ),
+  const [surface, setSurface] = useState<Surface>(() => surfaceFor(initialModule)),
     [focusFamilyId, setFocusFamilyId] = useState<string | undefined>(),
     [manualArticle, setManualArticle] = useState("resolution"),
     [confirmResolve, setConfirmResolve] = useState(false),
+    [accountMenuOpen, setAccountMenuOpen] = useState(false),
     [doctrineConfirm, setDoctrineConfirm] = useState<{
       vector: DoctrineVector;
       stage: DoctrineStage;
@@ -1221,10 +1220,11 @@ export function BriefingInterface({
       if (event.key !== "Escape") return;
       if (doctrineConfirm) setDoctrineConfirm(null);
       else if (confirmResolve) setConfirmResolve(false);
+      else if (accountMenuOpen) setAccountMenuOpen(false);
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [doctrineConfirm, confirmResolve]);
+  }, [doctrineConfirm, confirmResolve, accountMenuOpen]);
   const nav: [Surface, string][] = [
     ["brief", "DAILY CAMPAIGN"],
     ["daily", "DAILY BRIEF"],
@@ -1280,23 +1280,31 @@ export function BriefingInterface({
               <button disabled={!canResolve} onClick={requestResolve}>
                 RESOLVE DAY {s.day} →
               </button>
-              <details className="briefing-account-menu">
-                <summary>ACCOUNT</summary>
-                <div role="menu">
-                  <button
-                    role="menuitem"
-                    onClick={() => chooseSurface("account")}
-                  >
-                    SETTINGS
-                  </button>
-                  <a
-                    role="menuitem"
-                    href="/signout-with-chatgpt?return_to=%2F"
-                  >
-                    LOG OUT
-                  </a>
-                </div>
-              </details>
+              <div className={`briefing-account-menu ${accountMenuOpen ? "open" : ""}`}>
+                <button
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setAccountMenuOpen((open) => !open)}
+                >
+                  ACCOUNT
+                </button>
+                {accountMenuOpen && (
+                  <div role="menu">
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        chooseSurface("account");
+                      }}
+                    >
+                      SETTINGS
+                    </button>
+                    <a role="menuitem" href="/signout-with-chatgpt?return_to=%2F">
+                      LOG OUT
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>

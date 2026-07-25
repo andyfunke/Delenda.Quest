@@ -7,8 +7,7 @@ import { accountTurnSnapshot } from "../../../db/turns";
 export async function GET(){
   const user=await getChatGPTUser();
   if(!user)return NextResponse.json({authenticated:false,signIn:chatGPTSignInPath("/game?account=1")},{status:401});
-  const account=await accountSnapshot(user);
-  return NextResponse.json({authenticated:true,isAdmin:await isAdmin(user),...account,turn:await accountTurnSnapshot(user)});
+  return NextResponse.json({authenticated:true,isAdmin:await isAdmin(user),...await accountSnapshot(user),turn:await accountTurnSnapshot(user)});
 }
 
 export async function POST(request:Request){
