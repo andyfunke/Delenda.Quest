@@ -1119,7 +1119,7 @@ const surfaceFor = (target: string): Surface =>
   target === "national"
     ? "production"
     : target === "dashboard"
-      ? "state"
+      ? "brief"
       : target === "campaign"
         ? "brief"
         : target === "wiki"
@@ -1129,7 +1129,6 @@ const surfaceFor = (target: string): Surface =>
             : [
                   "daily",
                   "brief",
-                  "state",
                   "production",
                   "military",
                   "diplomacy",
@@ -1193,6 +1192,9 @@ export function BriefingInterface({
     setFocusFamilyId(family);
     setSurface(surfaceFor(module));
   };
+  useEffect(() => {
+    setSurface(surfaceFor(initialModule));
+  }, [initialModule]);
   useEffect(() => {
     const open = (event: Event) => {
       const detail = (
@@ -1263,12 +1265,13 @@ export function BriefingInterface({
     <div className="briefing-ui">
       <div className="briefing-wrap">
         <header className="briefing-top">
-          <button
+          <a
             className="briefing-brand"
-            onClick={() => chooseSurface("brief")}
+            href="/"
+            aria-label="Return to the Delenda Quest splash page"
           >
             DELENDA <em>QUEST</em>
-          </button>
+          </a>
           <div className="briefing-top-stack">
             <div className="briefing-status-row">
               <span>

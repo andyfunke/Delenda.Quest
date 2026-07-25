@@ -139,7 +139,6 @@ type TurnAccess = {
 };
 
 const modules: { id: Module; label: string; n: string }[] = [
-  { id: "dashboard", label: "Dashboard", n: "00" },
   { id: "campaign", label: "Campaign", n: "01" },
   { id: "national", label: "Production", n: "02" },
   { id: "military", label: "Military", n: "03" },
@@ -3852,7 +3851,7 @@ function WarTicker() {
 
 export default function Home() {
   const [s, setS] = useState<GameState>(initialState);
-  const [page, setPage] = useState<Page>("dashboard");
+  const [page, setPage] = useState<Page>("campaign");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
     "briefing",
   );
@@ -3945,13 +3944,13 @@ export default function Home() {
   const overdueTurnCount = useRef(0);
   const overdueTurnsApplied = useRef(false);
   const turnClaimInFlight = useRef(false);
-  const priorTelemetryModule = useRef<Page>("dashboard");
+  const priorTelemetryModule = useRef<Page>("campaign");
   const [initialModuleEnteredAt] = useState(Date.now);
   const moduleEnteredAt = useRef(initialModuleEnteredAt);
   useEffect(() => {
     if (priorDay.current === s.day) return;
     priorDay.current = s.day;
-    setPage("dashboard");
+    setPage("campaign");
     setBriefingModule("campaign");
     setCampaignInspectorSelection(null);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -4694,7 +4693,7 @@ export default function Home() {
     setAvaArchiveHydrated(true);
     setIssuedRecordSlug(null);
     setIssuedCampaignScore(null);
-    setPage("dashboard");
+    setPage("campaign");
     setFocusFamily(undefined);
     setMetric(null);
     setPendingManeuver(null);
@@ -5279,13 +5278,15 @@ export default function Home() {
       window.URL.revokeObjectURL(url);
     }
     if (terminal.navigate) {
+      const target =
+        terminal.navigate === "dashboard" ? "campaign" : terminal.navigate;
       if (interfaceMode === "briefing")
         window.dispatchEvent(
           new CustomEvent("briefing-open-surface", {
-            detail: terminal.navigate,
+            detail: target,
           }),
         );
-      else setPage(terminal.navigate as Module);
+      else setPage(target as Module);
     }
     if (terminal.state !== s) {
       setS(terminal.state);
@@ -5429,16 +5430,14 @@ export default function Home() {
       ) : (
         <>
           <header className="top">
-            <button
+            <a
               className="logo"
-              onClick={() => {
-                setPage("dashboard");
-                window.scrollTo({ top: 0, left: 0 });
-              }}
+              href="/"
+              aria-label="Return to the Delenda Quest splash page"
             >
               <span>DELENDA</span>
               <i>.</i>QUEST
-            </button>
+            </a>
             <nav>
               {modules.map((m) => (
                 <button
@@ -5628,11 +5627,11 @@ export default function Home() {
             <button
               className="secondary"
               onClick={() => {
-                setPage("dashboard");
+                setPage("campaign");
                 window.scrollTo({ top: 0, left: 0 });
               }}
             >
-              Main page
+              Daily Campaign
             </button>
             <button onClick={() => setReset(true)}>Begin new campaign</button>
           </div>

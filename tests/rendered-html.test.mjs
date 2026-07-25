@@ -121,6 +121,10 @@ test("landing page owns the default route and preserves the campaign entry surfa
     /Q016/,
   );
   assert.match(
+    landing.match(/const landingQuoteIds[\s\S]*?;/)?.[0] ?? "",
+    /Q030/,
+  );
+  assert.match(
     landing,
     /She does not operate\s*through natural language\.\s*Programmatically enhanced command\s*recognition/,
   );
@@ -504,7 +508,7 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(css,/\.ava-button > span,[\s\S]{0,220}\.ava > footer button\s*\{[\s\S]{0,80}font-size:\s*12px/);
 });
 
-test("dashboard owns strategic reporting while command modules preserve the paper UI and route reports to Ava",async()=>{
+test("the strategic dashboard remains a dormant stub while Daily Campaign owns game entry",async()=>{
   const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -516,6 +520,16 @@ test("dashboard owns strategic reporting while command modules preserve the pape
   }
   const dashboard=page.slice(page.indexOf("function Dashboard"),page.indexOf("function ProductionCircuit"));
   const modulePage=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
+  const playerModules=page.slice(page.indexOf("const modules:"),page.indexOf("const resourceLabel"));
+  const surfaceRouter=briefing.slice(briefing.indexOf("const surfaceFor"),briefing.indexOf("export function BriefingInterface"));
+  assert.doesNotMatch(playerModules,/id:\s*"dashboard"/);
+  assert.match(page,/useState<Page>\("campaign"\)/);
+  assert.match(page,/const priorTelemetryModule = useRef<Page>\("campaign"\)/);
+  assert.match(page,/terminal\.navigate === "dashboard" \? "campaign"/);
+  assert.match(surfaceRouter,/target === "dashboard"\s*\?\s*"brief"/);
+  assert.doesNotMatch(surfaceRouter,/"state",/);
+  assert.match(page,/className="logo"[\s\S]{0,120}href="\/"/);
+  assert.match(briefing,/className="briefing-brand"[\s\S]{0,120}href="\/"/);
   assert.match(dashboard,/"Industrial Condition"/);
   assert.doesNotMatch(dashboard,/className=\{`production-health/);
   assert.match(modulePage,/data-report-owner="ava"/);

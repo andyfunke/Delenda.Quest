@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "A fantasy-futurist war simulation of daily command, operational manoeuvre, transparent calculations, and compounding consequences.",
 };
 
-const landingQuoteIds = new Set(["Q002", "Q016", "Q021", "Q039", "Q103"]);
+const landingQuoteIds = new Set(["Q002", "Q016", "Q021", "Q030", "Q103"]);
 const landingQuotes = APHORISMS.filter((quote) => landingQuoteIds.has(quote.id));
 
 const telemetry = [
