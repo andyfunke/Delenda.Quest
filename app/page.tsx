@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 type RootPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
