@@ -1,17 +1,10 @@
-name: Cloudflare shadow
+name: Cloudflare production
 
 on:
   push:
     branches:
       - main
   pull_request:
-  workflow_dispatch:
-    inputs:
-      deploy_shadow:
-        description: Deploy the isolated delenda-quest-shadow Worker
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -45,8 +38,8 @@ jobs:
       - name: Run rendered and plumbing tests
         run: node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs
 
-  deploy-shadow:
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy_shadow
+  deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -63,19 +56,51 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Build the Worker artifact
-        run: npm run build
-
-      - name: Require an isolated D1 binding
+      - name: Resolve the Worker serving delenda.quest
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          if ! grep -q '"database_id"' cloudflare/wrangler.jsonc; then
-            echo "::error::Provision delenda-quest-shadow and commit its D1 database_id before deployment."
+          set -euo pipefail
+          expected="$(
+            node -e 'console.log(JSON.parse(require("node:fs").readFileSync("cloudflare/wrangler.jsonc","utf8")).name)'
+          )"
+          domains="$(
+            curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              --header "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=delenda.quest"
+          )"
+          service="$(
+            printf '%s' "${domains}" |
+              jq --exit-status --raw-output \
+                '.result[] | select(.hostname == "delenda.quest") | .service'
+          )"
+          if [[ -z "${service}" || "${service}" != "${expected}" ]]; then
+            echo "::error::Refusing deployment: delenda.quest is attached to ${service:-no Worker}, not ${expected}."
             exit 1
           fi
+          echo "Verified delenda.quest routes to the configured Worker service ${service}."
 
-      - name: Deploy only the isolated shadow Worker
+      - name: Build the production Worker artifact
+        run: npm run build
+
+      - name: Deploy the verified production Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config cloudflare/wrangler.jsonc
+
+      - name: Prove the custom domain serves the deployed contract
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            if npm run test:live; then
+              exit 0
+            fi
+            if [[ "${attempt}" -lt 12 ]]; then
+              sleep 10
+            fi
+          done
+          exit 1
