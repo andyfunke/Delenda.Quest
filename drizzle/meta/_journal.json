@@ -71,6 +71,13 @@
       "when": 1784943856271,
       "tag": "0009_fearless_molecule_man",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784948934396,
+      "tag": "0010_hot_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, gte, sql } from "drizzle-orm";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import { getDb } from "./index";
-import { bugReports, campaignOutcomes, telemetryCounters, users } from "./schema";
+import { activeCampaigns, bugReports, campaignOutcomes, campaignRecords, telemetryCounters, users } from "./schema";
 
 export async function isAdmin(user:ChatGPTUser){
   const {env}=await import("cloudflare:workers");
@@ -15,10 +15,18 @@ export async function requireAdmin(user:ChatGPTUser){
 
 export async function adminSnapshot(user:ChatGPTUser){
   await requireAdmin(user);
-  const db=await getDb();
-  const telemetry=await db.select().from(telemetryCounters).orderBy(desc(telemetryCounters.count)).limit(300);
-  const outcomes=await db.select().from(campaignOutcomes).orderBy(desc(campaignOutcomes.createdAt)).limit(1000);
-  const reports=await db.select().from(bugReports).orderBy(desc(bugReports.createdAt)).limit(100);
+  const db=await getDb(),dayAgo=Date.now()-86_400_000;
+  const[telemetry,outcomes,reports,registeredRows,activeRows,recentRows,completedRows,openReportRows,telemetryTotalRows]=await Promise.all([
+    db.select().from(telemetryCounters).orderBy(desc(telemetryCounters.count)).limit(300),
+    db.select().from(campaignOutcomes).orderBy(desc(campaignOutcomes.createdAt)).limit(1000),
+    db.select().from(bugReports).orderBy(desc(bugReports.createdAt)).limit(100),
+    db.select({count:sql<number>`count(*)`}).from(users),
+    db.select({count:sql<number>`count(*)`}).from(activeCampaigns),
+    db.select({count:sql<number>`count(*)`}).from(users).where(gte(users.lastSeenAt,dayAgo)),
+    db.select({count:sql<number>`count(*)`}).from(campaignRecords),
+    db.select({count:sql<number>`count(*)`}).from(bugReports).where(eq(bugReports.status,"open")),
+    db.select({count:sql<number>`coalesce(sum(${telemetryCounters.count}),0)`}).from(telemetryCounters),
+  ]);
   const aggregate=new Map<string,{outcome:string;count:number;days:number}>();
   for(const row of outcomes){
     let decisions:Record<string,number>={};try{decisions=JSON.parse(row.decisions)}catch{}
@@ -30,6 +38,15 @@ export async function adminSnapshot(user:ChatGPTUser){
   const outcomeGroups=new Map<string,typeof outcomes>();
   for(const row of outcomes)outcomeGroups.set(row.outcome,[...(outcomeGroups.get(row.outcome)??[]),row]);
   return{
+    siteSummary:{
+      registeredPlayers:Number(registeredRows[0]?.count)||0,
+      activeCampaigns:Number(activeRows[0]?.count)||0,
+      playersSeenLast24Hours:Number(recentRows[0]?.count)||0,
+      completedCampaigns:Number(completedRows[0]?.count)||0,
+      telemetryEvents:Number(telemetryTotalRows[0]?.count)||0,
+      openBugReports:Number(openReportRows[0]?.count)||0,
+      asOf:Date.now(),
+    },
     telemetry,
     outcomeSummary:[...outcomeGroups.entries()].map(([outcome,rows])=>({outcome,campaigns:rows.length,averageDays:rows.length?Math.round(rows.reduce((sum,row)=>sum+row.days,0)/rows.length):0})),
     decisionClusters:[...aggregate.entries()].map(([key,value])=>({decision:key.slice(key.indexOf(":")+1),...value})).sort((a,b)=>b.count-a.count).slice(0,100),

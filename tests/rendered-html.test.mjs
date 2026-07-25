@@ -51,6 +51,40 @@ test("renders development preview metadata", async () => {
     signedOutGame.headers.get("location"),
     "http://localhost/signin-with-chatgpt?return_to=%2Fgame%3Faccount%3D1",
   );
+
+  const signedOutAdmin = await worker.fetch(
+    new Request("http://localhost/admin", {
+      headers: { accept: "text/html" },
+    }),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+  assert.equal(signedOutAdmin.status, 307);
+  assert.equal(
+    signedOutAdmin.headers.get("location"),
+    "http://localhost/signin-with-chatgpt?return_to=%2Fadmin",
+  );
+
+  const signedOutCampaign = await worker.fetch(
+    new Request("http://localhost/api/campaign"),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+  assert.equal(signedOutCampaign.status, 401);
 });
 
 test("landing page owns the default route and preserves the campaign entry surfaces", async () => {
@@ -606,4 +640,38 @@ test("social metagame uses private aliases, private day boundaries, Player Ratin
   assert.match(recordPage,/decisionComparisons/);
   assert.match(recordPage,/SIMULATION ACCOMPLISHMENT/);
   assert.doesNotMatch(setup,/Select the state|THEATER <a|STATE ARCHETYPE|ADVERSARY SYSTEM|campaign-config-tree/i);
+});
+
+test("registration owns active campaigns and the telemetry console is server-authorized",async()=>{
+  const[gameRoute,client,campaignRoute,campaignStore,schema,adminRoute,adminStore,landing,telemetryRoute]=await Promise.all([
+    readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/campaign/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/campaigns.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../db/admin.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/telemetry/route.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(gameRoute,/requireChatGPTUser\(returnTo\)/);
+  assert.match(gameRoute,/ensureAccount\(user\)/);
+  assert.match(schema,/activeCampaigns=sqliteTable\("active_campaigns"/);
+  assert.match(schema,/ownerEmail:text\("owner_email"\)\.primaryKey\(\)/);
+  assert.match(campaignRoute,/if\(!user\).*Sign in to load your campaign/s);
+  assert.match(campaignRoute,/saveActiveCampaign\(user/);
+  assert.match(campaignStore,/ownerEmail=await ensureAccount\(user\)/);
+  assert.match(campaignStore,/target:activeCampaigns\.ownerEmail/);
+  assert.doesNotMatch(campaignStore,/input\.ownerEmail/);
+  assert.match(client,/fetch\("\/api\/campaign",\{cache:"no-store"\}\)/);
+  assert.match(client,/method:"PUT"/);
+  assert.match(client,/accountKey:campaignAccountKey\.current/);
+  assert.match(adminRoute,/requireChatGPTUser\("\/admin"\)/);
+  assert.match(adminRoute,/isAdmin\(user\)/);
+  assert.match(adminRoute,/notFound\(\)/);
+  assert.doesNotMatch(landing,/href="\/admin"/);
+  assert.match(adminStore,/registeredPlayers/);
+  assert.match(adminStore,/activeCampaigns:Number/);
+  assert.match(adminStore,/telemetryEvents/);
+  assert.match(telemetryRoute,/if\(!user\).*Sign in before recording campaign telemetry/s);
 });

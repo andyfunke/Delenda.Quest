@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createBugReport } from "../../../db/bug-reports";
+import { getChatGPTUser } from "../../chatgpt-auth";
 
 export async function POST(request:Request){
+  if(!await getChatGPTUser())return NextResponse.json({error:"Sign in before sending a bug report."},{status:401});
   const length=Number(request.headers.get("content-length")??0);
   if(length>12_000)return NextResponse.json({error:"Bug report is too large."},{status:413});
   try{return NextResponse.json(await createBugReport(await request.json()));}

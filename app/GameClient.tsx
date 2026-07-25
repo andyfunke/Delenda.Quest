@@ -870,8 +870,8 @@ const GLOSSARY: Record<
   },
   "campaign-autosave": {
     summary:
-      "A device-local command record written whenever authoritative campaign state changes.",
-    body: "Autosave preserves the campaign state and current day clock in this browser. Reloading resumes that record. A new generated campaign replaces the prior device-local record after confirmation.",
+      "An account-owned command record written whenever authoritative campaign state changes.",
+    body: "Autosave preserves the active campaign state and current day clock under the signed-in account, with a device copy retained only as a recovery layer. Reloading or changing devices resumes the account record. A newly generated campaign replaces the prior active account campaign after confirmation.",
     related: ["Command Continuity", "Campaign Seed", "Resolution"],
   },
   "campaign-event-director": {
@@ -3765,11 +3765,21 @@ function MetricDrawer({
 }
 
 const SAVE_KEY = "delenda.quest.campaign.v1";
+const SERVER_MIGRATION_KEY = "delenda.quest.campaign-account-migrated.v1";
 const OPPORTUNITY_LEDGER_KEY = "delenda.quest.opportunity-ledger.v1";
 const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
 const APHORISM_ASSIGNMENT_KEY = "delenda.quest.aphorism-assignments.v2";
 const APHORISM_LAST_KEY = "delenda.quest.aphorism-last.v1";
 const DEVICE_KEY = "delenda.quest.device-key.v1";
+type StoredCampaignEnvelope={
+  accountKey?:string;
+  state?:unknown;
+  clock?:{start?:number;end?:number};
+  runToken?:string;
+  multiplayerRun?:boolean;
+  savedAt?:number;
+  updatedAt?:number;
+};
 type CampaignInspectorSelection = {
   kind: "main" | "sub";
   id: string;
@@ -3930,6 +3940,8 @@ export default function Home() {
   const [wikiArticle, setWikiArticle] = useState("resolution");
   const priorDay = useRef(s.day);
   const activeArchiveKey = useRef("");
+  const campaignAccountKey = useRef("");
+  const remoteSaveFailureNotified = useRef(false);
   const overdueTurnCount = useRef(0);
   const overdueTurnsApplied = useRef(false);
   const turnClaimInFlight = useRef(false);
@@ -3953,6 +3965,7 @@ export default function Home() {
     return () => window.cancelAnimationFrame(frame);
   }, [ava, messages.length]);
   useEffect(() => {
+    let live=true;
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("wiki"),
       challenge = params.get("challenge"),
@@ -3992,103 +4005,106 @@ export default function Home() {
       setSeedOverride(requestedSeed);
       setReset(true);
     }
-    try {
-      const raw = window.localStorage.getItem(SAVE_KEY);
-      if (raw) {
-        const record = JSON.parse(raw) as {
-          state?: unknown;
-          clock?: { start?: number; end?: number };
-          runToken?: string;
-          multiplayerRun?: boolean;
-        };
-        const restored = restoreCampaignState(record.state);
-        if (restored) {
-          const savedEnd=record.clock?.end;
-          if(typeof savedEnd==="number"&&savedEnd<Date.now())
-            overdueTurnCount.current=Math.min(
-              31,
-              Math.max(1,Math.floor((Date.now()-savedEnd)/DAY_MS)+1),
-            );
-          const restoredState = restored;
-          const restoredRunToken =
-            typeof record.runToken === "string" && record.runToken
-              ? record.runToken
-              : portableId();
-          setS(restored);
-          setHasSave(true);
-          activeArchiveKey.current = restoredRunToken;
-          setRunToken(restoredRunToken);
-          setMultiplayerRun(!!record.multiplayerRun);
-          if (
-            record.clock &&
-            typeof record.clock.start === "number" &&
-            typeof record.clock.end === "number"
-          )
-            if(record.clock.end>Date.now())setClock({ start: record.clock.start, end: record.clock.end });
-            else setClock(accountDayBounds(browserTimeZone()))
-          void loadAvaShellArchive(
-            restoredRunToken,
-            restoredState.campaignId,
-          )
-            .then((archive) => {
-              if (activeArchiveKey.current !== restoredRunToken) return;
-              const archived = restoreAvaShellSession(archive, restoredState);
-              setAvaSession((current) => {
-                const byPath = new Map(
-                  [...archived.files, ...current.shell.files].map((file) => [
-                    file.path,
-                    file,
-                  ]),
-                );
-                const interacted =
-                  current.shell.history.length > 0 ||
-                  current.shell.files.length > 0 ||
-                  current.shell.cwd !== initialAvaTerminalSession().shell.cwd;
-                return {
-                  ...current,
-                  shell: {
-                    cwd: interacted ? current.shell.cwd : archived.cwd,
-                    history: current.shell.history,
-                    files: [...byPath.values()],
-                    darkNetUnlocked:
-                      current.shell.darkNetUnlocked ||
-                      archived.darkNetUnlocked,
-                  },
-                };
-              });
-              setAvaArchiveWritable(true);
-              setAvaArchiveHydrated(true);
-            })
-            .catch(() => {
-              if (activeArchiveKey.current !== restoredRunToken) return;
-              setAvaArchiveWritable(false);
-              setAvaArchiveHydrated(true);
-              setSystemNotice(
-                "AVA ARCHIVE READ FAILED // SAVED REPORTS WERE NOT MODIFIED; RELOAD TO RETRY",
-              );
-            });
-        } else {
-          const nextRunToken = portableId();
-          activeArchiveKey.current = nextRunToken;
-          setRunToken(nextRunToken);
-          setAvaArchiveWritable(true);
-          setAvaArchiveHydrated(true);
-        }
-      } else {
-        const nextRunToken = portableId();
-        activeArchiveKey.current = nextRunToken;
-        setRunToken(nextRunToken);
-        setAvaArchiveWritable(true);
-        setAvaArchiveHydrated(true);
-      }
-    } catch {
-      const nextRunToken = portableId();
-      activeArchiveKey.current = nextRunToken;
+    const fresh=()=>{
+      if(!live)return;
+      const nextRunToken=portableId();
+      activeArchiveKey.current=nextRunToken;
       setRunToken(nextRunToken);
       setAvaArchiveWritable(true);
       setAvaArchiveHydrated(true);
-    }
-    setHydrated(true);
+    };
+    const hydrateCampaign=async()=>{
+      let record:StoredCampaignEnvelope|null=null;
+      let accountKey="";
+      try{
+        const response=await fetch("/api/campaign",{cache:"no-store"});
+        if(!response.ok)throw new Error("Account campaign state is unavailable.");
+        const payload=await response.json() as {accountKey?:string;campaign?:StoredCampaignEnvelope|null};
+        accountKey=typeof payload.accountKey==="string"?payload.accountKey:"";
+        campaignAccountKey.current=accountKey;
+        record=payload.campaign??null;
+      }catch{
+        if(live)setSystemNotice("ACCOUNT CAMPAIGN SYNC UNAVAILABLE // DEVICE SAVE REMAINS AVAILABLE // RELOAD TO RETRY");
+      }
+      try{
+        const raw=window.localStorage.getItem(SAVE_KEY);
+        const local=raw?JSON.parse(raw) as StoredCampaignEnvelope:null;
+        const migrated=window.localStorage.getItem(SERVER_MIGRATION_KEY)==="1";
+        const belongsToAccount=!!local&&(
+          !accountKey||
+          local.accountKey===accountKey||
+          (!local.accountKey&&!migrated)
+        );
+        const localIsNewer=
+          belongsToAccount&&
+          (Number(local?.savedAt)||0)>(Number(record?.updatedAt)||0);
+        if(belongsToAccount&&(!record||localIsNewer)){
+          record=local;
+          if(accountKey&&!local?.accountKey)window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
+        }
+      }catch{}
+      if(!live)return;
+      const restored=restoreCampaignState(record?.state);
+      if(!restored){fresh();setHydrated(true);return}
+      const savedEnd=record?.clock?.end;
+      if(typeof savedEnd==="number"&&savedEnd<Date.now())
+        overdueTurnCount.current=Math.min(
+          31,
+          Math.max(1,Math.floor((Date.now()-savedEnd)/DAY_MS)+1),
+        );
+      const restoredRunToken=
+        typeof record?.runToken==="string"&&record.runToken
+          ? record.runToken
+          : portableId();
+      setS(restored);
+      setHasSave(true);
+      activeArchiveKey.current=restoredRunToken;
+      setRunToken(restoredRunToken);
+      setMultiplayerRun(!!record?.multiplayerRun);
+      if(
+        record?.clock&&
+        typeof record.clock.start==="number"&&
+        typeof record.clock.end==="number"
+      )
+        if(record.clock.end>Date.now())setClock({start:record.clock.start,end:record.clock.end});
+        else setClock(accountDayBounds(browserTimeZone()));
+      void loadAvaShellArchive(restoredRunToken,restored.campaignId)
+        .then((archive)=>{
+          if(!live||activeArchiveKey.current!==restoredRunToken)return;
+          const archived=restoreAvaShellSession(archive,restored);
+          setAvaSession((current)=>{
+            const byPath=new Map(
+              [...archived.files,...current.shell.files].map((file)=>[file.path,file]),
+            );
+            const interacted=
+              current.shell.history.length>0||
+              current.shell.files.length>0||
+              current.shell.cwd!==initialAvaTerminalSession().shell.cwd;
+            return{
+              ...current,
+              shell:{
+                cwd:interacted?current.shell.cwd:archived.cwd,
+                history:current.shell.history,
+                files:[...byPath.values()],
+                darkNetUnlocked:current.shell.darkNetUnlocked||archived.darkNetUnlocked,
+              },
+            };
+          });
+          setAvaArchiveWritable(true);
+          setAvaArchiveHydrated(true);
+        })
+        .catch(()=>{
+          if(!live||activeArchiveKey.current!==restoredRunToken)return;
+          setAvaArchiveWritable(false);
+          setAvaArchiveHydrated(true);
+          setSystemNotice("AVA ARCHIVE READ FAILED // SAVED REPORTS WERE NOT MODIFIED; RELOAD TO RETRY");
+        });
+      setHydrated(true);
+    };
+    void hydrateCampaign();
+    return()=>{
+      live=false;
+    };
   }, []);
   useEffect(() => {
     const detected=browserTimeZone();
@@ -4316,13 +4332,43 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (!hydrated || !runToken) return;
+    const envelope:StoredCampaignEnvelope={
+      accountKey:campaignAccountKey.current||undefined,
+      state:s,
+      clock,
+      runToken,
+      multiplayerRun,
+      savedAt:Date.now(),
+    };
     try {
-      window.localStorage.setItem(
-        SAVE_KEY,
-        JSON.stringify({ state: s, clock, runToken, multiplayerRun, savedAt: Date.now() }),
-      );
+      window.localStorage.setItem(SAVE_KEY,JSON.stringify(envelope));
       setHasSave(true);
     } catch {}
+    if(!campaignAccountKey.current)return;
+    const controller=new AbortController();
+    const timer=window.setTimeout(()=>{
+      void fetch("/api/campaign",{
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(envelope),
+        signal:controller.signal,
+      }).then(async(response)=>{
+        const payload=await response.json().catch(()=>({})) as {accountKey?:string;error?:string};
+        if(!response.ok)throw new Error(payload.error??"Campaign save was not accepted.");
+        if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
+        window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
+        remoteSaveFailureNotified.current=false;
+      }).catch((error)=>{
+        if(error instanceof DOMException&&error.name==="AbortError")return;
+        if(remoteSaveFailureNotified.current)return;
+        remoteSaveFailureNotified.current=true;
+        setSystemNotice("ACCOUNT SAVE DELAYED // DEVICE SAVE IS CURRENT // RETRYING AFTER THE NEXT CHANGE");
+      });
+    },450);
+    return()=>{
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [s, clock, runToken, multiplayerRun, hydrated]);
   useEffect(() => {
     if (

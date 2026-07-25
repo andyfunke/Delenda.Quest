@@ -22,6 +22,22 @@ export const accountTurnState=sqliteTable("account_turn_state",{
   updatedAt:integer("updated_at").notNull(),
 });
 
+export const activeCampaigns=sqliteTable("active_campaigns",{
+  ownerEmail:text("owner_email").primaryKey(),
+  campaignId:text("campaign_id").notNull(),
+  runToken:text("run_token").notNull(),
+  state:text("state").notNull(),
+  clockStart:integer("clock_start").notNull(),
+  clockEnd:integer("clock_end").notNull(),
+  multiplayerRun:integer("multiplayer_run",{mode:"boolean"}).notNull().default(false),
+  revision:integer("revision").notNull().default(1),
+  createdAt:integer("created_at").notNull(),
+  updatedAt:integer("updated_at").notNull(),
+},table=>[
+  index("active_campaigns_campaign_idx").on(table.campaignId),
+  index("active_campaigns_updated_idx").on(table.updatedAt),
+]);
+
 export const campaignRecords=sqliteTable("campaign_records",{
   id:text("id").primaryKey(),
   ownerEmail:text("owner_email").notNull(),

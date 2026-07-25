@@ -12083,6 +12083,10 @@ small,
   gap: 16px;
   grid-template-columns: repeat(2,minmax(0,1fr));
 }
+.admin-route {
+  padding-left: clamp(18px,4vw,64px);
+  padding-right: clamp(18px,4vw,64px);
+}
 .admin-grid > article {
   background: #f4f1e8;
   border: 1px solid #222;
