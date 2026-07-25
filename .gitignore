@@ -29,6 +29,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+/cloudflare/.dev.vars*
+!/cloudflare/.dev.vars.example
+
+# private database snapshots and generated imports
+*.delenda-snapshot.json
+*.delenda-import.sql
 
 # vercel
 .vercel

@@ -8,15 +8,29 @@ type Snapshot={
   decisionClusters:Array<{decision:string;outcome:string;count:number;days:number}>;
   bugReports:Array<{id:string;route:string;elementKey:string;elementText:string;gridX:number;gridY:number;module:string;interfaceMode:string;reportText:string;status:string;createdAt:number}>;
 };
+const apiError=(value:unknown,fallback:string)=>{
+  if(value&&typeof value==="object"&&"error" in value&&typeof value.error==="string")return value.error;
+  return fallback;
+};
+const isSnapshot=(value:unknown):value is Snapshot=>{
+  if(!value||typeof value!=="object")return false;
+  const candidate=value as Partial<Snapshot>;
+  return !!candidate.siteSummary&&
+    typeof candidate.siteSummary==="object"&&
+    Array.isArray(candidate.telemetry)&&
+    Array.isArray(candidate.outcomeSummary)&&
+    Array.isArray(candidate.decisionClusters)&&
+    Array.isArray(candidate.bugReports);
+};
 const overrides=[
   ["accountEnabled","ACCOUNT ACCESS"],["socialEnabled","SOCIAL ACCESS"],["telemetryEnabled","TELEMETRY PARTICIPATION"],["aliasRenameUnlocked","RESET ALIAS COOLDOWN"],
 ] as const;
 
 export function AdminPage(){
   const[data,setData]=useState<Snapshot|null>(null),[error,setError]=useState(""),[alias,setAlias]=useState("");
-  const load=useCallback(async()=>{const response=await fetch("/api/admin",{cache:"no-store"});const body=await response.json();if(!response.ok){setError(body.error??"Unavailable");return}setData(body)},[]);
+  const load=useCallback(async()=>{const response=await fetch("/api/admin",{cache:"no-store"});const body:unknown=await response.json();if(!response.ok){setError(apiError(body,"Unavailable"));return}if(!isSnapshot(body)){setError("Administration returned an invalid response.");return}setData(body)},[]);
   useEffect(()=>{void load()},[load]);
-  const override=async(field:string,value:boolean)=>{const response=await fetch("/api/admin",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({alias,field,value})});const body=await response.json();setError(response.ok?`${field} updated for ${alias}.`:body.error??"Override failed.")};
+  const override=async(field:string,value:boolean)=>{const response=await fetch("/api/admin",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({alias,field,value})});const body:unknown=await response.json();setError(response.ok?`${field} updated for ${alias}.`:apiError(body,"Override failed."))};
   const bug=async(id:string,status:"reviewed"|"closed")=>{await fetch("/api/admin",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"bug",id,status})});await load()};
   if(error&&!data)return <div className="module admin-page"><header><h1>Administration</h1><p>{error}</p></header></div>;
   return <div className="module admin-page" data-module="ADMIN"><header><span className="eyebrow">Aggregate operations // no individual gameplay surveillance</span><h1>Administration</h1><p>Support controls, ethical product telemetry, decision/outcome aggregates, and anonymous bug reports. No email list, friends graph, private transcript, or individual play history is exposed here.</p></header>

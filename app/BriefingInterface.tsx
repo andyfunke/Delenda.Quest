@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DAILY_ORDERS,
@@ -74,6 +75,7 @@ type Props = {
   useCommandInterface: () => void;
   onNewCampaign: () => void;
   onSurfaceChange: (module: Module) => void;
+  logoutPath: string;
 };
 
 const signed = (value: number, suffix = "") =>
@@ -1154,6 +1156,7 @@ export function BriefingInterface({
   useCommandInterface,
   onNewCampaign,
   onSurfaceChange,
+  logoutPath,
 }: Props) {
   const [surface, setSurface] = useState<Surface>(() => surfaceFor(initialModule)),
     [focusFamilyId, setFocusFamilyId] = useState<string | undefined>(),
@@ -1265,13 +1268,13 @@ export function BriefingInterface({
     <div className="briefing-ui">
       <div className="briefing-wrap">
         <header className="briefing-top">
-          <a
+          <Link
             className="briefing-brand"
             href="/"
             aria-label="Return to the Delenda Quest splash page"
           >
             DELENDA <em>QUEST</em>
-          </a>
+          </Link>
           <div className="briefing-top-stack">
             <div className="briefing-status-row">
               <span>
@@ -1302,7 +1305,7 @@ export function BriefingInterface({
                     >
                       SETTINGS
                     </button>
-                    <a role="menuitem" href="/signout-with-chatgpt?return_to=%2F">
+                    <a role="menuitem" href={logoutPath}>
                       LOG OUT
                     </a>
                   </div>

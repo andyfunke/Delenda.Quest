@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   FormEvent,
   useCallback,
@@ -136,6 +137,22 @@ type TurnAccess = {
   canResolve: boolean;
   nextTurnAt: number;
   timeZone: string;
+};
+type AccountBootstrap = {
+  isAdmin?: boolean;
+  timeZone?: string;
+  turn?: TurnAccess;
+};
+const isAccountBootstrap = (value: unknown): value is AccountBootstrap => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    (candidate.isAdmin === undefined || typeof candidate.isAdmin === "boolean") &&
+    (candidate.timeZone === undefined ||
+      typeof candidate.timeZone === "string") &&
+    (candidate.turn === undefined ||
+      (candidate.turn !== null && typeof candidate.turn === "object"))
+  );
 };
 
 const modules: { id: Module; label: string; n: string }[] = [
@@ -3849,7 +3866,7 @@ function WarTicker() {
   );
 }
 
-export default function Home() {
+export default function Home({ logoutPath }: { logoutPath: string }) {
   const [s, setS] = useState<GameState>(initialState);
   const [page, setPage] = useState<Page>("campaign");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
@@ -4110,12 +4127,12 @@ export default function Home() {
     setAccountTimeZone(detected);
     setClock(accountDayBounds(detected));
     void fetch("/api/account", { cache: "no-store" })
-      .then(response=>response.ok?response.json():null)
-      .then((account:{
-        isAdmin?:boolean;
-        timeZone?:string;
-        turn?:TurnAccess;
-      }|null)=>{
+      .then(async response=>{
+        if(!response.ok)return null;
+        const value:unknown=await response.json();
+        return isAccountBootstrap(value)?value:null;
+      })
+      .then((account)=>{
         setAdminAccess(!!account?.isAdmin);
         if(account?.turn)setTurnAccess(account.turn);
         if(account?.timeZone){
@@ -5272,7 +5289,7 @@ export default function Home() {
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = terminal.download.filename;
-      document.body.append(anchor);
+      document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       window.URL.revokeObjectURL(url);
@@ -5426,18 +5443,19 @@ export default function Home() {
             setReset(true);
           }}
           onSurfaceChange={setBriefingModule}
+          logoutPath={logoutPath}
         />
       ) : (
         <>
           <header className="top">
-            <a
+            <Link
               className="logo"
               href="/"
               aria-label="Return to the Delenda Quest splash page"
             >
               <span>DELENDA</span>
               <i>.</i>QUEST
-            </a>
+            </Link>
             <nav>
               {modules.map((m) => (
                 <button
@@ -5534,7 +5552,7 @@ export default function Home() {
                     >
                       SETTINGS
                     </button>
-                    <a role="menuitem" href="/signout-with-chatgpt?return_to=%2F">
+                    <a role="menuitem" href={logoutPath}>
                       LOG OUT
                     </a>
                   </div>

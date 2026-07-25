@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { accountSnapshot, inviteFriend, removeFriendByAlias, updateAlias, updateAllowFriends, updateTimeZone } from "../../../db/accounts";
-import { chatGPTSignInPath, getChatGPTUser } from "../../chatgpt-auth";
+import { authenticatedSignInPath, getChatGPTUser } from "../../chatgpt-auth";
 import { isAdmin } from "../../../db/admin";
 import { accountTurnSnapshot } from "../../../db/turns";
 
 export async function GET(){
   const user=await getChatGPTUser();
-  if(!user)return NextResponse.json({authenticated:false,signIn:chatGPTSignInPath("/game?account=1")},{status:401});
+  if(!user)return NextResponse.json({authenticated:false,signIn:await authenticatedSignInPath("/game?account=1")},{status:401});
   return NextResponse.json({authenticated:true,isAdmin:await isAdmin(user),...await accountSnapshot(user),turn:await accountTurnSnapshot(user)});
 }
 

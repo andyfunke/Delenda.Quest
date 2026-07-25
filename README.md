@@ -1,8 +1,8 @@
-# vinext-starter
+# DELENDA.QUEST
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+A full-stack campaign game compiled by
+[Vinext](https://github.com/cloudflare/vinext) for Cloudflare Workers, with D1
+and Drizzle persistence.
 
 ## Prerequisites
 
@@ -13,7 +13,10 @@ Drizzle support.
 
 The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
 
-This starter does not use `wrangler.jsonc`.
+Sites remains the production host. The non-destructive Cloudflare duplicate
+uses `cloudflare/wrangler.jsonc` and the separate
+`delenda-quest-shadow` Worker and D1 names. See
+`docs/cloudflare-duplication.md` before touching Cloudflare routing or data.
 
 `install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout and then validates the Sites artifact. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
 
@@ -22,12 +25,16 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 ## Included Shape
 
 - edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
+- `app/chatgpt-auth.ts` supports dispatch-owned ChatGPT identity and verified
+  Cloudflare Access JWTs without weakening either path
 - `.openai/hosting.json` declares optional Sites D1 and R2 bindings
+- `cloudflare/wrangler.jsonc` declares the isolated Cloudflare shadow
 - `vite.config.ts` simulates declared bindings for local development
 - `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
+- `db/schema.ts` contains the player, campaign, social, telemetry, and support
+  ledgers
+- `app/api/admin/replication/route.ts` exposes a disabled-by-default,
+  secret-gated read-only snapshot surface
 - `drizzle.config.ts` supports local migration generation when needed
 
 ## Workspace Auth Headers
@@ -61,7 +68,7 @@ export default async function Home() {
 }
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## Dispatch-Owned ChatGPT Sign-In
 
 Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
 optional or required ChatGPT sign-in:
@@ -88,6 +95,18 @@ or enforce explicit server-side membership or allowlist checks.
 Use SIWC for account pages, user-specific dashboards, saved records, and write
 actions tied to the current ChatGPT user. Leave public content anonymous.
 
+## Cloudflare Shadow Authentication
+
+The Cloudflare shadow uses a self-hosted Access application. The same auth
+module verifies the `Cf-Access-Jwt-Assertion` signature against Cloudflare's
+rotating JWK set, plus the configured issuer and audience, before accepting the
+email claim. Logout uses `/cdn-cgi/access/logout`; the Sites logout path remains
+unchanged.
+
+Required shadow secrets are declared by name in
+`cloudflare/wrangler.jsonc`. Real values belong in Wrangler secrets, never in
+source.
+
 ## Diagnostic Commands
 
 - `npm run install:ci`: perform the one bounded lockfile install
@@ -97,6 +116,8 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm test`: build, validate, and verify the rendered development-preview metadata
 - `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
 - `npm run db:generate`: generate Drizzle migrations after schema changes
+- `npm run cloudflare:types`: regenerate Worker binding types from the shadow config
+- `npm run cloudflare:validate`: typecheck, build, verify generated types, and perform a strict Wrangler dry run
 
 Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
 
