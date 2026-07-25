@@ -1,5 +1,4 @@
 export type AvaModule =
-  | "dashboard"
   | "campaign"
   | "national"
   | "military"

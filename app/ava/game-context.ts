@@ -92,7 +92,6 @@ export const avaEntitiesForState = (
     action: descriptor.action,
   }));
   const modules: AvaEntity[] = [
-    "dashboard",
     "campaign",
     "national",
     "military",

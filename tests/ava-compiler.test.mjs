@@ -13,6 +13,26 @@ const entities=[
 const context={currentModule:"campaign",entities,selected:null};
 const instruction=raw=>{const result=mod.compileAvaCommand(raw,context);assert.equal(result.status,"compiled",JSON.stringify(result));return result.instruction};
 
+test("godmode random-event language compiles to one explicit intent",()=>{
+  for(const phrase of [
+    "random event",
+    "Ava, random event now",
+    "force an event right now",
+    "please trigger a random opportunity",
+    "make an opportunity happen",
+    "give me an unexpected encounter",
+    "spawn something unexpected",
+  ]){
+    assert.deepEqual(mod.compileAvaGodModeIntent(phrase)?.kind,"force-random-event",phrase);
+  }
+  for(const phrase of [
+    "why are random events not happening",
+    "when can an opportunity happen",
+    "show opportunities",
+    "production report",
+  ])assert.equal(mod.compileAvaGodModeIntent(phrase),null,phrase);
+});
+
 test("natural status phrases compile to STATUS",()=>{
   assert.equal(instruction("How are we doing?").kind,"STATUS");
   assert.equal(instruction("where do we stand").kind,"STATUS");

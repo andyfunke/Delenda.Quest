@@ -238,7 +238,7 @@ export const parseAvaShellInput = (
   }
   if (
     command === "open" &&
-    /^(?:dashboard|campaign|production|national|military|diplomacy|doctrine|account|wiki)$/i.test(
+    /^(?:campaign|production|national|military|diplomacy|doctrine|account|wiki)$/i.test(
       tokens[1] ?? "",
     )
   )

@@ -5,7 +5,7 @@ import {
   accountDayKey,
   validTimeZone,
 } from "../app/account-time";
-import { ensureAccount } from "./accounts";
+import { ensureAccount, settleTimeZoneForAccount } from "./accounts";
 import { getDb } from "./index";
 import { accountTurnState, users } from "./schema";
 
@@ -21,6 +21,7 @@ export type AccountTurnSnapshot = {
 const ensureTurnState = async (user: ChatGPTUser) => {
   const db = await getDb();
   const ownerEmail = await ensureAccount(user);
+  await settleTimeZoneForAccount(db, ownerEmail);
   const now = Date.now();
   await db
     .insert(accountTurnState)

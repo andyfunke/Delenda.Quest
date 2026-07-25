@@ -9,6 +9,9 @@ type AccountSnapshot={
   email?:string;
   alias?:string;
   timeZone?:string;
+  timeZoneConfigured?:boolean;
+  pendingTimeZone?:string|null;
+  timeZoneEffectiveAt?:number|null;
   nextAliasChangeAt?:number;
   socialEnabled?:boolean;
   telemetryEnabled?:boolean;
@@ -82,8 +85,10 @@ export function AccountPage({onNewCampaign}:{onNewCampaign:()=>void}){
     setBusy(true);setNotice("");
     try{
       const response=await fetch("/api/account",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({timeZone:timeZoneDraft})});
-      const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error??"Time zone change failed.");
-      await load();window.dispatchEvent(new CustomEvent("account-time-zone-changed",{detail:timeZoneDraft}));setNotice("PRIVATE DAY BOUNDARY UPDATED");
+      const result=await response.json() as {error?:string;timeZone?:string;pendingTimeZone?:string|null;timeZoneEffectiveAt?:number|null};if(!response.ok)throw new Error(result.error??"Time zone change failed.");
+      await load();
+      if(result.timeZone===timeZoneDraft)window.dispatchEvent(new CustomEvent("account-time-zone-changed",{detail:timeZoneDraft}));
+      setNotice(result.pendingTimeZone?`TIME ZONE CHANGE QUEUED // ACTIVATES ${new Date(result.timeZoneEffectiveAt??0).toLocaleString()}`:"PRIVATE DAY BOUNDARY UPDATED");
     }catch(error){setNotice(error instanceof Error?error.message:"Time zone change failed.")}finally{setBusy(false)}
   };
 

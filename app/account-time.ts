@@ -81,6 +81,20 @@ export const accountDayBounds = (
   };
 };
 
+export const accountClockAfterClaim = (
+  claimedTimeZone: unknown,
+  currentTimeZone: string,
+  now: number = Date.now(),
+) =>
+  accountDayBounds(
+    validTimeZone(claimedTimeZone)
+      ? claimedTimeZone
+      : validTimeZone(currentTimeZone)
+        ? currentTimeZone
+        : "UTC",
+    now,
+  );
+
 export const millisecondsUntilNextAccountDay = (
   date: Date = new Date(),
   timeZone?: string,

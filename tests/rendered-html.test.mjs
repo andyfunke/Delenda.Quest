@@ -1,9 +1,32 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const developmentPreviewMeta =
   /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
+
+const sectionBetween = (source, startMarker, endMarker) => {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  assert.notEqual(start, -1, `missing section start: ${startMarker}`);
+  assert.notEqual(end, -1, `missing section end: ${endMarker}`);
+  assert.ok(end > start, `invalid section: ${startMarker} -> ${endMarker}`);
+  return source.slice(start, end);
+};
+
+const readTextTree = async (directory) => {
+  let output = "";
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const child = new URL(
+      `${entry.name}${entry.isDirectory() ? "/" : ""}`,
+      directory,
+    );
+    if (entry.isDirectory()) output += await readTextTree(child);
+    else if (/\.(?:css|html|js|mjs)$/i.test(entry.name))
+      output += `\n${await readFile(child, "utf8")}`;
+  }
+  return output;
+};
 
 test("renders development preview metadata", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -305,7 +328,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(briefing,/latest\.epigraph \?\?/);
   assert.match(briefing,/COMM\. HET CLAXTON, Praetor Corps, Third Division/);
   assert.match(css,/\.alt-daily-brief > blockquote/);
-  assert.match(page,/<main className=\{interfaceMode === "briefing" \? "briefing-main" : undefined\}>/);
+  assert.match(page,/<main[\s\S]{0,180}className=\{interfaceMode === "briefing" \? "briefing-main" : undefined\}[\s\S]{0,180}data-game-entry-contract="daily-campaign"/);
   assert.match(css,/\.briefing-main\s*\{[^}]*background:\s*#0c0e0d;[^}]*padding-bottom:\s*0;/s);
   const secondaryFrontRules=[...css.matchAll(/\.briefing-secondary-fronts\s*\{([^}]*)\}/g)].map((match)=>match[1]);
   assert.ok(secondaryFrontRules.length>0);
@@ -494,10 +517,8 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(css,/\.global-opportunity-interrupt[\s\S]*background:\s*#fff/);
   assert.match(css,/\.global-opportunity-interrupt \.interrupt-close[\s\S]*font:\s*900 48px/);
   for(const field of ["desiredOutput","requestedUse","fulfilledUse","unmetUse","equilibrium"])assert.match(circuits,new RegExp(field));
-  for(const heading of ["Allocation","Production","Current","Required","Live Stock","Balance"])assert.match(page,new RegExp(`<span>${heading}<\\/span>`));
-  assert.doesNotMatch(page,/Current \/ Desired/);
   assert.match(page,/<span>Desertions<\/span>[\s\S]{0,180}<small>Actual Net Flight Today<\/small>/);
-  const liveLedger=page.slice(page.indexOf("function LiveLedger"),page.indexOf("function Dashboard"));
+  const liveLedger=page.slice(page.indexOf("function LiveLedger"),page.indexOf("function ProductionCircuit"));
   assert.doesNotMatch(liveLedger,/Net Flight \{fmtStrategic|attempts ·/);
   const desertionInspector=page.slice(page.indexOf('{metric === "desertion"'),page.indexOf('<section className="factors">',page.indexOf('{metric === "desertion"')));
   assert.doesNotMatch(desertionInspector,/DESERTION PRESSURE|\/ 100/);
@@ -508,18 +529,14 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(css,/\.ava-button > span,[\s\S]{0,220}\.ava > footer button\s*\{[\s\S]{0,80}font-size:\s*12px/);
 });
 
-test("the strategic dashboard remains a dormant stub while Daily Campaign owns game entry",async()=>{
+test("the removed strategic dashboard cannot be entered while Daily Campaign owns game entry",async()=>{
   const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../app/AccountPage.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
   ]);
-  for(const heading of ["Live Expenditure","Production Capacity","Industrial Throughput","Systemic Attrition"]){
-    assert.match(page,new RegExp(`title="${heading}"`));
-  }
-  const dashboard=page.slice(page.indexOf("function Dashboard"),page.indexOf("function ProductionCircuit"));
-  const modulePage=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
+  const modulePage=sectionBetween(page,"function ModulePage","function CampaignPage");
   const playerModules=page.slice(page.indexOf("const modules:"),page.indexOf("const resourceLabel"));
   const surfaceRouter=briefing.slice(briefing.indexOf("const surfaceFor"),briefing.indexOf("export function BriefingInterface"));
   assert.doesNotMatch(playerModules,/id:\s*"dashboard"/);
@@ -528,10 +545,15 @@ test("the strategic dashboard remains a dormant stub while Daily Campaign owns g
   assert.match(page,/terminal\.navigate === "dashboard" \? "campaign"/);
   assert.match(surfaceRouter,/target === "dashboard"\s*\?\s*"brief"/);
   assert.doesNotMatch(surfaceRouter,/"state",/);
+  assert.doesNotMatch(briefing,/function StateSurface\s*\(/);
+  assert.doesNotMatch(briefing,/surface === "state"/);
+  assert.doesNotMatch(briefing,/<h1>State of the war<\/h1>/);
+  assert.doesNotMatch(css,/modern-state-surface|state-constellation|state-throughput-grid|state-report-block/);
+  assert.match(page,/data-game-entry-contract="daily-campaign"/);
   assert.match(page,/className="logo"[\s\S]{0,120}href="\/"/);
   assert.match(briefing,/className="briefing-brand"[\s\S]{0,120}href="\/"/);
-  assert.match(dashboard,/"Industrial Condition"/);
-  assert.doesNotMatch(dashboard,/className=\{`production-health/);
+  assert.doesNotMatch(page,/\{page === "dashboard"/);
+  assert.doesNotMatch(page,/function Dashboard\s*\(/);
   assert.match(modulePage,/data-report-owner="ava"/);
   assert.match(modulePage,/className="module desktop-module"/);
   assert.match(modulePage,/className=\{`os-window \$\{isProduction \? "production-command-window" : ""\}`\}/);
@@ -564,6 +586,35 @@ test("the strategic dashboard remains a dormant stub while Daily Campaign owns g
   assert.doesNotMatch(page,/Tempus Fugit|Praedicat Imperator|Industria Tabula|Consumere Ratio/);
   assert.doesNotMatch(css,/(?:font-size|font):[^;}]*\b6px\b/);
   assert.doesNotMatch(account,/campaign-editor|UPLOAD CAMPAIGN|IMPORT CAMPAIGN|CAMPAIGN EDITOR/i);
+});
+
+test("the production artifact contains no executable or styled Stats surface",async()=>{
+  const artifact=await readTextTree(new URL("../dist/",import.meta.url));
+  for(const forbidden of [
+    "State of the war",
+    "modern-state-surface",
+    "state-constellation",
+    "state-throughput-grid",
+    "state-report-block",
+  ])assert.doesNotMatch(artifact,new RegExp(forbidden),forbidden);
+  assert.match(artifact,/data-game-entry-contract/);
+  assert.match(artifact,/daily-campaign/);
+});
+
+test("Theater Wire uses readable normal glyph bounds and no body-to-date gap",async()=>{
+  const[page,css]=await Promise.all([
+    readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  const ticker=sectionBetween(page,"function WarTicker","export default function Home");
+  const tickerCss=sectionBetween(css,".war-ticker {",".briefing-top {");
+  assert.match(ticker,/\{\[\.\.\.items, \.\.\.items\]\.map/);
+  assert.match(ticker,/<time[\s\S]*?<\/time>\s*\{item\.artifact\}/);
+  assert.match(tickerCss,/\.war-ticker\s*\{[\s\S]*?font-stretch:\s*normal/);
+  assert.match(tickerCss,/\.war-ticker\s*\{[\s\S]*?letter-spacing:\s*0\.025em/);
+  assert.match(tickerCss,/\.war-ticker-track > span\s*\{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*0/);
+  assert.match(tickerCss,/\.war-ticker-track time\s*\{[\s\S]*?margin-right:\s*8px/);
+  assert.doesNotMatch(tickerCss,/margin-left|word-spacing:\s*-/);
 });
 
 test("Ava archives, disclosed forecasts, and workbook calculus remain explicit infrastructure",async()=>{
@@ -606,7 +657,7 @@ test("every command module renders the campaign-day aphorism as explicit state",
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
   const doctrine=page.slice(page.indexOf("function DoctrineControlPanel"),page.indexOf("function Term"));
-  const shared=page.slice(page.indexOf("function ModulePage"),page.indexOf("function WikiPage"));
+  const shared=sectionBetween(page,"function ModulePage","function CampaignPage");
   const campaign=page.slice(page.indexOf("function CampaignPage"),page.indexOf("function DoctrineConfirm"));
   const directives=briefing.slice(briefing.indexOf("function DirectiveSurface"),briefing.indexOf("function DoctrineSurface"));
   const altDoctrine=briefing.slice(briefing.indexOf("function DoctrineSurface"),briefing.indexOf("function ManualSurface"));

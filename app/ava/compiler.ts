@@ -53,6 +53,35 @@ export const normalizeAvaInput = (raw: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+
+export type AvaGodModeIntent = {
+  kind: "force-random-event";
+  normalizedInput: string;
+};
+
+export const compileAvaGodModeIntent = (
+  raw: string,
+): AvaGodModeIntent | null => {
+  const input = normalizeAvaInput(raw);
+  if (!input) return null;
+
+  const eventConcept =
+    /\b(?:event|events|opportunity|opportunities|incident|incidents|encounter|encounters|random thing)\b/;
+  const forcingVerb =
+    /\b(?:force|trigger|cause|create|spawn|generate|give|make|invoke|start|run|produce|want|need|bring)\b/;
+  const exactCheat =
+    /^(?:ava )?(?:please )?(?:random|unexpected) (?:event|opportunity)(?: now| please)?$/;
+
+  if (
+    exactCheat.test(input) ||
+    (eventConcept.test(input) && forcingVerb.test(input)) ||
+    (forcingVerb.test(input) && /\b(?:something unexpected|random thing)\b/.test(input))
+  )
+    return { kind: "force-random-event", normalizedInput: input };
+
+  return null;
+};
+
 const words = (value: string) =>
   normalizeAvaInput(value).split(" ").filter(Boolean);
 const phraseSet = (entity: AvaEntity) =>
@@ -157,9 +186,9 @@ const compiled = (
 });
 
 const moduleAliases: Record<string, AvaModule> = {
-  home: "dashboard",
-  dashboard: "dashboard",
-  overview: "dashboard",
+  home: "campaign",
+  dashboard: "campaign",
+  overview: "campaign",
   campaign: "campaign",
   front: "campaign",
   operations: "campaign",

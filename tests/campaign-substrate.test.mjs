@@ -5,7 +5,7 @@ const rules=await import(process.env.DELENDA_GAME_BUNDLE);
 const {
   ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_EVENTS, CAMPAIGN_FINISH_DISTRIBUTION, CAMPAIGN_SEED_NAME_COUNT, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
-  commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityStatusForFraction,
+  commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityOccurs, opportunityStatusForFraction,
   calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, maneuverChance, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
@@ -331,7 +331,7 @@ test("immediate opportunities alter the same-day operation when their effect is 
   assert.notEqual(resolve(committed).operationsLedger.groundMovement,resolve(state).operationsLedger.groundMovement);
 });
 
-test("the opportunity corpus is unique, full-day, one-in-five eligible, and separated by three-day windows",()=>{
+test("the opportunity corpus is unique, full-day, and uses a one-in-three daily trigger",()=>{
   assert.equal(OPPORTUNITY_TEMPLATES.length,100);
   assert.equal(new Set(OPPORTUNITY_TEMPLATES.map(item=>item.id)).size,100);
   assert.ok(OPPORTUNITY_TEMPLATES.every(item=>item.headline&&item.individual&&item.responses.length===2));
@@ -357,12 +357,25 @@ test("the opportunity corpus is unique, full-day, one-in-five eligible, and sepa
     assert.ok(safeResponse,"every opportunity must offer a guaranteed macro gain");
     assert.ok(Object.values(safeResponse.success).some(value=>typeof value==="number"&&value!==0));
   }
+  assert.equal(total,30);
+  assert.equal(occurrences,ids.length);
   assert.equal(new Set(ids).size,ids.length);
   const occurrenceDays=[];
   for(let day=1;day<=30;day++)if(opportunityForState({...state,day,currentSituation:null}))occurrenceDays.push(day);
-  assert.equal(occurrenceDays.includes(1),false);
-  assert.ok(occurrenceDays.slice(1).every((day,index)=>day-occurrenceDays[index]>=3));
-  assert.equal(OPPORTUNITY_FREQUENCY,.2);
+  assert.equal(OPPORTUNITY_FREQUENCY,1/3);
+
+  let organic=0,samples=0,openingDayOrganic=0;
+  for(let seed=1;seed<=4000;seed++){
+    for(let day=1;day<=30;day++){
+      const occurs=opportunityOccurs(seed,day);
+      organic+=Number(occurs);
+      samples+=1;
+      if(day===1)openingDayOrganic+=Number(occurs);
+    }
+  }
+  const observed=organic/samples;
+  assert.ok(observed>.325&&observed<.342,`observed organic rate ${observed}`);
+  assert.ok(openingDayOrganic>1200&&openingDayOrganic<1470,`opening-day events ${openingDayOrganic}`);
 });
 
 test("depleted stockpiles preserve industrial output and cap fulfilled use instead of inventing negative stock",()=>{

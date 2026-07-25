@@ -18,7 +18,7 @@ import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-
 
 export { CAMPAIGN_SEED_NAME_COUNT, campaignSeedId } from "./campaign-id";
 
-export type Module = "dashboard" | "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
+export type Module = "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";
 export type Tempo = "hold" | "methodical" | "surge" | "human-wave";
 export type NetworkPosture = "broadcast" | "dark" | "distributed";
@@ -98,7 +98,7 @@ export type GameState = {
   unlocked: string[]; decisions: { day: number; family: string; choice: string; familyId?:string; choiceId?:string; domain?:SubMissionDomain; missionId?:string; resolutionTicket?:string }[];
   eventHistory:{day:number;phase:string;event:string;eventId:string;calculusId?:string;trigger:string}[];
   opportunityCommitment:OpportunityCommitment|null; opportunityHistory:OpportunityHistoryRecord[];
-  opportunityAssignments:OpportunityAssignment[]; accountOpportunityIds:string[];
+  opportunityAssignments:OpportunityAssignment[]; accountOpportunityIds:string[]; forcedOpportunityDays:number[];
   theaterSectors:TheaterSector[]; operationalFacts:OperationalFact[]; situationHistory:SituationHistoryRecord[]; currentSituation:CompiledSituation|null;
   currentSubMissions:DailySubMissionDocket|null;subMissionHistory:SubMissionHistoryRecord[];resolutionHistory:DailyResolutionRecord[];
   reports: { day: number; title: string; body: string; tone: Tone; epigraph?: string }[];
@@ -116,7 +116,7 @@ export type Choice = {
 };
 
 export type Family = {
-  id: string; module: Exclude<Module, "dashboard" | "campaign" | "doctrine" | "wiki">; category: string;
+  id: string; module: Exclude<Module, "campaign" | "doctrine" | "wiki">; category: string;
   label: string; brief: string; lock: number; choices: Choice[];
 };
 
@@ -574,7 +574,7 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     ],
     adversary:{force:590000,readiness:61,equipment:68,munitions:138000,munitionsOutput:16800,munitionsUse:19200,doctrine:0,objective:"Unclassified",posture:"Methodical Pressure",productionTarget:"Replacement Equipment",countermeasure:"Seed False Dispositions",maneuverCounts:{},adaptation:{},lastOrders:[],estimateBias:1},adversaryLedger:null,
     production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
-    active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],opportunityAssignments:[],accountOpportunityIds:[],
+    active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],opportunityAssignments:[],accountOpportunityIds:[],forcedOpportunityDays:[],
     theaterSectors:initialTheaterSectors(config.theater),operationalFacts:initialOperationalFacts(config.theater),situationHistory:[],currentSituation:null,
     currentSubMissions:null,subMissionHistory:[],resolutionHistory:[],reports: [],
   };
@@ -725,32 +725,26 @@ export const situationForState = (state:GameState):CompiledSituation => {
   return compileSituationForState(state);
 };
 
-export const OPPORTUNITY_FREQUENCY=1/5;
+export const OPPORTUNITY_FREQUENCY=1/3;
 /*
- * Random assignments use one sealed five-sided roll per player day. A single
- * face opens the assignment. A raw trigger is suppressed when either of the
- * preceding two days also rolled the trigger face, so assignments can never
- * occupy the same three-day window. Day 1 is an onboarding day and can never
- * open one.
+ * Random assignments use one sealed three-sided roll per player day. One face
+ * opens the assignment, including the opening campaign day.
  */
 const opportunityRoll=(seed:number,day:number)=>
-  1+Math.floor(hash(`${seed}:target-of-opportunity:roll:${day}`)*5);
-const opportunityRawTrigger=(seed:number,day:number)=>
-  day>1&&opportunityRoll(seed,day)===1;
-const opportunityOccurs=(seed:number,day:number)=>
-  opportunityRawTrigger(seed,day)&&
-  !opportunityRawTrigger(seed,day-1)&&
-  !opportunityRawTrigger(seed,day-2);
+  1+Math.floor(hash(`${seed}:target-of-opportunity:roll:${day}`)*3);
+export const opportunityOccurs=(seed:number,day:number)=>
+  day>=1&&opportunityRoll(seed,day)===1;
 const opportunitySchedule=(seed:number,throughDay:number)=>{
   const days:number[]=[];
-  for(let day=2;day<=throughDay;day+=1)
+  for(let day=1;day<=throughDay;day+=1)
     if(opportunityOccurs(seed,day))days.push(day);
   return days;
 };
 const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>hash(`${seed}:target-of-opportunity:deck:${a.id}`)-hash(`${seed}:target-of-opportunity:deck:${b.id}`));
 
 export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
-  if(!opportunityOccurs(state.campaignSeed,state.day))return null;
+  const forced=(state.forcedOpportunityDays??[]).includes(state.day);
+  if(!forced&&!opportunityOccurs(state.campaignSeed,state.day))return null;
   const occurrence=opportunitySchedule(state.campaignSeed,state.day-1).length;
   const assignment=(state.opportunityAssignments??[]).find(item=>item.campaignId===state.campaignId&&item.day===state.day);
   const fullDeck=opportunityOrder(state.campaignSeed);
@@ -764,6 +758,13 @@ export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
   const opensAtFraction=0;
   const closesAtFraction=1;
   return{...template,sector:situation.sector,occurrence:occurrence+1,opensAtFraction,closesAtFraction,ticket:`TOO-${state.day}-${Math.floor(hash(`${state.campaignSeed}:${state.day}:${template.id}:${situation.sectorId}`)*0xffffffff).toString(16).padStart(8,"0")}`};
+};
+
+export const forceOpportunityForCurrentDay=(state:GameState)=>{
+  if((state.forcedOpportunityDays??[]).includes(state.day))return state;
+  const next=clone(state);
+  next.forcedOpportunityDays=[...(next.forcedOpportunityDays??[]),state.day];
+  return next;
 };
 
 export const recordOpportunityOpened=(state:GameState,packet:OpportunityPacket,at=Date.now())=>{
@@ -842,6 +843,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     decisions:Array.isArray(candidate.decisions)?candidate.decisions:base.decisions,eventHistory:Array.isArray(candidate.eventHistory)?candidate.eventHistory:base.eventHistory,reports:Array.isArray(candidate.reports)&&candidate.reports.length?candidate.reports:base.reports,scheduled:Array.isArray(candidate.scheduled)?candidate.scheduled:base.scheduled,
     opportunityCommitment:candidate.opportunityCommitment??null,opportunityHistory:Array.isArray(candidate.opportunityHistory)?candidate.opportunityHistory:base.opportunityHistory,
     opportunityAssignments:Array.isArray(candidate.opportunityAssignments)?candidate.opportunityAssignments:base.opportunityAssignments,
+    forcedOpportunityDays:Array.isArray(candidate.forcedOpportunityDays)?candidate.forcedOpportunityDays.filter((day):day is number=>Number.isInteger(day)&&day>0):base.forcedOpportunityDays,
     accountOpportunityIds:Array.isArray(candidate.accountOpportunityIds)?candidate.accountOpportunityIds.filter(item=>typeof item==="string"):base.accountOpportunityIds,
     unlocked:Array.isArray(candidate.unlocked)?[...new Set(candidate.unlocked.map(id=>id==="deny-quarter"?"total-war":id))]:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
     theaterSectors:Array.isArray(candidate.theaterSectors)&&candidate.theaterSectors.length?candidate.theaterSectors:base.theaterSectors,

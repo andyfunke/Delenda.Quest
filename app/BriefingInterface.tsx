@@ -12,9 +12,6 @@ import {
   fmt,
   maneuverForState,
   maneuversForState,
-  projectDomestic,
-  projectDiplomacy,
-  projectForceGeneration,
   projectOperations,
   projectProduction,
   situationForState,
@@ -36,12 +33,6 @@ import { FieldManual } from "./FieldManual";
 import { TheaterGeometry } from "./TheaterGeometry";
 import { operationalObjectiveForProblemClass } from "./campaign-substrate";
 import type { Aphorism } from "./aphorisms";
-import { Bubblette, type BubbletteDetail } from "./Bubblette";
-import { OperationsPacket } from "./OperationsPacket";
-import { CampaignDirectorPanel } from "./CampaignDirectorPanel";
-import { DomesticStatePanel } from "./DomesticStatePanel";
-import { DiplomacyPanel } from "./DiplomacyPanel";
-import { AdversaryPanel } from "./AdversaryPanel";
 import { campaignSeedId } from "./campaign-id";
 import { AccountPage } from "./AccountPage";
 
@@ -53,7 +44,6 @@ type BriefingIssue = {
 type Surface =
   | "daily"
   | "brief"
-  | "state"
   | "production"
   | "military"
   | "diplomacy"
@@ -192,56 +182,6 @@ function DecisionCard({
   );
 }
 
-function MissionContext({ prompt }: { prompt: ConvergencePrompt }) {
-  const showMissionEntry = () =>
-    window.dispatchEvent(
-      new CustomEvent("briefing-open-manual", { detail: prompt.id }),
-    );
-  return (
-    <section
-      className="briefing-mission-context"
-      aria-label={`${prompt.domain} mission provenance`}
-    >
-      <div className="campaign-mission-context">
-        <small>
-          {prompt.category.toUpperCase()} // {prompt.pressureBand.toUpperCase()}{" "}
-          PRESSURE
-        </small>
-        <b>{prompt.question}</b>
-        <span>
-          OPERATIONAL ANCHOR // {prompt.operationalAnchor.sector.toUpperCase()}{" "}
-          // {operationalObjectiveForProblemClass(prompt.operationalAnchor.problemClass)}
-        </span>
-      </div>
-      <div className="maneuver-contract">
-        <section>
-          <h3>Why today // live evidence</h3>
-          <ul>
-            {prompt.evidence.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3>How this reaches the front</h3>
-          <p>{prompt.operationalAnchor.headline}</p>
-          <ul>
-            {prompt.convergence.map((edge, index) => (
-              <li key={`${edge.source}-${edge.via}-${edge.target}`}>
-                <b>CONSEQUENCE {index + 1}</b>
-                <span>{edge.summary}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-      <button className="opportunity-manual" onClick={showMissionEntry}>
-        FIELD MANUAL // {prompt.title.toUpperCase()} →
-      </button>
-    </section>
-  );
-}
-
 function SecondaryFrontLedger({
   s,
   prompt,
@@ -334,113 +274,6 @@ function SecondaryFrontLedger({
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function StateSurface({ s }: { s: GameState }) {
-  const operation = projectOperations(s),
-    production = projectProduction(s),
-    domestic = projectDomestic(s),
-    force = projectForceGeneration(s),
-    diplomacy=projectDiplomacy(s),
-    personnel = estimateDay(s),
-    maneuver=maneuversForState(s)[0];
-  const activeDirectives=Object.entries(s.active).flatMap(([familyId,choiceId])=>{
-    const family=FAMILIES.find(item=>item.id===familyId),choice=family?.choices.find(item=>item.id===choiceId);
-    return family&&choice?[{family,choice,expires:s.locks[familyId]??s.day}]:[];
-  });
-  const internalized=DOCTRINES.flatMap(vector=>vector.stages.map(stage=>({vector,stage}))).filter(item=>s.unlocked.includes(item.stage.id));
-  const controlsFor=(keys:string[])=>{
-    const matches=FAMILIES.flatMap(family=>family.choices.some(item=>{
-      const effects=[item.delta,item.tick,item.delay?.delta].filter(Boolean) as Array<Record<string,number>>;
-      return effects.some(effect=>keys.some(key=>key in effect));
-    })?[family]:[]);
-    return [...new Set(matches.map(item=>`${item.category} // ${item.label}`))];
-  };
-  const node=(id:string,label:string,value:string,note:string,keys:string[],details:BubbletteDetail[]=[])=>{
-    const controls=controlsFor(keys);
-    return <Bubblette id={id} title={label} summary={note} details={[
-      ...details,
-      {label:"DIRECT CONTROLS",value:controls.slice(0,5).join(" · ")||"No directive changes this value directly"},
-      {label:"INTERDEPENDENCIES",value:keys.join(" · ")},
-    ]} className="state-constellation-node">
-      <small>{label}</small><b>{value}</b><span>{note}</span>
-    </Bubblette>;
-  };
-  return (
-    <section className="modern-surface modern-state-surface">
-      <header>
-        <span>AUTHORITATIVE STATE // DAY {s.day} // {campaignSeedId(s.campaignSeed)}</span>
-        <h1>State of the war</h1>
-        <p>
-          Hover any figure for its dependencies. Pin it to open the Field
-          Manual, trace what consumes it, or jump to the directives that
-          control it.
-        </p>
-      </header>
-      <div className="state-constellation" aria-label="Authoritative state dependency constellation">
-        <div className="state-constellation-core"><small>CAMPAIGN STATE</small><b>{s.status.toUpperCase()}</b><span>{s.front>=0?"+":""}{s.front.toFixed(1)} KM // DAY {s.day}</span></div>
-        {node("deployable-force","DEPLOYABLE",fmt(s.deployable,true),`${fmt(operation.committed,true)} committed locally`,["deployable","armed","readiness"])}
-        {node("effective-committed-force","FRIENDLY EFFECTIVE",fmt(operation.friendlyPower,true),`ratio ${operation.forceRatio.toFixed(2)} : 1`,["readiness","equipment","intelligence"])}
-        {node("enemy-forward-deployment","ENEMY EFFECTIVE",fmt(operation.enemyPower,true),`${fmt(operation.enemyCommittedLow,true)}–${fmt(operation.enemyCommittedHigh,true)} local band`,["intelligence","enemy"])}
-        {node("casualty-exposure","LOSS EXPOSURE",fmt(personnel.casualty,true),`${fmt(personnel.netDesertion,true)} projected net flight`,["readiness","equipment","desertionPressure","patrolCommitment"])}
-        {node("industrial-condition","INDUSTRIAL CONDITION",`${s.materiel.toFixed(0)}%`,`${production.shortages} shortages // ${production.maintenanceDebtAfter.toFixed(0)} debt`,["materiel","maintenanceDebt","workforce","treasury"])}
-        {node("training-pipeline","REPLACEMENT OUTPUT",fmt(force.effectiveGraduates,true),`${fmt(force.deployableAssigned,true)} assigned deployable`,["training","quality","queue","reserves"])}
-        {node("treasury","TREASURY",`${s.treasury.toFixed(1)} B`,`${signed(diplomacy.totalTreasury)} foreign delivery`,["treasury","dependency"])}
-        {node("legitimacy","LEGITIMACY",`${s.legitimacy.toFixed(0)}%`,`${signed(domestic.legitimacyChange)} at resolution`,["legitimacy","resistance","treasury"])}
-        {node("resistance","RESISTANCE",`${s.resistance.toFixed(0)}%`,`${signed(domestic.resistanceChange)} at resolution`,["resistance","legitimacy","forced"])}
-        {node("intelligence","INTELLIGENCE",`${s.intelligence.toFixed(0)}%`,`${operation.executionConfidence*100>=0?"+":""}${Math.round(operation.executionConfidence*100)}% execution confidence`,["intelligence","networkPosture"])}
-      </div>
-      <CampaignDirectorPanel s={s} />
-      <section className="briefing-block">
-        <header>
-          <h2>{s.theater.toUpperCase()} THEATER // SITUATION MAP</h2>
-        </header>
-        <TheaterGeometry s={s} variant="briefing" />
-      </section>
-      {maneuver?<OperationsPacket s={s} m={maneuver}/>:null}
-      <section className="state-report-block">
-        <header><span>INDUSTRIAL THROUGHPUT // NEXT RESOLUTION</span><b>{production.shortages} SHORTAGES</b></header>
-        <div className="state-throughput-grid">
-          {production.lines.map(line=>node(
-            line.resource==="munitions"?"operational-supply":"equipment",
-            line.resource.toUpperCase(),
-            line.closing.toLocaleString(),
-            `${line.output.toLocaleString()} output // ${line.fulfilledUse.toLocaleString()} use // ${line.net>=0?"+":""}${line.net.toLocaleString()} net`,
-            ["materiel","maintenanceDebt","workforce","treasury"],
-            [{label:"ALLOCATION",value:`${s.production[line.resource].allocation}%`},{label:"DESIRED OUTPUT",value:line.desiredOutput.toLocaleString()},{label:"COVERAGE",value:`${coverage(s,line.resource).toFixed(1)} days`}],
-          ))}
-        </div>
-      </section>
-      <section className="state-report-block">
-        <header><span>FORCE GENERATION // NEXT RESOLUTION</span><b>{fmt(force.effectiveGraduates,true)} EFFECTIVE GRADUATES</b></header>
-        <div className="modern-metric-grid">
-          <article><small>GROSS INTAKE</small><b>{fmt(force.grossIntake,true)}</b><span>{fmt(force.admitted,true)} admitted</span></article>
-          <article><small>TRAINING CAPACITY</small><b>{fmt(force.capacity,true)}</b><span>{force.cohortsClosing} cohorts tracked</span></article>
-          <article><small>REPLACEMENT RESERVE</small><b>{fmt(force.reservesClosing,true)}</b><span>{fmt(force.deployableAssigned,true)} assigned</span></article>
-          <article><small>TRAINING QUALITY</small><b>{s.quality.toFixed(0)}%</b><span>{s.duration} day standard</span></article>
-        </div>
-      </section>
-      <DomesticStatePanel s={s}/>
-      <DiplomacyPanel s={s}/>
-      {maneuver?<AdversaryPanel s={s} m={maneuver}/>:null}
-      <section className="state-report-block resolution-ledger state-order-ledger">
-        <header><span>ACTIVE ORDERS AND EFFECTS</span><b>{activeDirectives.length+s.activeDiplomacy.length} ACTIVE</b></header>
-        {activeDirectives.map(({family,choice,expires})=><article key={family.id}><b>{family.category.toUpperCase()}</b><span>{family.label} // {choice.label}</span><span>LOCK THROUGH DAY {expires}</span><span>{[...choice.exact,...choice.risk].join(" · ")}</span></article>)}
-        {s.activeDiplomacy.map(action=>{const family=FAMILIES.find(item=>item.id===action.familyId),choice=family?.choices.find(item=>item.id===action.choiceId);return <article key={`${action.familyId}:${action.choiceId}:${action.startedDay}`}><b>DIPLOMATIC EFFECT</b><span>{family?.label??action.familyId} // {choice?.label??action.choiceId}</span><span>EXPIRES DAY {action.expiresDay}</span><span>{choice?[...choice.exact,...choice.risk].join(" · "):"Persistent foreign effect"}</span></article>})}
-        {!activeDirectives.length&&!s.activeDiplomacy.length?<p>NO ACTIVE DIRECTIVES // THE STATE IS RUNNING ON BASELINE ORDERS</p>:null}
-      </section>
-      <section className="state-report-block resolution-ledger state-learning-ledger">
-        <header><span>DOCTRINE, OPPORTUNITIES, AND PERMANENT MEMORY</span><b>{s.doctrine} INSIGHT AVAILABLE</b></header>
-        {internalized.map(({vector,stage})=><article key={stage.id}><b>{vector.label.toUpperCase()}</b><span>{stage.label}</span><span>INTERNALIZED</span><span>{stage.effect}</span></article>)}
-        {s.opportunityHistory.map(record=><article key={`${record.day}:${record.opportunityId}`}><b>DAY {record.day} OPPORTUNITY</b><span>{record.label}</span><span>{record.outcome.toUpperCase()}</span><span>{record.response} // {record.report}</span></article>)}
-        {!internalized.length&&!s.opportunityHistory.length?<p>NO PERMANENT LEARNING OR OPPORTUNITY RECORDS YET</p>:null}
-      </section>
-      <section className="state-report-block resolution-ledger">
-        <header><span>RESOLUTION HISTORY</span><b>{s.resolutionHistory.length} DAYS RECORDED</b></header>
-        {s.resolutionHistory.length?s.resolutionHistory.map(record=><article key={record.resolvedDay}><b>DAY {record.resolvedDay}</b><span>{record.sector} // {record.outcome.outcomeBand.replaceAll("-"," ").toUpperCase()}</span><span>{record.outcome.groundMovement>=0?"+":""}{record.outcome.groundMovement.toFixed(2)} KM</span><span>{fmt(record.personnel.combatLosses,true)} COMBAT LOSSES</span><span>{fmt(record.personnel.netDesertion,true)} NET FLIGHT</span></article>):<p>NO DAYS RESOLVED // TODAY’S STATE IS THE OPENING RECORD</p>}
-      </section>
     </section>
   );
 }
@@ -1246,9 +1079,8 @@ export function BriefingInterface({
   };
   useEffect(() => {
     const moduleBySurface: Record<Surface, Module> = {
-      daily: "dashboard",
+      daily: "campaign",
       brief: "campaign",
-      state: "dashboard",
       production: "national",
       military: "military",
       diplomacy: "diplomacy",
@@ -1336,8 +1168,6 @@ export function BriefingInterface({
             issue={issue}
             setSurface={chooseSurface}
           />
-        ) : surface === "state" ? (
-          <StateSurface s={s} />
         ) : surface === "production" ? (
           <DirectiveSurface
             s={s}

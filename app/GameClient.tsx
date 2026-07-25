@@ -38,6 +38,7 @@ import {
   explainManeuverChance,
   fmt,
   fmtStrategic,
+  forceOpportunityForCurrentDay,
   initialState,
   liveProjection,
   maneuverForState,
@@ -65,7 +66,10 @@ import { AdminPage } from "./AdminPage";
 import { BugReporter } from "./BugReporter";
 import { THEATER_SECTORS } from "./campaign-substrate";
 import { openWikiApplet } from "./wiki-events";
-import { compileAvaCommand } from "./ava/compiler";
+import {
+  compileAvaCommand,
+  compileAvaGodModeIntent,
+} from "./ava/compiler";
 import { avaEntitiesForState } from "./ava/game-context";
 import { type AvaActionRef } from "./ava/schema";
 import type {
@@ -126,7 +130,11 @@ import {
 } from "./aphorisms";
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
-import { accountDayBounds, browserTimeZone } from "./account-time";
+import {
+  accountClockAfterClaim,
+  accountDayBounds,
+  browserTimeZone,
+} from "./account-time";
 import { avaInterfaceIntent } from "./ava/interface-intent";
 import { warFeedForInvocation } from "./war-feed";
 
@@ -141,6 +149,7 @@ type TurnAccess = {
 type AccountBootstrap = {
   isAdmin?: boolean;
   timeZone?: string;
+  timeZoneConfigured?: boolean;
   turn?: TurnAccess;
 };
 const isAccountBootstrap = (value: unknown): value is AccountBootstrap => {
@@ -150,6 +159,8 @@ const isAccountBootstrap = (value: unknown): value is AccountBootstrap => {
     (candidate.isAdmin === undefined || typeof candidate.isAdmin === "boolean") &&
     (candidate.timeZone === undefined ||
       typeof candidate.timeZone === "string") &&
+    (candidate.timeZoneConfigured === undefined ||
+      typeof candidate.timeZoneConfigured === "boolean") &&
     (candidate.turn === undefined ||
       (candidate.turn !== null && typeof candidate.turn === "object"))
   );
@@ -1456,344 +1467,6 @@ function LiveLedger({
   );
 }
 
-function Dashboard({
-  s,
-  live,
-  inspect,
-  openCampaign,
-}: {
-  s: GameState;
-  live: Live;
-  inspect: (m: Metric) => void;
-  openCampaign: () => void;
-}) {
-  const latest = s.reports[0];
-  const [balance, tone] = assessment(s);
-  const production = projectProduction(s),
-    force = projectForceGeneration(s),
-    operation = projectOperations(s),
-    shortages = production.lines.filter(
-      (line) => line.status === "critical",
-    ).length,
-    readinessChange =
-      (force.effectiveGraduates > operation.friendlyLosses ? 0.7 : -1.2) -
-      shortages * 0.55;
-  const attr: [
-    [Metric, string, number, string],
-    [Metric, string, number, string],
-    [Metric, string, number, string],
-  ] = [
-    [
-      "readiness",
-      "Soldiers",
-      s.readiness,
-      `${readinessChange >= 0 ? "+" : ""}${readinessChange.toFixed(1)} / DAY`,
-    ],
-    [
-      "materiel",
-      "Industrial Condition",
-      s.materiel,
-      `${production.materielChange >= 0 ? "+" : ""}${production.materielChange.toFixed(1)} / DAY`,
-    ],
-    [
-      "equipment",
-      "Equipment",
-      s.equipment,
-      `+${production.equipmentRecovery.toFixed(2)} POINTS / DAY`,
-    ],
-  ];
-  return (
-    <div className="dash">
-      <div className="dash-main">
-        <SituationCard s={s} openCampaign={openCampaign} />
-        <section className="command-geometry">
-          <Heading
-            title={`${s.theater.toUpperCase()} Theater Geometry`}
-          />
-          <TheaterGeometry s={s} variant="command" />
-        </section>
-        <section className={`morning ${latest.tone}`}>
-          <Epigraph
-            quote={
-              latest.epigraph ??
-              "The report is complete when the missing figures stop being requested."
-            }
-            source={
-              latest.day === 1
-                ? "COMM. HET CLAXTON, Praetor Corps, Third Division"
-                : "CAMPAIGN ARCHIVE"
-            }
-          />
-          <div className="morning-copy">
-            <span className="eyebrow">Morning report // Day {latest.day}</span>
-            <h1>{latest.title}</h1>
-            <div className="morning-prose">
-              {latest.body.split(/\n{2,}/).map((paragraph, index) => (
-                <p key={`${latest.day}-${index}`}>{paragraph}</p>
-              ))}
-            </div>
-          </div>
-        </section>
-        <LiveLedger s={s} live={live} inspect={inspect} />
-        <section>
-          <Heading
-            title="Production Capacity"
-            note="What the state can still convert"
-          />
-          <div className="metrics">
-            <MetricCard
-              label="Population"
-              value={fmt(s.population)}
-              note={`${fmt(s.workforce)} workforce`}
-              open={() => inspect("population")}
-            />
-            <MetricCard
-              label="Armed Forces"
-              value={fmt(live.armed)}
-              note={`${fmt(live.deployable)} deployable`}
-              tone={s.readiness < 50 ? "bad" : "warn"}
-              open={() => inspect("armed")}
-            />
-            <MetricCard
-              label="Enlistment"
-              value={`${fmt(s.voluntary + s.forced)}/d`}
-              note={`${fmt(s.queue)} awaiting induction`}
-              tone={s.queue > s.training * 2 ? "bad" : "warn"}
-              open={() => inspect("enlistment")}
-            />
-            <MetricCard
-              label="Training"
-              value={`${fmt(s.training)}/d`}
-              note={`${s.duration} days at ${s.quality.toFixed(0)}% quality`}
-              open={() => inspect("training")}
-            />
-          </div>
-        </section>
-        <section>
-          <Heading
-            title="Industrial Throughput"
-            note="Current industrial position"
-          />
-          <div className="production">
-            <div className="prod-row head">
-              <span>Allocation</span>
-              <span>Production</span>
-              <span>Current</span>
-              <span>Required</span>
-              <span>Live Stock</span>
-              <span>Balance</span>
-            </div>
-            {(Object.keys(s.production) as Resource[]).map((r) => {
-              const l = s.production[r],
-                projected = production.lines.find((line) => line.resource === r)!;
-              return (
-                <button
-                  className="prod-row"
-                  key={r}
-                  onClick={() =>
-                    inspect(r === "munitions" ? "materiel" : "equipment")
-                  }
-                >
-                  <span>{l.allocation}%</span>
-                  <strong>
-                    <i className={r} />
-                    {resourceLabel[r]}
-                  </strong>
-                  <span><b>{fmt(projected.output)}</b></span>
-                  <span>{fmt(projected.desiredOutput)}</span>
-                  <span>{fmt(live.production[r])}</span>
-                  <span
-                    className={
-                      projected.equilibrium < 0
-                        ? "bad-text"
-                        : projected.equilibrium > 0
-                          ? "good-text"
-                          : "warn-text"
-                    }
-                  >
-                    {projected.equilibrium > 0 ? "+" : ""}
-                    {fmt(projected.equilibrium)}{" "}
-                    {projected.equilibrium === 0
-                      ? "EQUILIBRIUM"
-                      : projected.equilibrium > 0
-                        ? "SURPLUS"
-                        : "DEFICIT"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-        <section>
-          <Heading
-            title="Systemic Attrition"
-            note="0 is failure // 100 is nominal"
-          />
-          <div className="attrition">
-            {attr.map(([id, label, value, note]) => (
-              <button key={id} onClick={() => inspect(id)}>
-                <div>
-                  <span>{label}</span>
-                  <b>{value.toFixed(0)}%</b>
-                </div>
-                <i>
-                  <em style={{ width: `${value}%` }} />
-                </i>
-                <small>{note}</small>
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-      <aside className="rail">
-        <section>
-          <span className="eyebrow">Strategic balance</span>
-          <h2>
-            <Dot tone={tone} />
-            {balance}
-          </h2>
-          <div className="forces">
-            <div>
-              <small>Your local effective force</small>
-              <b>{fmt(operation.friendlyPower)}</b>
-            </div>
-            <span>vs</span>
-            <div>
-              <small>Enemy local effective force</small>
-              <b>{fmt(operation.enemyPower)}</b>
-            </div>
-          </div>
-          <button className="frontline" onClick={() => inspect("front")}>
-            <i
-              style={{
-                left: `${Math.max(2, Math.min(98, ((s.front + 12) / 24) * 100))}%`,
-              }}
-            />
-          </button>
-          <div className="ends">
-            <span>-12 defeat</span>
-            <b>
-              {s.front >= 0 ? "+" : ""}
-              {s.front.toFixed(1)} km
-            </b>
-            <span>+12 victory</span>
-          </div>
-          <small className="force-ratio-audit">
-            LITERAL RATIO {operation.forceRatio.toFixed(2)} // ATTRITION
-            CALCULUS {operation.boundedForceRatio.toFixed(2)}
-          </small>
-        </section>
-        <section>
-          <span className="eyebrow">Personnel leakage</span>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Attempted flight</span>
-            <b>{fmtStrategic(live.deserted)}</b>
-          </button>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Retained by policy</span>
-            <b>{fmtStrategic(live.retained)}</b>
-          </button>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Intercepted</span>
-            <b>{fmtStrategic(live.intercepted)}</b>
-          </button>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Net flight</span>
-            <b>{fmtStrategic(live.netDesertion)}</b>
-          </button>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Patrol commitment</span>
-            <b>{fmt(s.patrolCommitment)}</b>
-          </button>
-          <button
-            className="railstat"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("open-family", { detail: "desertion" }),
-              )
-            }
-          >
-            <span>Desertion pressure</span>
-            <b>{s.desertionPressure.toFixed(0)}%</b>
-          </button>
-        </section>
-        <section>
-          <span className="eyebrow">State tolerance</span>
-          {[
-            ["Treasury", `${s.treasury.toFixed(1)} B`, "treasury"],
-            ["Legitimacy", `${s.legitimacy.toFixed(0)}%`, "legitimacy"],
-            ["Resistance", `${s.resistance.toFixed(0)}%`, "resistance"],
-            ["Reciprocity", `${s.reciprocity.toFixed(0)}%`, "doctrine"],
-          ].map(([a, b, m]) => (
-            <button
-              className="railstat"
-              key={a}
-              onClick={() => inspect(m as Metric)}
-            >
-              <span>{a}</span>
-              <b>{b}</b>
-            </button>
-          ))}
-        </section>
-        <SignalStream s={s} live={live} />
-        <section>
-          <span className="eyebrow">Recent decisions</span>
-          {s.decisions.length ? (
-            s.decisions.slice(0, 3).map((x, i) => (
-              <div className="arrival" key={i}>
-                <span>D{x.day}</span>
-                <div>
-                  <b>{x.choice}</b>
-                  <small>{x.family}</small>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="empty">
-              Three orders remain. Inaction is also a daily policy.
-            </p>
-          )}
-        </section>
-      </aside>
-    </div>
-  );
-}
-
 function ProductionCircuit({ s }: { s: GameState }) {
   const p = projectProduction(s),
     director = directorForState(s);
@@ -1965,7 +1638,7 @@ function ModulePage({
 }: {
   page: Exclude<
     Module,
-    "dashboard" | "campaign" | "doctrine" | "wiki" | "account"
+    "campaign" | "doctrine" | "wiki" | "account"
   >;
   s: GameState;
   issue: (f: Family, c: Choice) => void;
@@ -2213,210 +1886,6 @@ function ModulePage({
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function WikiPage({ article }: { article: string }) {
-  const slug = (x: string) =>
-    x
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-  const dynamic = Object.fromEntries([
-    ...FAMILIES.flatMap((f) => [
-      [
-        `issue-${slug(f.label)}`,
-        {
-          summary: f.brief,
-          body: `${f.label} is a ${f.module} issue family containing ${f.choices.length} directives. Issuing one costs 1 Action and locks the family for ${f.lock} days.`,
-          related: f.choices.map((c) => c.label),
-        },
-      ],
-      ...f.choices.map((c) => [
-        `directive-${slug(c.label)}`,
-        {
-          summary: c.flavor,
-          body: `Owned effects: ${c.exact.join("; ")} Contingent effects: ${c.risk.join("; ")}`,
-          related: [f.label, "Owned Effects", "Contingent Effects"],
-        },
-      ]),
-    ]),
-    ...MANEUVERS.map((m) => [
-      `maneuver-${slug(m.label)}`,
-      {
-        summary: m.flavor,
-        body: `Execution Confidence begins at ${Math.round(m.success * 100)}%. Exact commitment: ${m.exact.join("; ")} Contingent result: ${m.risk.join("; ")}`,
-        related: [m.vector, "Outcome Margin", "Insight Points"],
-      },
-    ]),
-    ...DOCTRINES.flatMap((v) => [
-      [
-        `vector-${slug(v.label)}`,
-        {
-          summary: `Doctrine vector administered by ${v.authority}.`,
-          body: `Contains ${v.stages.length} sequential Doctrine Techs. ${v.forbidden ? "Classified as Prohibited Methods." : "Purchased with verified-win Insight Points."}`,
-          related: v.stages.map((s) => s.label),
-        },
-      ],
-      ...v.stages.map((s) => [
-        `doctrine-${slug(s.label)}`,
-        {
-          summary: s.description,
-          body: `Output: ${s.output ?? "Operational Procedure"}. Affects: ${s.affects ?? "eligible formations"}. Cost: ${s.cost} Insight Points. Effect: ${s.effect}`,
-          related: [v.label, "Insight Points"],
-        },
-      ]),
-    ]),
-    ...SITUATIONS.map((x) => [
-      "situation-" + slug(x.id),
-      {
-        summary: x.headline,
-        body:
-          x.briefing +
-          " Authorized maneuvers: " +
-          x.maneuvers.join(", ") +
-          ". This authored blueprint is compiled against live sector conditions before display.",
-        related: [
-          "Campaign Situation Substrate",
-          "Situation Gate",
-          "Execution Confidence",
-        ],
-      },
-    ]),
-    ...OPPORTUNITY_TEMPLATES.map((x) => [
-      "opportunity-" + x.id,
-      {
-        summary: x.headline,
-        body: `${x.categoryLabel}. ${x.individual}. ${x.brief} This spine can occur once per campaign instance, resolves immediately inside its timed window, and consumes no strategic order. Responses: ${x.responses.map((response) => response.label).join("; ")}. Research spine: ${x.sourceSpine}.`,
-        related: [
-          "Target of Opportunity",
-          x.categoryLabel,
-          "Operational Intelligence",
-        ],
-      },
-    ]),
-    ...Object.values(FACT_CATALOG).map((x) => [
-      "fact-" + x.id,
-      {
-        summary: x.label,
-        body: `Category: ${x.category}. ${x.consequence}`,
-        related: ["Operational Fact", "Situation Gate", "Theater Sector"],
-      },
-    ]),
-    ...THEATER_SECTORS.map((x) => [
-      "sector-" + x.id,
-      {
-        summary: `${x.name}, a persistent sector in the ${x.theater} theater graph.`,
-        body: `Terrain: ${x.terrain}. Opening ground: ${x.ground}. Network: ${x.network}. Supply access ${x.supplyAccess}/100; infrastructure ${x.infrastructure}/100; fortification ${x.fortification}/100; control ${x.control >= 0 ? "+" : ""}${x.control.toFixed(2)}. Connected sectors: ${x.neighbors.join(", ")}.`,
-        related: ["Theater Sector", "Operational Fact", "Campaign Theater"],
-      },
-    ]),
-    ...CAMPAIGN_PHASES.map((x) => [
-      "phase-" + slug(x.label),
-      {
-        summary: x.brief,
-        body: `Active on Days ${x.days[0]}–${x.days[1]}. Exact phase effects: ${x.exact.join("; ")} Quote: “${x.quote}”`,
-        related: [
-          "Campaign Phase",
-          "Campaign Event Director",
-          "Strategic Condition",
-        ],
-      },
-    ]),
-    ...CAMPAIGN_EVENTS.map((x) => [
-      "event-" + slug(x.label),
-      {
-        summary: x.brief,
-        body: `Category: ${x.category}. ${x.trigger ? `Reactive trigger: ${x.trigger}. ` : ""}Exact effects: ${x.exact.join("; ")}. Disclosed risk: ${x.risk.join("; ")}. Resolution report: ${x.report}`,
-        related: [
-          "Strategic Condition",
-          x.trigger ? "Reactive Crisis" : "Campaign Phase",
-          ...x.phases.map(
-            (p) => CAMPAIGN_PHASES.find((phase) => phase.id === p)?.label ?? p,
-          ),
-        ],
-      },
-    ]),
-  ] as [string, { summary: string; body: string; related: string[] }][]);
-  const registered = Object.fromEntries(
-    Object.entries(CONCEPTS).map(([id, c]) => [
-      id,
-      {
-        summary: c.definition,
-        body: `${c.consequence}${c.normal ? ` Normal: ${c.normal}.` : ""}${c.control ? ` Controlled by ${c.control.module.toUpperCase()} // ${c.control.label}.` : ""}`,
-        related: c.related,
-      },
-    ]),
-  );
-  const all = { ...GLOSSARY, ...registered, ...dynamic };
-  const ids = Object.keys(all);
-  const [active, setActive] = useState(all[article] ? article : ids[0]);
-  const [query, setQuery] = useState("");
-  const visible = ids.filter((id) =>
-    id.includes(query.toLowerCase().replaceAll(" ", "-")),
-  );
-  const g = all[active];
-  return (
-    <div className="wiki">
-      <header>
-        <span className="eyebrow">DELENDA.QUEST FIELD MANUAL</span>
-        <h1>Campaign Wiki</h1>
-        <p>
-          Authoritative definitions for campaign systems. If a number
-          changes the war, its rule belongs here.
-        </p>
-      </header>
-      <div className="wiki-layout">
-        <aside>
-          <input
-            aria-label="Search wiki"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the field manual"
-          />
-          <h3>CONTENTS</h3>
-          {visible.map((id) => (
-            <button
-              className={active === id ? "active" : ""}
-              onClick={() => setActive(id)}
-              key={id}
-            >
-              {id.replaceAll("-", " ")}
-            </button>
-          ))}
-        </aside>
-        <article id={`wiki-${active}`}>
-          <div className="wiki-breadcrumb">
-            FIELD MANUAL &gt; SIMULATION CONCEPTS &gt;{" "}
-            {active.replaceAll("-", " ").toUpperCase()}
-          </div>
-          <h1>{active.replaceAll("-", " ")}</h1>
-          <p className="wiki-lead">{g.summary}</p>
-          <div className="wiki-rule">
-            <b>DEFINITION</b>
-            <p>{g.body}</p>
-          </div>
-          <h2>Related concepts</h2>
-          <ul>
-            {g.related.map((x) => {
-              const id = x.toLowerCase().replaceAll(" ", "-");
-              return (
-                <li key={x}>
-                  {all[id] ? (
-                    <button onClick={() => setActive(id)}>{x}</button>
-                  ) : (
-                    <span>{x}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          <footer>
-            LAST VERIFIED // CAMPAIGN RULESET V0.4 // SITUATION SYSTEM V1
-          </footer>
-        </article>
-      </div>
     </div>
   );
 }
@@ -4132,9 +3601,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         const value:unknown=await response.json();
         return isAccountBootstrap(value)?value:null;
       })
-      .then((account)=>{
+      .then(async(account)=>{
         setAdminAccess(!!account?.isAdmin);
         if(account?.turn)setTurnAccess(account.turn);
+        if(account&&!account.timeZoneConfigured){
+          const response=await fetch("/api/account",{
+            method:"PATCH",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({timeZone:detected}),
+          });
+          if(response.ok){
+            const initialized=await response.json() as {timeZone?:string};
+            if(initialized.timeZone){
+              setAccountTimeZone(initialized.timeZone);
+              setClock(accountDayBounds(initialized.timeZone));
+              return;
+            }
+          }
+        }
         if(account?.timeZone){
           setAccountTimeZone(account.timeZone);
           setClock(accountDayBounds(account.timeZone));
@@ -4939,7 +4423,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     setTurnBlackout(true);
     window.setTimeout(() => setTurnBlackout(false), 240);
     const n = Date.now();
-    setClock(accountDayBounds(accountTimeZone,n));
+    setClock(accountClockAfterClaim(claim.timeZone,accountTimeZone,n));
     setNow(n);
     setLedgerNow(n);
     setOpportunityInterruptAcknowledged(false);
@@ -5047,6 +4531,34 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       .toLocaleLowerCase("en-US")
       .replace(/[^\p{L}\p{N}]+/gu, " ")
       .trim();
+    const godModeIntent = compileAvaGodModeIntent(raw);
+    if (godModeIntent?.kind === "force-random-event") {
+      if (!turnAccess?.godMode) {
+        setMessages((current) => [
+          ...current,
+          {
+            who: "AVA",
+            text:
+              "RANDOM EVENT OVERRIDE REJECTED\nThis command is available only while godmode is enabled.",
+          },
+        ]);
+        return;
+      }
+      const next = forceOpportunityForCurrentDay(s);
+      const packet = opportunityStatusForFraction(next, fraction).packet;
+      setS(next);
+      setOpportunityInterruptAcknowledged(false);
+      setMessages((current) => [
+        ...current,
+        {
+          who: "AVA",
+          text: packet
+            ? `RANDOM EVENT FORCED\n${packet.headline}\nThe target-of-opportunity window is open for the current campaign day.`
+            : "RANDOM EVENT OVERRIDE FAILED\nNo eligible event could be compiled for the current day.",
+        },
+      ]);
+      return;
+    }
     if (
       godModeCommand === "enable godmode" ||
       godModeCommand === "disable godmode"
@@ -5378,7 +4890,10 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     setInput(completion.value);
   };
   return (
-    <main className={interfaceMode === "briefing" ? "briefing-main" : undefined}>
+    <main
+      className={interfaceMode === "briefing" ? "briefing-main" : undefined}
+      data-game-entry-contract="daily-campaign"
+    >
       {turnBlackout && <div className="turn-blackout" aria-hidden="true" />}
       <BugReporter module={interfaceMode === "briefing" ? briefingModule : page} interfaceMode={interfaceMode} />
       <WarTicker />
@@ -5567,14 +5082,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             </div>
           </div>
           <div className="frame">
-            {page === "dashboard" ? (
-              <Dashboard
-                s={s}
-                live={live}
-                inspect={setMetric}
-                openCampaign={() => setPage("campaign")}
-              />
-            ) : page === "campaign" ? (
+            {page === "campaign" ? (
               <CampaignPage
                 s={s}
                 epigraph={dailyAphorism}
@@ -5596,10 +5104,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                 }
               />
             ) : page === "wiki" ? (
-              <>
-                <FieldManual article={wikiArticle} />
-                {false && <WikiPage article={wikiArticle} />}
-              </>
+              <FieldManual article={wikiArticle} />
             ) : page === "account" ? (
               <AccountPage
                 onNewCampaign={() => {

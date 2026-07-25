@@ -693,7 +693,7 @@ function executeAvaInstruction(
   }
   if (instruction.kind === "STATUS") {
     const report = buildAvaReport(
-      { kind: "REPORT", topic: "overview", scope: "dashboard" },
+      { kind: "REPORT", topic: "overview", scope: "campaign" },
       state,
     );
     return finalize(
@@ -1135,7 +1135,6 @@ function executeAvaInstruction(
 
 const topicForModule = (module: AvaModule): AvaReportTopic =>
   ({
-    dashboard: "overview",
     campaign: "operations",
     national: "production",
     military: "personnel",
