@@ -3,6 +3,25 @@ import test from "node:test";
 
 const time = await import(process.env.DELENDA_ACCOUNT_TIME_BUNDLE);
 
+test("a browser timezone cookie becomes the account's atomic creation timezone", () => {
+  assert.deepEqual(
+    time.accountTimeZoneFromBootstrapCookie("America%2FLos_Angeles"),
+    { timeZone: "America/Los_Angeles", configured: true },
+  );
+  assert.deepEqual(
+    time.accountTimeZoneFromBootstrapCookie("UTC"),
+    { timeZone: "UTC", configured: true },
+  );
+  assert.deepEqual(
+    time.accountTimeZoneFromBootstrapCookie("Not%2FA_Zone"),
+    { timeZone: "UTC", configured: false },
+  );
+  assert.deepEqual(
+    time.accountTimeZoneFromBootstrapCookie(undefined),
+    { timeZone: "UTC", configured: false },
+  );
+});
+
 test("account-day boundaries honor spring and autumn daylight-saving changes", () => {
   const spring = time.accountDayBounds(
     "America/Los_Angeles",

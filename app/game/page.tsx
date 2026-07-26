@@ -3,7 +3,6 @@ import {
   authenticatedSignOutPath,
   requireChatGPTUser,
 } from "../chatgpt-auth";
-import { ensureAccount } from "../../db/accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +22,6 @@ const returnPath = (values: Record<string, string | string[] | undefined>) => {
 
 async function AuthenticatedGame({ returnTo }: { returnTo: string }) {
   const user=await requireChatGPTUser(returnTo);
-  await ensureAccount(user);
   return <GameClient logoutPath={authenticatedSignOutPath(user)} />;
 }
 

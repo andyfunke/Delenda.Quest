@@ -6,11 +6,11 @@ const {
   ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_EVENTS, CAMPAIGN_FINISH_DISTRIBUTION, CAMPAIGN_SEED_NAME_COUNT, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityOccurs, opportunityStatusForFraction,
-  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, forceOpportunityForCurrentDay, maneuverChance, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, forceOpportunityForCurrentDay, maneuverChance, maneuversForState, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
-  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v4");
+  assert.equal(CONTENT_PACK_VERSION,"campaign-substrate-v5");
   assert.equal(SITUATIONS.length,50);
   assert.equal(Object.keys(BLUEPRINT_RULES).length,50);
   assert.equal(Object.keys(FACT_CATALOG).length,25);
@@ -91,13 +91,45 @@ test("Main campaign compiles situation-specific order language over stable maneu
         assert.ok(canonical&&presentation);
         assert.ok(presentation.label.includes(situation.sector));
         assert.ok(presentation.rationale.length>40);
-        assert.match(presentation.realizationId,new RegExp(`:${id}:L\\d+:R\\d+$`));
+        assert.match(presentation.realizationId,new RegExp(`:${id}:L\\d+:Q\\d+:R\\d+$`));
         assert.ok(!canonicalLabels.has(presentation.label),`${presentation.label} fell back to a global maneuver label`);
         visibleLabels.add(presentation.label);
       }
     }
   }
   assert.ok(visibleLabels.size>=150,`only ${visibleLabels.size} distinct situation-specific order labels compiled`);
+});
+
+test("a thirty-day campaign never repeats a player-visible Main Campaign choice",()=>{
+  for(const theater of THEATERS){
+    for(let seed=1;seed<=10;seed++){
+      let state=initialState({seed,theater:theater.id});
+      const labels=new Set(),dockets=new Set();
+      for(let day=1;day<=30;day++){
+        const choices=maneuversForState(state);
+        assert.equal(choices.length,3);
+        assert.equal(new Set(choices.map(choice=>choice.id)).size,3);
+        for(const choice of choices){
+          assert.ok(
+            !labels.has(choice.label),
+            `${theater.id} seed ${seed} repeated "${choice.label}" on day ${day}`,
+          );
+          labels.add(choice.label);
+        }
+        const docket=choices.map(choice=>choice.label).sort().join(" | ");
+        assert.ok(
+          !dockets.has(docket),
+          `${theater.id} seed ${seed} repeated its visible docket on day ${day}`,
+        );
+        dockets.add(docket);
+        state.status="active";
+        state=resolve(state);
+        state.status="active";
+      }
+      assert.equal(labels.size,90);
+      assert.equal(dockets.size,30);
+    }
+  }
 });
 
 test("selection and resolution tickets are deterministic for identical state",()=>{
@@ -474,6 +506,8 @@ test("desertion is nonzero by default and zero must be earned through disclosed 
 
 test("restoration rejects malformed saved sub-mission dockets and preserves resolution history",()=>{
   let state=initialState({seed:99173,theater:"industrial"});state=resolve(state);const restored=restoreCampaignState(structuredClone(state));assert.equal(restored.resolutionHistory.length,1);
+  const staleContent=structuredClone(state);staleContent.contentPackVersion="campaign-substrate-v4";staleContent.currentSituation.contentPackVersion="campaign-substrate-v4";
+  const refreshed=restoreCampaignState(staleContent);assert.equal(refreshed.contentPackVersion,CONTENT_PACK_VERSION);assert.ok(Object.values(refreshed.currentSituation.maneuverPresentations).every(presentation=>/:Q\d+:R\d+$/.test(presentation.realizationId)));
   const malformed=structuredClone(state);malformed.currentSubMissions.domestic.archetypeId="missing-archetype";const repaired=restoreCampaignState(malformed);assert.notEqual(repaired.currentSubMissions.domestic.archetypeId,"missing-archetype");assert.doesNotThrow(()=>rules.situationForState(repaired));
   const missingFrame=structuredClone(state);missingFrame.currentSubMissions.domestic.frameId="missing-frame";const reframed=restoreCampaignState(missingFrame);assert.notEqual(reframed.currentSubMissions.domestic.frameId,"missing-frame");
   const missingEvidence=structuredClone(state);delete missingEvidence.currentSubMissions.network.evidence;const regenerated=restoreCampaignState(missingEvidence);assert.ok(Array.isArray(regenerated.currentSubMissions.network.evidence));assert.ok(regenerated.currentSubMissions.network.rendered.title);

@@ -1,8 +1,11 @@
 import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { cookies } from "next/headers";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import { getDb } from "./index";
 import { accountTurnState, friendInvites, friendships, users } from "./schema";
 import {
+  ACCOUNT_TIME_ZONE_COOKIE,
+  accountTimeZoneFromBootstrapCookie,
   accountDayBounds,
   legacyTurnGateBeforeTimeZoneChange,
   legacyTurnGateForPendingTimeZone,
@@ -35,10 +38,18 @@ const generatedAlias=async(email:string)=>{
   return `${family[first]}${family[second]}${String(suffix).padStart(3,"0")}`.slice(0,28);
 };
 
+const initialAccountTimeZone=async()=>accountTimeZoneFromBootstrapCookie(
+  (await cookies()).get(ACCOUNT_TIME_ZONE_COOKIE)?.value,
+);
+
 export async function ensureAccount(user:ChatGPTUser){
   const db=await getDb(),now=Date.now(),email=normalizeEmail(user.email);
-  const alias=await generatedAlias(email);
-  await db.insert(users).values({email,displayName:user.displayName,alias,aliasChangedAt:now,createdAt:now,lastSeenAt:now}).onConflictDoUpdate({target:users.email,set:{displayName:user.displayName,lastSeenAt:now}});
+  const[alias,initialTimeZone]=await Promise.all([generatedAlias(email),initialAccountTimeZone()]);
+  if(!initialTimeZone.configured){
+    const existing=(await db.select({email:users.email}).from(users).where(eq(users.email,email)).limit(1))[0];
+    if(!existing)throw new Error("Account creation requires a valid browser time zone.");
+  }
+  await db.insert(users).values({email,displayName:user.displayName,alias,aliasChangedAt:now,timeZone:initialTimeZone.timeZone,timeZoneConfigured:initialTimeZone.configured,createdAt:now,lastSeenAt:now}).onConflictDoUpdate({target:users.email,set:{displayName:user.displayName,lastSeenAt:now}});
   const existing=(await db.select({alias:users.alias}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!existing?.alias)await db.update(users).set({alias,aliasChangedAt:now}).where(eq(users.email,email));
   const account=(await db.select({allowFriends:users.allowFriends,socialEnabled:users.socialEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];

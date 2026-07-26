@@ -19,6 +19,23 @@ export const validTimeZone = (value: unknown): value is string => {
   }
 };
 
+export const ACCOUNT_TIME_ZONE_COOKIE = "delenda_time_zone";
+
+export const accountTimeZoneFromBootstrapCookie = (
+  rawValue: string | undefined,
+) => {
+  if (!rawValue) return { timeZone: "UTC", configured: false } as const;
+  let value = rawValue;
+  try {
+    value = decodeURIComponent(rawValue);
+  } catch {
+    return { timeZone: "UTC", configured: false } as const;
+  }
+  return validTimeZone(value)
+    ? { timeZone: value, configured: true }
+    : ({ timeZone: "UTC", configured: false } as const);
+};
+
 export const browserTimeZone = () => {
   try {
     const value = Intl.DateTimeFormat().resolvedOptions().timeZone;

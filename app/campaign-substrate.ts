@@ -47,6 +47,7 @@ export type FactDefinition = {id:string;label:string;category:string;consequence
 export type SituationHistoryRecord = {
   day:number; blueprintId:string; calculusBlueprintId?:string; situationId:string; sectorId:string; maneuverId:string|null;
   outcomeBand:OutcomeBand|null; margin:number|null; groundMovement:number|null; factsCreated:string[];
+  presentedManeuverLabels?:string[];
 };
 
 export type OperationalBands = {
@@ -108,7 +109,7 @@ export type ManeuverAftermathRule = {
   successFact:string; failureFact:string; cleanFact?:string; ttl:number;
 };
 
-export const CONTENT_PACK_VERSION="campaign-substrate-v4";
+export const CONTENT_PACK_VERSION="campaign-substrate-v5";
 const CALCULUS_VERSION="campaign-substrate-v3";
 
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
@@ -217,24 +218,96 @@ const MANEUVER_RATIONALES:Record<string,Array<(sector:string,target:string)=>str
   ],
 };
 
+const MANEUVER_ORDER_QUALIFIERS=[
+  "",
+  " // PRIORITY ONE",
+  " // IMMEDIATE EXECUTION",
+  " // FIRST ECHELON",
+  " // SECOND ECHELON",
+  " // LIMITED OBJECTIVE",
+  " // RESERVE AUTHORITY",
+  " // NIGHT WINDOW",
+  " // DAWN WINDOW",
+  " // COUNTERBATTERY WINDOW",
+  " // UNDER SMOKE",
+  " // BEFORE ENEMY RELIEF",
+  " // FORMATION PRIORITY",
+  " // FIRE PLAN ALPHA",
+  " // DISPLACEMENT WINDOW",
+  " // COMMANDER'S RESERVE",
+] as const;
+
+const legacyPresentedManeuverLabels=(
+  state:CampaignStateView,
+  templates:SituationTemplate[],
+  record:SituationHistoryRecord,
+)=>{
+  const narrative=templates.find(template=>template.id===record.blueprintId);
+  const calculus=templates.find(template=>template.id===(record.calculusBlueprintId??record.blueprintId));
+  const rule=calculus?BLUEPRINT_RULES[calculus.id]:undefined;
+  const sector=(state.theaterSectors??THEATER_SECTORS).find(item=>item.id===record.sectorId);
+  if(!narrative||!calculus||!rule||!sector)return[];
+  const target=PROBLEM_TARGETS[rule.problemClass];
+  return dailyManeuverDocket({...state,day:record.day},calculus).flatMap(id=>{
+    const labels=MANEUVER_ORDER_GRAMMAR[id];
+    if(!labels?.length)return[];
+    const labelIndex=hashInt(`${state.campaignSeed}:${record.day}:${narrative.id}:${sector.id}:${id}:order`)%labels.length;
+    return[labels[labelIndex](sector.name,target)];
+  });
+};
+
+const priorPresentedManeuverLabels=(
+  state:CampaignStateView,
+  templates:SituationTemplate[],
+)=>{
+  const labels=new Set<string>();
+  for(const record of state.situationHistory??[]){
+    const presented=record.presentedManeuverLabels?.length
+      ? record.presentedManeuverLabels
+      : legacyPresentedManeuverLabels(state,templates,record);
+    for(const label of presented)labels.add(label);
+  }
+  return labels;
+};
+
 const compileManeuverPresentations=(
   state:CampaignStateView,
   template:SituationTemplate,
   rule:SituationBlueprintRule,
   sector:TheaterSector,
   maneuverIds:string[],
-):Record<string,ManeuverPresentation>=>Object.fromEntries(maneuverIds.map(id=>{
+  priorLabels:Set<string>,
+):Record<string,ManeuverPresentation>=>{
+  const claimed=new Set(priorLabels);
+  return Object.fromEntries(maneuverIds.map(id=>{
   const labels=MANEUVER_ORDER_GRAMMAR[id]??[(name:string)=>`${id.toUpperCase()} AT ${name}`];
   const rationales=MANEUVER_RATIONALES[id]??[()=>rule.standingOrder];
-  const labelIndex=hashInt(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${id}:order`)%labels.length;
+  const baseOffset=hashInt(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${id}:order`)%labels.length;
+  const candidates=MANEUVER_ORDER_QUALIFIERS.flatMap((qualifier,qualifierIndex)=>
+    labels.map((render,offset)=>{
+      const labelIndex=(baseOffset+offset)%labels.length;
+      return{
+        label:`${render(sector.name,PROBLEM_TARGETS[rule.problemClass])}${qualifier}`,
+        labelIndex,
+        qualifierIndex,
+      };
+    }),
+  );
+  const candidateOffset=hashInt(`${state.campaignSeed}:${state.day}:${template.id}:${sector.id}:${id}:realization:${CONTENT_PACK_VERSION}`)%candidates.length;
+  const selected=Array.from(
+    {length:candidates.length},
+    (_,offset)=>candidates[(candidateOffset+offset)%candidates.length],
+  ).find(candidate=>!claimed.has(candidate.label))??candidates[candidateOffset];
+  claimed.add(selected.label);
   const rationaleIndex=hashInt(`${state.campaignSeed}:${template.id}:${sector.id}:${id}:rationale`)%rationales.length;
   const target=PROBLEM_TARGETS[rule.problemClass];
   return[id,{
-    label:labels[labelIndex](sector.name,target),
+    label:selected.label,
     rationale:rationales[rationaleIndex](sector.name,target),
-    realizationId:`${template.id}:${sector.id}:${id}:L${labelIndex + 1}:R${rationaleIndex + 1}`,
+    realizationId:`${template.id}:${sector.id}:${id}:L${selected.labelIndex + 1}:Q${selected.qualifierIndex + 1}:R${rationaleIndex + 1}`,
   }];
-}));
+  }));
+};
 export const phaseIdForDay=(day:number):CampaignPhaseId=>day<=5?"contact":day<=12?"compression":day<=20?"exhaustion":"terminal";
 export const outcomeBandForMargin=(margin:number):OutcomeBand=>margin>=.2?"clean":margin>=0?"executed":margin>=-.2?"disrupted":"collapse";
 export const outcomeBandLabel:Record<OutcomeBand,string>={clean:"CLEAN EXECUTION",executed:"EXECUTED WITH FRICTION",disrupted:"DISRUPTED",collapse:"OPERATIONAL COLLAPSE"};
@@ -460,7 +533,14 @@ export const compileSituation=(state:CampaignStateView,templates:SituationTempla
   const narrative=writingDeck[Math.floor(stableHash(`${state.campaignSeed}:${state.day}:${chosen.template.id}:situation-writing:${CONTENT_PACK_VERSION}`)*writingDeck.length)]??chosen.template;
   const facts=activeFacts(state,chosen.sector.id).map(x=>FACT_CATALOG[x.id]?.label??x.id);
   const maneuvers=dailyManeuverDocket(state,chosen.template);
-  const maneuverPresentations=compileManeuverPresentations(state,narrative,chosen.rule,chosen.sector,maneuvers);
+  const maneuverPresentations=compileManeuverPresentations(
+    state,
+    narrative,
+    chosen.rule,
+    chosen.sector,
+    maneuvers,
+    priorPresentedManeuverLabels(state,templates),
+  );
   const aftermathFacts=[...new Set(maneuvers.flatMap(id=>{const rule=MANEUVER_AFTERMATH[id];return rule?[rule.successFact,rule.failureFact,...(rule.cleanFact?[rule.cleanFact]:[])]:[]}).map(id=>FACT_CATALOG[id]?.label??id))];
   const ticket=`${CALCULUS_VERSION}:${hashInt(`${state.campaignSeed}:${state.day}:${chosen.template.id}:${chosen.sector.id}:resolution`).toString(16).padStart(8,"0")}`;
   const selectionBasis=`${candidates.length} ELIGIBLE CALCULUS // ${unseenWriting.length} UNSEEN AUTHORED SITUATIONS // ${phase.toUpperCase()} PHASE // ${chosen.bands.frontPosture.toUpperCase()} FRONT // ${chosen.bands.supply.toUpperCase()} SUPPLY // ${condition?.label.toUpperCase()??"NO STRATEGIC CONDITION"}`;
@@ -483,7 +563,7 @@ const degradeNetwork=(network:TheaterSector["network"])=>network==="restored"?"i
 export const resolveSituationAftermath=(state:CampaignStateView,situation:CompiledSituation,maneuverId:string|null,band:OutcomeBand,margin:number,groundMovement:number)=>{
   const sectors=(state.theaterSectors??initialTheaterSectors(state.theater)).map(x=>({...x,neighbors:[...x.neighbors]}));
   let facts=(state.operationalFacts??initialOperationalFacts(state.theater)).filter(x=>x.expiresDay===null||x.expiresDay>=state.day).map(x=>({...x}));
-  const history=(state.situationHistory??[]).map(x=>({...x,factsCreated:[...x.factsCreated]}));const sector=sectors.find(x=>x.id===situation.sectorId)??sectors[0];const created:string[]=[];
+  const history=(state.situationHistory??[]).map(x=>({...x,factsCreated:[...x.factsCreated],presentedManeuverLabels:x.presentedManeuverLabels?[...x.presentedManeuverLabels]:undefined}));const sector=sectors.find(x=>x.id===situation.sectorId)??sectors[0];const created:string[]=[];
   const success=band==="clean"||band==="executed";const rule=maneuverId?MANEUVER_AFTERMATH[maneuverId]:undefined;
   const create=(id:string,ttl:number,intensity=1)=>{const definition=FACT_CATALOG[id];if(!definition)return;addFact(facts,{id,sectorId:sector.id,createdDay:state.day,expiresDay:ttl<0?null:state.day+ttl,intensity,source:`${situation.blueprintId.toUpperCase()} // ${maneuverId?.toUpperCase()??"STANDING ORDER"} // ${outcomeBandLabel[band]}`,visible:true});created.push(id);};
   if(rule){create(success?rule.successFact:rule.failureFact,rule.ttl,band==="clean"||band==="collapse"?1.25:1);if(band==="clean"&&rule.cleanFact)create(rule.cleanFact,Math.max(2,rule.ttl-1),1);}
@@ -496,7 +576,7 @@ export const resolveSituationAftermath=(state:CampaignStateView,situation:Compil
   if(maneuverId==="breach"){sector.fortification=clamp(sector.fortification-(success?18:3),0,100);if(success)facts=removeFact(facts,"obstacle_belt_prepared",sector.id);}
   if(maneuverId==="network"){sector.network=success?improveNetwork(sector.network):degradeNetwork(sector.network);if(success){facts=removeFact(facts,"command_net_severed",sector.id);facts=removeFact(facts,"relay_compromised",sector.id);}}
   if(!maneuverId&&state.readiness<50)create("formation_exhausted",3,1);
-  history.unshift({day:state.day,blueprintId:situation.blueprintId,calculusBlueprintId:situation.calculusBlueprintId,situationId:situation.id,sectorId:sector.id,maneuverId,outcomeBand:band,margin,groundMovement,factsCreated:created});
+  history.unshift({day:state.day,blueprintId:situation.blueprintId,calculusBlueprintId:situation.calculusBlueprintId,situationId:situation.id,sectorId:sector.id,maneuverId,outcomeBand:band,margin,groundMovement,factsCreated:created,presentedManeuverLabels:Object.values(situation.maneuverPresentations).map(presentation=>presentation.label)});
   return{theaterSectors:sectors,operationalFacts:facts,situationHistory:history.slice(0,60),createdFacts:created.map(id=>FACT_CATALOG[id])};
 };
 

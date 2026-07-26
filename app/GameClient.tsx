@@ -2404,7 +2404,7 @@ function OpportunityModal({
           </div>
         )}
         <footer>
-          RANDOM EVENT // 1–3 DAY INTERVAL // UNIQUE WITHIN THIS CAMPAIGN //
+          RANDOM EVENT // 1-IN-3 DAILY ROLL // UNIQUE WITHIN THIS CAMPAIGN //
           AVAILABLE ALL PLAYER DAY // IMMEDIATE SAME-DAY EFFECT
         </footer>
       </section>

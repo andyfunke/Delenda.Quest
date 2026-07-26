@@ -510,6 +510,8 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.doesNotMatch(page,/if \(status === "opened"\) setOpportunityOpen\(true\)/);
   assert.match(page,/setOpportunityInterruptAcknowledged\(false\)/);
   assert.match(page,/role="alertdialog"/);
+  assert.match(page,/RANDOM EVENT \/\/ 1-IN-3 DAILY ROLL \/\/ UNIQUE WITHIN THIS CAMPAIGN/);
+  assert.doesNotMatch(page,/RANDOM EVENT \/\/ 1–3 DAY INTERVAL/);
   assert.match(page,/className="interrupt-close"/);
   assert.match(page,/REVIEW OPTIONS →/);
   assert.match(page,/className="ava-urgent-icon"/);
@@ -730,11 +732,13 @@ test("social metagame uses private aliases, private day boundaries, Player Ratin
 });
 
 test("registration owns active campaigns and the telemetry console is server-authorized",async()=>{
-  const[gameRoute,client,campaignRoute,campaignStore,schema,adminRoute,adminStore,landing,telemetryRoute]=await Promise.all([
+  const[layout,gameRoute,client,campaignRoute,campaignStore,accountStore,schema,adminRoute,adminStore,landing,telemetryRoute]=await Promise.all([
+    readFile(new URL("../app/layout.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/campaign/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/campaigns.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/accounts.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../db/admin.ts",import.meta.url),"utf8"),
@@ -742,7 +746,18 @@ test("registration owns active campaigns and the telemetry console is server-aut
     readFile(new URL("../app/api/telemetry/route.ts",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireChatGPTUser\(returnTo\)/);
-  assert.match(gameRoute,/ensureAccount\(user\)/);
+  assert.doesNotMatch(gameRoute,/ensureAccount\(user\)/);
+  assert.match(layout,/strategy="beforeInteractive"/);
+  assert.match(layout,/Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
+  assert.match(layout,/ACCOUNT_TIME_ZONE_COOKIE/);
+  assert.match(layout,/location\.protocol === "https:" \? "; Secure"/);
+  assert.match(accountStore,/accountTimeZoneFromBootstrapCookie/);
+  assert.match(accountStore,/timeZone:initialTimeZone\.timeZone/);
+  assert.match(accountStore,/timeZoneConfigured:initialTimeZone\.configured/);
+  assert.match(accountStore,/if\(!initialTimeZone\.configured\)[\s\S]*if\(!existing\)throw new Error\("Account creation requires a valid browser time zone\."\)/);
+  const accountConflictUpdate=accountStore.match(/onConflictDoUpdate\(\{target:users\.email,set:\{([^}]*)\}\}\)/)?.[1]??"";
+  assert.match(accountConflictUpdate,/displayName:user\.displayName/);
+  assert.doesNotMatch(accountConflictUpdate,/timeZone|pendingTimeZone|timeZoneEffectiveAt/);
   assert.match(schema,/activeCampaigns=sqliteTable\("active_campaigns"/);
   assert.match(schema,/ownerEmail:text\("owner_email"\)\.primaryKey\(\)/);
   assert.match(campaignRoute,/if\(!user\).*Sign in to load your campaign/s);
