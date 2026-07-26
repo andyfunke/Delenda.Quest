@@ -22,7 +22,7 @@ const TABLES = [
   "account_rotation_ledger",
 ];
 
-test("production deployment is locked to the Worker already serving delenda.quest", async () => {
+test("production CI cannot deploy the isolated shadow and always tests delenda.quest", async () => {
   const [config,workflow] = await Promise.all([
     readFile(new URL("../cloudflare/wrangler.jsonc", import.meta.url),"utf8").then(JSON.parse),
     readFile(new URL("../.github/workflows/cloudflare-shadow.yml", import.meta.url),"utf8"),
@@ -42,17 +42,15 @@ test("production deployment is locked to the Worker already serving delenda.ques
     "DELENDA_ADMIN_EMAILS",
     "DELENDA_REPLICATION_TOKEN",
   ]);
-  assert.match(workflow,/name: Cloudflare production/);
+  assert.match(workflow,/name: Production contract/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow,/deploy-production/);
-  assert.match(workflow,/workers\/domains\?hostname=delenda\.quest/);
-  assert.match(workflow,/service}" != "\${expected}/);
-  assert.match(workflow,/Deploy the verified production Worker/);
-  assert.match(workflow,/wrangler-action@v3/);
-  assert.match(workflow,/deploy --config cloudflare\/wrangler\.jsonc/);
-  assert.match(workflow,/Prove the custom domain serves the deployed contract/);
+  assert.match(workflow,/live-production-acceptance/);
+  assert.match(workflow,/Prove delenda\.quest serves the deployed contract/);
   assert.match(workflow,/npm run test:live/);
-  assert.doesNotMatch(workflow,/deploy-shadow|workflow_dispatch/);
+  assert.doesNotMatch(
+    workflow,
+    /deploy-production|deploy-shadow|workflow_dispatch|wrangler-action|CLOUDFLARE_API_TOKEN|workers\/domains|deploy --config/,
+  );
 });
 
 test("Cloudflare Access is verified and the Sites identity path remains intact", async () => {
