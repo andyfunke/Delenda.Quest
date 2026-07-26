@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   if (!table) {
     return noStoreJson({
       format: SNAPSHOT_FORMAT,
-      schemaVersion: 11,
+      schemaVersion: 12,
       tables: REPLICATION_TABLES,
     });
   }

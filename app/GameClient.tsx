@@ -166,7 +166,10 @@ const isAccountBootstrap = (value: unknown): value is AccountBootstrap => {
   );
 };
 
-const modules: { id: Module; label: string; n: string }[] = [
+type CommandPage = Module | "storyboard";
+
+const modules: { id: CommandPage; label: string; n: string }[] = [
+  { id: "storyboard", label: "Dashboard", n: "00" },
   { id: "campaign", label: "Campaign", n: "01" },
   { id: "national", label: "Production", n: "02" },
   { id: "military", label: "Military", n: "03" },
@@ -179,8 +182,12 @@ const resourceLabel: Record<Resource, string> = {
   flight: "Flight",
   drones: "Drones",
 };
-const moduleName = (module: Module) =>
-  module === "national" ? "PRODUCTION" : module.toUpperCase();
+const moduleName = (module: CommandPage) =>
+  module === "national"
+    ? "PRODUCTION"
+    : module === "storyboard"
+      ? "DASHBOARD"
+      : module.toUpperCase();
 const directiveEffectTone = (line: string) => {
   if (
     /(?:^|\s)\+\s*\d|↑|\b(?:increase|gain|restore|improve|add|recover)\b/i.test(
@@ -215,8 +222,11 @@ type Message = {
   text: string;
   kind?: "ava" | "shell";
 };
-type Page = Module | "admin";
+type Page = CommandPage | "admin";
 type Live = ReturnType<typeof liveProjection>;
+
+const gameModuleForPage = (page: Page): Module =>
+  page === "admin" ? "account" : page === "storyboard" ? "campaign" : page;
 
 const DAY_MS = 86_400_000;
 const initialClock = () => accountDayBounds("UTC");
@@ -1464,6 +1474,346 @@ function LiveLedger({
         </button>
       </div>
     </section>
+  );
+}
+
+function CommandStoryboard({
+  s,
+  live,
+  inspect,
+  openCampaign,
+}: {
+  s: GameState;
+  live: Live;
+  inspect: (m: Metric) => void;
+  openCampaign: () => void;
+}) {
+  const latest = s.reports[0];
+  const [balance, tone] = assessment(s);
+  const production = projectProduction(s),
+    force = projectForceGeneration(s),
+    operation = projectOperations(s),
+    shortages = production.lines.filter(
+      (line) => line.status === "critical",
+    ).length,
+    readinessChange =
+      (force.effectiveGraduates > operation.friendlyLosses ? 0.7 : -1.2) -
+      shortages * 0.55;
+  const attr: [
+    [Metric, string, number, string],
+    [Metric, string, number, string],
+    [Metric, string, number, string],
+  ] = [
+    [
+      "readiness",
+      "Soldiers",
+      s.readiness,
+      `${readinessChange >= 0 ? "+" : ""}${readinessChange.toFixed(1)} / DAY`,
+    ],
+    [
+      "materiel",
+      "Industrial Condition",
+      s.materiel,
+      `${production.materielChange >= 0 ? "+" : ""}${production.materielChange.toFixed(1)} / DAY`,
+    ],
+    [
+      "equipment",
+      "Equipment",
+      s.equipment,
+      `+${production.equipmentRecovery.toFixed(2)} POINTS / DAY`,
+    ],
+  ];
+  return (
+    <div className="dash" data-command-storyboard="restored">
+      <div className="dash-main">
+        <SituationCard s={s} openCampaign={openCampaign} />
+        <section className="command-geometry">
+          <Heading title={`${s.theater.toUpperCase()} Theater Geometry`} />
+          <TheaterGeometry s={s} variant="command" />
+        </section>
+        <section className={`morning ${latest.tone}`}>
+          <Epigraph
+            quote={
+              latest.epigraph ??
+              "The report is complete when the missing figures stop being requested."
+            }
+            source={
+              latest.day === 1
+                ? "COMM. HET CLAXTON, Praetor Corps, Third Division"
+                : "CAMPAIGN ARCHIVE"
+            }
+          />
+          <div className="morning-copy">
+            <span className="eyebrow">Morning report // Day {latest.day}</span>
+            <h1>{latest.title}</h1>
+            <div className="morning-prose">
+              {latest.body.split(/\n{2,}/).map((paragraph, index) => (
+                <p key={`${latest.day}-${index}`}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+        <LiveLedger s={s} live={live} inspect={inspect} />
+        <section>
+          <Heading
+            title="Production Capacity"
+            note="What the state can still convert"
+          />
+          <div className="metrics">
+            <MetricCard
+              label="Population"
+              value={fmt(s.population)}
+              note={`${fmt(s.workforce)} workforce`}
+              open={() => inspect("population")}
+            />
+            <MetricCard
+              label="Armed Forces"
+              value={fmt(live.armed)}
+              note={`${fmt(live.deployable)} deployable`}
+              tone={s.readiness < 50 ? "bad" : "warn"}
+              open={() => inspect("armed")}
+            />
+            <MetricCard
+              label="Enlistment"
+              value={`${fmt(s.voluntary + s.forced)}/d`}
+              note={`${fmt(s.queue)} awaiting induction`}
+              tone={s.queue > s.training * 2 ? "bad" : "warn"}
+              open={() => inspect("enlistment")}
+            />
+            <MetricCard
+              label="Training"
+              value={`${fmt(s.training)}/d`}
+              note={`${s.duration} days at ${s.quality.toFixed(0)}% quality`}
+              open={() => inspect("training")}
+            />
+          </div>
+        </section>
+        <section>
+          <Heading
+            title="Industrial Throughput"
+            note="Current industrial position"
+          />
+          <div className="production">
+            <div className="prod-row head">
+              <span>Allocation</span>
+              <span>Production</span>
+              <span>Current</span>
+              <span>Required</span>
+              <span>Live Stock</span>
+              <span>Balance</span>
+            </div>
+            {(Object.keys(s.production) as Resource[]).map((resource) => {
+              const allocation = s.production[resource];
+              const projected = production.lines.find(
+                (line) => line.resource === resource,
+              )!;
+              return (
+                <button
+                  className="prod-row"
+                  key={resource}
+                  onClick={() =>
+                    inspect(resource === "munitions" ? "materiel" : "equipment")
+                  }
+                >
+                  <span>{allocation.allocation}%</span>
+                  <strong>
+                    <i className={resource} />
+                    {resourceLabel[resource]}
+                  </strong>
+                  <span>
+                    <b>{fmt(projected.output)}</b>
+                  </span>
+                  <span>{fmt(projected.desiredOutput)}</span>
+                  <span>{fmt(live.production[resource])}</span>
+                  <span
+                    className={
+                      projected.equilibrium < 0
+                        ? "bad-text"
+                        : projected.equilibrium > 0
+                          ? "good-text"
+                          : "warn-text"
+                    }
+                  >
+                    {projected.equilibrium > 0 ? "+" : ""}
+                    {fmt(projected.equilibrium)}{" "}
+                    {projected.equilibrium === 0
+                      ? "EQUILIBRIUM"
+                      : projected.equilibrium > 0
+                        ? "SURPLUS"
+                        : "DEFICIT"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <section>
+          <Heading
+            title="Systemic Attrition"
+            note="0 is failure // 100 is nominal"
+          />
+          <div className="attrition">
+            {attr.map(([id, label, value, note]) => (
+              <button key={id} onClick={() => inspect(id)}>
+                <div>
+                  <span>{label}</span>
+                  <b>{value.toFixed(0)}%</b>
+                </div>
+                <i>
+                  <em style={{ width: `${value}%` }} />
+                </i>
+                <small>{note}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+      <aside className="rail">
+        <section>
+          <span className="eyebrow">Strategic balance</span>
+          <h2>
+            <Dot tone={tone} />
+            {balance}
+          </h2>
+          <div className="forces">
+            <div>
+              <small>Your local effective force</small>
+              <b>{fmt(operation.friendlyPower)}</b>
+            </div>
+            <span>vs</span>
+            <div>
+              <small>Enemy local effective force</small>
+              <b>{fmt(operation.enemyPower)}</b>
+            </div>
+          </div>
+          <button className="frontline" onClick={() => inspect("front")}>
+            <i
+              style={{
+                left: `${Math.max(2, Math.min(98, ((s.front + 12) / 24) * 100))}%`,
+              }}
+            />
+          </button>
+          <div className="ends">
+            <span>-12 defeat</span>
+            <b>
+              {s.front >= 0 ? "+" : ""}
+              {s.front.toFixed(1)} km
+            </b>
+            <span>+12 victory</span>
+          </div>
+          <small className="force-ratio-audit">
+            LITERAL RATIO {operation.forceRatio.toFixed(2)} // ATTRITION
+            CALCULUS {operation.boundedForceRatio.toFixed(2)}
+          </small>
+        </section>
+        <section>
+          <span className="eyebrow">Personnel leakage</span>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Attempted flight</span>
+            <b>{fmtStrategic(live.deserted)}</b>
+          </button>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Retained by policy</span>
+            <b>{fmtStrategic(live.retained)}</b>
+          </button>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Intercepted</span>
+            <b>{fmtStrategic(live.intercepted)}</b>
+          </button>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Net flight</span>
+            <b>{fmtStrategic(live.netDesertion)}</b>
+          </button>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Patrol commitment</span>
+            <b>{fmt(s.patrolCommitment)}</b>
+          </button>
+          <button
+            className="railstat"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("open-family", { detail: "desertion" }),
+              )
+            }
+          >
+            <span>Desertion pressure</span>
+            <b>{s.desertionPressure.toFixed(0)}%</b>
+          </button>
+        </section>
+        <section>
+          <span className="eyebrow">State tolerance</span>
+          {[
+            ["Treasury", `${s.treasury.toFixed(1)} B`, "treasury"],
+            ["Legitimacy", `${s.legitimacy.toFixed(0)}%`, "legitimacy"],
+            ["Resistance", `${s.resistance.toFixed(0)}%`, "resistance"],
+            ["Reciprocity", `${s.reciprocity.toFixed(0)}%`, "doctrine"],
+          ].map(([label, value, id]) => (
+            <button
+              className="railstat"
+              key={label}
+              onClick={() => inspect(id as Metric)}
+            >
+              <span>{label}</span>
+              <b>{value}</b>
+            </button>
+          ))}
+        </section>
+        <SignalStream s={s} live={live} />
+        <section>
+          <span className="eyebrow">Recent decisions</span>
+          {s.decisions.length ? (
+            s.decisions.slice(0, 3).map((decision, index) => (
+              <div className="arrival" key={index}>
+                <span>D{decision.day}</span>
+                <div>
+                  <b>{decision.choice}</b>
+                  <small>{decision.family}</small>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="empty">
+              Three orders remain. Inaction is also a daily policy.
+            </p>
+          )}
+        </section>
+      </aside>
+    </div>
   );
 }
 
@@ -3959,11 +4309,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     };
     const wikiAppletEvent = (e: Event) => {
       const article = (e as CustomEvent<string>).detail;
-      if (interfaceMode === "briefing")
-        window.dispatchEvent(
-          new CustomEvent("briefing-open-manual", { detail: article }),
-        );
-      else openManualApplet(article);
+      openManualApplet(article);
     };
     const familyEvent = (e: Event) => {
       const hit = FAMILIES.find(
@@ -4237,7 +4583,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   const switchInterface = (mode: "command" | "briefing") => {
     if (mode === interfaceMode) return;
     if (mode === "command") setPage(briefingModule);
-    else setBriefingModule(page === "admin" ? "account" : page);
+    else setBriefingModule(gameModuleForPage(page));
     setInterfaceMode(mode);
     try {
       window.localStorage.setItem("delenda.quest.interface.v1", mode);
@@ -4646,11 +4992,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       return;
     }
     const currentModule =
-      interfaceMode === "briefing"
-        ? briefingModule
-        : page === "admin"
-          ? "account"
-          : page;
+      interfaceMode === "briefing" ? briefingModule : gameModuleForPage(page);
     const discourse = {
       ...avaSession.discourse,
       currentScreen: currentModule,
@@ -4670,7 +5012,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       ),
     });
     if (result.status === "clarify") {
-      recordAvaTelemetry(result, page==="admin"?"account":page, "clarification");
+      recordAvaTelemetry(result, gameModuleForPage(page), "clarification");
       const candidates = result.candidates?.length
         ? `\n\nVALID INTERPRETATIONS\n${result.candidates.map((candidate) => `[${candidate.handle ?? candidate.id}] ${candidate.label}`).join("\n")}`
         : "";
@@ -4832,7 +5174,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     }
     recordAvaTelemetry(
       result,
-      page==="admin"?"account":page,
+      gameModuleForPage(page),
       terminal.rejection ? "rejected" : "executed",
     );
     setMessages((m) => [
@@ -4895,7 +5237,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       data-game-entry-contract="daily-campaign"
     >
       {turnBlackout && <div className="turn-blackout" aria-hidden="true" />}
-      <BugReporter module={interfaceMode === "briefing" ? briefingModule : page} interfaceMode={interfaceMode} />
+      <BugReporter
+        module={
+          interfaceMode === "briefing" ? briefingModule : gameModuleForPage(page)
+        }
+        interfaceMode={interfaceMode}
+      />
       <WarTicker />
       {s.status === "active" &&
         opportunityWindow.status === "active" &&
@@ -4946,7 +5293,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           epigraph={dailyAphorism}
           remaining={clockText(remaining)}
           canResolve={canResolveDay}
-          initialModule={page === "admin" ? "account" : page}
+          initialModule={gameModuleForPage(page)}
           issue={issueConverged}
           issueDirective={issueDirective}
           resolveDay={advance}
@@ -5082,7 +5429,14 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             </div>
           </div>
           <div className="frame">
-            {page === "campaign" ? (
+            {page === "storyboard" ? (
+              <CommandStoryboard
+                s={s}
+                live={live}
+                inspect={setMetric}
+                openCampaign={() => setPage("campaign")}
+              />
+            ) : page === "campaign" ? (
               <CampaignPage
                 s={s}
                 epigraph={dailyAphorism}
@@ -5240,7 +5594,11 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                 <small>
                   PATTERN ANALYSIS DIRECTORATE //{" "}
                   {moduleName(
-                    interfaceMode === "briefing" ? briefingModule : page==="admin"?"account":page,
+                    interfaceMode === "briefing"
+                      ? briefingModule
+                      : page === "admin"
+                        ? "account"
+                        : page,
                   )}
                 </small>
               </p>

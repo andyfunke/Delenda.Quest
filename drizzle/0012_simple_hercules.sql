@@ -1,0 +1,1 @@
+ALTER TABLE `account_turn_state` ADD `next_turn_at` integer;

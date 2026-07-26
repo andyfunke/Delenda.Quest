@@ -81,6 +81,7 @@ test("replication export is read-only, allowlisted, and secret gated", async () 
   );
   for (const table of TABLES) assert.match(replication, new RegExp(`"${table}"`));
   assert.match(replication, /DELENDA_REPLICATION_TOKEN/);
+  assert.match(replication, /schemaVersion:\s*12/);
   assert.match(replication, /timingSafeEqual/);
   assert.match(replication, /SELECT rowid AS __rowid/);
   assert.doesNotMatch(replication, /\b(?:INSERT|UPDATE|DELETE|DROP|ALTER)\b/);
@@ -95,7 +96,7 @@ test("snapshot SQL generation requires the literal shadow target", async () => {
     format: "delenda-d1-snapshot-v1",
     exportedAt: new Date(0).toISOString(),
     source: "https://example.invalid",
-    schemaVersion: 11,
+    schemaVersion: 12,
     tables: Object.fromEntries(
       TABLES.map((table) => [
         table,

@@ -110,9 +110,19 @@ test("the removed landing page cannot own the default route", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   assert.match(rootRoute, /redirect\(`\/game/);
+  assert.match(
+    rootRoute,
+    /export const dynamic = "force-dynamic"/,
+    "the production root redirect must never be frozen into the deleted landing artifact",
+  );
   assert.doesNotMatch(
     rootRoute,
     /LandingPage|LandingRedirect|landing-page|STRATEGIC EPIGRAPH CANON|ENTER CAMPAIGN/,
+  );
+  assert.doesNotMatch(
+    styles,
+    /landing-page|landing-shell|landing-hero|landing-final/,
+    "deleted landing-page styles must not survive in the production bundle",
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
   assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
@@ -263,9 +273,13 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
     "MILITARY",
     "DIPLOMACY",
     "DOCTRINE",
-    "FIELD MANUAL",
     "SERVICE RECORD",
   ])assert.match(nav,new RegExp(`"${label}"`));
+  assert.doesNotMatch(nav,/"FIELD MANUAL"/);
+  assert.match(
+    altInterface,
+    /className="briefing-top-actions"[\s\S]{0,900}onClick=\{\(\) => chooseSurface\("manual"\)\}[\s\S]{0,180}FIELD MANUAL/,
+  );
   assert.ok(nav.indexOf('"DAILY CAMPAIGN"')<nav.indexOf('"DAILY BRIEF"'));
   assert.match(dailySurface,/className="modern-surface modern-daily-surface"/);
   assert.match(dailySurface,/<small>FORWARD DEPLOYED<\/small>/);
@@ -297,23 +311,49 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
-  const[page,gameRoute,turnRoute,turnStore,schema]=await Promise.all([
+  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/turns.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/accounts.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../drizzle/0012_simple_hercules.sql",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireChatGPTUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
   assert.match(turnRoute,/claimDailyResolution/);
   assert.match(turnRoute,/setGodMode/);
-  assert.match(turnStore,/lastResolvedDayKey !== dayKey/);
-  assert.match(turnStore,/ne\(accountTurnState\.lastResolvedDayKey, currentDayKey\)/);
+  assert.match(schema,/nextTurnAt:integer\("next_turn_at"\)/);
+  assert.match(turnStore,/accountTurnWindow/);
+  assert.match(turnStore,/lte\(accountTurnState\.nextTurnAt, now\)/);
+  assert.match(turnStore,/isNull\(accountTurnState\.nextTurnAt\)/);
+  assert.match(turnStore,/nextTurnAt:\s*nextBoundary/);
+  assert.match(accountStore,/materializeLegacyTurnGate/);
+  assert.match(accountStore,/legacyTurnGateBeforeTimeZoneChange/);
+  assert.match(accountStore,/legacyTurnGateForPendingTimeZone/);
+  assert.match(accountStore,/db\.batch\(\[gateUpdate,\s*accountUpdate\]\)/);
+  assert.match(accountStore,/!account\.timeZoneConfigured&&turn\.lastResolvedDayKey===null/);
+  assert.match(accountStore,/pendingTimeZone:timeZone,timeZoneEffectiveAt:effectiveAt,timeZoneConfigured:true/);
+  assert.match(accountStore,/eq\(users\.pendingTimeZone,\s*account\.pendingTimeZone\)/);
+  assert.match(accountStore,/eq\(users\.timeZoneEffectiveAt,\s*effectiveAt\)/);
+  assert.equal(
+    migration.trim(),
+    "ALTER TABLE `account_turn_state` ADD `next_turn_at` integer;",
+  );
   assert.match(page,/godModeCommand === "enable godmode"/);
   assert.match(page,/godModeCommand === "disable godmode"/);
   assert.match(page,/GODMODE ENABLED\\nActual-time daily turnover is disabled/);
   assert.match(page,/GODMODE DISABLED\\nActual-time daily turnover is restored/);
+  const randomEventHandler=page.slice(
+    page.indexOf('godModeIntent?.kind === "force-random-event"'),
+    page.indexOf('godModeCommand === "enable godmode"'),
+  );
+  assert.match(randomEventHandler,/!turnAccess\?\.godMode/);
+  assert.match(randomEventHandler,/forceOpportunityForCurrentDay\(s\)/);
+  assert.match(randomEventHandler,/opportunityStatusForFraction\(next, fraction\)\.packet/);
+  assert.match(randomEventHandler,/setOpportunityInterruptAcknowledged\(false\)/);
+  assert.match(randomEventHandler,/RANDOM EVENT FORCED/);
   assert.match(page,/void advance\("automatic"\)/);
   assert.match(page,/DAILY TURN ALREADY USED/);
 });
@@ -409,7 +449,12 @@ test("campaign navigation, military reinforcement, Doctrine inspection, and text
   assert.doesNotMatch(page,/\sdisabled=\{!prior\}/);
   assert.doesNotMatch(doctrineSurface,/aria-disabled/);
   assert.match(bubblette,/bubblette-pinned/);assert.doesNotMatch(bubblette,/setActiveId|relatedId|CONNECTED SYSTEMS/);assert.match(bubblette,/FIELD APPLETTE \/\/ PINNED/);assert.match(bubblette,/FIELD_MANUAL_CATALOG/);
-  assert.match(page,/if \(interfaceMode === "briefing"\)[\s\S]{0,180}briefing-open-manual/);
+  const wikiAppletHandler=page.slice(
+    page.indexOf("const wikiAppletEvent"),
+    page.indexOf("const familyEvent"),
+  );
+  assert.match(wikiAppletHandler,/openManualApplet\(article\)/);
+  assert.doesNotMatch(wikiAppletHandler,/briefing-open-manual|interfaceMode/);
   assert.match(css,/background:\s*#fffde8/);assert.match(css,/--type-display/);assert.match(css,/--type-body:\s*400 18px/);assert.match(css,/--type-data/);
   assert.match(terminal,/voiceCueForInstruction/);assert.match(voice,/FIELD NOTE \/ \$\{opening\.label\}/);assert.doesNotMatch(voice,/responseTopic/);
   assert.match(avaRenderer,/explicitLoss/);assert.match(avaRenderer,/explicitGain/);assert.doesNotMatch(avaRenderer,/line\.includes\(["']\+["']\)|line\.includes\(["']−["']\)/);
@@ -486,7 +531,7 @@ test("opportunities interrupt without opening the decision menu and collapse int
   assert.match(css,/\.ava-button > span,[\s\S]{0,220}\.ava > footer button\s*\{[\s\S]{0,80}font-size:\s*12px/);
 });
 
-test("the removed strategic dashboard cannot be entered while Daily Campaign owns game entry",async()=>{
+test("the command storyboard survives while the standalone Stats surface stays deleted and Daily Campaign owns game entry",async()=>{
   const[page,css,account,briefing]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -494,9 +539,10 @@ test("the removed strategic dashboard cannot be entered while Daily Campaign own
     readFile(new URL("../app/BriefingInterface.tsx",import.meta.url),"utf8"),
   ]);
   const modulePage=sectionBetween(page,"function ModulePage","function CampaignPage");
+  const storyboard=sectionBetween(page,"function CommandStoryboard","function ProductionCircuit");
   const playerModules=page.slice(page.indexOf("const modules:"),page.indexOf("const resourceLabel"));
   const surfaceRouter=briefing.slice(briefing.indexOf("const surfaceFor"),briefing.indexOf("export function BriefingInterface"));
-  assert.doesNotMatch(playerModules,/id:\s*"dashboard"/);
+  assert.match(playerModules,/id:\s*"storyboard",\s*label:\s*"Dashboard",\s*n:\s*"00"/);
   assert.match(page,/useState<Page>\("campaign"\)/);
   assert.match(page,/const priorTelemetryModule = useRef<Page>\("campaign"\)/);
   assert.match(page,/terminal\.navigate === "dashboard" \? "campaign"/);
@@ -509,8 +555,25 @@ test("the removed strategic dashboard cannot be entered while Daily Campaign own
   assert.match(page,/data-game-entry-contract="daily-campaign"/);
   assert.match(page,/className="logo"[\s\S]{0,120}href="\/"/);
   assert.match(briefing,/className="briefing-brand"[\s\S]{0,120}href="\/"/);
-  assert.doesNotMatch(page,/\{page === "dashboard"/);
+  assert.match(page,/\{page === "storyboard"\s*\?\s*\(/);
   assert.doesNotMatch(page,/function Dashboard\s*\(/);
+  assert.match(page,/function CommandStoryboard\s*\(/);
+  assert.match(storyboard,/data-command-storyboard="restored"/);
+  assert.match(storyboard,/<SituationCard s=\{s\} openCampaign=\{openCampaign\}/);
+  assert.match(storyboard,/Theater Geometry/);
+  assert.match(storyboard,/Morning report \/\/ Day/);
+  assert.match(storyboard,/<LiveLedger s=\{s\} live=\{live\} inspect=\{inspect\}/);
+  for(const heading of [
+    "Production Capacity",
+    "Industrial Throughput",
+    "Systemic Attrition",
+    "Strategic balance",
+    "Personnel leakage",
+    "State tolerance",
+    "Recent decisions",
+  ])assert.match(storyboard,new RegExp(heading));
+  assert.doesNotMatch(storyboard,/State of the war|modern-state-surface|state-constellation/);
+  assert.match(page,/page === "storyboard" \? "campaign"/);
   assert.match(modulePage,/data-report-owner="ava"/);
   assert.match(modulePage,/className="module desktop-module"/);
   assert.match(modulePage,/className=\{`os-window \$\{isProduction \? "production-command-window" : ""\}`\}/);
@@ -556,6 +619,8 @@ test("the production artifact contains no executable or styled Stats surface",as
   ])assert.doesNotMatch(artifact,new RegExp(forbidden),forbidden);
   assert.match(artifact,/data-game-entry-contract/);
   assert.match(artifact,/daily-campaign/);
+  assert.match(artifact,/data-command-storyboard/);
+  assert.match(artifact,/Morning report \/\/ Day/);
 });
 
 test("Theater Wire uses readable normal glyph bounds and no body-to-date gap",async()=>{

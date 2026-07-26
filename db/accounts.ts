@@ -1,9 +1,13 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import { getDb } from "./index";
-import { friendInvites, friendships, users } from "./schema";
-import { validTimeZone } from "../app/account-time";
-import { accountDayBounds } from "../app/account-time";
+import { accountTurnState, friendInvites, friendships, users } from "./schema";
+import {
+  accountDayBounds,
+  legacyTurnGateBeforeTimeZoneChange,
+  legacyTurnGateForPendingTimeZone,
+  validTimeZone,
+} from "../app/account-time";
 
 const normalizeEmail=(value:string)=>value.trim().toLowerCase();
 const pair=(a:string,b:string)=>[normalizeEmail(a),normalizeEmail(b)].sort() as [string,string];
@@ -61,10 +65,36 @@ export async function accountSnapshot(user:ChatGPTUser){
   return{email,alias:account?.alias??await generatedAlias(email),timeZone:account?.timeZone??"UTC",timeZoneConfigured:account?.timeZoneConfigured??false,pendingTimeZone:account?.pendingTimeZone??null,timeZoneEffectiveAt:account?.timeZoneEffectiveAt??null,allowFriends:account?.allowFriends??true,accountEnabled:account?.accountEnabled??true,socialEnabled:account?.socialEnabled??true,telemetryEnabled:account?.telemetryEnabled??true,nextAliasChangeAt:account?.aliasRenameUnlocked?0:nextAliasChangeAt,friends:friendEmails.map(friendEmail=>({alias:aliases.get(friendEmail)??"UnknownCommander"})),pendingCount:pending.length};
 }
 
+const turnGateForAccount=async(db:Awaited<ReturnType<typeof getDb>>,email:string)=>
+  (await db.select({lastResolvedDayKey:accountTurnState.lastResolvedDayKey,nextTurnAt:accountTurnState.nextTurnAt}).from(accountTurnState).where(eq(accountTurnState.ownerEmail,email)).limit(1))[0]??{lastResolvedDayKey:null,nextTurnAt:null};
+
+const materializeLegacyTurnGate=(
+  db:Awaited<ReturnType<typeof getDb>>,
+  email:string,
+  nextTurnAt:number,
+)=>
+  db.update(accountTurnState).set({nextTurnAt}).where(and(
+    eq(accountTurnState.ownerEmail,email),
+    isNull(accountTurnState.nextTurnAt),
+    isNotNull(accountTurnState.lastResolvedDayKey),
+  ));
+
 export const settleTimeZoneForAccount=async(db:Awaited<ReturnType<typeof getDb>>,email:string)=>{
   const now=Date.now(),account=(await db.select({timeZone:users.timeZone,pendingTimeZone:users.pendingTimeZone,timeZoneEffectiveAt:users.timeZoneEffectiveAt}).from(users).where(eq(users.email,email)).limit(1))[0];
-  if(account?.pendingTimeZone&&validTimeZone(account.pendingTimeZone)&&(account.timeZoneEffectiveAt??Infinity)<=now)
-    await db.update(users).set({timeZone:account.pendingTimeZone,pendingTimeZone:null,timeZoneEffectiveAt:null,timeZoneConfigured:true,lastSeenAt:now}).where(eq(users.email,email));
+  if(!account?.pendingTimeZone||!validTimeZone(account.pendingTimeZone)||(account.timeZoneEffectiveAt??Infinity)>now)return;
+  const effectiveAt=account.timeZoneEffectiveAt!;
+  const turn=await turnGateForAccount(db,email);
+  const legacyGate=legacyTurnGateForPendingTimeZone({...turn,effectiveAt});
+  const accountUpdate=db.update(users).set({timeZone:account.pendingTimeZone,pendingTimeZone:null,timeZoneEffectiveAt:null,timeZoneConfigured:true,lastSeenAt:now}).where(and(
+    eq(users.email,email),
+    eq(users.pendingTimeZone,account.pendingTimeZone),
+    eq(users.timeZoneEffectiveAt,effectiveAt),
+  ));
+  if(legacyGate===null)await accountUpdate;
+  else{
+    const gateUpdate=materializeLegacyTurnGate(db,email,legacyGate);
+    await db.batch([gateUpdate, accountUpdate]);
+  }
 };
 
 export async function updateAlias(user:ChatGPTUser,rawAlias:string){
@@ -121,12 +151,15 @@ export async function updateTimeZone(user:ChatGPTUser,timeZone:string){
   const account=(await db.select({accountEnabled:users.accountEnabled,timeZone:users.timeZone,timeZoneConfigured:users.timeZoneConfigured}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!account?.accountEnabled)throw new Error("Account services are disabled.");
   const now=Date.now();
-  if(!account.timeZoneConfigured){
+  const turn=await turnGateForAccount(db,email);
+  const legacyGate=legacyTurnGateBeforeTimeZoneChange({...turn,timeZone:account.timeZone,now});
+  if(legacyGate!==null)await materializeLegacyTurnGate(db,email,legacyGate);
+  if(!account.timeZoneConfigured&&turn.lastResolvedDayKey===null){
     await db.update(users).set({timeZone,timeZoneConfigured:true,pendingTimeZone:null,timeZoneEffectiveAt:null,lastSeenAt:now}).where(eq(users.email,email));
     return{timeZone,pendingTimeZone:null,timeZoneEffectiveAt:null};
   }
   const effectiveAt=accountDayBounds(account.timeZone,now).end;
-  await db.update(users).set({pendingTimeZone:timeZone,timeZoneEffectiveAt:effectiveAt,lastSeenAt:now}).where(eq(users.email,email));
+  await db.update(users).set({pendingTimeZone:timeZone,timeZoneEffectiveAt:effectiveAt,timeZoneConfigured:true,lastSeenAt:now}).where(eq(users.email,email));
   return{timeZone:account.timeZone,pendingTimeZone:timeZone,timeZoneEffectiveAt:effectiveAt};
 }
 

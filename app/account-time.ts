@@ -95,6 +95,69 @@ export const accountClockAfterClaim = (
     now,
   );
 
+export const accountTurnWindow = ({
+  timeZone,
+  lastResolvedDayKey,
+  nextTurnAt,
+  now = Date.now(),
+}: {
+  timeZone: string;
+  lastResolvedDayKey: string | null;
+  nextTurnAt: number | null;
+  now?: number;
+}) => {
+  const zone = validTimeZone(timeZone) ? timeZone : "UTC";
+  const dayKey = accountDayKey(new Date(now), zone);
+  const hasAbsoluteGate =
+    typeof nextTurnAt === "number" && Number.isFinite(nextTurnAt);
+  return {
+    dayKey,
+    canResolve: hasAbsoluteGate
+      ? now >= nextTurnAt
+      : lastResolvedDayKey !== dayKey,
+    nextTurnAt: hasAbsoluteGate
+      ? nextTurnAt
+      : accountDayBounds(zone, now).end,
+  };
+};
+
+export const legacyTurnGateBeforeTimeZoneChange = ({
+  timeZone,
+  lastResolvedDayKey,
+  nextTurnAt,
+  now = Date.now(),
+}: {
+  timeZone: string;
+  lastResolvedDayKey: string | null;
+  nextTurnAt: number | null;
+  now?: number;
+}) => {
+  if (
+    typeof nextTurnAt === "number" ||
+    typeof lastResolvedDayKey !== "string"
+  )
+    return null;
+  const zone = validTimeZone(timeZone) ? timeZone : "UTC";
+  return lastResolvedDayKey === accountDayKey(new Date(now), zone)
+    ? accountDayBounds(zone, now).end
+    : now;
+};
+
+export const legacyTurnGateForPendingTimeZone = ({
+  lastResolvedDayKey,
+  nextTurnAt,
+  effectiveAt,
+}: {
+  lastResolvedDayKey: string | null;
+  nextTurnAt: number | null;
+  effectiveAt: number;
+}) =>
+  typeof nextTurnAt !== "number" &&
+  typeof lastResolvedDayKey === "string" &&
+  Number.isFinite(effectiveAt)
+    ? effectiveAt
+    : null;
+
 export const millisecondsUntilNextAccountDay = (
   date: Date = new Date(),
   timeZone?: string,

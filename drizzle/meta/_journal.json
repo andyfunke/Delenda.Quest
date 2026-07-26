@@ -85,6 +85,13 @@
       "when": 1784999965315,
       "tag": "0011_yummy_miracleman",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1785090204179,
+      "tag": "0012_simple_hercules",
+      "breakpoints": true
     }
   ]
 }

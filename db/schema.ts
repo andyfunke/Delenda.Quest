@@ -22,6 +22,7 @@ export const accountTurnState=sqliteTable("account_turn_state",{
   ownerEmail:text("owner_email").primaryKey(),
   godMode:integer("god_mode",{mode:"boolean"}).notNull().default(false),
   lastResolvedDayKey:text("last_resolved_day_key"),
+  nextTurnAt:integer("next_turn_at"),
   updatedAt:integer("updated_at").notNull(),
 });
 

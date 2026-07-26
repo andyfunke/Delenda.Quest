@@ -1,8 +1,9 @@
-import { and, eq, isNull, ne, or } from "drizzle-orm";
+import { and, eq, isNull, lte, ne, or } from "drizzle-orm";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 import {
   accountDayBounds,
   accountDayKey,
+  accountTurnWindow,
   validTimeZone,
 } from "../app/account-time";
 import { ensureAccount, settleTimeZoneForAccount } from "./accounts";
@@ -38,6 +39,7 @@ const ensureTurnState = async (user: ChatGPTUser) => {
         timeZone: users.timeZone,
         godMode: accountTurnState.godMode,
         lastResolvedDayKey: accountTurnState.lastResolvedDayKey,
+        nextTurnAt: accountTurnState.nextTurnAt,
       })
       .from(users)
       .innerJoin(
@@ -53,6 +55,7 @@ const ensureTurnState = async (user: ChatGPTUser) => {
     timeZone: validTimeZone(account?.timeZone) ? account.timeZone : "UTC",
     godMode: account?.godMode ?? false,
     lastResolvedDayKey: account?.lastResolvedDayKey ?? null,
+    nextTurnAt: account?.nextTurnAt ?? null,
   };
 };
 
@@ -60,13 +63,18 @@ const snapshotFrom = (
   state: Awaited<ReturnType<typeof ensureTurnState>>,
   now = Date.now(),
 ): AccountTurnSnapshot => {
-  const dayKey = accountDayKey(new Date(now), state.timeZone);
+  const window = accountTurnWindow({
+    timeZone: state.timeZone,
+    lastResolvedDayKey: state.lastResolvedDayKey,
+    nextTurnAt: state.nextTurnAt,
+    now,
+  });
   return {
     godMode: state.godMode,
-    dayKey,
+    dayKey: window.dayKey,
     lastResolvedDayKey: state.lastResolvedDayKey,
-    canResolve: state.godMode || state.lastResolvedDayKey !== dayKey,
-    nextTurnAt: accountDayBounds(state.timeZone, now).end,
+    canResolve: state.godMode || window.canResolve,
+    nextTurnAt: window.nextTurnAt,
     timeZone: state.timeZone,
   };
 };
@@ -79,14 +87,17 @@ export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
+  const nextBoundary = accountDayBounds(state.timeZone, now).end;
   const lastResolvedDayKey = enabled
     ? state.lastResolvedDayKey
     : currentDayKey;
+  const nextTurnAt = enabled ? state.nextTurnAt : nextBoundary;
   await state.db
     .update(accountTurnState)
     .set({
       godMode: enabled,
       lastResolvedDayKey,
+      nextTurnAt,
       updatedAt: now,
     })
     .where(eq(accountTurnState.ownerEmail, state.ownerEmail));
@@ -95,6 +106,7 @@ export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
       ...state,
       godMode: enabled,
       lastResolvedDayKey,
+      nextTurnAt,
     },
     now,
   );
@@ -104,6 +116,7 @@ export async function claimDailyResolution(user: ChatGPTUser) {
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
+  const nextBoundary = accountDayBounds(state.timeZone, now).end;
   if (state.godMode)
     return {
       allowed: true,
@@ -114,14 +127,21 @@ export async function claimDailyResolution(user: ChatGPTUser) {
     .update(accountTurnState)
     .set({
       lastResolvedDayKey: currentDayKey,
+      nextTurnAt: nextBoundary,
       updatedAt: now,
     })
     .where(
       and(
         eq(accountTurnState.ownerEmail, state.ownerEmail),
         or(
-          isNull(accountTurnState.lastResolvedDayKey),
-          ne(accountTurnState.lastResolvedDayKey, currentDayKey),
+          lte(accountTurnState.nextTurnAt, now),
+          and(
+            isNull(accountTurnState.nextTurnAt),
+            or(
+              isNull(accountTurnState.lastResolvedDayKey),
+              ne(accountTurnState.lastResolvedDayKey, currentDayKey),
+            ),
+          ),
         ),
       ),
     )
@@ -138,6 +158,7 @@ export async function claimDailyResolution(user: ChatGPTUser) {
       {
         ...state,
         lastResolvedDayKey: currentDayKey,
+        nextTurnAt: nextBoundary,
       },
       now,
     ),

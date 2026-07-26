@@ -6,7 +6,7 @@ const {
   ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_EVENTS, CAMPAIGN_FINISH_DISTRIBUTION, CAMPAIGN_SEED_NAME_COUNT, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityOccurs, opportunityStatusForFraction,
-  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, maneuverChance, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, forceOpportunityForCurrentDay, maneuverChance, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -376,6 +376,33 @@ test("the opportunity corpus is unique, full-day, and uses a one-in-three daily 
   const observed=organic/samples;
   assert.ok(observed>.325&&observed<.342,`observed organic rate ${observed}`);
   assert.ok(openingDayOrganic>1200&&openingDayOrganic<1470,`opening-day events ${openingDayOrganic}`);
+});
+
+test("the godmode override opens a visible current-day opportunity without duplicating it",()=>{
+  let state;
+  for(let seed=1;seed<1000;seed++){
+    const candidate=initialState({seed,theater:"industrial"});
+    if(!opportunityForState(candidate)){
+      state=candidate;
+      break;
+    }
+  }
+  assert.ok(state,"the fixture needs a day-one seed without an organic event");
+  const forced=forceOpportunityForCurrentDay(state);
+  const window=opportunityStatusForFraction(forced,.5);
+  assert.notStrictEqual(forced,state);
+  assert.deepEqual(forced.forcedOpportunityDays,[state.day]);
+  assert.equal(window.status,"active");
+  assert.ok(window.packet?.headline);
+  assert.strictEqual(
+    forceOpportunityForCurrentDay(forced),
+    forced,
+    "repeating the Ava cheat must not duplicate the same day",
+  );
+  const opened=recordOpportunityOpened(forced,window.packet);
+  assert.equal(opened.opportunityAssignments.length,1);
+  assert.equal(opened.opportunityAssignments[0].day,state.day);
+  assert.ok(opened.accountOpportunityIds.includes(window.packet.id));
 });
 
 test("depleted stockpiles preserve industrial output and cap fulfilled use instead of inventing negative stock",()=>{

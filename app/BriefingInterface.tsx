@@ -1070,7 +1070,6 @@ export function BriefingInterface({
     ["military", "MILITARY"],
     ["diplomacy", "DIPLOMACY"],
     ["doctrine", "DOCTRINE"],
-    ["manual", "FIELD MANUAL"],
     ["service", "SERVICE RECORD"],
   ];
   const chooseSurface = (next: Surface) => {
@@ -1115,6 +1114,12 @@ export function BriefingInterface({
               <UxToggle useCommandInterface={useCommandInterface} />
             </div>
             <div className="briefing-top-actions">
+              <button
+                aria-pressed={surface === "manual"}
+                onClick={() => chooseSurface("manual")}
+              >
+                FIELD MANUAL
+              </button>
               <button disabled={!canResolve} onClick={requestResolve}>
                 RESOLVE DAY {s.day} →
               </button>
