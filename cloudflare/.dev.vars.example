@@ -1,4 +1,4 @@
-# Copy to cloudflare/.dev.vars for local shadow development only.
+# Copy to cloudflare/.dev.vars for local Cloudflare development only.
 # Never commit real values.
 CF_ACCESS_TEAM_DOMAIN=https://replace-me.cloudflareaccess.com
 CF_ACCESS_AUD=replace-me

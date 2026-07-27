@@ -10,8 +10,8 @@
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "cloudflare:types": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config cloudflare/wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false",
-    "cloudflare:types:check": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config cloudflare/wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false --check",
+    "cloudflare:types": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false --include-runtime=false",
+    "cloudflare:types:check": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false --include-runtime=false --check",
     "cloudflare:dry-run": "bash scripts/cloudflare-dry-run.sh",
     "cloudflare:validate": "npm run typecheck && npm run build && npm run cloudflare:types:check && npm run cloudflare:dry-run",
     "simulate:balance": "bash scripts/simulate-campaign-balance.sh",
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",

@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const TABLES = [
   "users",
   "account_turn_state",
@@ -22,15 +16,22 @@ const TABLES = [
   "account_rotation_ledger",
 ];
 
-test("production CI cannot deploy the isolated shadow and always tests delenda.quest", async () => {
+test("production deploys only the delenda.quest custom domain", async () => {
   const [config,workflow] = await Promise.all([
-    readFile(new URL("../cloudflare/wrangler.jsonc", import.meta.url),"utf8").then(JSON.parse),
+    readFile(new URL("../wrangler.jsonc", import.meta.url),"utf8").then(JSON.parse),
     readFile(new URL("../.github/workflows/cloudflare-shadow.yml", import.meta.url),"utf8"),
   ]);
-  assert.equal(config.name, "delenda-quest-shadow");
-  assert.equal(config.workers_dev, true);
-  assert.equal(config.routes, undefined);
-  assert.equal(config.d1_databases[0].database_name, "delenda-quest-shadow");
+  assert.equal(config.name, "delenda-quest");
+  assert.equal(config.workers_dev, false);
+  assert.equal(config.preview_urls, false);
+  assert.deepEqual(config.routes, [{
+    pattern: "delenda.quest",
+    custom_domain: true,
+    enabled: true,
+    previews_enabled: false,
+  }]);
+  assert.equal(config.d1_databases[0].database_name, "delenda-quest");
+  assert.equal(config.d1_databases[0].database_id, "a2d8a23e-f038-48a6-801a-46a30d58f1ba");
   assert.equal(config.d1_databases[0].binding, "DB");
   assert.equal(config.assets.binding, "ASSETS");
   assert.equal(config.images.binding, "IMAGES");
@@ -49,11 +50,11 @@ test("production CI cannot deploy the isolated shadow and always tests delenda.q
   assert.match(workflow,/npm run test:live/);
   assert.doesNotMatch(
     workflow,
-    /deploy-production|deploy-shadow|workflow_dispatch|wrangler-action|CLOUDFLARE_API_TOKEN|workers\/domains|deploy --config/,
+    /workflow_dispatch|wrangler-action|CLOUDFLARE_API_TOKEN|workers\/domains|deploy --config/,
   );
 });
 
-test("Cloudflare Access is verified and the Sites identity path remains intact", async () => {
+test("Cloudflare Access JWTs are verified", async () => {
   const [auth, game, command, briefing] = await Promise.all([
     readFile(new URL("../app/chatgpt-auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/page.tsx", import.meta.url), "utf8"),
@@ -83,61 +84,4 @@ test("replication export is read-only, allowlisted, and secret gated", async () 
   assert.match(replication, /timingSafeEqual/);
   assert.match(replication, /SELECT rowid AS __rowid/);
   assert.doesNotMatch(replication, /\b(?:INSERT|UPDATE|DELETE|DROP|ALTER)\b/);
-});
-
-test("snapshot SQL generation requires the literal shadow target", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "delenda-shadow-test-"));
-  const snapshotPath = join(directory, "source.json");
-  const sqlPath = join(directory, "shadow.sql");
-  const emptyHash = createHash("sha256").update("[]").digest("hex");
-  const snapshot = {
-    format: "delenda-d1-snapshot-v1",
-    exportedAt: new Date(0).toISOString(),
-    source: "https://example.invalid",
-    schemaVersion: 12,
-    tables: Object.fromEntries(
-      TABLES.map((table) => [
-        table,
-        { count: 0, sha256: emptyHash, rows: [] },
-      ]),
-    ),
-  };
-  await writeFile(snapshotPath, JSON.stringify(snapshot));
-
-  const refused = spawnSync(
-    process.execPath,
-    [
-      "scripts/cloudflare-snapshot.mjs",
-      "sql",
-      "--snapshot",
-      snapshotPath,
-      "--output",
-      sqlPath,
-      "--confirm-target-reset",
-      "production",
-    ],
-    { cwd: projectRoot, encoding: "utf8" },
-  );
-  assert.notEqual(refused.status, 0);
-  assert.match(refused.stderr, /Refusing to generate reset SQL/);
-
-  const accepted = spawnSync(
-    process.execPath,
-    [
-      "scripts/cloudflare-snapshot.mjs",
-      "sql",
-      "--snapshot",
-      snapshotPath,
-      "--output",
-      sqlPath,
-      "--confirm-target-reset",
-      "delenda-quest-shadow",
-    ],
-    { cwd: projectRoot, encoding: "utf8" },
-  );
-  assert.equal(accepted.status, 0, accepted.stderr);
-  const sql = await readFile(sqlPath, "utf8");
-  assert.match(sql, /resets only delenda-quest-shadow/);
-  for (const table of TABLES)
-    assert.match(sql, new RegExp(`DELETE FROM "${table}"`));
 });

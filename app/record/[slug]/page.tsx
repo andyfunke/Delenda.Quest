@@ -5,7 +5,7 @@ import { APHORISMS } from "../../aphorisms";
 import { RecordActions } from "./RecordActions";
 import { scoreBreakdownLines } from "../../campaign-balance";
 
-const host="https://delenda-quest.andrew-i-funke.chatgpt.site";
+const host="https://delenda.quest";
 const label=(value:string)=>value.replaceAll("-"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
 const hash=(value:string)=>{let result=2166136261;for(const letter of value){result^=letter.charCodeAt(0);result=Math.imul(result,16777619)}return result>>>0};
 

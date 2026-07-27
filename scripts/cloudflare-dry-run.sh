@@ -11,7 +11,7 @@ fi
 
 exec "${script_dir}/cloudflare-env.sh" -- \
   npx wrangler deploy \
-  --config cloudflare/wrangler.jsonc \
+  --config wrangler.jsonc \
   --dry-run \
   --strict \
-  --outdir .wrangler/deploy/cloudflare-shadow
+  --outdir .wrangler/deploy/production

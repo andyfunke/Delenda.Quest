@@ -1,14 +1,20 @@
 {
-  "$schema": "../node_modules/wrangler/config-schema.json",
-  "name": "delenda-quest-shadow",
-  "main": "../dist/server/index.js",
-  "compatibility_date": "2026-07-25",
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "delenda-quest",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-07-27",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
-  "preview_urls": true,
-  "no_bundle": true,
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "delenda.quest",
+      "custom_domain": true,
+      "enabled": true,
+      "previews_enabled": false
+    }
+  ],
   "assets": {
-    "directory": "../dist/client",
     "binding": "ASSETS",
     "run_worker_first": true
   },
@@ -18,8 +24,9 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "delenda-quest-shadow",
-      "migrations_dir": "../drizzle"
+      "database_name": "delenda-quest",
+      "database_id": "a2d8a23e-f038-48a6-801a-46a30d58f1ba",
+      "migrations_dir": "./drizzle"
     }
   ],
   "vars": {
