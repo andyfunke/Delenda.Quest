@@ -45,10 +45,6 @@ const initialAccountTimeZone=async()=>accountTimeZoneFromBootstrapCookie(
 export async function ensureAccount(user:AuthenticatedUser){
   const db=await getDb(),now=Date.now(),email=normalizeEmail(user.email);
   const[alias,initialTimeZone]=await Promise.all([generatedAlias(email),initialAccountTimeZone()]);
-  if(!initialTimeZone.configured){
-    const existing=(await db.select({email:users.email}).from(users).where(eq(users.email,email)).limit(1))[0];
-    if(!existing)throw new Error("Account creation requires a valid browser time zone.");
-  }
   await db.insert(users).values({email,displayName:user.displayName,alias,aliasChangedAt:now,timeZone:initialTimeZone.timeZone,timeZoneConfigured:initialTimeZone.configured,createdAt:now,lastSeenAt:now}).onConflictDoUpdate({target:users.email,set:{displayName:user.displayName,lastSeenAt:now}});
   const existing=(await db.select({alias:users.alias}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!existing?.alias)await db.update(users).set({alias,aliasChangedAt:now}).where(eq(users.email,email));

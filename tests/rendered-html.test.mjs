@@ -754,7 +754,7 @@ test("registration owns active campaigns and the telemetry console is server-aut
   assert.match(accountStore,/accountTimeZoneFromBootstrapCookie/);
   assert.match(accountStore,/timeZone:initialTimeZone\.timeZone/);
   assert.match(accountStore,/timeZoneConfigured:initialTimeZone\.configured/);
-  assert.match(accountStore,/if\(!initialTimeZone\.configured\)[\s\S]*if\(!existing\)throw new Error\("Account creation requires a valid browser time zone\."\)/);
+  assert.doesNotMatch(accountStore,/Account creation requires a valid browser time zone/);
   const accountConflictUpdate=accountStore.match(/onConflictDoUpdate\(\{target:users\.email,set:\{([^}]*)\}\}\)/)?.[1]??"";
   assert.match(accountConflictUpdate,/displayName:user\.displayName/);
   assert.doesNotMatch(accountConflictUpdate,/timeZone|pendingTimeZone|timeZoneEffectiveAt/);
