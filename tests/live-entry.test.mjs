@@ -21,7 +21,36 @@ const fetchNoStore = async (url) =>
     },
   });
 
-for (const pathname of ["/", "/game", "/game/"]) {
+test("live / serves the public landing page linking to the campaign", async () => {
+  const url = new URL("/", base);
+  url.searchParams.set("acceptance", cacheBust());
+  const response = await fetchNoStore(url);
+  const html = await response.text();
+
+  assert.equal(response.status, 200, `${url} returned ${response.status}`);
+  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  if (customDomain)
+    assert.equal(
+      new URL(response.url).hostname,
+      "delenda.quest",
+      `/ escaped the production custom domain`,
+    );
+
+  assert.doesNotMatch(
+    html,
+    forbiddenStats,
+    "the deleted Stats surface is still present",
+  );
+  assert.match(html, /landing-page/, "the landing page is missing from /");
+  assert.match(html, /ENTER CAMPAIGN/i, "the landing hero CTA is missing");
+  assert.match(
+    html,
+    /href="\/game"/,
+    "the landing page must link into the campaign",
+  );
+});
+
+for (const pathname of ["/game", "/game/"]) {
   test(`live ${pathname} renders Daily Campaign and cannot render Stats`, async () => {
     const url = new URL(pathname, base);
     url.searchParams.set("acceptance", cacheBust());
@@ -48,7 +77,7 @@ for (const pathname of ["/", "/game", "/game/"]) {
     assert.doesNotMatch(
       html,
       /landing-page|LandingRedirect|ENTER CAMPAIGN/i,
-      "the deleted landing page still owns a production entry route",
+      "the landing page must not own the in-game route",
     );
     assert.match(
       html,

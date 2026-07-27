@@ -25,7 +25,7 @@ const readTextTree = async (directory) => {
   return output;
 };
 
-test("the default route redirects directly to the game", async () => {
+test("the default route serves the public landing page linking to the game", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -45,8 +45,12 @@ test("the default route redirects directly to the game", async () => {
     },
   );
 
-  assert.equal(response.status, 307);
-  assert.equal(response.headers.get("location"), "http://localhost/game");
+  const rootHtml = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  assert.match(rootHtml, /class="landing-page"/, "the / route must serve the landing page");
+  assert.match(rootHtml, /ENTER CAMPAIGN/, "the landing hero CTA is missing");
+  assert.match(rootHtml, /href="\/game"/, "the landing page must link into the game");
 
   const signedOutGame = await worker.fetch(
     new Request("http://localhost/game?account=1", {
@@ -105,26 +109,26 @@ test("the default route redirects directly to the game", async () => {
   assert.equal(signedOutCampaign.status, 401);
 });
 
-test("the removed landing page cannot own the default route", async () => {
+test("the public landing page owns the default route and links to the game", async () => {
   const [rootRoute, gameRoute, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
-  assert.match(rootRoute, /redirect\(`\/game/);
+  // The landing page renders at / and routes visitors into the public game.
+  assert.match(rootRoute, /export default function LandingPage/);
+  assert.match(rootRoute, /className="landing-page"/);
+  assert.match(rootRoute, /ENTER CAMPAIGN/);
+  assert.match(rootRoute, /href="\/game"/);
+  assert.doesNotMatch(
+    rootRoute,
+    /redirect\(`\/game/,
+    "the landing page must render, not server-redirect to the game",
+  );
   assert.match(
-    rootRoute,
-    /export const dynamic = "force-dynamic"/,
-    "the production root redirect must never be frozen into the deleted landing artifact",
-  );
-  assert.doesNotMatch(
-    rootRoute,
-    /LandingPage|LandingRedirect|landing-page|STRATEGIC EPIGRAPH CANON|ENTER CAMPAIGN/,
-  );
-  assert.doesNotMatch(
     styles,
-    /landing-page|landing-shell|landing-hero|landing-final/,
-    "deleted landing-page styles must not survive in the production bundle",
+    /\.landing-page|\.landing-shell|\.landing-hero|\.landing-final/,
+    "landing-page styles must ship with the production bundle",
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
   assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
