@@ -34,6 +34,10 @@ test("production deploys only the delenda.quest custom domain", async () => {
   assert.equal(config.d1_databases[0].database_id, "a2d8a23e-f038-48a6-801a-46a30d58f1ba");
   assert.equal(config.d1_databases[0].binding, "DB");
   assert.equal(config.assets.binding, "ASSETS");
+  // Static assets (CSS/JS) must be served before the Worker. The Worker does not
+  // delegate to env.ASSETS, so run_worker_first:true would 404 every /assets/*
+  // request and leave the site unstyled and non-interactive.
+  assert.equal(config.assets.run_worker_first, false);
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
   assert.equal(config.vars.DELENDA_AUTH_PROVIDER, "self-hosted");
