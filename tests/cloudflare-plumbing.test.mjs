@@ -34,6 +34,7 @@ test("production deploys the custom domain and production Worker URL", async () 
   assert.equal(config.d1_databases[0].database_id, "a2d8a23e-f038-48a6-801a-46a30d58f1ba");
   assert.equal(config.d1_databases[0].binding, "DB");
   assert.equal(config.assets.binding, "ASSETS");
+  assert.equal(config.assets.run_worker_first, undefined);
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
   assert.match(workflow,/name: Production contract/);
