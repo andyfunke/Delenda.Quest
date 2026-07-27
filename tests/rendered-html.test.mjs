@@ -62,10 +62,12 @@ test("the default route redirects directly to the game", async () => {
       passThroughOnException() {},
     },
   );
-  assert.equal(signedOutGame.status, 307);
-  assert.equal(
-    signedOutGame.headers.get("location"),
-    "http://localhost/signin-with-chatgpt?return_to=%2Fgame%3Faccount%3D1",
+  // The game surface is public: anonymous visitors get the full client, backed
+  // by device-local saves, instead of being bounced to a sign-in gate.
+  assert.equal(signedOutGame.status, 200);
+  assert.match(
+    signedOutGame.headers.get("content-type") ?? "",
+    /^text\/html\b/i,
   );
 
   const signedOutAdmin = await worker.fetch(
@@ -85,7 +87,7 @@ test("the default route redirects directly to the game", async () => {
   assert.equal(signedOutAdmin.status, 307);
   assert.equal(
     signedOutAdmin.headers.get("location"),
-    "http://localhost/signin-with-chatgpt?return_to=%2Fadmin",
+    "http://localhost/signin?return_to=%2Fadmin",
   );
 
   const signedOutCampaign = await worker.fetch(
@@ -126,7 +128,10 @@ test("the removed landing page cannot own the default route", async () => {
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
   assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
-  assert.match(gameRoute, /requireChatGPTUser\(returnTo\)/);
+  // Identity is optional on the public game surface.
+  assert.match(gameRoute, /getChatGPTUser\(\)/);
+  assert.match(gameRoute, /authenticatedSignOutPath\(user\)/);
+  assert.match(gameRoute, /authenticatedSignInPath\(returnTo\)/);
   for (const token of [
     "--b-bg: #0c0e0d",
     "--b-panel: #131614",
@@ -241,7 +246,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(briefing,/className="briefing-top-actions"/);
   assert.match(briefing,/briefing-account-menu/);
   assert.match(briefing,/>[\s\n]*SETTINGS[\s\n]*<\/button>/);
-  assert.match(briefing,/>[\s\n]*LOG OUT[\s\n]*<\/a>/);
+  assert.match(briefing,/\{signedIn \? "LOG OUT" : "SIGN IN"\}/);
   for(const domain of ["PRIMARY · MAIN CAMPAIGN","DOMESTIC FRONT","COMMAND NETWORK"]){
     assert.match(briefing,new RegExp(domain.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   }
@@ -320,7 +325,7 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../drizzle/0012_simple_hercules.sql",import.meta.url),"utf8"),
   ]);
-  assert.match(gameRoute,/requireChatGPTUser/);
+  assert.match(gameRoute,/getChatGPTUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
   assert.match(turnRoute,/claimDailyResolution/);
   assert.match(turnRoute,/setGodMode/);
@@ -745,7 +750,7 @@ test("registration owns active campaigns and the telemetry console is server-aut
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/telemetry/route.ts",import.meta.url),"utf8"),
   ]);
-  assert.match(gameRoute,/requireChatGPTUser\(returnTo\)/);
+  assert.match(gameRoute,/getChatGPTUser\(\)/);
   assert.doesNotMatch(gameRoute,/ensureAccount\(user\)/);
   assert.match(layout,/strategy="beforeInteractive"/);
   assert.match(layout,/Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);

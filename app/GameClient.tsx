@@ -3685,7 +3685,7 @@ function WarTicker() {
   );
 }
 
-export default function Home({ logoutPath }: { logoutPath: string }) {
+export default function Home({ logoutPath, signedIn }: { logoutPath: string; signedIn: boolean }) {
   const [s, setS] = useState<GameState>(initialState);
   const [page, setPage] = useState<Page>("campaign");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
@@ -5306,6 +5306,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           }}
           onSurfaceChange={setBriefingModule}
           logoutPath={logoutPath}
+          signedIn={signedIn}
         />
       ) : (
         <>
@@ -5415,7 +5416,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                       SETTINGS
                     </button>
                     <a role="menuitem" href={logoutPath}>
-                      LOG OUT
+                      {signedIn ? "LOG OUT" : "SIGN IN"}
                     </a>
                   </div>
                 )}

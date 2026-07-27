@@ -4,6 +4,11 @@ import { getDb } from "./index";
 import { activeCampaigns, bugReports, campaignOutcomes, campaignRecords, telemetryCounters, users } from "./schema";
 
 export async function isAdmin(user:ChatGPTUser){
+  // A self-asserted email is never enough for administration. Require an
+  // identity that was verified strongly (a valid Cloudflare Access token, or a
+  // self-hosted session that presented the administrator key) before honoring
+  // the allowlist.
+  if(!user.elevated)return false;
   const {env}=await import("cloudflare:workers");
   const allowed=(env.DELENDA_ADMIN_EMAILS??"").split(",").map(value=>value.trim().toLowerCase()).filter(Boolean);
   return allowed.includes(user.email.trim().toLowerCase());

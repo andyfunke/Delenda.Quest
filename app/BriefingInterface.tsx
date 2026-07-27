@@ -66,6 +66,7 @@ type Props = {
   onNewCampaign: () => void;
   onSurfaceChange: (module: Module) => void;
   logoutPath: string;
+  signedIn: boolean;
 };
 
 const signed = (value: number, suffix = "") =>
@@ -990,6 +991,7 @@ export function BriefingInterface({
   onNewCampaign,
   onSurfaceChange,
   logoutPath,
+  signedIn,
 }: Props) {
   const [surface, setSurface] = useState<Surface>(() => surfaceFor(initialModule)),
     [focusFamilyId, setFocusFamilyId] = useState<string | undefined>(),
@@ -1143,7 +1145,7 @@ export function BriefingInterface({
                       SETTINGS
                     </button>
                     <a role="menuitem" href={logoutPath}>
-                      LOG OUT
+                      {signedIn ? "LOG OUT" : "SIGN IN"}
                     </a>
                   </div>
                 )}

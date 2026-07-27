@@ -30,7 +30,7 @@
     }
   ],
   "vars": {
-    "DELENDA_AUTH_PROVIDER": "cloudflare-access",
+    "DELENDA_AUTH_PROVIDER": "self-hosted",
     "DELENDA_MAINTENANCE_MODE": "off"
   },
   "observability": {

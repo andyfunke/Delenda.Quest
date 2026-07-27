@@ -39,10 +39,26 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 
 ## Authentication
 
-Production uses Cloudflare Access. The auth module verifies the
-`Cf-Access-Jwt-Assertion` signature against Cloudflare's rotating JWK set, plus
-the configured issuer and audience, before accepting the email claim. Required
-Access values belong in Cloudflare, never in source.
+`DELENDA_AUTH_PROVIDER` selects the identity source. The default, `self-hosted`,
+needs no external identity provider:
+
+- `/game` is public. Anonymous visitors get the full client backed by
+  device-local saves; a signed-in identity unlocks cross-device sync, service
+  records, and social play.
+- Visitors sign in at `/signin` with an email (and optional call sign). The
+  server issues an HMAC-signed session cookie (`delenda_session`). Sign the
+  cookie with a strong `DELENDA_SESSION_SECRET`
+  (`openssl rand -hex 32`); without it a well-known development fallback is used
+  and sessions are not secure.
+- The admin surface is never reachable by a self-asserted email. A self-hosted
+  session is elevated only when the correct `DELENDA_ADMIN_KEY` is presented at
+  sign-in and the email is in `DELENDA_ADMIN_EMAILS`.
+
+Set `DELENDA_AUTH_PROVIDER=cloudflare-access` to require Cloudflare Access
+instead. The auth module then verifies the `Cf-Access-Jwt-Assertion` signature
+against Cloudflare's rotating JWK set, plus the configured issuer and audience,
+before accepting the email claim. Access values (`CF_ACCESS_TEAM_DOMAIN`,
+`CF_ACCESS_AUD`) belong in Cloudflare secrets, never in source.
 
 ## Diagnostic Commands
 

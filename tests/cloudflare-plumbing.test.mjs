@@ -36,7 +36,7 @@ test("production deploys only the delenda.quest custom domain", async () => {
   assert.equal(config.assets.binding, "ASSETS");
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
-  assert.equal(config.vars.DELENDA_AUTH_PROVIDER, "cloudflare-access");
+  assert.equal(config.vars.DELENDA_AUTH_PROVIDER, "self-hosted");
   assert.match(workflow,/name: Production contract/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/live-production-acceptance/);
@@ -61,6 +61,8 @@ test("Cloudflare Access JWTs are verified", async () => {
   assert.match(auth, /issuer/);
   assert.match(auth, /provider: "chatgpt"/);
   assert.match(auth, /provider: "cloudflare-access"/);
+  assert.match(auth, /provider: "self-hosted"/);
+  assert.match(auth, /verifySession/);
   assert.match(auth, /\/cdn-cgi\/access\/logout/);
   assert.match(game, /authenticatedSignOutPath\(user\)/);
   assert.match(command, /href=\{logoutPath\}/);

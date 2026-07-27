@@ -1,12 +1,17 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { SESSION_COOKIE, resolveSessionSecret, verifySession } from "./session";
 
 export type ChatGPTUser = {
   displayName: string;
   email: string;
   fullName: string | null;
-  provider: "chatgpt" | "cloudflare-access";
+  provider: "chatgpt" | "cloudflare-access" | "self-hosted";
+  // True only when the identity was verified strongly enough to trust
+  // privileged claims (a valid Cloudflare Access token, or a self-hosted
+  // session that presented the administrator key).
+  elevated: boolean;
 };
 
 const USER_EMAIL_HEADER = "oai-authenticated-user-email";
@@ -14,8 +19,8 @@ const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
 const USER_FULL_NAME_ENCODING_HEADER =
   "oai-authenticated-user-full-name-encoding";
 const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-const SIGN_IN_PATH = "/signin-with-chatgpt";
-const SIGN_OUT_PATH = "/signout-with-chatgpt";
+const SIGN_IN_PATH = "/signin";
+const SIGN_OUT_PATH = "/signout";
 const CALLBACK_PATH = "/callback";
 const CLOUDFLARE_ACCESS_JWT_HEADER = "cf-access-jwt-assertion";
 
@@ -35,21 +40,28 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
       email,
       fullName,
       provider: "chatgpt",
+      elevated: false,
     };
   }
 
   const runtimeEnv = await getRuntimeEnv();
-  if (runtimeEnv?.DELENDA_AUTH_PROVIDER !== "cloudflare-access") return null;
+  if (runtimeEnv?.DELENDA_AUTH_PROVIDER === "cloudflare-access")
+    return cloudflareAccessUser(requestHeaders, runtimeEnv);
 
+  return selfHostedUser();
+}
+
+async function cloudflareAccessUser(
+  requestHeaders: Awaited<ReturnType<typeof headers>>,
+  runtimeEnv: Cloudflare.Env,
+): Promise<ChatGPTUser | null> {
   const token = requestHeaders.get(CLOUDFLARE_ACCESS_JWT_HEADER);
   const teamDomain = normalizedTeamDomain(runtimeEnv.CF_ACCESS_TEAM_DOMAIN);
   const audience = runtimeEnv.CF_ACCESS_AUD?.trim();
   if (!token || !teamDomain || !audience) return null;
 
   try {
-    const jwks = createRemoteJWKSet(
-      new URL("/cdn-cgi/access/certs", teamDomain),
-    );
+    const jwks = createRemoteJWKSet(new URL("/cdn-cgi/access/certs", teamDomain));
     const { payload } = await jwtVerify(token, jwks, {
       audience,
       issuer: teamDomain,
@@ -63,6 +75,7 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
       email: accessEmail,
       fullName: null,
       provider: "cloudflare-access",
+      elevated: true,
     };
   } catch (error) {
     console.error(
@@ -75,6 +88,22 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   }
 }
 
+async function selfHostedUser(): Promise<ChatGPTUser | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const payload = await verifySession(token, await resolveSessionSecret());
+  if (!payload) return null;
+
+  const displayName = payload.name.trim() || payload.email;
+  return {
+    displayName,
+    email: payload.email,
+    fullName: payload.name.trim() || null,
+    provider: "self-hosted",
+    elevated: payload.admin === true,
+  };
+}
+
 export async function requireChatGPTUser(
   returnTo: string,
 ): Promise<ChatGPTUser> {
@@ -83,19 +112,19 @@ export async function requireChatGPTUser(
 
   if ((await getRuntimeEnv())?.DELENDA_AUTH_PROVIDER === "cloudflare-access") {
     throw new Error(
-      "Cloudflare Access did not supply a valid application token. Verify that the shadow Worker is protected by the configured Access application.",
+      "Cloudflare Access did not supply a valid application token. Verify that this Worker is protected by the configured Access application.",
     );
   }
 
-  redirect(chatGPTSignInPath(returnTo));
+  redirect(selfHostedSignInPath(returnTo));
 }
 
-export function chatGPTSignInPath(returnTo: string): string {
+export function selfHostedSignInPath(returnTo: string): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
-export function chatGPTSignOutPath(returnTo = "/"): string {
+export function selfHostedSignOutPath(returnTo = "/"): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
@@ -105,7 +134,7 @@ export async function authenticatedSignInPath(
 ): Promise<string> {
   return (await getRuntimeEnv())?.DELENDA_AUTH_PROVIDER === "cloudflare-access"
     ? safeRelativeReturnPath(returnTo)
-    : chatGPTSignInPath(returnTo);
+    : selfHostedSignInPath(returnTo);
 }
 
 export function authenticatedSignOutPath(
@@ -114,7 +143,7 @@ export function authenticatedSignOutPath(
 ): string {
   return user.provider === "cloudflare-access"
     ? "/cdn-cgi/access/logout"
-    : chatGPTSignOutPath(returnTo);
+    : selfHostedSignOutPath(returnTo);
 }
 
 function safeRelativeReturnPath(value: string): string {

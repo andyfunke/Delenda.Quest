@@ -1,6 +1,17 @@
 # Copy to cloudflare/.dev.vars for local Cloudflare development only.
 # Never commit real values.
+#
+# Self-hosted sign-in (default auth). Sign session cookies with a strong random
+# value in production: `openssl rand -hex 32`. When unset, a well-known
+# development fallback is used and sessions are NOT secure.
+DELENDA_SESSION_SECRET=replace-with-a-cryptographically-random-secret
+# Optional. Emails allowed to reach the admin surface; only honored for a
+# strongly verified identity.
+DELENDA_ADMIN_EMAILS=admin@example.com
+# Optional. Presenting this key on the self-hosted sign-in form elevates an
+# allowlisted email to administrator. Leave unset to disable self-hosted admin.
+DELENDA_ADMIN_KEY=replace-with-a-cryptographically-random-secret
+# Cloudflare Access (only when DELENDA_AUTH_PROVIDER=cloudflare-access).
 CF_ACCESS_TEAM_DOMAIN=https://replace-me.cloudflareaccess.com
 CF_ACCESS_AUD=replace-me
-DELENDA_ADMIN_EMAILS=admin@example.com
 DELENDA_REPLICATION_TOKEN=replace-with-a-cryptographically-random-secret

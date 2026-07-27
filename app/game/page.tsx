@@ -1,7 +1,8 @@
 import GameClient from "../GameClient";
 import {
+  authenticatedSignInPath,
   authenticatedSignOutPath,
-  requireChatGPTUser,
+  getChatGPTUser,
 } from "../chatgpt-auth";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,15 @@ const returnPath = (values: Record<string, string | string[] | undefined>) => {
 };
 
 async function AuthenticatedGame({ returnTo }: { returnTo: string }) {
-  const user=await requireChatGPTUser(returnTo);
-  return <GameClient logoutPath={authenticatedSignOutPath(user)} />;
+  // The game surface is public: anonymous visitors get a fully playable client
+  // backed by device-local saves, and a valid identity unlocks cross-device
+  // sync, service records, and social play. Identity is optional here rather
+  // than a hard gate.
+  const user = await getChatGPTUser();
+  const logoutPath = user
+    ? authenticatedSignOutPath(user)
+    : await authenticatedSignInPath(returnTo);
+  return <GameClient logoutPath={logoutPath} signedIn={!!user} />;
 }
 
 export default async function GamePage({ searchParams }: GamePageProps) {
