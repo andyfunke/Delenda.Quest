@@ -4400,9 +4400,13 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
   const remaining = clock.end - now;
   const canResolveDay =
     s.status === "active" &&
-    !!turnAccess &&
-    (turnAccess.godMode || turnAccess.canResolve) &&
-    !turnBusy;
+    !turnBusy &&
+    // Signed-in players are gated by the server's daily turn window. Anonymous
+    // visitors have no account, play against the device-local save, and can
+    // resolve freely.
+    (signedIn
+      ? !!turnAccess && (turnAccess.godMode || turnAccess.canResolve)
+      : true);
   const opportunityWindow = opportunityStatusForFraction(s, fraction);
   const opportunityClosesAt = opportunityWindow.packet
     ? new Date(
@@ -4746,7 +4750,11 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
       setSystemNotice(`DAY NOT RESOLVED // ${result.rejection}`);
       return false;
     }
-    const claim = await claimTurn();
+    // Anonymous visitors have no server-side account turn gate; resolve the day
+    // locally against the device save instead of calling the account endpoint.
+    const claim = signedIn
+      ? await claimTurn()
+      : { allowed: true as const, godMode: false, timeZone: accountTimeZone };
     if (!claim?.allowed) {
       const zone = claim?.timeZone ?? accountTimeZone;
       setClock(accountDayBounds(zone, Date.now()));
@@ -4779,10 +4787,12 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
         ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
         : source === "automatic"
           ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
-          : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
+          : signedIn
+            ? `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`
+            : `DAY RESOLVED // DAY ${next.day} IS OPEN // SIGN IN TO SYNC PROGRESS ACROSS DEVICES`,
     );
     return true;
-  }, [accountTimeZone, claimTurn, fraction, s]);
+  }, [accountTimeZone, claimTurn, fraction, s, signedIn]);
   useEffect(() => {
     if (!hydrated || !turnAccess || overdueTurnsApplied.current) return;
     overdueTurnsApplied.current = true;
