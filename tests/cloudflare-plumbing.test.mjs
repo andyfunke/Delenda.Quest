@@ -37,12 +37,6 @@ test("production deploys only the delenda.quest custom domain", async () => {
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
   assert.equal(config.vars.DELENDA_AUTH_PROVIDER, "cloudflare-access");
-  assert.deepEqual(config.secrets.required.sort(), [
-    "CF_ACCESS_AUD",
-    "CF_ACCESS_TEAM_DOMAIN",
-    "DELENDA_ADMIN_EMAILS",
-    "DELENDA_REPLICATION_TOKEN",
-  ]);
   assert.match(workflow,/name: Production contract/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/live-production-acceptance/);

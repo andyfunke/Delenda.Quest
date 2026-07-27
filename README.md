@@ -42,8 +42,7 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 Production uses Cloudflare Access. The auth module verifies the
 `Cf-Access-Jwt-Assertion` signature against Cloudflare's rotating JWK set, plus
 the configured issuer and audience, before accepting the email claim. Required
-secret names are declared in `wrangler.jsonc`; real values belong in Cloudflare,
-never in source.
+Access values belong in Cloudflare, never in source.
 
 ## Diagnostic Commands
 

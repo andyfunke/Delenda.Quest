@@ -33,14 +33,6 @@
     "DELENDA_AUTH_PROVIDER": "cloudflare-access",
     "DELENDA_MAINTENANCE_MODE": "off"
   },
-  "secrets": {
-    "required": [
-      "CF_ACCESS_TEAM_DOMAIN",
-      "CF_ACCESS_AUD",
-      "DELENDA_ADMIN_EMAILS",
-      "DELENDA_REPLICATION_TOKEN"
-    ]
-  },
   "observability": {
     "enabled": true,
     "logs": {
