@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import type { ChatGPTUser } from "../app/chatgpt-auth";
+import type { AuthenticatedUser } from "../app/auth";
 import { ensureAccount } from "./accounts";
 import { getDb } from "./index";
 import { activeCampaigns, users } from "./schema";
@@ -39,13 +39,13 @@ const restore=(row:typeof activeCampaigns.$inferSelect)=>{
   }catch{return null}
 };
 
-export async function activeCampaignFor(user:ChatGPTUser){
+export async function activeCampaignFor(user:AuthenticatedUser){
   const db=await getDb(),ownerEmail=await ensureAccount(user);
   const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
   return{accountKey:ownerEmail,campaign:row?restore(row):null};
 }
 
-export async function saveActiveCampaign(user:ChatGPTUser,input:ActiveCampaignSubmission){
+export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCampaignSubmission){
   const db=await getDb(),ownerEmail=await ensureAccount(user),campaign=prepareCampaign(input),now=Date.now();
   const account=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,ownerEmail)).limit(1))[0];
   if(!account?.accountEnabled)throw new Error("Account campaign services are disabled.");
@@ -57,7 +57,7 @@ export async function saveActiveCampaign(user:ChatGPTUser,input:ActiveCampaignSu
   return{accountKey:ownerEmail,campaign:row?restore(row):null};
 }
 
-export async function deleteActiveCampaign(user:ChatGPTUser){
+export async function deleteActiveCampaign(user:AuthenticatedUser){
   const db=await getDb(),ownerEmail=await ensureAccount(user);
   await db.delete(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail));
   return{ok:true};

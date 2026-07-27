@@ -15,9 +15,10 @@ GitHub repository `andyfunke/Delenda.Quest` is the source of truth. A push to
 `main` triggers Cloudflare Workers Builds, which runs `npm run build` and
 `npx wrangler deploy`.
 
-Production configuration is in `wrangler.jsonc`. The Worker serves only
-`https://delenda.quest`; `workers.dev` and preview URLs are disabled. The `DB`
-binding points to the production D1 database named `delenda-quest`.
+Production configuration is in `wrangler.jsonc`. The Worker serves
+`https://delenda.quest` and its production `workers.dev` URL; preview URLs are
+disabled. The `DB` binding points to the production D1 database named
+`delenda-quest`.
 
 `install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout and then validates the Worker artifact. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
 
@@ -26,8 +27,8 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 ## Included Shape
 
 - edit site code under `app/`
-- `app/chatgpt-auth.ts` supports dispatch-owned ChatGPT identity and verified
-  Cloudflare Access JWTs without weakening either path
+- `app/auth.ts` issues private, opaque browser sessions
+- `app/api/session/route.ts` creates and clears those sessions
 - `wrangler.jsonc` declares the production Worker, custom domain, and bindings
 - `vite.config.ts` loads the same Wrangler configuration for local development
 - `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
@@ -39,10 +40,9 @@ Scripts that need writable project-scoped home, npm, XDG, and temporary paths us
 
 ## Authentication
 
-Production uses Cloudflare Access. The auth module verifies the
-`Cf-Access-Jwt-Assertion` signature against Cloudflare's rotating JWK set, plus
-the configured issuer and audience, before accepting the email claim. Required
-Access values belong in Cloudflare, never in source.
+Production creates a private, HTTP-only browser session on first entry. The
+opaque session identifier maps to a pseudonymous D1 account and contains no
+email address or other personal information.
 
 ## Diagnostic Commands
 

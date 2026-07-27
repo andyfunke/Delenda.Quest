@@ -4,10 +4,10 @@ import {
   claimDailyResolution,
   setGodMode,
 } from "../../../db/turns";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { getAuthenticatedUser } from "../../auth";
 
 export async function GET() {
-  const user = await getChatGPTUser();
+  const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json(
       { error: "Sign in before accessing campaign turnover." },
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const user = await getChatGPTUser();
+  const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json(
       { error: "Sign in before resolving a campaign day." },
@@ -28,7 +28,7 @@ export async function POST() {
 }
 
 export async function PATCH(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAuthenticatedUser();
   if (!user)
     return NextResponse.json(
       { error: "Sign in before changing campaign turnover." },

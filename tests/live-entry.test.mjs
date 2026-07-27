@@ -9,6 +9,16 @@ const forbiddenStats =
   /State of the war|modern-state-surface|state-constellation|state-throughput-grid|state-report-block/i;
 const cacheBust = () => `${Date.now()}-${crypto.randomUUID()}`;
 
+const sessionCookie = fetch(
+  new URL("/api/session?return_to=%2Fgame", base),
+  { cache: "no-store", redirect: "manual" },
+).then((response) => {
+  assert.equal(response.status, 307);
+  const setCookie = response.headers.get("set-cookie");
+  assert.ok(setCookie, "session bootstrap did not set a cookie");
+  return setCookie.split(";", 1)[0];
+});
+
 const fetchNoStore = async (url) =>
   fetch(url, {
     cache: "no-store",
@@ -16,6 +26,7 @@ const fetchNoStore = async (url) =>
     headers: {
       accept: "text/html,*/*",
       "cache-control": "no-cache, no-store, must-revalidate",
+      cookie: await sessionCookie,
       pragma: "no-cache",
       "user-agent": "DELENDA-live-acceptance/2.0",
     },

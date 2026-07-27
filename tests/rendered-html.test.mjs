@@ -65,7 +65,7 @@ test("the default route redirects directly to the game", async () => {
   assert.equal(signedOutGame.status, 307);
   assert.equal(
     signedOutGame.headers.get("location"),
-    "http://localhost/signin-with-chatgpt?return_to=%2Fgame%3Faccount%3D1",
+    "http://localhost/api/session?return_to=%2Fgame%3Faccount%3D1",
   );
 
   const signedOutAdmin = await worker.fetch(
@@ -85,7 +85,7 @@ test("the default route redirects directly to the game", async () => {
   assert.equal(signedOutAdmin.status, 307);
   assert.equal(
     signedOutAdmin.headers.get("location"),
-    "http://localhost/signin-with-chatgpt?return_to=%2Fadmin",
+    "http://localhost/api/session?return_to=%2Fadmin",
   );
 
   const signedOutCampaign = await worker.fetch(
@@ -126,7 +126,7 @@ test("the removed landing page cannot own the default route", async () => {
   );
   assert.match(gameRoute, /import GameClient from "\.\.\/GameClient"/);
   assert.match(gameRoute, /export const dynamic = "force-dynamic"/);
-  assert.match(gameRoute, /requireChatGPTUser\(returnTo\)/);
+  assert.match(gameRoute, /requireAuthenticatedUser\(returnTo\)/);
   for (const token of [
     "--b-bg: #0c0e0d",
     "--b-panel: #131614",
@@ -320,7 +320,7 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../drizzle/0012_simple_hercules.sql",import.meta.url),"utf8"),
   ]);
-  assert.match(gameRoute,/requireChatGPTUser/);
+  assert.match(gameRoute,/requireAuthenticatedUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
   assert.match(turnRoute,/claimDailyResolution/);
   assert.match(turnRoute,/setGodMode/);
@@ -745,7 +745,7 @@ test("registration owns active campaigns and the telemetry console is server-aut
     readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/telemetry/route.ts",import.meta.url),"utf8"),
   ]);
-  assert.match(gameRoute,/requireChatGPTUser\(returnTo\)/);
+  assert.match(gameRoute,/requireAuthenticatedUser\(returnTo\)/);
   assert.doesNotMatch(gameRoute,/ensureAccount\(user\)/);
   assert.match(layout,/strategy="beforeInteractive"/);
   assert.match(layout,/Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
@@ -768,7 +768,7 @@ test("registration owns active campaigns and the telemetry console is server-aut
   assert.match(client,/fetch\("\/api\/campaign",\{cache:"no-store"\}\)/);
   assert.match(client,/method:"PUT"/);
   assert.match(client,/accountKey:campaignAccountKey\.current/);
-  assert.match(adminRoute,/requireChatGPTUser\("\/admin"\)/);
+  assert.match(adminRoute,/requireAuthenticatedUser\("\/admin"\)/);
   assert.match(adminRoute,/isAdmin\(user\)/);
   assert.match(adminRoute,/notFound\(\)/);
   assert.doesNotMatch(landing,/href="\/admin"/);

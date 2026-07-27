@@ -1,19 +1,19 @@
 import { desc, eq, gte, sql } from "drizzle-orm";
-import type { ChatGPTUser } from "../app/chatgpt-auth";
+import type { AuthenticatedUser } from "../app/auth";
 import { getDb } from "./index";
 import { activeCampaigns, bugReports, campaignOutcomes, campaignRecords, telemetryCounters, users } from "./schema";
 
-export async function isAdmin(user:ChatGPTUser){
+export async function isAdmin(user:AuthenticatedUser){
   const {env}=await import("cloudflare:workers");
   const allowed=(env.DELENDA_ADMIN_EMAILS??"").split(",").map(value=>value.trim().toLowerCase()).filter(Boolean);
   return allowed.includes(user.email.trim().toLowerCase());
 }
 
-export async function requireAdmin(user:ChatGPTUser){
+export async function requireAdmin(user:AuthenticatedUser){
   if(!await isAdmin(user))throw new Error("Administrator access required.");
 }
 
-export async function adminSnapshot(user:ChatGPTUser){
+export async function adminSnapshot(user:AuthenticatedUser){
   await requireAdmin(user);
   const db=await getDb(),dayAgo=Date.now()-86_400_000;
   const[telemetry,outcomes,reports,registeredRows,activeRows,recentRows,completedRows,openReportRows,telemetryTotalRows]=await Promise.all([
@@ -54,7 +54,7 @@ export async function adminSnapshot(user:ChatGPTUser){
   };
 }
 
-export async function updatePlayerSupport(user:ChatGPTUser,input:{alias:string;field:string;value:boolean}){
+export async function updatePlayerSupport(user:AuthenticatedUser,input:{alias:string;field:string;value:boolean}){
   await requireAdmin(user);
   const db=await getDb(),alias=input.alias.trim();
   const allowed={accountEnabled:users.accountEnabled,socialEnabled:users.socialEnabled,telemetryEnabled:users.telemetryEnabled,aliasRenameUnlocked:users.aliasRenameUnlocked} as const;
@@ -66,7 +66,7 @@ export async function updatePlayerSupport(user:ChatGPTUser,input:{alias:string;f
   return{alias,field:input.field,value:input.value};
 }
 
-export async function updateBugStatus(user:ChatGPTUser,id:string,status:"open"|"reviewed"|"closed"){
+export async function updateBugStatus(user:AuthenticatedUser,id:string,status:"open"|"reviewed"|"closed"){
   await requireAdmin(user);
   const db=await getDb();await db.update(bugReports).set({status}).where(eq(bugReports.id,id));return{id,status};
 }

@@ -1,5 +1,5 @@
 import { and, desc, eq, or } from "drizzle-orm";
-import type { ChatGPTUser } from "../app/chatgpt-auth";
+import type { AuthenticatedUser } from "../app/auth";
 import { getDb } from "./index";
 import { campaignRecords, friendships, users } from "./schema";
 import { ensureAccount } from "./accounts";
@@ -99,7 +99,7 @@ const sanitizeSubmission=(input:CampaignRecordSubmission):CampaignRecordSubmissi
   publicGeo:clean(input.publicGeo,120)||"LOCATION UNAVAILABLE",
 });
 
-export async function createCampaignRecord(user:ChatGPTUser,raw:CampaignRecordSubmission){
+export async function createCampaignRecord(user:AuthenticatedUser,raw:CampaignRecordSubmission){
   const db=await getDb(),email=await ensureAccount(user),input=sanitizeSubmission(raw);
   const access=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!access?.accountEnabled)throw new Error("Account record services are disabled.");
@@ -146,7 +146,7 @@ async function globalStandings(){
   return[...totals.entries()].sort((a,b)=>b[1]-a[1]);
 }
 
-export async function serviceRecordFor(user:ChatGPTUser){
+export async function serviceRecordFor(user:AuthenticatedUser){
   const db=await getDb(),email=await ensureAccount(user),rows=await db.select().from(campaignRecords).where(eq(campaignRecords.ownerEmail,email)).orderBy(desc(campaignRecords.completedAt));
   const standings=await globalStandings(),uberscore=rows.reduce((sum,row)=>sum+row.uberscoreEarned,0),globalRank=Math.max(1,standings.findIndex(([owner])=>owner===email)+1),decorated=[];
   for(const row of rows)decorated.push(decorateRecord(row,await cohortFor(row)));

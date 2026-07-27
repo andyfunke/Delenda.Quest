@@ -5,9 +5,12 @@
 - GitHub repository `andyfunke/Delenda.Quest` is the only source of truth.
 - Cloudflare Workers Builds deploys `main` using `npm run build` followed by
   `npx wrangler deploy`.
-- `wrangler.jsonc` is the production configuration. It publishes only the
-  `delenda.quest` custom domain; `workers.dev` and preview URLs stay disabled.
+- `wrangler.jsonc` is the production configuration. It publishes the
+  `delenda.quest` custom domain and production `workers.dev` URL; preview URLs
+  stay disabled.
 - Production persistence is the D1 database named `delenda-quest`.
+- Public visitors receive private, opaque browser sessions through
+  `/api/session`; do not reintroduce a hosting-provider identity dependency.
 - Do not add Cloudflare Pages, OpenAI Sites, or another hosting control plane.
 
 ## Cloudflare agent connections

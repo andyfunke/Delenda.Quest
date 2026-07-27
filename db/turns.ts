@@ -1,5 +1,5 @@
 import { and, eq, isNull, lte, ne, or } from "drizzle-orm";
-import type { ChatGPTUser } from "../app/chatgpt-auth";
+import type { AuthenticatedUser } from "../app/auth";
 import {
   accountDayBounds,
   accountDayKey,
@@ -19,7 +19,7 @@ export type AccountTurnSnapshot = {
   timeZone: string;
 };
 
-const ensureTurnState = async (user: ChatGPTUser) => {
+const ensureTurnState = async (user: AuthenticatedUser) => {
   const db = await getDb();
   const ownerEmail = await ensureAccount(user);
   await settleTimeZoneForAccount(db, ownerEmail);
@@ -79,11 +79,11 @@ const snapshotFrom = (
   };
 };
 
-export async function accountTurnSnapshot(user: ChatGPTUser) {
+export async function accountTurnSnapshot(user: AuthenticatedUser) {
   return snapshotFrom(await ensureTurnState(user));
 }
 
-export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
+export async function setGodMode(user: AuthenticatedUser, enabled: boolean) {
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
@@ -112,7 +112,7 @@ export async function setGodMode(user: ChatGPTUser, enabled: boolean) {
   );
 }
 
-export async function claimDailyResolution(user: ChatGPTUser) {
+export async function claimDailyResolution(user: AuthenticatedUser) {
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);

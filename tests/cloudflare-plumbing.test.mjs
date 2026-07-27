@@ -16,13 +16,13 @@ const TABLES = [
   "account_rotation_ledger",
 ];
 
-test("production deploys only the delenda.quest custom domain", async () => {
+test("production deploys the custom domain and production Worker URL", async () => {
   const [config,workflow] = await Promise.all([
     readFile(new URL("../wrangler.jsonc", import.meta.url),"utf8").then(JSON.parse),
     readFile(new URL("../.github/workflows/cloudflare-shadow.yml", import.meta.url),"utf8"),
   ]);
   assert.equal(config.name, "delenda-quest");
-  assert.equal(config.workers_dev, false);
+  assert.equal(config.workers_dev, true);
   assert.equal(config.preview_urls, false);
   assert.deepEqual(config.routes, [{
     pattern: "delenda.quest",
@@ -36,7 +36,6 @@ test("production deploys only the delenda.quest custom domain", async () => {
   assert.equal(config.assets.binding, "ASSETS");
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
-  assert.equal(config.vars.DELENDA_AUTH_PROVIDER, "cloudflare-access");
   assert.match(workflow,/name: Production contract/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/live-production-acceptance/);
@@ -48,20 +47,17 @@ test("production deploys only the delenda.quest custom domain", async () => {
   );
 });
 
-test("Cloudflare Access JWTs are verified", async () => {
+test("private guest sessions gate account state", async () => {
   const [auth, game, command, briefing] = await Promise.all([
-    readFile(new URL("../app/chatgpt-auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/GameClient.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/BriefingInterface.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(auth, /createRemoteJWKSet/);
-  assert.match(auth, /jwtVerify\(token, jwks/);
-  assert.match(auth, /audience/);
-  assert.match(auth, /issuer/);
-  assert.match(auth, /provider: "chatgpt"/);
-  assert.match(auth, /provider: "cloudflare-access"/);
-  assert.match(auth, /\/cdn-cgi\/access\/logout/);
+  assert.match(auth, /GUEST_SESSION_COOKIE/);
+  assert.match(auth, /provider: "guest"/);
+  assert.match(auth, /guest-\$\{sessionId\}@guest\.delenda\.quest/);
+  assert.match(auth, /\/api\/session/);
   assert.match(game, /authenticatedSignOutPath\(user\)/);
   assert.match(command, /href=\{logoutPath\}/);
   assert.match(briefing, /href=\{logoutPath\}/);

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { cookies } from "next/headers";
-import type { ChatGPTUser } from "../app/chatgpt-auth";
+import type { AuthenticatedUser } from "../app/auth";
 import { getDb } from "./index";
 import { accountTurnState, friendInvites, friendships, users } from "./schema";
 import {
@@ -42,7 +42,7 @@ const initialAccountTimeZone=async()=>accountTimeZoneFromBootstrapCookie(
   (await cookies()).get(ACCOUNT_TIME_ZONE_COOKIE)?.value,
 );
 
-export async function ensureAccount(user:ChatGPTUser){
+export async function ensureAccount(user:AuthenticatedUser){
   const db=await getDb(),now=Date.now(),email=normalizeEmail(user.email);
   const[alias,initialTimeZone]=await Promise.all([generatedAlias(email),initialAccountTimeZone()]);
   if(!initialTimeZone.configured){
@@ -63,7 +63,7 @@ export async function ensureAccount(user:ChatGPTUser){
   return email;
 }
 
-export async function accountSnapshot(user:ChatGPTUser){
+export async function accountSnapshot(user:AuthenticatedUser){
   const db=await getDb(),email=await ensureAccount(user);
   await settleTimeZoneForAccount(db,email);
   const links=await db.select().from(friendships).where(or(eq(friendships.userA,email),eq(friendships.userB,email)));
@@ -108,7 +108,7 @@ export const settleTimeZoneForAccount=async(db:Awaited<ReturnType<typeof getDb>>
   }
 };
 
-export async function updateAlias(user:ChatGPTUser,rawAlias:string){
+export async function updateAlias(user:AuthenticatedUser,rawAlias:string){
   const db=await getDb(),email=await ensureAccount(user),now=Date.now();
   const account=(await db.select({aliasChangedAt:users.aliasChangedAt,aliasRenameUnlocked:users.aliasRenameUnlocked,accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!account?.accountEnabled)throw new Error("Account services are disabled.");
@@ -121,7 +121,7 @@ export async function updateAlias(user:ChatGPTUser,rawAlias:string){
   return{alias,nextAliasChangeAt:now+30*86_400_000};
 }
 
-export async function inviteFriend(user:ChatGPTUser,rawEmail:string){
+export async function inviteFriend(user:AuthenticatedUser,rawEmail:string){
   const db=await getDb(),inviterEmail=await ensureAccount(user),inviteeEmail=normalizeEmail(rawEmail),now=Date.now();
   const inviter=(await db.select({accountEnabled:users.accountEnabled,socialEnabled:users.socialEnabled}).from(users).where(eq(users.email,inviterEmail)).limit(1))[0];
   if(!inviter?.accountEnabled||!inviter.socialEnabled)throw new Error("Social account services are disabled.");
@@ -136,18 +136,18 @@ export async function inviteFriend(user:ChatGPTUser,rawEmail:string){
   return{registered,inviteeEmail,subject:"Join me in DELENDA.QUEST",body:registered?`${user.displayName} added you as a friend in DELENDA.QUEST. Sign in to see the connection.`:`${user.displayName} invited you to DELENDA.QUEST. Register with ${inviteeEmail}; the friendship will be waiting automatically.`};
 }
 
-export async function removeFriend(user:ChatGPTUser,rawEmail:string){
+export async function removeFriend(user:AuthenticatedUser,rawEmail:string){
   const db=await getDb(),email=await ensureAccount(user),friendEmail=normalizeEmail(rawEmail);const[a,b]=pair(email,friendEmail);
   await db.delete(friendships).where(and(eq(friendships.userA,a),eq(friendships.userB,b)));
   await db.delete(friendInvites).where(or(and(eq(friendInvites.inviterEmail,email),eq(friendInvites.inviteeEmail,friendEmail)),and(eq(friendInvites.inviterEmail,friendEmail),eq(friendInvites.inviteeEmail,email))));
 }
 
-export async function removeFriendByAlias(user:ChatGPTUser,alias:string){
+export async function removeFriendByAlias(user:AuthenticatedUser,alias:string){
   const db=await getDb(),record=(await db.select({email:users.email}).from(users).where(eq(users.alias,alias)).limit(1))[0];
   if(record)await removeFriend(user,record.email);
 }
 
-export async function updateAllowFriends(user:ChatGPTUser,allowFriends:boolean){
+export async function updateAllowFriends(user:AuthenticatedUser,allowFriends:boolean){
   const db=await getDb(),email=await ensureAccount(user);
   const account=(await db.select({accountEnabled:users.accountEnabled,socialEnabled:users.socialEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
   if(!account?.accountEnabled||!account.socialEnabled)throw new Error("Social account services are disabled.");
@@ -155,7 +155,7 @@ export async function updateAllowFriends(user:ChatGPTUser,allowFriends:boolean){
   return{allowFriends};
 }
 
-export async function updateTimeZone(user:ChatGPTUser,timeZone:string){
+export async function updateTimeZone(user:AuthenticatedUser,timeZone:string){
   if(!validTimeZone(timeZone))throw new Error("Select a valid IANA time zone.");
   const db=await getDb(),email=await ensureAccount(user);
   await settleTimeZoneForAccount(db,email);
@@ -174,7 +174,7 @@ export async function updateTimeZone(user:ChatGPTUser,timeZone:string){
   return{timeZone:account.timeZone,pendingTimeZone:timeZone,timeZoneEffectiveAt:effectiveAt};
 }
 
-export async function telemetryAllowed(user:ChatGPTUser){
+export async function telemetryAllowed(user:AuthenticatedUser){
   const db=await getDb(),email=await ensureAccount(user);
   const account=(await db.select({accountEnabled:users.accountEnabled,telemetryEnabled:users.telemetryEnabled}).from(users).where(eq(users.email,email)).limit(1))[0];
   return !!account?.accountEnabled&&!!account.telemetryEnabled;

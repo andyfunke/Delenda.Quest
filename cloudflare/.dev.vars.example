@@ -1,6 +1,4 @@
 # Copy to cloudflare/.dev.vars for local Cloudflare development only.
 # Never commit real values.
-CF_ACCESS_TEAM_DOMAIN=https://replace-me.cloudflareaccess.com
-CF_ACCESS_AUD=replace-me
 DELENDA_ADMIN_EMAILS=admin@example.com
 DELENDA_REPLICATION_TOKEN=replace-with-a-cryptographically-random-secret
