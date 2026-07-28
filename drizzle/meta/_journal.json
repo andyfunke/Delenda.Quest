@@ -92,6 +92,13 @@
       "when": 1785090204179,
       "tag": "0012_simple_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1785270000000,
+      "tag": "0013_substrate_ssh_credentials",
+      "breakpoints": true
     }
   ]
 }

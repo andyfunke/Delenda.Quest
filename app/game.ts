@@ -15,6 +15,8 @@ import { EARLIEST_MODELED_VICTORY_DAY, campaignBalanceProfile } from "./campaign
 import { campaignSeedId } from "./campaign-id";
 import { ADDITIONAL_DIRECTIVE_FAMILIES, DIRECTIVE_CATEGORY_OVERRIDES, DIRECTIVE_CHOICE_ADDITIONS } from "./directive-expansion";
 import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-event-expansion";
+import { compileAllDailyDockets } from "./substrate/docket";
+import type { DocketRecord } from "./substrate/contracts";
 
 export { CAMPAIGN_SEED_NAME_COUNT, campaignSeedId } from "./campaign-id";
 
@@ -101,7 +103,27 @@ export type GameState = {
   opportunityAssignments:OpportunityAssignment[]; accountOpportunityIds:string[]; forcedOpportunityDays:number[];
   theaterSectors:TheaterSector[]; operationalFacts:OperationalFact[]; situationHistory:SituationHistoryRecord[]; currentSituation:CompiledSituation|null;
   currentSubMissions:DailySubMissionDocket|null;subMissionHistory:SubMissionHistoryRecord[];resolutionHistory:DailyResolutionRecord[];
+  dailyDockets:DocketRecord[];
+  preparedOrders:PreparedOrderRecord[];
   reports: { day: number; title: string; body: string; tone: Tone; epigraph?: string }[];
+};
+
+export type PreparedOrderRecord = {
+  proposalToken:string;
+  playerId:string;
+  campaignId:string;
+  campaignRevision:string;
+  choiceId:string;
+  familyId:string;
+  mechanicId:string;
+  title:string;
+  orderCost:number;
+  createdAt:string;
+  expiresAt:string;
+  consumedAt?:string;
+  idempotencyKey?:string;
+  auditId?:string;
+  resultStatus?:string;
 };
 
 type NumberKey = { [K in keyof GameState]: GameState[K] extends number ? K : never }[keyof GameState];
@@ -576,9 +598,9 @@ export const initialState = (input:Partial<CampaignConfig>={}): GameState => {
     production: { munitions: { allocation: 34, stock: 152000, output: 18400, use: 21000 }, armor: { allocation: 24, stock: 1180, output: 62, use: 74 }, flight: { allocation: 18, stock: 286, output: 14, use: 17 }, drones: { allocation: 24, stock: 3640, output: 310, use: 355 } },
     active: {}, locks: {}, scheduled: [], activeDiplomacy:[],unlocked: ["drone-war"], decisions: [], eventHistory:[],opportunityCommitment:null,opportunityHistory:[],opportunityAssignments:[],accountOpportunityIds:[],forcedOpportunityDays:[],
     theaterSectors:initialTheaterSectors(config.theater),operationalFacts:initialOperationalFacts(config.theater),situationHistory:[],currentSituation:null,
-    currentSubMissions:null,subMissionHistory:[],resolutionHistory:[],reports: [],
+    currentSubMissions:null,subMissionHistory:[],resolutionHistory:[],dailyDockets:[],preparedOrders:[],reports: [],
   };
-  applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);
+  applyArchetype(s,config.archetype);applyAdversaryPersonality(s,config.adversaryPersonality);normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);Object.assign(s,compileAllDailyDockets(s));
   const situation=situationForState(s),director=directorForState(s);s.adversary.objective=situation.sector;
   const archetype=STATE_ARCHETYPES.find(x=>x.id===config.archetype)!;
   s.reports=[{day:1,title:`${situation.sector} Will Consume the First Available Reserve`,body:`${situation.briefing}\n\n${director.event.brief} The field army enters the sector with a serviceable reserve and arsenals able to sustain immediate operations. By dusk, headquarters must decide where to mass force and what to leave exposed.`,tone:"warn",epigraph:archetype.quote}];
@@ -851,8 +873,10 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     situationHistory:Array.isArray(candidate.situationHistory)?candidate.situationHistory:base.situationHistory,currentSituation:candidate.currentSituation??null,
     currentSubMissions:candidate.currentSubMissions??null,subMissionHistory:Array.isArray(candidate.subMissionHistory)?candidate.subMissionHistory.filter(validSubMissionHistoryRecord):base.subMissionHistory,
     resolutionHistory:Array.isArray(candidate.resolutionHistory)?candidate.resolutionHistory.filter(validResolutionHistoryRecord):base.resolutionHistory,
+    dailyDockets:Array.isArray(candidate.dailyDockets)?candidate.dailyDockets as DocketRecord[]:base.dailyDockets,
+    preparedOrders:Array.isArray(candidate.preparedOrders)?candidate.preparedOrders as PreparedOrderRecord[]:base.preparedOrders,
     active:candidate.active??base.active,locks:candidate.locks??base.locks,activeDiplomacy:Array.isArray(candidate.activeDiplomacy)?candidate.activeDiplomacy:base.activeDiplomacy,affinityProofs:candidate.affinityProofs??base.affinityProofs,victorySecuredDay:typeof candidate.victorySecuredDay==="number"?candidate.victorySecuredDay:null};
-  normalize(state);if(state.status==="active"&&state.front<=-12)state.status="defeat";rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION||!state.currentSituation.maneuverPresentations)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);state.adversary.objective=state.currentSituation.sector;return state;
+  normalize(state);if(state.status==="active"&&state.front<=-12)state.status="defeat";rewriteNamedCollapseReports(state);rewriteLegacyMorningReport(state);if(state.currentSituation?.day!==state.day||state.currentSituation.contentPackVersion!==CONTENT_PACK_VERSION||!state.currentSituation.maneuverPresentations)state.currentSituation=compileSituationForState(state);const docket=state.currentSubMissions;const docketValid=recordObject(docket)&&docket.day===state.day&&docket.version===SUB_MISSION_SCHEMA_VERSION&&docket.contentVersion===SUB_MISSION_CONTENT_VERSION&&validSubMissionReference(docket.domestic,"domestic")&&validSubMissionReference(docket.network,"network");if(!docketValid)state.currentSubMissions=compileSubMissionDocket(state,state.subMissionHistory);const dayDockets=(state.dailyDockets??[]).filter(item=>item.campaignDay===state.day);if(dayDockets.length<6)Object.assign(state,compileAllDailyDockets(state));state.adversary.objective=state.currentSituation.sector;return state;
 };
 export const maneuverById = (id: string | null) => MANEUVERS.find((m) => m.id === id);
 export const maneuverForSituation = (
@@ -1121,7 +1145,7 @@ export const resolve = (state: GameState) => {
   if((terminalResolutionOpen&&s.victorySecuredDay!==null)||(s.day>30&&s.front>0))s.status="victory";
   if(inertCommand&&resolvedDay>=balance.inertDefeatDay)s.status="defeat";
   if(s.front<=-12||s.legitimacy<=0||s.deployable<75000||(s.day>30&&s.front<=0))s.status="defeat";
-  normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);s.adversary.objective=s.currentSituation.sector;return s;
+  normalize(s);s.currentSituation=compileSituationForState(s);s.currentSubMissions=compileSubMissionDocket(s,s.subMissionHistory);Object.assign(s,compileAllDailyDockets(s));s.adversary.objective=s.currentSituation.sector;return s;
 };
 
 export const fmt = (n: number, full=false) => full?Math.round(n).toLocaleString():new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:1}).format(n);

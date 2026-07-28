@@ -137,6 +137,8 @@ import {
 } from "./account-time";
 import { avaInterfaceIntent } from "./ava/interface-intent";
 import { warFeedForInvocation } from "./war-feed";
+import { visibleDirectiveView } from "./substrate/visible-directives";
+import { getVisibleChoice } from "./substrate/services";
 
 type TurnAccess = {
   godMode: boolean;
@@ -2016,18 +2018,27 @@ function ModulePage({
     ],
   };
   const desc = descriptions[page],
-    isProduction = page === "national",
-    families = FAMILIES.filter((f) => f.module === page),
-    groups = [...new Set(families.map((f) => f.category))];
-  const [selected, setSelected] = useState(focus ?? families[0]?.id ?? "");
+    isProduction = page === "national";
   const [previewChoice, setPreviewChoice] = useState<Choice | null>(null);
   const [selectedActor, setSelectedActor] = useState(s.actors[0]?.id ?? "");
+  const families = useMemo(
+    () =>
+      visibleDirectiveView(
+        s,
+        page,
+        page === "diplomacy" ? selectedActor : undefined,
+      ).families,
+    [s, page, selectedActor],
+  );
+  const groups = [...new Set(families.map((f) => f.category))];
+  const [selected, setSelected] = useState(focus ?? families[0]?.id ?? "");
   const selectedFamily = families.find((f) => f.id === selected) ?? families[0];
   useEffect(() => {
-    if (focus && FAMILIES.some((f) => f.module === page && f.id === focus))
-      setSelected(focus);
-  }, [focus, page]);
-  useEffect(() => setPreviewChoice(null), [selected, page, s.day]);
+    if (focus && families.some((f) => f.id === focus)) setSelected(focus);
+    else if (!families.some((f) => f.id === selected))
+      setSelected(families[0]?.id ?? "");
+  }, [focus, page, families, selected]);
+  useEffect(() => setPreviewChoice(null), [selected, page, s.day, selectedActor]);
   const previewRejection =
     selectedFamily && previewChoice
       ? directiveRejection(s, selectedFamily, previewChoice)
@@ -4568,6 +4579,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       );
   };
   const issueDirective = (selectedFamily: Family, choice: Choice) => {
+    const visibility = getVisibleChoice(
+      {
+        playerId: "web",
+        campaignId: s.campaignId,
+        campaignRevision: `${s.day}:${s.actions}`,
+        surface: "web",
+        authority: "command",
+        nowMs: Date.now(),
+      },
+      s,
+      choice.id,
+    );
+    if (visibility.status !== "OK" || !visibility.fact.visible) {
+      setSystemNotice(
+        `ORDER UNAVAILABLE // ${visibility.recovery?.instruction ?? "Not on today's docket."}`,
+      );
+      return;
+    }
     const result = executeAvaAction(
       s,
       { kind: "directive", familyId: selectedFamily.id, choiceId: choice.id },
