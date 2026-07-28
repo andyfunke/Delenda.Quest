@@ -4603,6 +4603,27 @@ body {
   border-right: 1px solid #555;
   padding-right: 14px;
 }
+/* The Classic UX "Day Resolution" clock doubles as the resolve-day control:
+   it lights up on hover and opens the resolution confirm on click. */
+.war-clock-actionable {
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.war-clock-actionable:hover,
+.war-clock-actionable:focus-visible {
+  background: #1c211a;
+  border-color: var(--acid);
+  box-shadow: 0 0 0 1px var(--acid), 0 0 16px #b6ff5140;
+  outline: none;
+}
+.war-clock-actionable small {
+  color: var(--acid);
+}
 .day > .command-ux-toggle {
   background: #181a17 !important;
   border-left: 1px solid #3a3b35;

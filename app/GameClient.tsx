@@ -1312,19 +1312,45 @@ function SignalStream({ s, live }: { s: GameState; live: Live }) {
   );
 }
 
-function WarClock({ remaining }: { remaining: number }) {
+function WarClock({
+  remaining,
+  canResolve = false,
+  onResolve,
+}: {
+  remaining: number;
+  canResolve?: boolean;
+  onResolve?: () => void;
+}) {
+  const interactive = canResolve && !!onResolve;
   return (
     <div
-      className="war-clock"
+      className={`war-clock${interactive ? " war-clock-actionable" : ""}`}
       data-semantic="STATUS"
-      aria-label="Day resolution clock"
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? "Resolve the day now" : "Day resolution clock"}
+      onClick={interactive ? onResolve : undefined}
+      onKeyDown={
+        interactive
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onResolve?.();
+              }
+            }
+          : undefined
+      }
     >
       <span>DAY RESOLUTION</span>
       <b aria-hidden="true" suppressHydrationWarning>
         {clockText(remaining)}
       </b>
       <small>
-        {remaining <= 0 ? "RESOLUTION DUE" : "standing orders remain active"}
+        {interactive
+          ? "CLICK TO RESOLVE →"
+          : remaining <= 0
+            ? "RESOLUTION DUE"
+            : "standing orders remain active"}
       </small>
     </div>
   );
@@ -4398,15 +4424,10 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
   const live = useMemo(() => liveProjection(s, fraction), [s, fraction]);
   const [balance, tone] = useMemo(() => assessment(s), [s]);
   const remaining = clock.end - now;
-  const canResolveDay =
-    s.status === "active" &&
-    !turnBusy &&
-    // Signed-in players are gated by the server's daily turn window. Anonymous
-    // visitors have no account, play against the device-local save, and can
-    // resolve freely.
-    (signedIn
-      ? !!turnAccess && (turnAccess.godMode || turnAccess.canResolve)
-      : true);
+  // Global unlock (experience mode): day resolution is available to everyone,
+  // signed in or not, whenever a campaign is active. The per-account daily turn
+  // gate is intentionally not enforced so people can freely play the game.
+  const canResolveDay = s.status === "active" && !turnBusy;
   const opportunityWindow = opportunityStatusForFraction(s, fraction);
   const opportunityClosesAt = opportunityWindow.packet
     ? new Date(
@@ -4750,20 +4771,10 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
       setSystemNotice(`DAY NOT RESOLVED // ${result.rejection}`);
       return false;
     }
-    // Anonymous visitors have no server-side account turn gate; resolve the day
-    // locally against the device save instead of calling the account endpoint.
-    const claim = signedIn
-      ? await claimTurn()
-      : { allowed: true as const, godMode: false, timeZone: accountTimeZone };
-    if (!claim?.allowed) {
-      const zone = claim?.timeZone ?? accountTimeZone;
-      setClock(accountDayBounds(zone, Date.now()));
-      setDayModal(false);
-      setSystemNotice(
-        "DAILY TURN ALREADY USED // ACTUAL-TIME TURNOVER RESUMES AT YOUR NEXT ACCOUNT MIDNIGHT",
-      );
-      return false;
-    }
+    // Global unlock (experience mode): day resolution is free for everyone —
+    // logged in or not — so people can play the game without the per-account
+    // daily turn gate. Progress still persists through the campaign autosave.
+    const claim = { timeZone: accountTimeZone };
     const next = result.state;
     setS(next);
     setAvaSession((current) => ({
@@ -4783,16 +4794,12 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
     setOpportunityInterruptAcknowledged(false);
     setAlertMenuOpen(false);
     setSystemNotice(
-      claim.godMode
-        ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
-        : source === "automatic"
-          ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
-          : signedIn
-            ? `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`
-            : `DAY RESOLVED // DAY ${next.day} IS OPEN // SIGN IN TO SYNC PROGRESS ACROSS DEVICES`,
+      source === "automatic"
+        ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
+        : `DAY RESOLVED // DAY ${next.day} IS OPEN`,
     );
     return true;
-  }, [accountTimeZone, claimTurn, fraction, s, signedIn]);
+  }, [accountTimeZone, fraction, s]);
   useEffect(() => {
     if (!hydrated || !turnAccess || overdueTurnsApplied.current) return;
     overdueTurnsApplied.current = true;
@@ -5039,25 +5046,8 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
       ]);
       return;
     }
-    const confirmingDayResolution =
-      result.instruction.kind === "CONFIRM" &&
-      !!avaSession.confirmation?.plan.actions.some(
-        (action) => action.kind === "resolve-day",
-      );
-    if (confirmingDayResolution) {
-      const claim = await claimTurn();
-      if (!claim?.allowed) {
-        setMessages((current) => [
-          ...current,
-          {
-            who: "AVA",
-            text:
-              "DAILY TURN ALREADY USED\nActual-time turnover is enabled. The next campaign day becomes available at your account midnight.",
-          },
-        ]);
-        return;
-      }
-    }
+    // Global unlock (experience mode): Ava resolves the day for everyone —
+    // logged in or not — without the per-account daily turn gate.
     let darkNetContext: AvaDarkNetContext = {};
     if (
       result.instruction.kind === "SHELL" &&
@@ -5350,7 +5340,11 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
               <small>ACTIVE CAMPAIGN</small>
             </div>
             <div className="day">
-              <WarClock remaining={remaining} />
+              <WarClock
+                remaining={remaining}
+                canResolve={canResolveDay}
+                onResolve={() => setDayModal(true)}
+              />
               <div>
                 <span>ORDERS</span>
                 <b>
@@ -5384,13 +5378,6 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
               </button>
             )}
             <div className="strip-tools">
-              <button
-                className="strip-resolve"
-                disabled={!canResolveDay}
-                onClick={() => setDayModal(true)}
-              >
-                RESOLVE DAY {s.day} →
-              </button>
               <button
                 onClick={() => {
                   setAva(true);

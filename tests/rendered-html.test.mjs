@@ -364,7 +364,10 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(randomEventHandler,/setOpportunityInterruptAcknowledged\(false\)/);
   assert.match(randomEventHandler,/RANDOM EVENT FORCED/);
   assert.match(page,/void advance\("automatic"\)/);
-  assert.match(page,/DAILY TURN ALREADY USED/);
+  // Global unlock (experience mode): the client resolves days for everyone and
+  // no longer blocks resolution behind the per-account daily turn gate.
+  assert.doesNotMatch(page,/DAILY TURN ALREADY USED/);
+  assert.match(page,/const canResolveDay = s\.status === "active" && !turnBusy;/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{
