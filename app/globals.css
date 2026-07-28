@@ -13166,6 +13166,78 @@ small,
 .ava *::after {
   font-family: var(--ui) !important;
 }
+/* Modern variant: when Ava is opened from the modern (Alt) interface it adopts
+   the Alt UX palette — amber accent and refined, paneled chrome — instead of the
+   classic acid-green terminal. Colors are the literal Alt UX (--b-*) tokens,
+   inlined because those custom properties are scoped to .briefing-ui. */
+.ava.ava-modern {
+  background: #12140f;
+  border: 1px solid #2a302b;
+  border-radius: 8px;
+  color: #d8ddd4;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.55);
+}
+.ava-modern header {
+  border-bottom: 1px solid #2a302b;
+}
+.ava-modern header > div > span {
+  background: #e0a458;
+  color: #14110a;
+  border-radius: 4px;
+}
+.ava-modern header b {
+  color: #f1efe6;
+  font-family: var(--serif) !important;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+}
+.ava-modern header small {
+  color: #8b9188;
+}
+.ava-modern header > button {
+  color: #8b9188;
+}
+.ava-modern header > button:hover {
+  color: #e0a458;
+}
+.ava-modern .ava-state {
+  background: #0d0f0b;
+  border-bottom: 1px solid #2a302b;
+}
+.ava-modern .ava-state span {
+  color: #8b9188;
+}
+.ava-modern .messages > div > span {
+  color: #e0a458;
+}
+.ava-modern .messages .you span,
+.ava-modern .messages .you p {
+  color: #6b7268;
+}
+.ava-modern form {
+  border-top: 1px solid #2a302b;
+}
+.ava-modern form label {
+  color: #e0a458;
+}
+.ava-modern form > div {
+  border: 1px solid #2a302b;
+  border-radius: 4px;
+}
+.ava-modern form > div:focus-within {
+  border-color: #e0a458;
+}
+.ava-modern form > div > span {
+  color: #e0a458;
+}
+.ava-modern form button {
+  background: #e0a458;
+  color: #14110a;
+}
+.ava-modern > footer button:hover,
+.ava-modern .ava-window-controls button:hover {
+  color: #e0a458;
+}
 .ava-text-block.narrative p,
 .ava.terminal-full .ava-text-block.narrative p {
   font: 500 15px/1.5 var(--ui);

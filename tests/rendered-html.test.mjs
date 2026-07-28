@@ -557,8 +557,9 @@ test("the command storyboard survives while the standalone Stats surface stays d
   const playerModules=page.slice(page.indexOf("const modules:"),page.indexOf("const resourceLabel"));
   const surfaceRouter=briefing.slice(briefing.indexOf("const surfaceFor"),briefing.indexOf("export function BriefingInterface"));
   assert.match(playerModules,/id:\s*"storyboard",\s*label:\s*"Dashboard",\s*n:\s*"00"/);
-  assert.match(page,/useState<Page>\("campaign"\)/);
-  assert.match(page,/const priorTelemetryModule = useRef<Page>\("campaign"\)/);
+  // Classic UX opens on the Dashboard (storyboard) by default.
+  assert.match(page,/useState<Page>\("storyboard"\)/);
+  assert.match(page,/const priorTelemetryModule = useRef<Page>\("storyboard"\)/);
   assert.match(page,/terminal\.navigate === "dashboard" \? "campaign"/);
   assert.match(surfaceRouter,/target === "dashboard"\s*\?\s*"brief"/);
   assert.doesNotMatch(surfaceRouter,/"state",/);

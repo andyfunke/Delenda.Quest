@@ -3713,7 +3713,7 @@ function WarTicker() {
 
 export default function Home({ logoutPath, signedIn }: { logoutPath: string; signedIn: boolean }) {
   const [s, setS] = useState<GameState>(initialState);
-  const [page, setPage] = useState<Page>("campaign");
+  const [page, setPage] = useState<Page>("storyboard");
   const [interfaceMode, setInterfaceMode] = useState<"command" | "briefing">(
     "briefing",
   );
@@ -3806,13 +3806,14 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
   const overdueTurnCount = useRef(0);
   const overdueTurnsApplied = useRef(false);
   const turnClaimInFlight = useRef(false);
-  const priorTelemetryModule = useRef<Page>("campaign");
+  const priorTelemetryModule = useRef<Page>("storyboard");
   const [initialModuleEnteredAt] = useState(Date.now);
   const moduleEnteredAt = useRef(initialModuleEnteredAt);
   useEffect(() => {
     if (priorDay.current === s.day) return;
     priorDay.current = s.day;
-    setPage("campaign");
+    // Classic UX lands on the Dashboard; the Alt UX opens on Daily Campaign.
+    setPage("storyboard");
     setBriefingModule("campaign");
     setCampaignInspectorSelection(null);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -4607,8 +4608,10 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
   };
   const switchInterface = (mode: "command" | "briefing") => {
     if (mode === interfaceMode) return;
-    if (mode === "command") setPage(briefingModule);
-    else setBriefingModule(gameModuleForPage(page));
+    // Entering the Classic UX keeps its own page (which defaults to the
+    // Dashboard) rather than mirroring the Alt UX surface. Entering the Alt UX
+    // still reflects the Classic page.
+    if (mode === "briefing") setBriefingModule(gameModuleForPage(page));
     setInterfaceMode(mode);
     try {
       window.localStorage.setItem("delenda.quest.interface.v1", mode);
@@ -5581,7 +5584,9 @@ export default function Home({ logoutPath, signedIn }: { logoutPath: string; sig
       )}
       {ava && (
         <aside
-          className={`ava ${avaFullscreen ? "terminal-full" : ""}`}
+          className={`ava ${avaFullscreen ? "terminal-full" : ""} ${
+            interfaceMode === "briefing" ? "ava-modern" : ""
+          }`}
           data-telemetry-surface="ava"
         >
           <header>
