@@ -12,7 +12,7 @@ const choiceNode = (
   family: Family,
   choice: Choice,
   channel: Channel,
-  cladeId: string,
+  _cladeId: string,
 ): SubstrateNode => ({
   id: choice.id,
   contentVersion: CONTENT_VERSION,

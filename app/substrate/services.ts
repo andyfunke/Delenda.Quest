@@ -30,7 +30,7 @@ import {
   type StrategicPosture,
   validateStrategicPosture,
 } from "./posture";
-import { evaluateDirectiveChoices, type ChoiceEvaluation } from "./choice-evaluation";
+import { evaluateDirectiveChoices } from "./choice-evaluation";
 
 const revisionOf = (state: GameState) =>
   `${state.campaignId}:${state.day}:${state.actions}:${state.contentPackVersion}`;

@@ -226,12 +226,6 @@ const compareNumber = (
   return actual <= value;
 };
 
-const missing = (result: boolean): GateEvaluationResult => ({
-  result,
-  status: "missing-input",
-  traces: [],
-});
-
 const evalInner = (
   gate: SubstrateGate,
   context: GateContext,
