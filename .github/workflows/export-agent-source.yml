@@ -1,0 +1,26 @@
+name: Export current SSH branch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/export-agent-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/production-ssh-daemon'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/production-ssh-daemon
+      - run: tar --exclude=.git -czf /tmp/delenda-current.tgz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: delenda-current
+          path: /tmp/delenda-current.tgz
+          retention-days: 1
