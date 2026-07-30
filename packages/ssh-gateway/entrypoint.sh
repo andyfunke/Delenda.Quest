@@ -3,27 +3,31 @@ set -euo pipefail
 
 API_BASE="${DELENDA_API_BASE:-https://delenda.quest}"
 TOKEN="${DELENDA_SSH_GATEWAY_TOKEN:-}"
-ALLOW_INSECURE_HTTP="${DELENDA_SSH_ALLOW_INSECURE_API:-0}"
 CONFIG_PATH="/etc/delenda-gateway/config.json"
 HOST_KEY="/etc/ssh/ssh_host_ed25519_key"
+TEST_CA_B64="${DELENDA_SSH_TEST_CA_B64:-}"
 
 if [[ ! "$API_BASE" =~ ^https:// ]]; then
-  if [[ "$ALLOW_INSECURE_HTTP" != "1" || ! "$API_BASE" =~ ^http://(host\.docker\.internal|127\.0\.0\.1|localhost)(:[0-9]+)?$ ]]; then
-    echo "DELENDA_API_BASE must use https:// outside the local gateway test." >&2
-    exit 1
-  fi
+  echo "DELENDA_API_BASE must use https://" >&2
+  exit 1
 fi
 if [[ ${#TOKEN} -lt 32 ]]; then
   echo "DELENDA_SSH_GATEWAY_TOKEN must be at least 32 characters." >&2
   exit 1
 fi
+if [[ -n "$TEST_CA_B64" && ! "$API_BASE" =~ ^https://(host\.docker\.internal|127\.0\.0\.1|localhost)(:[0-9]+)?$ ]]; then
+  echo "DELENDA_SSH_TEST_CA_B64 is permitted only for the local gateway acceptance test." >&2
+  exit 1
+fi
 
 install -d -m 0750 -o root -g delenda /etc/delenda-gateway
-API_BASE="$API_BASE" TOKEN="$TOKEN" ALLOW_INSECURE_HTTP="$ALLOW_INSECURE_HTTP" node - <<'NODE' > "$CONFIG_PATH"
+API_BASE="$API_BASE" TOKEN="$TOKEN" TEST_CA_B64="$TEST_CA_B64" node - <<'NODE' > "$CONFIG_PATH"
 const apiBase=process.env.API_BASE;
 const token=process.env.TOKEN;
-const allowInsecureHttp=process.env.ALLOW_INSECURE_HTTP==="1";
-process.stdout.write(JSON.stringify({apiBase,token,allowInsecureHttp}));
+const encoded=process.env.TEST_CA_B64||"";
+const caPem=encoded?Buffer.from(encoded,"base64").toString("utf8"):undefined;
+if(caPem&&!caPem.includes("BEGIN CERTIFICATE"))throw new Error("Test CA is malformed.");
+process.stdout.write(JSON.stringify({apiBase,token,caPem}));
 NODE
 chown root:delenda "$CONFIG_PATH"
 chmod 0640 "$CONFIG_PATH"
