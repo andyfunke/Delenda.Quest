@@ -2,7 +2,7 @@
 set -eu
 port="${PORT:-2222}"
 case "$port" in *[!0-9]*|'') echo "Invalid PORT" >&2; exit 78;; esac
-mkdir -p /run/delenda
+mkdir -p /run/delenda /run/sshd
 host_key=/run/delenda/ssh_host_ed25519_key
 if [ -n "${SSH_HOST_KEY_BASE64:-}" ]; then
   printf '%s' "$SSH_HOST_KEY_BASE64" | base64 -d > "$host_key"
