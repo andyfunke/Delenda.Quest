@@ -5,12 +5,18 @@ on:
     paths:
       - "app/ava/**"
       - "app/substrate/**"
+      - "app/api/ssh/**"
+      - "app/ssh/**"
+      - "db/ssh.ts"
+      - "db/campaigns.ts"
       - "packages/terminal-core/**"
       - "packages/ssh-server/**"
+      - "packages/ssh-gateway/**"
       - "tests/ava-*.test.mjs"
       - "tests/substrate-*.test.mjs"
       - "scripts/test-ava.sh"
       - "scripts/test-substrate.sh"
+      - "package.json"
       - ".github/workflows/ava-unification.yml"
 
 permissions:
@@ -32,8 +38,11 @@ jobs:
       - name: Install locked dependencies
         run: npm run install:ci
 
-      - name: Typecheck unified kernel
+      - name: Typecheck unified kernel and gateway APIs
         run: npm run typecheck
+
+      - name: Bundle the public SSH gateway
+        run: npm run build:ssh-gateway
 
       - name: Run OG Ava compiler and terminal suites
         run: bash scripts/test-ava.sh
