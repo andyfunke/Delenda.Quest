@@ -4,9 +4,11 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 work="$(mktemp -d /tmp/delenda-ssh-protocol.XXXXXX)"
 container_name="delenda-ssh-test-$RANDOM"
 authority_pid=""
+forward_pid=""
 cleanup(){
   status=$?
   if [[ $status -ne 0 ]]; then docker logs "$container_name" 2>/dev/null || true; cat "$work/authority.log" 2>/dev/null || true; fi
+  if [[ -n "$forward_pid" ]]; then kill "$forward_pid" 2>/dev/null || true; fi
   if [[ -n "$authority_pid" ]]; then kill "$authority_pid" 2>/dev/null || true; fi
   docker rm -f "$container_name" >/dev/null 2>&1 || true
   rm -rf "$work"
@@ -51,9 +53,15 @@ grep -q 'MOCK COMMAND: uname -a' <<<"$shell_attempt"
 if sftp -q -P 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i "$work/known" play@127.0.0.1 </dev/null >"$work/sftp.out" 2>&1; then
   echo "SFTP unexpectedly succeeded" >&2; exit 1
 fi
-if ssh "${ssh_options[@]}" -o ExitOnForwardFailure=yes -L 39092:127.0.0.1:39091 -i "$work/known" play@127.0.0.1 brief >"$work/forward.out" 2>&1; then
-  echo "TCP forwarding unexpectedly succeeded" >&2; exit 1
+ssh "${ssh_options[@]}" -N -L 39092:127.0.0.1:39091 -i "$work/known" play@127.0.0.1 >"$work/forward.out" 2>&1 &
+forward_pid=$!
+sleep .5
+if curl -fsS --max-time 2 http://127.0.0.1:39092/health >/dev/null 2>&1; then
+  echo "TCP forwarding unexpectedly carried traffic" >&2; exit 1
 fi
+kill "$forward_pid" 2>/dev/null || true
+wait "$forward_pid" 2>/dev/null || true
+forward_pid=""
 
 docker rm -f "$container_name" >/dev/null
 docker run -d --name "$container_name" --network host \
