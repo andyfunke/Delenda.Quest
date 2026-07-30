@@ -36,6 +36,11 @@ import {
 import { voiceAvaResponse, type AvaVoiceCue } from "./voice";
 import type { AvaDarkNetContext } from "./darknet";
 
+type DirectiveChannel = Extract<
+  Channel,
+  "production" | "military" | "diplomacy"
+>;
+
 export type AvaKernelSession = {
   terminal: AvaTerminalSession;
   currentModule: AvaModule;
@@ -77,14 +82,10 @@ const normalize = (value: string) =>
     .trim()
     .replace(/\s+/g, " ");
 
-const moduleForChannel = (channel: Channel): AvaModule =>
-  channel === "production"
-    ? "national"
-    : channel === "military" || channel === "diplomacy"
-      ? channel
-      : "campaign";
+const moduleForChannel = (channel: DirectiveChannel): AvaModule =>
+  channel === "production" ? "national" : channel;
 
-const channelForModule = (module: AvaModule): Channel | null =>
+const channelForModule = (module: AvaModule): DirectiveChannel | null =>
   module === "national"
     ? "production"
     : module === "military" || module === "diplomacy"
@@ -95,7 +96,7 @@ const channelForLanguage = (
   raw: string,
   instruction: AvaInstruction,
   currentModule: AvaModule,
-): Channel | null => {
+): DirectiveChannel | null => {
   const input = normalize(raw);
   if (/\b(production|producion|industry|industrial|national)\b/.test(input))
     return "production";
@@ -143,7 +144,7 @@ const compileVisibleAvaContext = (
       entity.action?.kind !== "directive" ||
       visibleChoiceIds.has(entity.action.choiceId),
   );
-  return { state: next, entities, visibleChoiceIds };
+  return { state: next, entities };
 };
 
 const responseText = (
@@ -187,7 +188,12 @@ const clarification = (
   };
   return {
     response,
-    text: responseText(state, response, { mode: "rejection", label: "CLARIFICATION" }, variant),
+    text: responseText(
+      state,
+      response,
+      { mode: "rejection", label: "CLARIFICATION" },
+      variant,
+    ),
   };
 };
 
@@ -268,8 +274,11 @@ const findDirectiveEntity = (target: string, entities: AvaEntity[]) => {
 const directiveEntityForInstruction = (
   instruction: AvaInstruction,
   session: AvaKernelSession,
-) => {
-  if (instruction.kind === "SELECT" && instruction.entity.action?.kind === "directive")
+): AvaEntity | null => {
+  if (
+    instruction.kind === "SELECT" &&
+    instruction.entity.action?.kind === "directive"
+  )
     return instruction.entity;
   if (
     (instruction.kind === "STAGE" || instruction.kind === "ISSUE") &&
@@ -277,7 +286,10 @@ const directiveEntityForInstruction = (
     instruction.entities[0]?.action?.kind === "directive"
   )
     return instruction.entities[0];
-  if (instruction.kind === "COMMIT" && instruction.entity?.action?.kind === "directive")
+  if (
+    instruction.kind === "COMMIT" &&
+    instruction.entity?.action?.kind === "directive"
+  )
     return instruction.entity;
   if (
     instruction.kind === "ISSUE_PLAN" &&
@@ -287,7 +299,7 @@ const directiveEntityForInstruction = (
     const action = session.terminal.plan[0];
     return {
       id: `directive:${action.familyId}:${action.choiceId}`,
-      kind: "directive" as const,
+      kind: "directive",
       label: action.choiceId,
       action,
     };
@@ -321,6 +333,61 @@ const oldAvaResponse = (
   campaignRevision: revisionOf(result.state ?? state),
 });
 
+const prepareDirective = (
+  ctx: PlayerContext,
+  state: GameState,
+  session: AvaKernelSession,
+  entity: AvaEntity,
+  variant: number,
+): AvaKernelResult => {
+  if (entity.action?.kind !== "directive") {
+    const response: SemanticResponse<unknown> = {
+      status: "AMBIGUOUS",
+      fact: null,
+      rendering: {
+        compact: "PREPARE TARGET",
+        brief: "Name one directive on today's visible docket.",
+      },
+      recovery: {
+        code: "PREPARE_TARGET",
+        instruction: "Open production, military, or diplomacy and use a visible id.",
+      },
+      campaignRevision: revisionOf(state),
+    };
+    return {
+      state,
+      session,
+      response,
+      text: responseText(state, response, { mode: "rejection" }, variant),
+    };
+  }
+  const prepared = prepareOrder(
+    ctx,
+    state,
+    entity.action.choiceId,
+    `ava:${ctx.surface}:${ctx.playerId}:${session.commandsRead}:${entity.action.choiceId}`,
+  );
+  const nextSession = { ...session };
+  if (prepared.response.status === "PREPARED") {
+    const fact = prepared.response.fact as PreparedOrderFact;
+    nextSession.proposalToken = fact.proposalToken;
+    nextSession.proposalExpiresAt = fact.expiresAt;
+  }
+  return {
+    state: prepared.state,
+    session: nextSession,
+    response: prepared.response,
+    text: responseText(
+      prepared.state,
+      prepared.response,
+      prepared.response.status === "PREPARED"
+        ? { mode: "confirmation" }
+        : { mode: "rejection" },
+      variant,
+    ),
+  };
+};
+
 export const runAvaKernelLine = (
   raw: string,
   ctx: PlayerContext,
@@ -339,7 +406,7 @@ export const runAvaKernelLine = (
   const input = normalize(raw);
   const variant = nextSession.terminal.voiceCursor;
 
-  const exactChannel =
+  const exactChannel: DirectiveChannel | null =
     input === "production" || input === "prod"
       ? "production"
       : input === "military" || input === "mil"
@@ -355,68 +422,39 @@ export const runAvaKernelLine = (
     const docket = getVisibleDocket(ctx, nextState, exactChannel, actorId);
     nextState = docket.state;
     nextSession.currentModule = moduleForChannel(exactChannel);
-    const text = voiceAvaResponse(
-      nextState,
-      docketText(docket.response.fact),
-      { topic: exactChannel === "production" ? "production" : exactChannel, variant },
-    );
-    return { state: nextState, session: nextSession, response: docket.response, text };
+    const text = voiceAvaResponse(nextState, docketText(docket.response.fact), {
+      topic: exactChannel,
+      variant,
+    });
+    return {
+      state: nextState,
+      session: nextSession,
+      response: docket.response,
+      text,
+    };
   }
 
   const prepareMatch = input.match(/^prepare\s+(.+)$/);
   if (prepareMatch) {
     nextSession.consequentialAttempts += 1;
     const entity = findDirectiveEntity(prepareMatch[1], visible.entities);
-    if (!entity?.action || entity.action.kind !== "directive") {
-      const response: SemanticResponse<unknown> = {
-        status: "AMBIGUOUS",
-        fact: null,
-        rendering: {
-          compact: "PREPARE TARGET",
-          brief: "Name one directive on today's visible docket.",
-        },
-        recovery: {
-          code: "PREPARE_TARGET",
-          instruction: "Open production, military, or diplomacy and use a visible id.",
-        },
-        campaignRevision: revisionOf(nextState),
-      };
-      return {
-        state: nextState,
-        session: nextSession,
-        response,
-        text: responseText(nextState, response, { mode: "rejection" }, variant),
-      };
-    }
-    const prepared = prepareOrder(
-      ctx,
-      nextState,
-      entity.action.choiceId,
-      `ava:${ctx.surface}:${ctx.playerId}:${nextSession.commandsRead}:${entity.action.choiceId}`,
-    );
-    nextState = prepared.state;
-    if (prepared.response.status === "PREPARED") {
-      const fact = prepared.response.fact as PreparedOrderFact;
-      nextSession.proposalToken = fact.proposalToken;
-      nextSession.proposalExpiresAt = fact.expiresAt;
-    }
-    return {
-      state: nextState,
-      session: nextSession,
-      response: prepared.response,
-      text: responseText(
+    if (!entity) {
+      return prepareDirective(
+        ctx,
         nextState,
-        prepared.response,
-        prepared.response.status === "PREPARED" ? { mode: "confirmation" } : { mode: "rejection" },
+        nextSession,
+        { id: "missing", kind: "directive", label: prepareMatch[1] },
         variant,
-      ),
-    };
+      );
+    }
+    return prepareDirective(ctx, nextState, nextSession, entity, variant);
   }
 
   const confirmationInput = input.match(/^confirm(?:\s+(.+))?$/);
   if (confirmationInput || input === "yes" || input === "accept") {
     nextSession.consequentialAttempts += 1;
-    const proposalToken = confirmationInput?.[1] ?? nextSession.proposalToken ?? "";
+    const proposalToken =
+      confirmationInput?.[1] ?? nextSession.proposalToken ?? "";
     if (!nextSession.interactive) {
       const response: SemanticResponse<unknown> = {
         status: "CONFIRMATION_REQUIRED",
@@ -445,7 +483,10 @@ export const runAvaKernelLine = (
       `ava-confirm:${ctx.surface}:${ctx.playerId}:${nextSession.commandsRead}:${proposalToken}`,
     );
     nextState = confirmed.state;
-    if (confirmed.response.status === "EXECUTED" || confirmed.response.status === "ALREADY_EXECUTED") {
+    if (
+      confirmed.response.status === "EXECUTED" ||
+      confirmed.response.status === "ALREADY_EXECUTED"
+    ) {
       nextSession.proposalToken = undefined;
       nextSession.proposalExpiresAt = undefined;
     }
@@ -456,7 +497,9 @@ export const runAvaKernelLine = (
       text: responseText(
         nextState,
         confirmed.response,
-        confirmed.response.status === "EXECUTED" ? { mode: "receipt" } : { mode: "rejection" },
+        confirmed.response.status === "EXECUTED"
+          ? { mode: "receipt" }
+          : { mode: "rejection" },
         variant,
       ),
     };
@@ -464,7 +507,8 @@ export const runAvaKernelLine = (
 
   if (input === "cancel" || input.startsWith("cancel ")) {
     nextSession.consequentialAttempts += 1;
-    const proposalToken = input.slice("cancel".length).trim() || nextSession.proposalToken || "";
+    const proposalToken =
+      input.slice("cancel".length).trim() || nextSession.proposalToken || "";
     const cancelled = cancelPreparedOrder(ctx, nextState, proposalToken);
     nextState = cancelled.state;
     if (cancelled.response.status === "OK") {
@@ -507,41 +551,37 @@ export const runAvaKernelLine = (
     };
   }
 
-  const directive = directiveEntityForInstruction(compile.instruction, nextSession);
-  if (directive?.action?.kind === "directive") {
+  const directive = directiveEntityForInstruction(
+    compile.instruction,
+    nextSession,
+  );
+  if (directive) {
     nextSession.consequentialAttempts += 1;
-    const prepared = prepareOrder(
+    const result = prepareDirective(
       ctx,
       nextState,
-      directive.action.choiceId,
-      `ava:${ctx.surface}:${ctx.playerId}:${nextSession.commandsRead}:${directive.action.choiceId}`,
+      nextSession,
+      directive,
+      variant,
     );
-    nextState = prepared.state;
-    if (prepared.response.status === "PREPARED") {
-      const fact = prepared.response.fact as PreparedOrderFact;
-      nextSession.proposalToken = fact.proposalToken;
-      nextSession.proposalExpiresAt = fact.expiresAt;
-    }
-    return {
-      state: nextState,
-      session: nextSession,
-      response: prepared.response,
-      text: responseText(
-        nextState,
-        prepared.response,
-        prepared.response.status === "PREPARED" ? { mode: "confirmation" } : { mode: "rejection" },
-        variant,
-      ),
-      compile,
-    };
+    return { ...result, compile };
   }
 
-  const channel = channelForLanguage(raw, compile.instruction, nextSession.currentModule);
-  const semantic = compile.instruction.kind === "SEMANTIC" ? compile.instruction.query : compile.semantic;
+  const channel = channelForLanguage(
+    raw,
+    compile.instruction,
+    nextSession.currentModule,
+  );
+  const semantic =
+    compile.instruction.kind === "SEMANTIC"
+      ? compile.instruction.query
+      : compile.semantic;
   const asksForJudgment =
     compile.instruction.kind === "ADVISE" ||
     (compile.instruction.kind === "SEMANTIC" &&
-      ["ADVISE", "RANK", "RECOMMEND", "COMPARE"].includes(compile.instruction.query.operation));
+      ["ADVISE", "RANK", "RECOMMEND", "COMPARE"].includes(
+        compile.instruction.query.operation,
+      ));
   if (channel && asksForJudgment) {
     const actorId =
       channel === "diplomacy"
@@ -556,26 +596,32 @@ export const runAvaKernelLine = (
     );
     nextState = ranked.state;
     nextSession.currentModule = moduleForChannel(channel);
+    const labelByChoice = new Map<string, string>();
+    for (const entity of visible.entities) {
+      if (entity.action?.kind === "directive")
+        labelByChoice.set(entity.action.choiceId, entity.label);
+    }
     const rows = ranked.response.fact.ranked;
-    const labels = new Map(
-      visible.entities
-        .filter((entity) => entity.action?.kind === "directive")
-        .map((entity) => [entity.action!.kind === "directive" ? entity.action!.choiceId : entity.id, entity.label]),
-    );
     const judgment = rows.length
       ? rows
           .map(
             (row, index) =>
-              `${index + 1}. ${(labels.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}`,
+              `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}`,
           )
           .join("\n")
       : "No legal choice is visible in this channel.";
     const text = voiceAvaResponse(
       nextState,
       `JUDGMENT / ${channel.toUpperCase()}\n${judgment}\n\nThe ranking is deterministic against the posture inferred from your wording. No order was prepared or issued.`,
-      { topic: channel === "production" ? "production" : channel, label: "JUDGMENT", variant },
+      { topic: channel, label: "JUDGMENT", variant },
     );
-    return { state: nextState, session: nextSession, response: ranked.response, text, compile };
+    return {
+      state: nextState,
+      session: nextSession,
+      response: ranked.response,
+      text,
+      compile,
+    };
   }
 
   if (compile.instruction.kind === "LIST" && channel) {
@@ -586,12 +632,17 @@ export const runAvaKernelLine = (
     const docket = getVisibleDocket(ctx, nextState, channel, actorId);
     nextState = docket.state;
     nextSession.currentModule = moduleForChannel(channel);
-    const text = voiceAvaResponse(
-      nextState,
-      docketText(docket.response.fact),
-      { topic: channel === "production" ? "production" : channel, variant },
-    );
-    return { state: nextState, session: nextSession, response: docket.response, text, compile };
+    const text = voiceAvaResponse(nextState, docketText(docket.response.fact), {
+      topic: channel,
+      variant,
+    });
+    return {
+      state: nextState,
+      session: nextSession,
+      response: docket.response,
+      text,
+      compile,
+    };
   }
 
   const result = runAvaInstruction(
@@ -604,12 +655,28 @@ export const runAvaKernelLine = (
     darkNetContext,
   );
   nextSession.terminal = result.session;
-  if (result.navigate && ["campaign", "national", "military", "diplomacy", "doctrine", "account", "wiki"].includes(result.navigate))
+  if (
+    result.navigate &&
+    [
+      "campaign",
+      "national",
+      "military",
+      "diplomacy",
+      "doctrine",
+      "account",
+      "wiki",
+    ].includes(result.navigate)
+  )
     nextSession.currentModule = result.navigate as AvaModule;
   if (
-    ["ISSUE", "ISSUE_PLAN", "COMMIT", "CONFIRM", "RESOLVE_DAY", "CANCEL"].includes(
-      compile.instruction.kind,
-    )
+    [
+      "ISSUE",
+      "ISSUE_PLAN",
+      "COMMIT",
+      "CONFIRM",
+      "RESOLVE_DAY",
+      "CANCEL",
+    ].includes(compile.instruction.kind)
   )
     nextSession.consequentialAttempts += 1;
   return {
