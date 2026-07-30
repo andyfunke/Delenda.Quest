@@ -39,11 +39,14 @@ The gateway API is under `/api/ssh/gateway/*`. It rejects requests without this 
 
 ```bash
 fly apps create delenda-quest-ssh
-fly secrets set \
+fly ips allocate-v4 --app delenda-quest-ssh
+fly secrets set --app delenda-quest-ssh \
   DELENDA_SSH_GATEWAY_TOKEN='<same gateway token>' \
   DELENDA_SSH_HOST_KEY_B64='<base64 host private key>'
 fly deploy --config packages/ssh-gateway/fly.toml
 ```
+
+Raw SSH is a non-HTTP, non-TLS TCP protocol. Fly therefore requires a dedicated IPv4 address for IPv4 clients. Public IPv6 remains available as well. The dedicated IPv4 currently costs $2 per month.
 
 For GitHub deployment, create the protected `ssh-production` environment and add a least-privilege `FLY_API_TOKEN` secret. Then run the `Deploy SSH gateway` workflow manually.
 
@@ -51,18 +54,15 @@ The Fly service maps public TCP port 22 directly to OpenSSH on internal port 222
 
 ## 4. Configure DNS
 
-Create a DNS-only record for `ssh.delenda.quest` pointing to the Fly application. Do not orange-cloud a standard DNS record for this endpoint. Ordinary Cloudflare proxying is HTTP-oriented and cannot carry native SSH without Spectrum.
+Create DNS-only records for `ssh.delenda.quest`. Do not orange-cloud a standard DNS record for this endpoint. Ordinary Cloudflare proxying is HTTP-oriented and cannot carry native SSH without Spectrum.
 
-A typical record is:
+The least ambiguous configuration uses the addresses reported by:
 
-```text
-Type: CNAME
-Name: ssh
-Target: delenda-quest-ssh.fly.dev
-Proxy status: DNS only
+```bash
+fly ips list --app delenda-quest-ssh
 ```
 
-Alternatively, use the dedicated IPv4 and IPv6 addresses reported by `fly ips list` and create DNS-only A and AAAA records.
+Create a DNS-only A record for the dedicated IPv4 and a DNS-only AAAA record for the dedicated IPv6. A DNS-only CNAME to `delenda-quest-ssh.fly.dev` is also acceptable after both addresses resolve correctly.
 
 ## 5. Register a commander key
 
