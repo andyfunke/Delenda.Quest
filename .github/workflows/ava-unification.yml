@@ -1,0 +1,42 @@
+name: Ava unification
+
+on:
+  pull_request:
+    paths:
+      - "app/ava/**"
+      - "app/substrate/**"
+      - "packages/terminal-core/**"
+      - "packages/ssh-server/**"
+      - "tests/ava-*.test.mjs"
+      - "tests/substrate-*.test.mjs"
+      - "scripts/test-ava.sh"
+      - "scripts/test-substrate.sh"
+      - ".github/workflows/ava-unification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ava-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Use the project Node.js version
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm run install:ci
+
+      - name: Typecheck unified kernel
+        run: npm run typecheck
+
+      - name: Run OG Ava compiler and terminal suites
+        run: bash scripts/test-ava.sh
+
+      - name: Run substrate, parity, terminal, and SSH suites
+        run: bash scripts/test-substrate.sh
