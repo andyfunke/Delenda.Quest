@@ -33,6 +33,7 @@ jobs:
           git apply --check /tmp/production-ssh.patch
           git apply /tmp/production-ssh.patch
           git restore --source=HEAD --staged --worktree .github/workflows
+          rm -f .github/workflows/ssh-protocol.yml
           rm -rf .agent
       - name: Commit coherent implementation
         run: |
