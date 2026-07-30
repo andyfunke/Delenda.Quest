@@ -35,6 +35,9 @@ jobs:
       - name: Run Ava tests
         run: bash scripts/test-ava.sh
 
+      - name: Run substrate and SSH authority tests
+        run: bash scripts/test-substrate.sh
+
       - name: Run rendered and plumbing tests
         run: node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs
 
