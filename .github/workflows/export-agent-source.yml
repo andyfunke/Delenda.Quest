@@ -1,0 +1,26 @@
+name: Export agent source
+
+on:
+  push:
+    branches:
+      - agent/production-ssh-daemon
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Package source
+        run: tar --exclude=.git -czf /tmp/delenda-source.tgz .
+      - name: Upload source
+        uses: actions/upload-artifact@v4
+        with:
+          name: delenda-source
+          path: /tmp/delenda-source.tgz
+          if-no-files-found: error
+          retention-days: 1
