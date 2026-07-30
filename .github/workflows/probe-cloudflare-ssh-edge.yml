@@ -15,36 +15,41 @@ jobs:
     if: github.head_ref == 'agent/production-ssh-daemon'
     runs-on: ubuntu-latest
     env:
-      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_CREDENTIAL: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_EMAIL: Andy@proofcorp.xyz
     steps:
       - name: Query zone and Spectrum capability
         run: |
           set -euo pipefail
-          request(){
+          bearer(){
             local url="$1" output="$2"
-            curl -sS -o "$output" -w '%{http_code}' -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" "$url"
+            curl -sS -o "$output" -w '%{http_code}' -H "Authorization: Bearer ${CF_CREDENTIAL}" -H "Content-Type: application/json" "$url"
           }
-          verify_code="$(request 'https://api.cloudflare.com/client/v4/user/tokens/verify' /tmp/verify.json)"
-          echo "TOKEN_VERIFY_HTTP=$verify_code"
-          echo "TOKEN_VERIFY_SUCCESS=$(jq -r '.success // false' /tmp/verify.json)"
-          zones_code="$(request 'https://api.cloudflare.com/client/v4/zones?name=delenda.quest' /tmp/zones.json)"
-          echo "ZONE_LOOKUP_HTTP=$zones_code"
-          echo "ZONE_LOOKUP_SUCCESS=$(jq -r '.success // false' /tmp/zones.json)"
-          echo "ZONE_LOOKUP_ERRORS=$(jq -c '.errors // []' /tmp/zones.json)"
-          zone_id="$(jq -r '.result[0].id // empty' /tmp/zones.json)"
+          global_key(){
+            local url="$1" output="$2"
+            curl -sS -o "$output" -w '%{http_code}' -H "X-Auth-Email: ${CF_EMAIL}" -H "X-Auth-Key: ${CF_CREDENTIAL}" -H "Content-Type: application/json" "$url"
+          }
+          bearer_code="$(bearer 'https://api.cloudflare.com/client/v4/zones?name=delenda.quest' /tmp/bearer-zones.json)"
+          echo "BEARER_ZONE_HTTP=$bearer_code"
+          echo "BEARER_ZONE_COUNT=$(jq -r '.result | length' /tmp/bearer-zones.json 2>/dev/null || echo 0)"
+          global_code="$(global_key 'https://api.cloudflare.com/client/v4/zones?name=delenda.quest' /tmp/global-zones.json)"
+          echo "GLOBAL_ZONE_HTTP=$global_code"
+          echo "GLOBAL_ZONE_SUCCESS=$(jq -r '.success // false' /tmp/global-zones.json)"
+          echo "GLOBAL_ZONE_ERRORS=$(jq -c '.errors // []' /tmp/global-zones.json)"
+          zone_id="$(jq -r '.result[0].id // empty' /tmp/global-zones.json)"
           if [[ -z "$zone_id" ]]; then
             echo "ZONE_LOOKUP_RESULT=UNAVAILABLE"
             exit 0
           fi
           echo "ZONE_ID=$zone_id"
-          echo "PLAN=$(jq -r '.result[0].plan.name // "unknown"' /tmp/zones.json)"
-          spectrum_code="$(request "https://api.cloudflare.com/client/v4/zones/${zone_id}/spectrum/apps" /tmp/spectrum.json)"
+          echo "PLAN=$(jq -r '.result[0].plan.name // "unknown"' /tmp/global-zones.json)"
+          spectrum_code="$(global_key "https://api.cloudflare.com/client/v4/zones/${zone_id}/spectrum/apps" /tmp/spectrum.json)"
           echo "SPECTRUM_HTTP=$spectrum_code"
           echo "SPECTRUM_SUCCESS=$(jq -r '.success // false' /tmp/spectrum.json)"
           echo "SPECTRUM_ERRORS=$(jq -c '.errors // []' /tmp/spectrum.json)"
           jq -r '.result[]? | "SPECTRUM_APP protocol=\(.protocol) edge=\(.dns.name) origin=\(.origin_dns.name // .origin_direct[0] // "unknown")"' /tmp/spectrum.json
-          dns_code="$(request "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=ssh.delenda.quest" /tmp/dns.json)"
+          dns_code="$(global_key "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?name=ssh.delenda.quest" /tmp/dns.json)"
           echo "SSH_DNS_HTTP=$dns_code"
           echo "SSH_DNS_SUCCESS=$(jq -r '.success // false' /tmp/dns.json)"
           echo "SSH_DNS_ERRORS=$(jq -c '.errors // []' /tmp/dns.json)"
