@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 work="$(mktemp -d /tmp/delenda-ssh-protocol.XXXXXX)"
 container_name="delenda-ssh-test-$RANDOM"
