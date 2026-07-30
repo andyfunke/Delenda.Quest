@@ -1,0 +1,33 @@
+name: Diagnose Cloudflare build output
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnose-cloudflare-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.head_ref == 'agent/production-ssh-daemon'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/production-ssh-daemon
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Inspect generated deployment tree
+        run: |
+          set -euo pipefail
+          echo '--- generated files ---'
+          find .wrangler dist -maxdepth 5 -type f -print 2>/dev/null | sort
+          echo '--- redirect configs ---'
+          find .wrangler dist -type f \( -name 'config.json' -o -name 'wrangler.json' -o -name 'wrangler.jsonc' \) -print -exec sh -c 'echo "### $1"; cat "$1"' _ {} \;
