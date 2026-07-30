@@ -44,23 +44,35 @@ docker run -d --rm --name "$CONTAINER" \
 ready=0
 for _ in {1..80}; do
   if (echo >/dev/tcp/127.0.0.1/2222) >/dev/null 2>&1; then ready=1; break; fi
+  if ! docker inspect "$CONTAINER" >/dev/null 2>&1; then break; fi
   sleep .25
 done
 if [[ "$ready" != "1" ]]; then
+  echo 'SSH gateway did not open port 2222.' >&2
   docker logs "$CONTAINER" >&2 || true
+  cat "$TMP/api.log" >&2 || true
   exit 1
 fi
 
-RESULT="$(ssh -p 2222 \
+set +e
+RESULT="$(ssh -vvv -p 2222 \
   -i "$TMP/client" \
   -o IdentitiesOnly=yes \
   -o PreferredAuthentications=publickey \
   -o PasswordAuthentication=no \
   -o StrictHostKeyChecking=no \
   -o UserKnownHostsFile=/dev/null \
-  -o LogLevel=ERROR \
   -o ConnectTimeout=8 \
-  play@127.0.0.1 brief)"
+  play@127.0.0.1 brief 2>"$TMP/ssh.log")"
+SSH_STATUS=$?
+set -e
+if [[ "$SSH_STATUS" != "0" ]]; then
+  echo "Native SSH command failed with status $SSH_STATUS." >&2
+  cat "$TMP/ssh.log" >&2 || true
+  docker logs "$CONTAINER" >&2 || true
+  cat "$TMP/api.log" >&2 || true
+  exit "$SSH_STATUS"
+fi
 
 printf '%s\n' "$RESULT"
 grep -q 'AVA REMOTE COMMAND' <<<"$RESULT"
