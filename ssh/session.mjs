@@ -1,15 +1,22 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 
 const [fingerprint,algorithm,keyBlob]=process.argv.slice(2);
-const authorityUrl=(process.env.SSH_AUTHORITY_URL??"").replace(/\/$/,"");
-const secret=process.env.SSH_AUTHORITY_SECRET??"";
+const runtimeValue=(name,path)=>{
+  const fromEnvironment=process.env[name];
+  if(fromEnvironment)return fromEnvironment;
+  try{return readFileSync(path,"utf8").trim()}catch{return ""}
+};
+const authorityUrl=runtimeValue("SSH_AUTHORITY_URL","/run/delenda/authority_url").replace(/\/$/,"");
+const secret=runtimeValue("SSH_AUTHORITY_SECRET","/run/delenda/authority_secret");
 if(!authorityUrl||secret.length<32){
   process.stderr.write("DELENDA SSH authority is not configured.\n");
   process.exit(78);
 }
 const remote=(process.env.SSH_CONNECTION??"").split(/\s+/)[0]??"unknown";
-const remoteRiskHash=createHash("sha256").update(`${process.env.SSH_REMOTE_RISK_SALT??secret}:${remote}`).digest("hex");
+const remoteRiskSalt=runtimeValue("SSH_REMOTE_RISK_SALT","/run/delenda/remote_risk_salt")||secret;
+const remoteRiskHash=createHash("sha256").update(`${remoteRiskSalt}:${remote}`).digest("hex");
 const clientVersion=(process.env.SSH_CLIENT_VERSION??process.env.TERM??"unknown").slice(0,128);
 const interactive=!String(process.env.SSH_ORIGINAL_COMMAND??"").trim();
 let terminal={interactive,width:Number(process.stdout.columns)||80,colorDepth:0,commandsRead:0,consequentialAttempts:0,discourse:{}};
