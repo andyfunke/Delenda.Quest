@@ -3,6 +3,7 @@ import type {
   PlayerContext,
   SemanticResponse,
 } from "../../../app/substrate/contracts";
+import type { ParserDiscourse } from "../../../app/substrate/command-parser";
 import {
   createAvaKernelSession,
   runAvaKernelLine,
@@ -12,6 +13,8 @@ import {
 export type TerminalSessionState = AvaKernelSession & {
   width: number;
   colorDepth: number;
+  /** Compatibility projection for exact-command adapters and parity fixtures. */
+  discourse: ParserDiscourse;
 };
 
 export const createTerminalSession = (
@@ -21,6 +24,7 @@ export const createTerminalSession = (
   ...createAvaKernelSession(interactive),
   width,
   colorDepth: 0,
+  discourse: {},
 });
 
 export const runTerminalLine = (
@@ -42,6 +46,7 @@ export const runTerminalLine = (
       ...result.session,
       width: session.width,
       colorDepth: session.colorDepth,
+      discourse: session.discourse,
     },
     response: result.response,
     text: result.text,
