@@ -12,13 +12,13 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system delenda \
  && useradd --system --gid delenda --home-dir /nonexistent --shell /usr/sbin/nologin delenda-auth \
- && useradd --create-home --gid delenda --shell /bin/sh play
+ && useradd --create-home --gid delenda --shell /bin/sh play \
+ && echo 'play:password-authentication-is-disabled' | chpasswd
 WORKDIR /app
 COPY --from=build /app/packages/ssh-gateway/dist /app/packages/ssh-gateway/dist
 COPY packages/ssh-gateway/sshd_config /etc/ssh/sshd_config
 COPY packages/ssh-gateway/entrypoint.sh /usr/local/bin/delenda-ssh-entrypoint
 RUN chmod 0755 /usr/local/bin/delenda-ssh-entrypoint \
- && chmod 0755 /app/packages/ssh-gateway/dist/*.mjs \
- && passwd -l play
+ && chmod 0755 /app/packages/ssh-gateway/dist/*.mjs
 EXPOSE 2222/tcp
 ENTRYPOINT ["/usr/local/bin/delenda-ssh-entrypoint"]
