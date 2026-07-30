@@ -5,9 +5,12 @@ work="$(mktemp -d /tmp/delenda-ssh-protocol.XXXXXX)"
 container_name="delenda-ssh-test-$RANDOM"
 authority_pid=""
 cleanup(){
+  status=$?
+  if [[ $status -ne 0 ]]; then docker logs "$container_name" 2>/dev/null || true; cat "$work/authority.log" 2>/dev/null || true; fi
   if [[ -n "$authority_pid" ]]; then kill "$authority_pid" 2>/dev/null || true; fi
   docker rm -f "$container_name" >/dev/null 2>&1 || true
   rm -rf "$work"
+  exit $status
 }
 trap cleanup EXIT
 
