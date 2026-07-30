@@ -94,6 +94,21 @@ test("counterfactual advice performs no writes", () => {
   assert.equal(JSON.stringify(result.state.decisions), before);
 });
 
+test("Ava Classic is a read-only differential reference interpreter", () => {
+  const { state, discourse } = seeded();
+  const before = JSON.stringify(state);
+  const result = ava.runAvaClassic(
+    "Prepare the second option.",
+    ctx(state),
+    state,
+    discourse,
+  );
+  assert.equal(ava.AVA_CLASSIC_REFERENCE_ONLY, true);
+  assert.equal(result.response.status, "FORBIDDEN");
+  assert.equal(result.response.recovery?.code, "AVA_CLASSIC_REFERENCE_ONLY");
+  assert.equal(JSON.stringify(result.state), before);
+});
+
 test("material posture conflicts trigger clarification", () => {
   const { state, discourse } = seeded();
   discourse.activePosture = {

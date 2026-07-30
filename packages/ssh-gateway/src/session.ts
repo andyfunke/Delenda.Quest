@@ -2,10 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { initialState, restoreCampaignState, type GameState } from "../../../app/game";
-import { createAvaKernelSession, runAvaKernelLine } from "../../../app/ava/kernel";
+import { createAvaNexusSession, runAvaNexusLine } from "../../../app/ava/nexus";
 import type { PlayerContext } from "../../../app/substrate/contracts";
 import {
   closeRemoteAudit,
+  GatewayRequestError,
   loadRemoteCampaign,
   openRemoteAudit,
   readGatewayConfig,
@@ -41,6 +42,7 @@ const freshEnvelope=():RemoteCampaignEnvelope=>{
     clock:{start:now,end:now+86_400_000},
     runToken:randomUUID(),
     multiplayerRun:false,
+    revision:0,
   };
 };
 
@@ -53,12 +55,24 @@ if(!state){
 }
 if(!state)throw new Error("Ava could not initialize the campaign state.");
 if(!remote.campaign){
-  const saved=await saveRemoteCampaign(config,playerId,envelope);
-  envelope=saved.campaign??envelope;
+  try{
+    const saved=await saveRemoteCampaign(config,playerId,envelope);
+    envelope=saved.campaign??envelope;
+  }catch(error){
+    if(!(error instanceof GatewayRequestError)||error.status!==409)throw error;
+    remote=await loadRemoteCampaign(config,playerId);
+    if(!remote.campaign)
+      throw new Error("The concurrent campaign winner could not be reloaded.");
+    envelope=remote.campaign;
+    const winner=restoreCampaignState(envelope.state);
+    if(!winner)
+      throw new Error("The concurrent campaign winner is invalid.");
+    state=winner;
+  }
 }
 
 const interactive=!(process.env.SSH_ORIGINAL_COMMAND??"").trim();
-let kernel=createAvaKernelSession(interactive,"campaign");
+let nexusSession=createAvaNexusSession(interactive,"campaign");
 const write=(text:string)=>output.write(text.replace(/\r?\n/g,"\r\n"));
 write(`DELENDA QUEST // AVA REMOTE COMMAND\nCOMMAND IDENTITY: ${playerId}\nDAY ${state.day} // ORDERS ${state.actions}/3\nNo host shell is present. Type HELP, BRIEF, MISSIONS, or WHAT SHOULD I DO.\n\n`);
 
@@ -73,22 +87,39 @@ const runLine=async(raw:string)=>{
     campaignRevision:`${beforeState.day}:${beforeState.actions}:${beforeState.contentPackVersion}`,
     surface:"ssh",authority:"command",nowMs:Date.now(),
   };
-  const result=runAvaKernelLine(line,ctx,beforeState,kernel);
+  const result=runAvaNexusLine(line,ctx,beforeState,nexusSession);
   const changed=JSON.stringify(result.state)!==beforeSerialized;
   if(changed){
     try{
-      const nextEnvelope:{state:unknown;clock:{start:number;end:number};runToken:string;multiplayerRun:boolean}={
-        state:result.state,clock:envelope.clock,runToken:envelope.runToken,multiplayerRun:envelope.multiplayerRun,
+      const nextEnvelope:RemoteCampaignEnvelope={
+        state:result.state,
+        clock:envelope.clock,
+        runToken:envelope.runToken,
+        multiplayerRun:envelope.multiplayerRun,
+        revision:envelope.revision??0,
       };
       const saved=await saveRemoteCampaign(config,playerId,nextEnvelope);
       envelope=saved.campaign??nextEnvelope;
       state=result.state;
-      kernel=result.session;
+      nexusSession=result.session;
     }catch(error){
+      if(error instanceof GatewayRequestError&&error.status===409){
+        const winner=await loadRemoteCampaign(config,playerId).catch(()=>null);
+        const restored=winner?.campaign
+          ? restoreCampaignState(winner.campaign.state)
+          : null;
+        if(winner?.campaign&&restored){
+          envelope=winner.campaign;
+          state=restored;
+          nexusSession=createAvaNexusSession(interactive,"campaign");
+          write("FIELD NOTE / REJECTION\nCONCURRENT CAMPAIGN REVISION WON\nThe authoritative account campaign was reloaded. The rejected command changed no campaign state.\n\n");
+          return true;
+        }
+      }
       write(`FIELD NOTE / REJECTION\nREMOTE LEDGER UNAVAILABLE\n${error instanceof Error?error.message:"The command could not be persisted."}\nNo campaign state was changed.\n\n`);
       return true;
     }
-  }else kernel=result.session;
+  }else nexusSession=result.session;
   write(`${result.text}\n\n`);
   return true;
 };
@@ -109,6 +140,6 @@ try{
   exitCode=1;
   write(`AVA REMOTE COMMAND FAILED\n${error instanceof Error?error.message:"The session terminated unexpectedly."}\n`);
 }finally{
-  await closeRemoteAudit(config,{id:sessionId,commandsRead:kernel.commandsRead,consequentialAttempts:kernel.consequentialAttempts}).catch(()=>undefined);
+  await closeRemoteAudit(config,{id:sessionId,commandsRead:nexusSession.commandsRead,consequentialAttempts:nexusSession.consequentialAttempts}).catch(()=>undefined);
 }
 process.exit(exitCode);

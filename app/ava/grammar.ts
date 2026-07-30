@@ -1143,6 +1143,13 @@ export const compileSemanticQuery = (
   let subject: AvaSemanticSubject = directive.directive
     ? "DIRECTIVE"
     : baseSubject;
+  if (
+    subject === "UNKNOWN" &&
+    (operation === "ADVISE" ||
+      operation === "RECOMMEND" ||
+      operation === "RANK")
+  )
+    subject = "CAMPAIGN_CHOICE";
   const entityIds = directive.directive
     ? [...directive.subjectEntityIds]
     : matchedEntityIds(input, context.entities);
@@ -1322,7 +1329,7 @@ export const compileSemanticQuery = (
 
 export const genericSemanticQuery = (
   instruction: AvaInstruction,
-  context: AvaCompilerContext,
+  _context: AvaCompilerContext,
 ): AvaSemanticQuery => {
   if (instruction.kind === "SEMANTIC") return instruction.query;
   const operation: AvaSemanticOperation =
@@ -1341,19 +1348,87 @@ export const genericSemanticQuery = (
                 : instruction.kind === "CONFIRM"
                   ? "CONFIRM"
                   : "INSPECT";
+  const descriptor = (kind: string, payload: unknown) =>
+    `${kind}:${JSON.stringify(payload)}`;
+  const entityIds =
+    instruction.kind === "REPORT"
+      ? [
+          descriptor("report", {
+            topic: instruction.topic,
+            days: instruction.days,
+            scope: instruction.scope,
+          }),
+        ]
+      : instruction.kind === "STATUS"
+        ? [descriptor("status", {})]
+        : instruction.kind === "LIST"
+          ? [descriptor("list", { scope: instruction.scope })]
+          : instruction.kind === "ORDERS"
+            ? [descriptor("list", { scope: "orders" })]
+            : instruction.kind === "OPEN"
+              ? [descriptor("module", { module: instruction.module })]
+              : instruction.kind === "HELP" && instruction.subject
+                ? [descriptor("help", { subject: instruction.subject })]
+                : instruction.kind === "SHELL"
+                  ? [descriptor("shell", instruction.shell)]
+                  : instruction.kind === "EXPLAIN"
+                    ? [
+                        instruction.entity.id,
+                        descriptor("explain", { facet: instruction.facet }),
+                      ]
+      : instruction.kind === "COMPARE"
+        ? instruction.entities.map((entity) => entity.id)
+        : instruction.kind === "SELECT"
+          ? [instruction.entity.id]
+          : instruction.kind === "STAGE" ||
+              instruction.kind === "UNSTAGE" ||
+              instruction.kind === "ISSUE"
+            ? instruction.entities.map((entity) => entity.id)
+            : instruction.kind === "FORECAST" && instruction.entity
+              ? [instruction.entity.id]
+              : instruction.kind === "FORECAST" && instruction.plan
+                ? [descriptor("forecast", { plan: true })]
+              : instruction.kind === "COMMIT" && instruction.entity
+                ? [instruction.entity.id]
+                : instruction.kind === "CONFIRM" && instruction.token
+                  ? [descriptor("confirmation", { token: instruction.token })]
+                : [];
+  const subject: AvaSemanticSubject =
+    instruction.kind === "REPORT" || instruction.kind === "STATUS"
+      ? "REPORT"
+      : instruction.kind === "ADVISE" ||
+          instruction.kind === "LIST" ||
+          instruction.kind === "ORDERS" ||
+          instruction.kind === "FORECAST" ||
+          instruction.kind === "COMPARE"
+        ? "CAMPAIGN_CHOICE"
+        : instruction.kind === "EXPLAIN"
+          ? instruction.entity.kind === "metric"
+            ? "METRIC"
+            : instruction.entity.kind === "mission"
+              ? "MISSION_OBJECTIVE"
+              : instruction.entity.action
+                ? "CAMPAIGN_CHOICE"
+                : "SYSTEM"
+          : instruction.kind === "SELECT" ||
+              instruction.kind === "STAGE" ||
+              instruction.kind === "UNSTAGE" ||
+              instruction.kind === "ISSUE" ||
+              instruction.kind === "ISSUE_PLAN" ||
+              instruction.kind === "COMMIT" ||
+              instruction.kind === "CONFIRM" ||
+              instruction.kind === "CANCEL" ||
+              instruction.kind === "CLEAR" ||
+              instruction.kind === "CLEAR_PLAN" ||
+              instruction.kind === "SHOW_PLAN" ||
+              instruction.kind === "RESOLVE_DAY"
+            ? "ACTION"
+            : "SYSTEM";
   return {
     operation,
     subject: {
-      type:
-        instruction.kind === "REPORT" ? "REPORT" : "SYSTEM",
-      entityIds:
-        instruction.kind === "EXPLAIN"
-          ? [instruction.entity.id]
-          : instruction.kind === "COMPARE"
-            ? instruction.entities.map((entity) => entity.id)
-            : context.selected
-              ? [context.selected.id]
-              : [],
+      type: subject,
+      entityIds,
     },
     scope: { domains: [], excludedDomains: [] },
     timeframe: "CURRENT_DOCKET",

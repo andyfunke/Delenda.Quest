@@ -44,6 +44,7 @@ export type {
   GrammarSlot,
   GrammarSpec,
 } from "./grammar";
+export { AVA_COMMAND_HELP } from "./schema";
 
 const filler = new Set([
   "a",
@@ -74,6 +75,16 @@ export const normalizeAvaInput = (raw: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+
+export const isAvaConfirmationInput=(raw:string)=>{
+  const input=normalizeAvaInput(raw);
+  return(
+    /^confirm(?:\s+[a-z0-9]+)*$/.test(input)||
+    /^(?:yes|yes issue it|yes do it|accept|commit|do it|issue it|commit it|execute it)$/.test(
+      input,
+    )
+  );
+};
 
 export type AvaGodModeIntent = {
   kind: "force-random-event";
@@ -1219,7 +1230,7 @@ export function compileAvaCommand(
       ),
     };
   }
-  return applySemanticTrace(
+  const legacy = applySemanticTrace(
     conserveConsequentialTokens(
       raw,
       compileLegacyCommand(raw, context),
@@ -1227,4 +1238,17 @@ export function compileAvaCommand(
     raw,
     semantic,
   );
+  if (legacy.status !== "compiled") return legacy;
+  const canonicalSemantic = genericSemanticQuery(
+    legacy.instruction,
+    context,
+  );
+  return {
+    ...legacy,
+    semantic: canonicalSemantic,
+    trace: {
+      ...legacy.trace,
+      semanticQuery: canonicalSemantic,
+    },
+  };
 }

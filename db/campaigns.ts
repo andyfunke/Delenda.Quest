@@ -20,12 +20,35 @@ const revision=(value:unknown)=>{
   if(!Number.isInteger(parsed)||parsed<0)throw new Error("An expected campaign revision is required.");
   return parsed;
 };
+const stateMeta=(value:unknown)=>{
+  if(!value||typeof value!=="object"||Array.isArray(value))
+    throw new Error("Campaign state is required.");
+  const state=value as {
+    campaignId?:unknown;
+    day?:unknown;
+    status?:unknown;
+    resolutionHistory?:unknown;
+  };
+  const campaignId=clean(state.campaignId,100);
+  const day=Number(state.day);
+  const status=String(state.status);
+  const resolutionCount=Array.isArray(state.resolutionHistory)
+    ?state.resolutionHistory.length
+    :-1;
+  if(
+    !campaignId||
+    !Number.isInteger(day)||
+    day<1||
+    !["active","victory","defeat"].includes(status)||
+    resolutionCount<0
+  )throw new Error("Campaign state is incomplete.");
+  return{campaignId,day,status,resolutionCount};
+};
 
 const prepareCampaign=(input:ActiveCampaignSubmission)=>{
-  if(!input.state||typeof input.state!=="object"||Array.isArray(input.state))throw new Error("Campaign state is required.");
-  const state=input.state as {campaignId?:unknown;day?:unknown;status?:unknown};
-  const campaignId=clean(state.campaignId,100),runToken=clean(input.runToken,120);
-  if(!campaignId||!runToken||!Number.isFinite(Number(state.day))||!["active","victory","defeat"].includes(String(state.status)))throw new Error("Campaign state is incomplete.");
+  const meta=stateMeta(input.state);
+  const campaignId=meta.campaignId,runToken=clean(input.runToken,120);
+  if(!runToken)throw new Error("Campaign state is incomplete.");
   const payload=JSON.stringify(input.state);
   if(payload.length>750_000)throw new Error("Campaign state exceeds the account save limit.");
   const clockStart=finite(input.clock?.start),clockEnd=finite(input.clock?.end);
@@ -33,10 +56,11 @@ const prepareCampaign=(input:ActiveCampaignSubmission)=>{
   return{
     campaign:{campaignId,runToken,state:payload,clockStart,clockEnd,multiplayerRun:!!input.multiplayerRun},
     expectedRevision:revision(input.expectedRevision),
+    meta,
   };
 };
 
-const restore=(row:typeof activeCampaigns.$inferSelect)=>{
+export const restoreActiveCampaignRow=(row:typeof activeCampaigns.$inferSelect)=>{
   try{
     return{
       state:JSON.parse(row.state) as unknown,
@@ -52,7 +76,7 @@ const restore=(row:typeof activeCampaigns.$inferSelect)=>{
 export class ActiveCampaignConflictError extends Error{
   readonly code="CAMPAIGN_REVISION_CONFLICT";
   constructor(
-    readonly campaign:ReturnType<typeof restore>,
+    readonly campaign:ReturnType<typeof restoreActiveCampaignRow>,
     readonly conflict:"modified"|"deleted",
   ){
     super(
@@ -69,7 +93,7 @@ export async function activeCampaignForOwner(ownerInput:string){
   if(!ownerEmail)throw new Error("Campaign owner is invalid.");
   const db=await getDb();
   const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
-  return{accountKey:ownerEmail,campaign:row?restore(row):null};
+  return{accountKey:ownerEmail,campaign:row?restoreActiveCampaignRow(row):null};
 }
 
 export async function saveActiveCampaignForOwner(ownerInput:string,input:ActiveCampaignSubmission){
@@ -79,6 +103,11 @@ export async function saveActiveCampaignForOwner(ownerInput:string,input:ActiveC
   const account=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,ownerEmail)).limit(1))[0];
   if(!account?.accountEnabled)throw new Error("Account campaign services are disabled.");
   if(prepared.expectedRevision===0){
+    if(
+      prepared.meta.day!==1||
+      prepared.meta.resolutionCount!==0||
+      prepared.meta.status!=="active"
+    )throw new Error("A new campaign must begin at unresolved day one.");
     const inserted=await db
       .insert(activeCampaigns)
       .values({
@@ -91,12 +120,35 @@ export async function saveActiveCampaignForOwner(ownerInput:string,input:ActiveC
       .onConflictDoNothing()
       .returning();
     if(inserted[0])
-      return{accountKey:ownerEmail,campaign:restore(inserted[0])};
+      return{accountKey:ownerEmail,campaign:restoreActiveCampaignRow(inserted[0])};
   }else{
+    const existing=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
+    if(!existing||existing.revision!==prepared.expectedRevision)
+      throw new ActiveCampaignConflictError(
+        existing?restoreActiveCampaignRow(existing):null,
+        existing?"modified":"deleted",
+      );
+    const currentMeta=stateMeta(JSON.parse(existing.state) as unknown);
+    const replacingCampaign=prepared.meta.campaignId!==currentMeta.campaignId;
+    if(
+      replacingCampaign
+        ?prepared.meta.day!==1||
+          prepared.meta.resolutionCount!==0||
+          prepared.meta.status!=="active"
+        :prepared.meta.day!==currentMeta.day||
+          prepared.meta.resolutionCount!==currentMeta.resolutionCount||
+          prepared.meta.status!==currentMeta.status
+    )
+      throw new Error(
+        "Campaign day transitions require an atomic resolution redemption.",
+      );
     const updated=await db
       .update(activeCampaigns)
       .set({
         ...prepared.campaign,
+        lastResolutionGrantMarker:replacingCampaign
+          ?null
+          :existing.lastResolutionGrantMarker,
         revision:prepared.expectedRevision+1,
         updatedAt:now,
       })
@@ -108,11 +160,11 @@ export async function saveActiveCampaignForOwner(ownerInput:string,input:ActiveC
       )
       .returning();
     if(updated[0])
-      return{accountKey:ownerEmail,campaign:restore(updated[0])};
+      return{accountKey:ownerEmail,campaign:restoreActiveCampaignRow(updated[0])};
   }
   const current=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
   throw new ActiveCampaignConflictError(
-    current?restore(current):null,
+    current?restoreActiveCampaignRow(current):null,
     current?"modified":"deleted",
   );
 }

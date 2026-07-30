@@ -60,7 +60,7 @@ export function SshKeyManager(){
           {notice?<p className="account-notice" role="status">{notice}</p>:null}
         </section>
       </div>
-      <footer className="account-actions"><div><b>CONNECTION CONTRACT</b><small>Every command uses the same Ava kernel and campaign state as the web interface. Consequential orders still require prepare and confirm.</small></div><a className="os-primary" href="/game?account=1">RETURN TO ACCOUNT →</a></footer>
+      <footer className="account-actions"><div><b>CONNECTION CONTRACT</b><small>Every command uses the same Ava Nexus and campaign state as the web interface. Consequential orders still require prepare and confirm.</small></div><a className="os-primary" href="/game?account=1">RETURN TO ACCOUNT →</a></footer>
     </section>
   </main>;
 }

@@ -32,7 +32,16 @@ const server=https.createServer({
   if(url.pathname==="/api/ssh/gateway/campaign"&&request.method==="GET")
     return json(response,200,{accountKey:url.searchParams.get("player"),campaign});
   if(url.pathname==="/api/ssh/gateway/campaign"&&request.method==="PUT"){
-    campaign={...body.campaign,revision:(campaign?.revision??0)+1,updatedAt:Date.now()};
+    const currentRevision=campaign?.revision??0;
+    if(body.campaign?.expectedRevision!==currentRevision)
+      return json(response,409,{
+        error:"The active campaign changed in another session.",
+        code:"CAMPAIGN_REVISION_CONFLICT",
+        conflict:campaign?"modified":"deleted",
+        campaign,
+      });
+    const{expectedRevision,...accepted}=body.campaign;
+    campaign={...accepted,revision:currentRevision+1,updatedAt:Date.now()};
     return json(response,200,{accountKey:body.playerId,campaign});
   }
   if(url.pathname==="/api/ssh/gateway/audit"&&request.method==="POST")

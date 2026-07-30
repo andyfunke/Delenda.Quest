@@ -8,9 +8,17 @@ export * from "./content-adapters";
 export * from "./docket";
 export * from "./choice-evaluation";
 export * from "./command-parser";
-export * from "./services";
+export {
+  evaluateChoices,
+  getCampaignStatus,
+  getDailyBrief,
+  getVisibleChoice,
+  getVisibleDocket,
+  listDirectiveFamilyCatalog,
+  rankVisibleChoices,
+} from "./services";
 export * from "./semantic-index";
-export * from "./ava-classic";
 export * from "./llm-packets";
 export * from "./mcp-seam";
 export * from "./visible-directives";
+export * from "./capability-registry";

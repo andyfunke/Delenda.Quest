@@ -35,11 +35,38 @@ export const activeCampaigns=sqliteTable("active_campaigns",{
   clockEnd:integer("clock_end").notNull(),
   multiplayerRun:integer("multiplayer_run",{mode:"boolean"}).notNull().default(false),
   revision:integer("revision").notNull().default(1),
+  lastResolutionGrantMarker:text("last_resolution_grant_marker"),
   createdAt:integer("created_at").notNull(),
   updatedAt:integer("updated_at").notNull(),
 },table=>[
   index("active_campaigns_campaign_idx").on(table.campaignId),
   index("active_campaigns_updated_idx").on(table.updatedAt),
+]);
+
+export const campaignResolutionGrants=sqliteTable("campaign_resolution_grants",{
+  id:text("id").primaryKey(),
+  ownerEmail:text("owner_email").notNull(),
+  accountDayKey:text("account_day_key").notNull(),
+  campaignId:text("campaign_id").notNull(),
+  campaignDay:integer("campaign_day").notNull(),
+  campaignRevision:integer("campaign_revision").notNull(),
+  campaignStateSeal:text("campaign_state_seal").notNull(),
+  opportunityFractionPpm:integer("opportunity_fraction_ppm").notNull(),
+  expiresAt:integer("expires_at").notNull(),
+  createdAt:integer("created_at").notNull(),
+  consumedAt:integer("consumed_at"),
+  invalidatedAt:integer("invalidated_at"),
+},table=>[
+  index("campaign_resolution_grants_owner_day_idx").on(
+    table.ownerEmail,
+    table.accountDayKey,
+  ),
+  index("campaign_resolution_grants_campaign_idx").on(
+    table.ownerEmail,
+    table.campaignId,
+    table.campaignRevision,
+  ),
+  index("campaign_resolution_grants_expiry_idx").on(table.expiresAt),
 ]);
 
 export const campaignRecords=sqliteTable("campaign_records",{

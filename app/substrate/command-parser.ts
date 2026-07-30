@@ -33,6 +33,22 @@ const normalize = (input: string) =>
     .replace(/[^\S\r\n]+/g, " ")
     .replace(/[.?!,]+$/g, "");
 
+/**
+ * Security classification is lexical and intentionally independent of parse
+ * success. A malformed consequential command must not escape an adapter kill
+ * switch merely because the language compiler rejected it first.
+ */
+export const isConsequentialCommandAttempt = (rawInput: string) => {
+  const text = normalize(rawInput);
+  return (
+    /^(?:prepare|confirm|cancel|execute|issue|choose|commit|stage|unstage|internalize|respond)\b/.test(
+      text,
+    ) ||
+    /^(?:yes|accept|do it|issue it|execute it)$/.test(text) ||
+    /^(?:resolve|end|close)\b.*\bday\b/.test(text)
+  );
+};
+
 const aliasMap: Array<{ pattern: RegExp; rewrite: string }> = [
   { pattern: /^(daily brief|campaign brief)$/i, rewrite: "brief" },
   { pattern: /^(situation|campaign status)$/i, rewrite: "status" },

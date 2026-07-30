@@ -2,18 +2,19 @@
 
 Target UX: `ssh play@ssh.delenda.quest`
 
-SSH is a transport over the same Ava kernel and application services used by other clients. It is not a Linux account and not a remote shell.
+SSH is a transport over the same Ava Nexus and application services used by every other client. It is not a Linux account and not a remote shell.
 
 ## Components
 
-- `app/ava/kernel.ts` — authoritative OG Ava language, discourse, rendering, and substrate bridge
+- `app/ava/nexus.ts` — authoritative language, discourse, capability, authority, and response runtime
+- `app/ava/kernel.ts` — temporary compatibility re-export of the Nexus
 - `app/api/ssh/credentials` — signed-in public-key registration and revocation
 - `app/api/ssh/gateway/*` — bearer-authenticated key authorization, campaign persistence, and audit API
 - `packages/ssh-gateway` — production OpenSSH image and forced Ava session
 - `packages/terminal-core` — runtime-neutral compatibility adapter for semantic terminal clients
 - `packages/ssh-server` — in-process security and parity fixture retained for tests
 
-Game law remains in `app/game.ts` and `app/substrate/services.ts`. The TCP gateway never owns mechanics. It loads a campaign, invokes `runAvaKernelLine`, and persists the resulting authoritative state.
+Game law remains in `app/game.ts` and `app/substrate/services.ts`. The TCP gateway never owns mechanics. It loads a campaign, invokes `runAvaNexusLine`, and persists the resulting authoritative state.
 
 ## Transport
 

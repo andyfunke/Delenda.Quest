@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUNDLE="$(mktemp /tmp/delenda-ava-compiler.XXXXXX.mjs)"
-REPORTS_BUNDLE="$(mktemp /tmp/delenda-ava-reports.XXXXXX.mjs)"
-GAME_BUNDLE="$(mktemp /tmp/delenda-ava-game.XXXXXX.mjs)"
-TERMINAL_BUNDLE="$(mktemp /tmp/delenda-ava-terminal.XXXXXX.mjs)"
-RUNTIME_BUNDLE="$(mktemp /tmp/delenda-ava-runtime.XXXXXX.mjs)"
-CONTEXT_BUNDLE="$(mktemp /tmp/delenda-ava-context.XXXXXX.mjs)"
-INTERFACE_BUNDLE="$(mktemp /tmp/delenda-ava-interface.XXXXXX.mjs)"
+TEMP_ROOT="${TMPDIR:-${PWD}/.tmp}"
+mkdir -p "$TEMP_ROOT"
+BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-compiler.XXXXXX.mjs")"
+REPORTS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-reports.XXXXXX.mjs")"
+GAME_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-game.XXXXXX.mjs")"
+TERMINAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-terminal.XXXXXX.mjs")"
+RUNTIME_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-runtime.XXXXXX.mjs")"
+CONTEXT_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-context.XXXXXX.mjs")"
+INTERFACE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-interface.XXXXXX.mjs")"
 trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null

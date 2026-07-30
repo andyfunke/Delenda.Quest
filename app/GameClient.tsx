@@ -38,15 +38,12 @@ import {
   explainManeuverChance,
   fmt,
   fmtStrategic,
-  forceOpportunityForCurrentDay,
   initialState,
   liveProjection,
   maneuverForState,
   maneuversForState,
   opportunityResponseRejection,
   opportunityStatusForFraction,
-  recordOpportunityExpired,
-  recordOpportunityOpened,
   projectAdversary,
   projectDomestic,
   projectForceGeneration,
@@ -67,8 +64,8 @@ import { BugReporter } from "./BugReporter";
 import { THEATER_SECTORS } from "./campaign-substrate";
 import { openWikiApplet } from "./wiki-events";
 import {
-  compileAvaCommand,
   compileAvaGodModeIntent,
+  isAvaConfirmationInput,
 } from "./ava/compiler";
 import { avaEntitiesForState } from "./ava/game-context";
 import { type AvaActionRef } from "./ava/schema";
@@ -78,17 +75,19 @@ import type {
 } from "./ava/darknet";
 import {
   actionKey,
-  buildAvaPlan,
-  executeAvaAction,
-  executeAvaPlan,
+  projectAvaAction,
 } from "./ava/runtime";
 import {
   initialAvaTerminalSession,
-  runAvaInstruction,
-  type AvaTerminalSession,
 } from "./ava/terminal";
 import {
-  avaShellFileReferences,
+  avaNexusStateRevision,
+  createAvaNexusSession,
+  runAvaNexusLine,
+  runAvaNexusRequest,
+  type AvaNexusSession,
+} from "./ava/nexus";
+import {
   restoreAvaShellSession,
 } from "./ava/filesystem";
 import { completeAvaInput } from "./ava/completion";
@@ -97,7 +96,6 @@ import {
   loadAvaShellArchive,
   saveAvaShellArchive,
 } from "./ava/storage";
-import { voiceAvaResponse } from "./ava/voice";
 import {
   installInteractionTelemetry,
   recordAvaTelemetry,
@@ -131,7 +129,6 @@ import {
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
 import {
-  accountClockAfterClaim,
   accountDayBounds,
   browserTimeZone,
 } from "./account-time";
@@ -146,7 +143,16 @@ import {
   selectCampaignForHydration,
   type StoredCampaignEnvelope,
 } from "./campaign-persistence";
-import type { AvaResolutionGrant } from "./ava/request-ir";
+import type {
+  AvaRequestIR,
+  AvaResolutionGrant,
+} from "./ava/request-ir";
+import {
+  avaRequestStateSeal,
+  executeAvaActionRequest,
+  executeAvaPlanRequest,
+  prepareAvaActionRequest,
+} from "./ava/request-ir";
 
 type TurnAccess = {
   godMode: boolean;
@@ -156,6 +162,18 @@ type TurnAccess = {
   nextTurnAt: number;
   timeZone: string;
   resolutionGrant?: AvaResolutionGrant;
+};
+type TurnRedemption = {
+  allowed?:boolean;
+  accountKey?:string;
+  campaign?:StoredCampaignEnvelope|null;
+  turn?:TurnAccess;
+  nexus?:{
+    response?:{status?:string};
+    text?:string;
+  };
+  error?:string;
+  code?:string;
 };
 type AccountBootstrap = {
   isAdmin?: boolean;
@@ -2650,14 +2668,17 @@ function SubMissionReadout({
   prompt: ConvergencePrompt;
   option: ConvergenceOption;
 }) {
-  const preview = executeAvaAction(s, {
-    kind: "sub-mission",
-    domain: option.domain,
-    missionId: prompt.id,
-    optionId: option.id,
-    resolutionTicket: prompt.resolutionTicket,
-  });
-  const projected = preview.executed ? preview.state : s;
+  const previewAction:AvaActionRef={
+    kind:"sub-mission",
+    domain:option.domain,
+    missionId:prompt.id,
+    optionId:option.id,
+    resolutionTicket:prompt.resolutionTicket,
+  };
+  const preview=projectAvaAction(s,previewAction);
+  const previewExecuted=preview.executed;
+  const previewRejection=preview.rejection;
+  const projected=previewExecuted?preview.state:s;
   const beforeDomestic = projectDomestic(s);
   const afterDomestic = projectDomestic(projected);
   const beforeOperations = projectOperations(s);
@@ -2947,7 +2968,7 @@ function SubMissionReadout({
         label="SELECTED RESPONSE"
         value={option.choice.label.toUpperCase()}
         note={
-          preview.executed
+          previewExecuted
             ? "ESTIMATED FROM CURRENT POSITION"
             : "CURRENTLY UNAVAILABLE"
         }
@@ -2990,8 +3011,8 @@ function SubMissionReadout({
         <CampaignInspectCell
           id="actions"
           label="ORDER STATUS"
-          value={issued ? "ISSUED" : preview.executed ? "AVAILABLE" : "LOCKED"}
-          note={preview.rejection ?? "1 ORDER FROM THE SHARED DAILY POOL"}
+          value={issued ? "ISSUED" : previewExecuted ? "AVAILABLE" : "LOCKED"}
+          note={previewRejection ?? "1 ORDER FROM THE SHARED DAILY POOL"}
           details={[
             {
               label: "ORDERS REMAINING",
@@ -3749,22 +3770,22 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   const [turnBusy, setTurnBusy] = useState(false);
   const [commandAccountMenuOpen, setCommandAccountMenuOpen] = useState(false);
   const [systemNotice, setSystemNotice] = useState<string | null>(null);
-  const [avaSession, setAvaSession] = useState<AvaTerminalSession>(() =>
-    initialAvaTerminalSession(),
+  const [avaSession, setAvaSession] = useState<AvaNexusSession>(() =>
+    createAvaNexusSession(true,"campaign"),
   );
   const [avaArchiveHydrated, setAvaArchiveHydrated] = useState(false);
   const [avaArchiveWritable, setAvaArchiveWritable] = useState(false);
   const avaArchiveShell = useMemo(
     () => ({
-      cwd: avaSession.shell.cwd,
+      cwd: avaSession.terminal.shell.cwd,
       history: [],
-      files: avaSession.shell.files,
-      darkNetUnlocked: avaSession.shell.darkNetUnlocked,
+      files: avaSession.terminal.shell.files,
+      darkNetUnlocked: avaSession.terminal.shell.darkNetUnlocked,
     }),
     [
-      avaSession.shell.cwd,
-      avaSession.shell.darkNetUnlocked,
-      avaSession.shell.files,
+      avaSession.terminal.shell.cwd,
+      avaSession.terminal.shell.darkNetUnlocked,
+      avaSession.terminal.shell.files,
     ],
   );
   const [messages, setMessages] = useState<Message[]>([]);
@@ -3800,6 +3821,14 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   const campaignMutationsHeld = useRef(false);
   const liveStateRef = useRef(s);
   liveStateRef.current = s;
+  const liveClockRef=useRef(clock);
+  liveClockRef.current=clock;
+  const liveRunTokenRef=useRef(runToken);
+  liveRunTokenRef.current=runToken;
+  const liveMultiplayerRunRef=useRef(multiplayerRun);
+  liveMultiplayerRunRef.current=multiplayerRun;
+  const liveAvaSessionRef=useRef(avaSession);
+  liveAvaSessionRef.current=avaSession;
   const priorTelemetryModule = useRef<Page>("campaign");
   const [initialModuleEnteredAt] = useState(Date.now);
   const moduleEnteredAt = useRef(initialModuleEnteredAt);
@@ -3949,19 +3978,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           const archived=restoreAvaShellSession(archive,restored);
           setAvaSession((current)=>{
             const byPath=new Map(
-              [...archived.files,...current.shell.files].map((file)=>[file.path,file]),
+              [...archived.files,...current.terminal.shell.files].map((file)=>[file.path,file]),
             );
             const interacted=
-              current.shell.history.length>0||
-              current.shell.files.length>0||
-              current.shell.cwd!==initialAvaTerminalSession().shell.cwd;
+              current.terminal.shell.history.length>0||
+              current.terminal.shell.files.length>0||
+              current.terminal.shell.cwd!==initialAvaTerminalSession().shell.cwd;
             return{
               ...current,
-              shell:{
-                cwd:interacted?current.shell.cwd:archived.cwd,
-                history:current.shell.history,
-                files:[...byPath.values()],
-                darkNetUnlocked:current.shell.darkNetUnlocked||archived.darkNetUnlocked,
+              terminal:{
+                ...current.terminal,
+                shell:{
+                  cwd:interacted?current.terminal.shell.cwd:archived.cwd,
+                  history:current.terminal.shell.history,
+                  files:[...byPath.values()],
+                  darkNetUnlocked:
+                    current.terminal.shell.darkNetUnlocked||
+                    archived.darkNetUnlocked,
+                },
               },
             };
           });
@@ -4269,6 +4303,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             conflict?:"modified"|"deleted";
             campaign?:StoredCampaignEnvelope|null;
           };
+          if(epoch!==campaignPersistenceEpoch.current)return;
           if(response.status===409&&payload.code==="CAMPAIGN_REVISION_CONFLICT"){
             campaignPersistenceEpoch.current+=1;
             if(payload.campaign){
@@ -4576,22 +4611,48 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         item.day === s.day &&
         item.opportunityId === packet.id,
     );
-    let next = s;
-    let status: "opened" | "expired" | null = null;
-    if (opportunityWindow.status === "active" && !assignment) {
-      next = recordOpportunityOpened(s, packet);
-      status = "opened";
-    } else if (
-      opportunityWindow.status === "expired" &&
-      !s.opportunityHistory.some(
-        (record) =>
-          record.day === s.day && record.opportunityId === packet.id,
+    if(
+      (opportunityWindow.status!=="active"||assignment)&&
+      (
+        opportunityWindow.status!=="expired"||
+        s.opportunityHistory.some(
+          (record)=>
+            record.day===s.day&&record.opportunityId===packet.id,
+        )
       )
-    ) {
-      next = recordOpportunityExpired(s, packet);
-      status = "expired";
-    }
-    if (!status || next === s) return;
+    )return;
+    const result=runAvaNexusRequest(
+      {
+        kind:"internal",
+        origin:"internal",
+        operation:"reconcile-opportunity",
+        opportunityFraction:fraction,
+        expectedStateSeal:avaRequestStateSeal(s),
+      },
+      {
+        playerId:"browser-internal",
+        campaignId:s.campaignId,
+        campaignRevision:avaNexusStateRevision(s),
+        surface:"internal",
+        authority:"command",
+        nowMs:Date.now(),
+      },
+      s,
+      liveAvaSessionRef.current,
+      fraction,
+    );
+    liveAvaSessionRef.current=result.session;
+    setAvaSession(result.session);
+    const fact=result.response.fact as {
+      status?:"opened"|"expired"|"unchanged";
+    };
+    const status=
+      fact.status==="opened"||fact.status==="expired"
+        ? fact.status
+        : null;
+    const next=result.state;
+    if(!status||next===s)return;
+    liveStateRef.current=next;
     setS(next);
     try {
       window.localStorage.setItem(
@@ -4670,6 +4731,29 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     }
     return alerts;
   }, [opportunityWindow.status, opportunityWindow.packet, projectedProduction, s]);
+  const runBrowserNexusRequest = (
+    request:AvaRequestIR,
+    state=liveStateRef.current,
+    opportunityFraction=fraction,
+  ) => {
+    const result=runAvaNexusRequest(
+      request,
+      {
+        playerId:"web",
+        campaignId:state.campaignId,
+        campaignRevision:avaNexusStateRevision(state),
+        surface:"web",
+        authority:"command",
+        nowMs:Date.now(),
+      },
+      state,
+      liveAvaSessionRef.current,
+      opportunityFraction,
+    );
+    liveAvaSessionRef.current=result.session;
+    setAvaSession(result.session);
+    return result;
+  };
   const rejectMutationDuringTurnClaim = () => {
     if (!campaignMutationsHeld.current) return false;
     setSystemNotice(
@@ -4677,45 +4761,65 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     );
     return true;
   };
-  const startCampaign = (config: CampaignConfig) => {
+  const startCampaign = async (config: CampaignConfig) => {
     if(rejectMutationDuringTurnClaim())return;
-    if(s.status==="active"&&s.resolutionHistory.length>0&&runToken)
-      void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
-    const next = initialState(config);
-    const n = Date.now();
-    const nextRunToken = portableId();
-    if(campaignSyncSuppressed.current)campaignRevisionRef.current=0;
-    campaignSyncSuppressed.current=false;
-    lastPersistedCampaignSeal.current="";
-    if (runToken) void deleteAvaShellArchive(runToken).catch(() => undefined);
-    liveStateRef.current=next;
-    setS(next);
-    activeArchiveKey.current = nextRunToken;
-    setRunToken(nextRunToken);
-    setAvaArchiveWritable(true);
-    setAvaArchiveHydrated(true);
-    setIssuedRecordSlug(null);
-    setIssuedCampaignScore(null);
-    setPage("campaign");
-    setFocusFamily(undefined);
-    setMetric(null);
-    setPendingManeuver(null);
-    setCampaignInspectorSelection(null);
-    setCampaignIntroConsumed(false);
-    setPendingDoctrine(null);
-    setAvaSession(initialAvaTerminalSession());
-    setClock(accountDayBounds(accountTimeZone,n));
-    setNow(n);
-    setLedgerNow(n);
-    setReset(false);
-    setSeedOverride(null);
-    setMultiplayerRun(!!challengeConfig);
-    setChallengeConfig(null);
-    setMessages([]);
-    setSystemNotice(null);
-    setOpportunityInterruptAcknowledged(false);
-    setAlertMenuOpen(false);
-    window.history.replaceState({}, "", window.location.pathname);
+    campaignMutationsHeld.current=true;
+    setTurnBusy(true);
+    try{
+      let drained=campaignSaveChain.current;
+      await drained;
+      while(drained!==campaignSaveChain.current){
+        drained=campaignSaveChain.current;
+        await drained;
+      }
+      campaignPersistenceEpoch.current+=1;
+      if(s.status==="active"&&s.resolutionHistory.length>0&&runToken)
+        void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
+      const next = initialState(config);
+      const n = Date.now();
+      const nextRunToken = portableId();
+      if(campaignSyncSuppressed.current)campaignRevisionRef.current=0;
+      campaignSyncSuppressed.current=false;
+      lastPersistedCampaignSeal.current="";
+      if (runToken) void deleteAvaShellArchive(runToken).catch(() => undefined);
+      liveStateRef.current=next;
+      setS(next);
+      activeArchiveKey.current = nextRunToken;
+      liveRunTokenRef.current=nextRunToken;
+      setRunToken(nextRunToken);
+      setAvaArchiveWritable(true);
+      setAvaArchiveHydrated(true);
+      setIssuedRecordSlug(null);
+      setIssuedCampaignScore(null);
+      setPage("campaign");
+      setFocusFamily(undefined);
+      setMetric(null);
+      setPendingManeuver(null);
+      setCampaignInspectorSelection(null);
+      setCampaignIntroConsumed(false);
+      setPendingDoctrine(null);
+      const nextAvaSession=createAvaNexusSession(true,"campaign");
+      liveAvaSessionRef.current=nextAvaSession;
+      setAvaSession(nextAvaSession);
+      const nextClock=accountDayBounds(accountTimeZone,n);
+      liveClockRef.current=nextClock;
+      setClock(nextClock);
+      setNow(n);
+      setLedgerNow(n);
+      setReset(false);
+      setSeedOverride(null);
+      liveMultiplayerRunRef.current=!!challengeConfig;
+      setMultiplayerRun(!!challengeConfig);
+      setChallengeConfig(null);
+      setMessages([]);
+      setSystemNotice(null);
+      setOpportunityInterruptAcknowledged(false);
+      setAlertMenuOpen(false);
+      window.history.replaceState({}, "", window.location.pathname);
+    }finally{
+      campaignMutationsHeld.current=false;
+      setTurnBusy(false);
+    }
   };
   const announceOpenDay = (next: GameState) => {
     if (next.actions === 0)
@@ -4743,13 +4847,46 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       );
       return;
     }
-    const result = executeAvaAction(
+    const action:AvaActionRef={
+      kind:"directive",
+      familyId:selectedFamily.id,
+      choiceId:choice.id,
+    };
+    const prepared=runBrowserNexusRequest(
+      prepareAvaActionRequest(s,action,{
+        origin:"browser-ui",
+        idempotencyKey:`web:${s.campaignId}:${s.day}:directive:${choice.id}:prepare`,
+      }),
       s,
-      { kind: "directive", familyId: selectedFamily.id, choiceId: choice.id },
-      fraction,
     );
-    if (!result.executed) {
-      setSystemNotice(`ORDER NOT EXECUTED // ${result.rejection}`);
+    if(
+      prepared.response.status!=="PREPARED"||
+      !prepared.session.proposalToken
+    ){
+      setSystemNotice(
+        `ORDER NOT PREPARED // ${prepared.response.recovery?.instruction??prepared.response.rendering.brief}`,
+      );
+      return;
+    }
+    liveStateRef.current=prepared.state;
+    setS(prepared.state);
+    const result=runBrowserNexusRequest(
+      {
+        kind:"confirmation",
+        origin:"browser-ui",
+        token:prepared.session.proposalToken,
+        expectedStateSeal:avaRequestStateSeal(prepared.state),
+        idempotencyKey:`web:${s.campaignId}:${s.day}:directive:${choice.id}:confirm`,
+      },
+      prepared.state,
+    );
+    if(
+      result.response.status!=="EXECUTED"&&
+      result.response.status!=="ALREADY_EXECUTED"
+    ){
+      setSystemNotice(
+        `ORDER PREPARED BUT NOT CONFIRMED // ${result.response.recovery?.instruction??result.response.rendering.brief}`,
+      );
       return;
     }
     liveStateRef.current=result.state;
@@ -4792,13 +4929,17 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         resolutionTicket: packet.network.resolutionTicket,
       });
     if (!actions.length) return;
-    const result = executeAvaPlan(
+    const result=runBrowserNexusRequest(
+      executeAvaPlanRequest(s,actions,{
+        origin:"browser-ui",
+        idempotencyKey:`web:${s.campaignId}:${s.day}:converged:${actions.map(actionKey).join("+")}`,
+      }),
       s,
-      buildAvaPlan(s, actions, fraction),
-      fraction,
     );
-    if (!result.executed) {
-      setSystemNotice(`ORDERS NOT EXECUTED // ${result.rejection}`);
+    if(result.response.status!=="EXECUTED"){
+      setSystemNotice(
+        `ORDERS NOT EXECUTED // ${result.response.recovery?.instruction??result.response.rendering.brief}`,
+      );
       return;
     }
     liveStateRef.current=result.state;
@@ -4809,13 +4950,18 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     if(rejectMutationDuringTurnClaim())return;
     const maneuver = selection ?? pendingManeuver;
     if (!maneuver) return;
-    const result = executeAvaAction(
+    const action:AvaActionRef={kind:"maneuver",maneuverId:maneuver.id};
+    const result=runBrowserNexusRequest(
+      executeAvaActionRequest(s,action,{
+        origin:"browser-ui",
+        idempotencyKey:`web:${s.campaignId}:${s.day}:maneuver:${maneuver.id}`,
+      }),
       s,
-      { kind: "maneuver", maneuverId: maneuver.id },
-      fraction,
     );
-    if (!result.executed) {
-      setSystemNotice(`ORDER REJECTED // ${result.rejection}`);
+    if(result.response.status!=="EXECUTED"){
+      setSystemNotice(
+        `ORDER REJECTED // ${result.response.recovery?.instruction??result.response.rendering.brief}`,
+      );
       return;
     }
     liveStateRef.current=result.state;
@@ -4828,13 +4974,22 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     const packet =
       opportunityWindow.status === "active" ? opportunityWindow.packet : null;
     if (!packet) return;
-    const result = executeAvaAction(
+    const action:AvaActionRef={
+      kind:"opportunity-response",
+      opportunityId:packet.id,
+      responseId,
+    };
+    const result=runBrowserNexusRequest(
+      executeAvaActionRequest(s,action,{
+        origin:"browser-ui",
+        idempotencyKey:`web:${s.campaignId}:${s.day}:opportunity:${packet.id}:${responseId}`,
+      }),
       s,
-      { kind: "opportunity-response", opportunityId: packet.id, responseId },
-      fraction,
     );
-    if (!result.executed) {
-      setSystemNotice(`OPPORTUNITY RESPONSE REJECTED // ${result.rejection}`);
+    if(result.response.status!=="EXECUTED"){
+      setSystemNotice(
+        `OPPORTUNITY RESPONSE REJECTED // ${result.response.recovery?.instruction??result.response.rendering.brief}`,
+      );
       return;
     }
     const record = result.state.opportunityHistory.find(
@@ -4864,13 +5019,22 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   };
   const applyDoctrine = (vector: DoctrineVector, stage: DoctrineStage) => {
     if(rejectMutationDuringTurnClaim())return;
-    const result = executeAvaAction(
+    const action:AvaActionRef={
+      kind:"doctrine-stage",
+      vectorId:vector.id,
+      stageId:stage.id,
+    };
+    const result=runBrowserNexusRequest(
+      executeAvaActionRequest(s,action,{
+        origin:"browser-ui",
+        idempotencyKey:`web:${s.campaignId}:${s.day}:doctrine:${vector.id}:${stage.id}`,
+      }),
       s,
-      { kind: "doctrine-stage", vectorId: vector.id, stageId: stage.id },
-      fraction,
     );
-    if (!result.executed) {
-      setSystemNotice(`DOCTRINE NOT INTERNALIZED // ${result.rejection}`);
+    if(result.response.status!=="EXECUTED"){
+      setSystemNotice(
+        `DOCTRINE NOT INTERNALIZED // ${result.response.recovery?.instruction??result.response.rendering.brief}`,
+      );
       return;
     }
     liveStateRef.current=result.state;
@@ -4884,20 +5048,145 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     applyDoctrine(pendingDoctrine.vector, pendingDoctrine.stage);
     setPendingDoctrine(null);
   };
+  const persistCampaignSnapshotNow=useCallback(async()=>{
+    let drained=campaignSaveChain.current;
+    await drained;
+    while(drained!==campaignSaveChain.current){
+      drained=campaignSaveChain.current;
+      await drained;
+    }
+    campaignPersistenceEpoch.current+=1;
+    if(!campaignAccountKey.current)
+      throw new Error("Sign in before resolving a campaign day.");
+    if(campaignSyncSuppressed.current)
+      throw new Error(
+        "The account campaign was removed elsewhere. Start a new campaign before resolving a day.",
+      );
+    const state=liveStateRef.current;
+    const envelope:StoredCampaignEnvelope={
+      accountKey:campaignAccountKey.current,
+      state,
+      clock:liveClockRef.current,
+      runToken:liveRunTokenRef.current,
+      multiplayerRun:liveMultiplayerRunRef.current,
+      savedAt:Date.now(),
+      revision:campaignRevisionRef.current,
+    };
+    const seal=campaignPayloadSeal(envelope);
+    if(
+      campaignRevisionRef.current>0&&
+      seal===lastPersistedCampaignSeal.current
+    )return envelope;
+    const submission:StoredCampaignEnvelope={
+      ...envelope,
+      expectedRevision:campaignRevisionRef.current,
+    };
+    const response=await fetch("/api/campaign",{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(submission),
+    });
+    const payload=await response.json().catch(()=>({})) as {
+      accountKey?:string;
+      campaign?:StoredCampaignEnvelope|null;
+      error?:string;
+      code?:string;
+    };
+    if(response.status===409&&payload.code==="CAMPAIGN_REVISION_CONFLICT"){
+      campaignPersistenceEpoch.current+=1;
+      if(!payload.campaign){
+        campaignRevisionRef.current=0;
+        campaignSyncSuppressed.current=true;
+        lastPersistedCampaignSeal.current="";
+        try{window.localStorage.removeItem(SAVE_KEY);}catch{}
+        throw new Error(
+          "The account campaign was removed by another session.",
+        );
+      }
+      const restored=restoreCampaignState(payload.campaign.state);
+      if(!restored)
+        throw new Error("The authoritative campaign could not be restored.");
+      const remoteSeal=campaignPayloadSeal(payload.campaign);
+      campaignRevisionRef.current=campaignRevision(payload.campaign.revision);
+      campaignSyncSuppressed.current=false;
+      lastPersistedCampaignSeal.current=remoteSeal;
+      const restoredRunToken=
+        typeof payload.campaign.runToken==="string"&&payload.campaign.runToken
+          ?payload.campaign.runToken
+          :portableId();
+      liveStateRef.current=restored;
+      setS(restored);
+      liveRunTokenRef.current=restoredRunToken;
+      setRunToken(restoredRunToken);
+      activeArchiveKey.current=restoredRunToken;
+      liveMultiplayerRunRef.current=!!payload.campaign.multiplayerRun;
+      setMultiplayerRun(!!payload.campaign.multiplayerRun);
+      if(
+        typeof payload.campaign.clock?.start==="number"&&
+        typeof payload.campaign.clock.end==="number"
+      ){
+        liveClockRef.current={
+          start:payload.campaign.clock.start,
+          end:payload.campaign.clock.end,
+        };
+        setClock(liveClockRef.current);
+      }
+      try{
+        window.localStorage.setItem(
+          SAVE_KEY,
+          JSON.stringify({
+            ...payload.campaign,
+            accountKey:campaignAccountKey.current,
+            savedAt:Date.now(),
+          }),
+        );
+      }catch{}
+      if(remoteSeal===seal)return payload.campaign;
+      throw new Error(
+        "Another session changed the campaign. Its authoritative state is now loaded; review it before resolving the day.",
+      );
+    }
+    if(!response.ok)
+      throw new Error(payload.error??"Campaign preflight save was not accepted.");
+    if(!campaignSaveWasAccepted(submission,payload.campaign))
+      throw new Error(
+        "Campaign preflight acknowledgment did not match the submitted state.",
+      );
+    campaignRevisionRef.current=campaignRevision(payload.campaign?.revision);
+    lastPersistedCampaignSeal.current=seal;
+    campaignSyncSuppressed.current=false;
+    if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
+    try{
+      window.localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify({
+          ...envelope,
+          accountKey:campaignAccountKey.current,
+          revision:campaignRevisionRef.current,
+        }),
+      );
+      window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
+    }catch{}
+    remoteSaveFailureNotified.current=false;
+    return payload.campaign!;
+  },[]);
   const claimTurn = useCallback(async () => {
     if (turnClaimInFlight.current || campaignMutationsHeld.current) return null;
-    const target=liveStateRef.current;
     turnClaimInFlight.current = true;
     campaignMutationsHeld.current = true;
     setTurnBusy(true);
     let granted=false;
     try {
+      await persistCampaignSnapshotNow();
+      const target=liveStateRef.current;
       const response = await fetch("/api/turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body:JSON.stringify({
           campaignId:target.campaignId,
           campaignDay:target.day,
+          expectedRevision:campaignRevisionRef.current,
+          expectedStateSeal:avaRequestStateSeal(target),
         }),
       });
       const payload = (await response.json()) as TurnAccess & {
@@ -4941,24 +5230,162 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         setTurnBusy(false);
       }
     }
-  }, []);
+  }, [persistCampaignSnapshotNow]);
   const releaseTurnClaim = useCallback(() => {
     campaignMutationsHeld.current=false;
     setTurnBusy(false);
   }, []);
+  const redeemTurnGrant=useCallback(async(grant:AvaResolutionGrant)=>{
+    const prior=liveStateRef.current;
+    const priorRevision=campaignRevisionRef.current;
+    if(
+      grant.campaignId!==prior.campaignId||
+      grant.campaignDay!==prior.day||
+      priorRevision<1
+    )throw new Error("The resolution grant no longer matches this campaign.");
+    const response=await fetch("/api/turn",{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({grantId:grant.grantId}),
+    });
+    const payload=await response.json().catch(()=>({})) as TurnRedemption;
+    if(
+      !response.ok&&
+      response.status===409&&
+      payload.code==="DAILY_RESOLUTION_STATE_CHANGED"
+    ){
+      if(payload.campaign){
+        const winner=restoreCampaignState(payload.campaign.state);
+        const winnerRevision=campaignRevision(payload.campaign.revision);
+        if(
+          !winner||
+          winnerRevision<priorRevision||
+          typeof payload.campaign.runToken!=="string"||
+          !payload.campaign.runToken||
+          typeof payload.campaign.clock?.start!=="number"||
+          typeof payload.campaign.clock.end!=="number"||
+          (
+            winner.campaignId===prior.campaignId&&
+            winner.day<prior.day
+          )
+        )throw new Error(
+          "The authoritative campaign returned after the conflict was invalid.",
+        );
+        campaignPersistenceEpoch.current+=1;
+        campaignRevisionRef.current=winnerRevision;
+        campaignSyncSuppressed.current=false;
+        lastPersistedCampaignSeal.current=campaignPayloadSeal(payload.campaign);
+        if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
+        liveStateRef.current=winner;
+        setS(winner);
+        liveRunTokenRef.current=payload.campaign.runToken;
+        setRunToken(payload.campaign.runToken);
+        activeArchiveKey.current=payload.campaign.runToken;
+        liveMultiplayerRunRef.current=!!payload.campaign.multiplayerRun;
+        setMultiplayerRun(!!payload.campaign.multiplayerRun);
+        liveClockRef.current={
+          start:payload.campaign.clock.start,
+          end:payload.campaign.clock.end,
+        };
+        setClock(liveClockRef.current);
+        if(payload.turn){
+          setTurnAccess(payload.turn);
+          setAccountTimeZone(payload.turn.timeZone);
+        }
+        try{
+          window.localStorage.setItem(
+            SAVE_KEY,
+            JSON.stringify({
+              ...payload.campaign,
+              accountKey:campaignAccountKey.current||undefined,
+              savedAt:Date.now(),
+            }),
+          );
+        }catch{}
+        throw new Error(
+          "Another session completed or changed the campaign first. Its authoritative state is now loaded.",
+        );
+      }
+      if(payload.campaign===null){
+        campaignPersistenceEpoch.current+=1;
+        campaignRevisionRef.current=0;
+        campaignSyncSuppressed.current=true;
+        lastPersistedCampaignSeal.current="";
+        if(payload.turn){
+          setTurnAccess(payload.turn);
+          setAccountTimeZone(payload.turn.timeZone);
+        }
+        try{window.localStorage.removeItem(SAVE_KEY);}catch{}
+        throw new Error(
+          "The account campaign was removed by another session.",
+        );
+      }
+    }
+    if(!response.ok)
+      throw new Error(payload.error??"Campaign turnover was not redeemed.");
+    const accepted=payload.campaign;
+    const next=restoreCampaignState(accepted?.state);
+    if(
+      !accepted||
+      !next||
+      payload.allowed!==true||
+      payload.nexus?.response?.status!=="EXECUTED"||
+      next.campaignId!==prior.campaignId||
+      next.day!==prior.day+1||
+      next.resolutionHistory.length!==prior.resolutionHistory.length+1||
+      campaignRevision(accepted.revision)!==priorRevision+1||
+      typeof accepted.runToken!=="string"||
+      !accepted.runToken||
+      typeof accepted.clock?.start!=="number"||
+      typeof accepted.clock.end!=="number"||
+      !payload.turn||
+      typeof payload.turn.timeZone!=="string"
+    )throw new Error(
+      "Campaign turnover returned an invalid authoritative transition.",
+    );
+    campaignPersistenceEpoch.current+=1;
+    campaignRevisionRef.current=campaignRevision(accepted.revision);
+    campaignSyncSuppressed.current=false;
+    lastPersistedCampaignSeal.current=campaignPayloadSeal(accepted);
+    if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
+    liveStateRef.current=next;
+    setS(next);
+    liveRunTokenRef.current=accepted.runToken;
+    setRunToken(accepted.runToken);
+    activeArchiveKey.current=accepted.runToken;
+    liveMultiplayerRunRef.current=!!accepted.multiplayerRun;
+    setMultiplayerRun(!!accepted.multiplayerRun);
+    liveClockRef.current={
+      start:accepted.clock.start,
+      end:accepted.clock.end,
+    };
+    setClock(liveClockRef.current);
+    setTurnAccess(payload.turn);
+    setAccountTimeZone(payload.turn.timeZone);
+    const now=Date.now();
+    setNow(now);
+    setLedgerNow(now);
+    try{
+      window.localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify({
+          ...accepted,
+          accountKey:campaignAccountKey.current||undefined,
+          savedAt:now,
+        }),
+      );
+      window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
+    }catch{}
+    return{
+      state:next,
+      text:payload.nexus?.text??"",
+      turn:payload.turn,
+    };
+  },[]);
   const advance = useCallback(async (
     source: "manual" | "automatic" = "manual",
   ) => {
     if(campaignMutationsHeld.current)return false;
-    const preview=executeAvaAction(
-      liveStateRef.current,
-      {kind:"resolve-day"},
-      fraction,
-    );
-    if(!preview.executed){
-      setSystemNotice(`DAY NOT RESOLVED // ${preview.rejection}`);
-      return false;
-    }
     const claim = await claimTurn();
     if (!claim?.allowed) {
       const zone = claim?.timeZone ?? accountTimeZone;
@@ -4970,50 +5397,51 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       return false;
     }
     try{
-      const current=liveStateRef.current;
-      const result=executeAvaAction(current,{kind:"resolve-day"},fraction);
-      if(
-        !result.executed||
-        result.state.day!==current.day+1||
-        result.state.resolutionHistory.length!==
-          current.resolutionHistory.length+1
-      ){
+      const redeemed=await redeemTurnGrant(claim.resolutionGrant!);
+      const next=redeemed.state;
+      if(!next){
         setSystemNotice(
-          `DAY NOT RESOLVED // ${result.rejection??"THE RESTAGED RESOLUTION DID NOT PRODUCE EXACTLY ONE CAMPAIGN DAY"}`,
+          "DAY NOT RESOLVED // THE SERVER DID NOT RETURN A CANONICAL CAMPAIGN DAY",
         );
         return false;
       }
-      const next = result.state;
-      liveStateRef.current=next;
-      setS(next);
-      setAvaSession((currentSession) => ({
-        ...initialAvaTerminalSession(),
-        shell: currentSession.shell,
-        discourse: currentSession.discourse,
-        voiceCursor: currentSession.voiceCursor,
-      }));
+      const nextAvaSession:AvaNexusSession={
+        ...liveAvaSessionRef.current,
+        consumedResolutionGrantIds:[],
+        terminal:{
+          ...initialAvaTerminalSession(),
+          shell:liveAvaSessionRef.current.terminal.shell,
+          discourse:liveAvaSessionRef.current.terminal.discourse,
+          voiceCursor:liveAvaSessionRef.current.terminal.voiceCursor,
+        },
+      };
+      liveAvaSessionRef.current=nextAvaSession;
+      setAvaSession(nextAvaSession);
       setPendingManeuver(null);
       setDayModal(false);
       setTurnBlackout(true);
       window.setTimeout(() => setTurnBlackout(false), 240);
-      const n = Date.now();
-      setClock(accountClockAfterClaim(claim.timeZone,accountTimeZone,n));
-      setNow(n);
-      setLedgerNow(n);
       setOpportunityInterruptAcknowledged(false);
       setAlertMenuOpen(false);
       setSystemNotice(
-        claim.godMode
+        redeemed.turn.godMode
           ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
           : source === "automatic"
             ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
             : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
       );
       return true;
+    }catch(error){
+      setSystemNotice(
+        error instanceof Error
+          ?`DAY NOT RESOLVED // ${error.message.toUpperCase()}`
+          :"DAY NOT RESOLVED // PERSISTED TURNOVER REDEMPTION FAILED",
+      );
+      return false;
     }finally{
       releaseTurnClaim();
     }
-  }, [accountTimeZone, claimTurn, fraction, releaseTurnClaim]);
+  }, [accountTimeZone, claimTurn, fraction, redeemTurnGrant, releaseTurnClaim]);
   useEffect(() => {
     if (!hydrated || !turnAccess || overdueTurnsApplied.current) return;
     overdueTurnsApplied.current = true;
@@ -5048,7 +5476,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   );
   const selectedAvaEntity = useMemo(() => {
     const action =
-      avaSession.plan.at(-1) ??
+      avaSession.terminal.plan.at(-1) ??
       (pendingManeuver
         ? { kind: "maneuver" as const, maneuverId: pendingManeuver.id }
         : null);
@@ -5058,7 +5486,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             entity.action && actionKey(entity.action) === actionKey(action),
         ) ?? null)
       : null;
-  }, [avaSession.plan, pendingManeuver, avaEntities]);
+  }, [avaSession.terminal.plan, pendingManeuver, avaEntities]);
   const submitAvaCommand = async (command: string) => {
     const raw = command.trim();
     if (!raw) return;
@@ -5091,8 +5519,32 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         ]);
         return;
       }
-      const next = forceOpportunityForCurrentDay(s);
+      if(rejectMutationDuringTurnClaim())return;
+      const current=liveStateRef.current;
+      const forced=runAvaNexusRequest(
+        {
+          kind:"internal",
+          origin:"internal",
+          operation:"force-opportunity",
+          expectedStateSeal:avaRequestStateSeal(current),
+        },
+        {
+          playerId:"browser-internal",
+          campaignId:current.campaignId,
+          campaignRevision:avaNexusStateRevision(current),
+          surface:"internal",
+          authority:"command",
+          nowMs:Date.now(),
+        },
+        current,
+        liveAvaSessionRef.current,
+        fraction,
+      );
+      liveAvaSessionRef.current=forced.session;
+      setAvaSession(forced.session);
+      const next=forced.state;
       const packet = opportunityStatusForFraction(next, fraction).packet;
+      liveStateRef.current=next;
       setS(next);
       setOpportunityInterruptAcknowledged(false);
       setMessages((current) => [
@@ -5194,47 +5646,52 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     }
     const currentModule =
       interfaceMode === "briefing" ? briefingModule : gameModuleForPage(page);
-    const discourse = {
-      ...avaSession.discourse,
-      currentScreen: currentModule,
-      selectedObject: selectedAvaEntity?.id,
-      openApplet: wikiApplet ?? undefined,
-    };
-    const result = compileAvaCommand(raw, {
+    const currentNexusSession:AvaNexusSession={
+      ...liveAvaSessionRef.current,
       currentModule,
-      entities: avaEntities,
-      selected: selectedAvaEntity,
-      discourse,
-      openApplet: wikiApplet,
-      shellFileReferences: avaShellFileReferences(
-        s,
-        avaSession.shell,
-        fraction,
-      ),
-    });
-    if (result.status === "clarify") {
-      recordAvaTelemetry(result, gameModuleForPage(page), "clarification");
-      const candidates = result.candidates?.length
-        ? `\n\nVALID INTERPRETATIONS\n${result.candidates.map((candidate) => `[${candidate.handle ?? candidate.id}] ${candidate.label}`).join("\n")}`
-        : "";
-      setMessages((m) => [
-        ...m,
+      terminal:{
+        ...liveAvaSessionRef.current.terminal,
+        discourse:{
+          ...liveAvaSessionRef.current.terminal.discourse,
+          currentScreen:currentModule,
+          selectedObject:selectedAvaEntity?.id,
+          openApplet:wikiApplet??undefined,
+        },
+      },
+    };
+    liveAvaSessionRef.current=currentNexusSession;
+    const confirmationInput=isAvaConfirmationInput(raw);
+    const pendingConfirmation=currentNexusSession.terminal.confirmation;
+    const confirmingDayResolution =
+      confirmationInput &&
+      !!pendingConfirmation?.plan.actions.some(
+        (action) => action.kind === "resolve-day",
+      );
+    if(
+      confirmingDayResolution&&
+      pendingConfirmation?.stateRevision!==
+        avaRequestStateSeal(liveStateRef.current)
+    ){
+      const clearedSession:AvaNexusSession={
+        ...currentNexusSession,
+        terminal:{
+          ...currentNexusSession.terminal,
+          confirmation:null,
+          plan:[],
+        },
+      };
+      liveAvaSessionRef.current=clearedSession;
+      setAvaSession(clearedSession);
+      setMessages((current)=>[
+        ...current,
         {
-          who: "AVA",
-          text: voiceAvaResponse(
-            s,
-            `COMMAND NOT UNDERSTOOD\n${result.prompt}${candidates}\n\nGRAMMAR\nhelp\nmissions`,
-            { mode: "rejection", label: "CLARIFICATION" },
-          ),
+          who:"AVA",
+          text:
+            "CONFIRMATION EXPIRED\nThe command position changed after this day resolution was staged. Stage it again against the current campaign state.",
         },
       ]);
       return;
     }
-    const confirmingDayResolution =
-      result.instruction.kind === "CONFIRM" &&
-      !!avaSession.confirmation?.plan.actions.some(
-        (action) => action.kind === "resolve-day",
-      );
     if (confirmingDayResolution) {
       const claim = await claimTurn();
       if (!claim?.allowed) {
@@ -5248,12 +5705,57 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         ]);
         return;
       }
+      try{
+        const redeemed=await redeemTurnGrant(claim.resolutionGrant!);
+        const nextAvaSession:AvaNexusSession={
+          ...currentNexusSession,
+          consumedResolutionGrantIds:[],
+          terminal:{
+            ...initialAvaTerminalSession(),
+            shell:currentNexusSession.terminal.shell,
+            discourse:currentNexusSession.terminal.discourse,
+            voiceCursor:currentNexusSession.terminal.voiceCursor,
+          },
+        };
+        liveAvaSessionRef.current=nextAvaSession;
+        setAvaSession(nextAvaSession);
+        announceOpenDay(redeemed.state);
+        setPendingManeuver(null);
+        setDayModal(false);
+        setTurnBlackout(true);
+        window.setTimeout(()=>setTurnBlackout(false),240);
+        setOpportunityInterruptAcknowledged(false);
+        setAlertMenuOpen(false);
+        setMessages((current)=>[
+          ...current,
+          {
+            who:"AVA",
+            text:redeemed.text||
+              `DAY RESOLVED\nDay ${redeemed.state.day} is open.`,
+          },
+        ]);
+      }catch(error){
+        setMessages((current)=>[
+          ...current,
+          {
+            who:"AVA",
+            text:
+              `DAY NOT RESOLVED\n${
+                error instanceof Error
+                  ?error.message
+                  :"Persisted turnover redemption failed."
+              }`,
+          },
+        ]);
+      }finally{
+        releaseTurnClaim();
+      }
+      return;
     }
     let darkNetContext: AvaDarkNetContext = {};
     if (
-      result.instruction.kind === "SHELL" &&
-      (result.instruction.shell.command === "DARK_NET" ||
-        avaSession.shell.darkNetUnlocked)
+      currentNexusSession.terminal.shell.darkNetUnlocked||
+      /^(?:darknet|dark net)(?:\s|$)/i.test(raw)
     ) {
       let localIds: string[] = [];
       try {
@@ -5295,26 +5797,36 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       } catch {}
       darkNetContext = { telemetry, seenAphorismIds };
     }
-    const terminal = runAvaInstruction(
-      s,
-      { ...avaSession, discourse },
-      result.instruction,
+    const stateAtExecution=liveStateRef.current;
+    const nexusContext={
+      playerId:"web",
+      campaignId:stateAtExecution.campaignId,
+      campaignRevision:avaNexusStateRevision(stateAtExecution),
+      surface:"web" as const,
+      authority:"command" as const,
+      nowMs:Date.now(),
+    };
+    const terminal=runAvaNexusLine(
+      raw,
+      nexusContext,
+      stateAtExecution,
+      currentNexusSession,
       fraction,
-      result.semantic,
-      result.trace,
       darkNetContext,
     );
+    const presentation=terminal.envelope.presentation;
     const terminalText =
-      terminal.report && !avaArchiveWritable
+      presentation.report && !avaArchiveWritable
         ? `${terminal.text}\n\nSESSION-ONLY FILE // DOWNLOAD BEFORE RELOAD`
         : terminal.text;
+    liveAvaSessionRef.current=terminal.session;
     setAvaSession(terminal.session);
-    if (terminal.aphorismViewIds?.length) {
+    if (presentation.aphorismViewIds?.length) {
       const seen = new Set(darkNetContext.seenAphorismIds ?? []);
-      const newlyViewed = terminal.aphorismViewIds.filter(
+      const newlyViewed = presentation.aphorismViewIds.filter(
         (itemId) => !seen.has(itemId),
       );
-      terminal.aphorismViewIds.forEach((itemId) => seen.add(itemId));
+      presentation.aphorismViewIds.forEach((itemId) => seen.add(itemId));
       try {
         window.localStorage.setItem(
           APHORISM_LEDGER_KEY,
@@ -5332,26 +5844,28 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           keepalive: true,
         }).catch(() => undefined);
     }
-    if (terminal.download) {
-      const bytes = terminal.download.bytes;
+    if (presentation.download) {
+      const bytes = presentation.download.bytes;
       const data = bytes.buffer.slice(
         bytes.byteOffset,
         bytes.byteOffset + bytes.byteLength,
       ) as ArrayBuffer;
       const url = window.URL.createObjectURL(
-        new Blob([data], { type: terminal.download.mime }),
+        new Blob([data], { type: presentation.download.mime }),
       );
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = terminal.download.filename;
+      anchor.download = presentation.download.filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       window.URL.revokeObjectURL(url);
     }
-    if (terminal.navigate) {
+    if (presentation.navigate) {
       const target =
-        terminal.navigate === "dashboard" ? "campaign" : terminal.navigate;
+        presentation.navigate === "dashboard"
+          ? "campaign"
+          : presentation.navigate;
       if (interfaceMode === "briefing")
         window.dispatchEvent(
           new CustomEvent("briefing-open-surface", {
@@ -5360,11 +5874,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         );
       else setPage(target as Module);
     }
-    if (terminal.state !== s) {
+    if (terminal.state !== stateAtExecution) {
+      liveStateRef.current=terminal.state;
       setS(terminal.state);
       announceOpenDay(terminal.state);
       setPendingManeuver(null);
-      if (terminal.state.day !== s.day) {
+      if (terminal.state.day !== stateAtExecution.day) {
         setTurnBlackout(true);
         window.setTimeout(() => setTurnBlackout(false), 240);
         const n = Date.now();
@@ -5373,19 +5888,25 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         setLedgerNow(n);
       }
     }
-    recordAvaTelemetry(
-      result,
-      gameModuleForPage(page),
-      terminal.rejection ? "rejected" : "executed",
-    );
+    if(terminal.compile)
+      recordAvaTelemetry(
+        terminal.compile,
+        gameModuleForPage(page),
+        terminal.response.status==="AMBIGUOUS"
+          ?"clarification"
+          :terminal.response.status==="REJECTED"||
+              terminal.response.status==="FORBIDDEN"
+            ?"rejected"
+            :"executed",
+      );
     setMessages((m) => [
-      ...(terminal.clearScreen ? [] : m),
+      ...(presentation.clearScreen ? [] : m),
       ...(terminalText
         ? [
             {
               who: "AVA" as const,
               text: terminalText,
-              kind: terminal.outputKind ?? "ava",
+              kind: presentation.outputKind ?? "ava",
             },
           ]
         : []),
@@ -5417,7 +5938,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     const completion = completeAvaInput(
       input,
       s,
-      avaSession.shell,
+      avaSession.terminal.shell,
       fraction,
     );
     if (!completion.candidates.length) return;
@@ -5824,10 +6345,10 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             <span>DAY {s.day}</span>
             <span>{s.actions} ORDERS</span>
             <span>{clockText(remaining)}</span>
-            <span>{avaSession.plan.length} STAGED</span>
+            <span>{avaSession.terminal.plan.length} STAGED</span>
             <span>
-              {avaSession.confirmation
-                ? `CONFIRM ${avaSession.confirmation.id}`
+              {avaSession.terminal.confirmation
+                ? `CONFIRM ${avaSession.terminal.confirmation.id}`
                 : "NO ORDER AWAITING CONFIRMATION"}
             </span>
           </div>
@@ -5855,7 +6376,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           <form onSubmit={run} data-no-telemetry>
             <label htmlFor="ava-command-input">
               commander@delenda:
-              {avaSession.shell.cwd.replace("/home/commander", "~") || "/"}$
+              {avaSession.terminal.shell.cwd.replace("/home/commander", "~") || "/"}$
             </label>
             <div>
               <span>&gt;</span>

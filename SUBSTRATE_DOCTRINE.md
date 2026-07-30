@@ -47,7 +47,7 @@ Use an LLM only when its pattern-recognition or pattern-completion advantage exc
 
 ## 5. Ava Classic is a first-class intelligence
 
-Ava Classic, the non-LLM agent, is not a fallback, demo mode, or degraded imitation of a chatbot. She is the reference implementation of Delenda’s semantic substrate and must consume the maximum useful portion of it without probabilistic inference.
+Ava Classic, the non-LLM agent, is not a fallback, demo mode, or degraded imitation of a chatbot. She is the reference implementation of Delenda’s semantic substrate and must consume the maximum useful portion of it without probabilistic inference. Her production runtime is the Nexus; `app/substrate/ava-classic.ts` is only a read-only differential reference interpreter.
 
 Ava Classic should appear intelligent because she has:
 

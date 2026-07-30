@@ -506,11 +506,12 @@ export const evaluateChoices = (
   choiceIds: string[],
   posture?: StrategicPosture,
 ) => {
-  const activePosture =
-    posture ??
-    validateStrategicPosture(DEFAULT_STRATEGIC_POSTURE).ok
-      ? DEFAULT_STRATEGIC_POSTURE
-      : DEFAULT_STRATEGIC_POSTURE;
+  const validated = validateStrategicPosture(
+    posture ?? DEFAULT_STRATEGIC_POSTURE,
+  );
+  const activePosture = validated.ok
+    ? validated.posture
+    : DEFAULT_STRATEGIC_POSTURE;
   const evaluations = evaluateDirectiveChoices(state, choiceIds, activePosture);
   return ok(
     state,
@@ -692,4 +693,3 @@ export const dispatchCanonicalCommand = (
 };
 
 export const listDirectiveFamilyCatalog = () => FAMILIES;
-

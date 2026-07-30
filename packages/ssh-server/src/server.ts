@@ -1,5 +1,6 @@
 import type { GameState } from "../../../app/game";
 import type { PlayerContext } from "../../../app/substrate/contracts";
+import { isConsequentialCommandAttempt } from "../../../app/substrate/command-parser";
 import {
   bannerFor,
   createTerminalSession,
@@ -155,22 +156,30 @@ export class DelendaSshServer {
       campaignId: session.state.campaignId,
       campaignRevision: `${session.state.day}:${session.state.actions}`,
       surface: "ssh",
-      authority: "command",
+      authority: this.controls.canMutate() ? "command" : "observer",
       nowMs: this.now(),
     };
 
-    const looksConsequential = /^(prepare|confirm|cancel|execute|issue|choose)\b/i.test(
-      line.trim(),
-    );
-    if (looksConsequential && !this.controls.canMutate()) {
+    const conservativeMutationAttempt =
+      !this.controls.canMutate() && isConsequentialCommandAttempt(line);
+    const result = runTerminalLine(line, ctx, session.state, session.terminal);
+    if (
+      conservativeMutationAttempt &&
+      result.response.status === "AMBIGUOUS"
+    )
       return {
         ok: true as const,
-        text: "STATUS=FORBIDDEN\n\nGlobal consequential commands disabled.",
-        status: "FORBIDDEN",
+        text:
+          "SSH campaign mutations are disabled by the command-channel control plane.",
+        status: "FORBIDDEN" as const,
+        response: {
+          status: "FORBIDDEN" as const,
+          error: "SSH_MUTATIONS_DISABLED",
+          clarification:
+            "Use this SSH session for read-only inspection until command authority is restored.",
+        },
+        state: session.state,
       };
-    }
-
-    const result = runTerminalLine(line, ctx, session.state, session.terminal);
     session.state = result.state;
     session.terminal = result.session;
     session.lastActiveAt = this.now();

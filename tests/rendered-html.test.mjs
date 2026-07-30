@@ -233,8 +233,8 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.match(page,/useState<\"command\" \| \"briefing\">\(\s*\"briefing\"/);
   assert.match(page,/<WarTicker \/>/);
   assert.doesNotMatch(page,/daily-aphorism-ribbon/);
-  assert.match(page,/executeAvaPlan/);
-  assert.match(page,/buildAvaPlan/);
+  assert.match(page,/executeAvaPlanRequest/);
+  assert.match(page,/runAvaNexusRequest/);
   assert.match(page,/className="command-ux-toggle"/);
   assert.match(page,/>[\s\n]*SWITCH UX[\s\n]*<\/button>/);
   assert.match(briefing,/className="briefing-ux-toggle"/);
@@ -311,7 +311,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
-  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration]=await Promise.all([
+  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration,resolutionMigration]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
@@ -319,23 +319,29 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     readFile(new URL("../db/accounts.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../drizzle/0012_simple_hercules.sql",import.meta.url),"utf8"),
+    readFile(new URL("../drizzle/0014_campaign_resolution_grants.sql",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireAuthenticatedUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
   assert.match(turnRoute,/claimDailyResolution/);
   assert.match(turnRoute,/campaignId/);
   assert.match(turnRoute,/campaignDay/);
+  assert.match(turnRoute,/redeemDailyResolution/);
+  assert.match(turnRoute,/activeCampaignFor\(user\)/);
+  assert.match(turnRoute,/accountTurnSnapshot\(user\)/);
   assert.match(turnRoute,/setGodMode/);
   assert.match(schema,/nextTurnAt:integer\("next_turn_at"\)/);
   assert.match(turnStore,/accountTurnWindow/);
-  assert.match(turnStore,/lte\(accountTurnState\.nextTurnAt, now\)/);
+  assert.match(turnStore,/lte\(accountTurnState\.nextTurnAt,\s*now\)/);
   assert.match(turnStore,/isNull\(accountTurnState\.nextTurnAt\)/);
-  assert.match(turnStore,/nextTurnAt:\s*nextBoundary/);
-  assert.match(turnStore,/resolutionGrant:\s*grantFor/);
-  assert.match(turnStore,/grantId:\s*crypto\.randomUUID\(\)/);
+  assert.match(turnStore,/eq\(accountTurnState\.nextTurnAt,nextBoundary\)/);
+  assert.match(turnStore,/id:crypto\.randomUUID\(\)/);
+  assert.match(turnStore,/lastResolutionGrantMarker:executionKey/);
+  assert.match(turnStore,/resolutionAuthority:"persisted-redemption"/);
   assert.match(page,/campaignMutationsHeld/);
   assert.match(page,/liveStateRef\.current/);
-  assert.match(page,/THE RESTAGED RESOLUTION DID NOT PRODUCE EXACTLY ONE CAMPAIGN DAY/);
+  assert.match(page,/await persistCampaignSnapshotNow\(\)/);
+  assert.match(page,/await redeemTurnGrant\(claim\.resolutionGrant!\)/);
   assert.match(accountStore,/materializeLegacyTurnGate/);
   assert.match(accountStore,/legacyTurnGateBeforeTimeZoneChange/);
   assert.match(accountStore,/legacyTurnGateForPendingTimeZone/);
@@ -348,6 +354,11 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     migration.trim(),
     "ALTER TABLE `account_turn_state` ADD `next_turn_at` integer;",
   );
+  assert.match(resolutionMigration,/CREATE TABLE `campaign_resolution_grants`/);
+  assert.match(
+    resolutionMigration,
+    /ALTER TABLE `active_campaigns` ADD `last_resolution_grant_marker` text/,
+  );
   assert.match(page,/godModeCommand === "enable godmode"/);
   assert.match(page,/godModeCommand === "disable godmode"/);
   assert.match(page,/GODMODE ENABLED\\nActual-time daily turnover is disabled/);
@@ -357,7 +368,7 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     page.indexOf('godModeCommand === "enable godmode"'),
   );
   assert.match(randomEventHandler,/!turnAccess\?\.godMode/);
-  assert.match(randomEventHandler,/forceOpportunityForCurrentDay\(s\)/);
+  assert.match(randomEventHandler,/operation:"force-opportunity"/);
   assert.match(randomEventHandler,/opportunityStatusForFraction\(next, fraction\)\.packet/);
   assert.match(randomEventHandler,/setOpportunityInterruptAcknowledged\(false\)/);
   assert.match(randomEventHandler,/RANDOM EVENT FORCED/);
@@ -554,7 +565,7 @@ test("the command storyboard survives while the standalone Stats surface stays d
   assert.match(playerModules,/id:\s*"storyboard",\s*label:\s*"Dashboard",\s*n:\s*"00"/);
   assert.match(page,/useState<Page>\("campaign"\)/);
   assert.match(page,/const priorTelemetryModule = useRef<Page>\("campaign"\)/);
-  assert.match(page,/terminal\.navigate === "dashboard" \? "campaign"/);
+  assert.match(page,/presentation\.navigate === "dashboard"/);
   assert.match(surfaceRouter,/target === "dashboard"\s*\?\s*"brief"/);
   assert.doesNotMatch(surfaceRouter,/"state",/);
   assert.doesNotMatch(briefing,/function StateSurface\s*\(/);
@@ -769,7 +780,8 @@ test("registration owns active campaigns and the telemetry console is server-aut
   assert.match(schema,/ownerEmail:text\("owner_email"\)\.primaryKey\(\)/);
   assert.match(campaignRoute,/if\(!user\).*Sign in to load your campaign/s);
   assert.match(campaignRoute,/saveActiveCampaign\(user/);
-  assert.match(campaignRoute,/CAMPAIGN_REVISION_CONFLICT/);
+  assert.match(campaignRoute,/error\.code/);
+  assert.match(campaignRoute,/ActiveCampaignConflictError/);
   assert.match(campaignRoute,/status:409/);
   assert.match(campaignStore,/ownerEmail=await ensureAccount\(user\)/);
   assert.match(campaignStore,/expectedRevision/);

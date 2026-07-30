@@ -5,12 +5,12 @@ import type {
 } from "../../../app/substrate/contracts";
 import type { ParserDiscourse } from "../../../app/substrate/command-parser";
 import {
-  createAvaKernelSession,
-  runAvaKernelLine,
-  type AvaKernelSession,
-} from "../../../app/ava/kernel";
+  createAvaNexusSession,
+  runAvaNexusLine,
+  type AvaNexusSession,
+} from "../../../app/ava/nexus";
 
-export type TerminalSessionState = AvaKernelSession & {
+export type TerminalSessionState = AvaNexusSession & {
   width: number;
   colorDepth: number;
   /** Compatibility projection for exact-command adapters and parity fixtures. */
@@ -21,7 +21,7 @@ export const createTerminalSession = (
   interactive = true,
   width = 80,
 ): TerminalSessionState => ({
-  ...createAvaKernelSession(interactive),
+  ...createAvaNexusSession(interactive),
   width,
   colorDepth: 0,
   discourse: {},
@@ -39,7 +39,7 @@ export const runTerminalLine = (
   text: string;
 } => {
   const canonicalLine = line.trim().toLowerCase() === "brief" ? "daily brief" : line;
-  const result = runAvaKernelLine(canonicalLine, ctx, state, session);
+  const result = runAvaNexusLine(canonicalLine, ctx, state, session);
   return {
     state: result.state,
     session: {
@@ -56,7 +56,7 @@ export const runTerminalLine = (
 export const bannerFor = (state: GameState) =>
   [
     "DELENDA QUEST",
-    "AVA COMMAND CHANNEL / OG KERNEL",
+    "AVA COMMAND CHANNEL / NEXUS",
     "",
     `DAY ${state.day} · ${state.campaignId}`,
     `ORDERS ${state.actions}/3`,

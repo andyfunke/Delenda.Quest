@@ -16,7 +16,9 @@ Surface-neutral services live in `app/substrate/services.ts`:
 - `prepareOrder`, `confirmOrder`, `cancelPreparedOrder`
 - `dispatchCanonicalCommand`
 
-Web, Ava Classic, terminal-core, and future MCP tools call these services.
+The Ava Nexus calls these services after typed capability and authority
+validation. Surfaces may call read-only visibility helpers directly, but all
+agent semantics and mutations enter the Nexus.
 
 ## Semantic contracts
 
@@ -35,16 +37,19 @@ No Zod dependency is present; validation is explicit TypeScript validators.
 
 | Adapter | Path | May do | Must not do |
 |---|---|---|---|
-| Web | `GameClient.tsx`, `BriefingInterface.tsx` | Render docket facts, call services/`commit` via existing Ava runtime | Filter full catalogs as authority, scrape HTML for other clients |
-| Ava Classic | `app/substrate/ava-classic.ts` + existing `app/ava/*` | Compile language to plans/commands | Own mutations or invent mechanics |
-| Terminal core | `packages/terminal-core` | Parse Delenda commands, render `SemanticResponse` | Shell out, rank choices, mutate DB |
-| SSH server | `packages/ssh-server` | Authenticate, session limits, call terminal-core | Host shell, SCP/SFTP, forwarding |
-| MCP seam | `app/substrate/mcp-seam.ts` | Map future tools 1:1 to services | Import web/SSH modules |
+| Web | `GameClient.tsx`, `BriefingInterface.tsx` | Submit text or typed IR to the Nexus; render the canonical response | Execute actions directly, filter full catalogs as authority |
+| Ava Nexus | `app/ava/nexus.ts` | Compile, validate, dispatch, authorize, and return one response envelope | Invent mechanics or bypass prepared effects |
+| Ava Classic differential reference | `app/substrate/ava-classic.ts` | Independently realize read-only semantic plans for differential tests | Dispatch mutations or serve as a production adapter |
+| Terminal core | `packages/terminal-core` | Submit text to the Nexus and render its canonical response | Shell out, rank choices, mutate DB |
+| SSH server | `packages/ssh-server`, `packages/ssh-gateway` | Authenticate, enforce session limits, call the Nexus | Host shell, SCP/SFTP, forwarding |
+| MCP seam | `app/substrate/mcp-seam.ts` | Map future tools 1:1 to Nexus application services | Import web/SSH modules or create a second runtime |
 
 ## Persistence records
 
 - `GameState.dailyDockets` — presented daily dockets (stable across refresh/orders)
 - `GameState.preparedOrders` — prepare/confirm tokens
+- `GameState.avaExecutions` — durable idempotency receipts for typed effects
+- `campaign_resolution_grants` — private, one-use resolution authority
 - `ssh_credentials`, `ssh_session_audits` — D1 tables for SSH key material and audits
 
 ## Versioning

@@ -9,11 +9,16 @@ import {
   mergePosture,
 } from "./posture";
 import {
-  dispatchCanonicalCommand,
   evaluateChoices,
   getVisibleDocket,
 } from "./services";
 import { evaluateDirectiveChoices } from "./choice-evaluation";
+
+/**
+ * Differential reference interpreter only. Production adapters must enter
+ * app/ava/nexus.ts; this module deliberately has no mutation dispatch.
+ */
+export const AVA_CLASSIC_REFERENCE_ONLY = true;
 
 export type DiscourseCandidate = {
   choiceId: string;
@@ -484,42 +489,26 @@ export const runAvaClassic = (
       break;
     }
     case "prepare_order": {
-      const parsed = parseDelendaCommand(`prepare ${plan.choiceId}`, discourseToParser(nextDiscourse));
-      const dispatched = parsed.ok
-        ? dispatchCanonicalCommand(ctx, nextState, parsed.command)
-        : null;
-      if (!dispatched) {
-        response = {
-          status: "REJECTED",
-          fact: null,
-          rendering: { compact: "REJECTED", brief: "Could not prepare." },
-          campaignRevision: revision,
-        };
-        realization = {
-          speechAct: "refuse",
-          certainty: "fact",
-          register: "ava_classic",
-          length: "compact",
-          clauses: [{ kind: "recovery", commandExample: "prepare <choice-id>" }],
-        };
-        break;
-      }
-      nextState = dispatched.state;
-      response = dispatched.response;
-      if (response.status === "PREPARED") {
-        const token = (response.fact as { proposalToken?: string })?.proposalToken;
-        nextDiscourse.activeProposalToken = token;
-        nextDiscourse.activeProposalExpiresAt = (
-          response.fact as { expiresAt?: string }
-        )?.expiresAt;
-        nextDiscourse.confirmationPhraseRendered = true;
-      }
+      response = {
+        status: "FORBIDDEN",
+        fact: { choiceId: plan.choiceId, referenceOnly: true },
+        rendering: {
+          compact: "REFERENCE ONLY",
+          brief:
+            "Ava Classic is a read-only reference interpreter. Prepare through the Nexus.",
+        },
+        campaignRevision: revision,
+        recovery: {
+          code: "AVA_CLASSIC_REFERENCE_ONLY",
+          instruction: "Route the typed action through the Ava Nexus.",
+        },
+      };
       realization = {
-        speechAct: "confirm",
+        speechAct: "refuse",
         certainty: "fact",
         register: "ava_classic",
-        length: "brief",
-        clauses: [{ kind: "answer", claimId: "recommend", bindings: { choice: plan.choiceId } }],
+        length: "compact",
+        clauses: [{ kind: "recovery", commandExample: "prepare <choice-id>" }],
       };
       break;
     }
@@ -601,29 +590,22 @@ export const runAvaClassic = (
     }
     default: {
       if (plan.kind === "confirm_order") {
-        // cancel-that mapped incorrectly above uses confirm_order; route to cancel via parser
-        const cancel = parseDelendaCommand(
-          utterance.toLowerCase().includes("cancel")
-            ? `cancel ${plan.proposalToken}`
-            : `confirm ${plan.proposalToken}`,
-          discourseToParser(nextDiscourse),
-        );
-        const dispatched = cancel.ok
-          ? dispatchCanonicalCommand(ctx, nextState, cancel.command)
-          : null;
-        nextState = dispatched?.state ?? nextState;
-        response = dispatched?.response ?? {
-          status: "REJECTED",
-          fact: null,
-          rendering: { compact: "REJECTED", brief: "No active proposal." },
+        response = {
+          status: "FORBIDDEN",
+          fact: { proposalToken: plan.proposalToken, referenceOnly: true },
+          rendering: {
+            compact: "REFERENCE ONLY",
+            brief:
+              "Ava Classic cannot confirm or cancel effects. Use the Nexus.",
+          },
           campaignRevision: revision,
+          recovery: {
+            code: "AVA_CLASSIC_REFERENCE_ONLY",
+            instruction: "Route confirmation through the Ava Nexus.",
+          },
         };
-        if (utterance.toLowerCase().includes("cancel")) {
-          nextDiscourse.activeProposalToken = undefined;
-          nextDiscourse.confirmationPhraseRendered = false;
-        }
         realization = {
-          speechAct: "confirm",
+          speechAct: "refuse",
           certainty: "fact",
           register: "ava_classic",
           length: "compact",
@@ -632,11 +614,7 @@ export const runAvaClassic = (
         break;
       }
       const parsed = parseDelendaCommand(utterance, discourseToParser(nextDiscourse));
-      if (parsed.ok) {
-        const dispatched = dispatchCanonicalCommand(ctx, nextState, parsed.command);
-        nextState = dispatched.state;
-        response = dispatched.response;
-      } else {
+      if (!parsed.ok) {
         response = {
           status: parsed.status,
           fact: null,
@@ -646,6 +624,24 @@ export const runAvaClassic = (
             code: parsed.code,
             instruction: parsed.instruction,
             validExamples: parsed.examples,
+          },
+        };
+      } else {
+        response = {
+          status: "FORBIDDEN",
+          fact: {
+            operation: parsed.command.operation,
+            referenceOnly: true,
+          },
+          rendering: {
+            compact: "REFERENCE ONLY",
+            brief:
+              "That command is outside the read-only reference interpreter. Use the Nexus.",
+          },
+          campaignRevision: revision,
+          recovery: {
+            code: "AVA_CLASSIC_REFERENCE_ONLY",
+            instruction: "Route the command through the Ava Nexus.",
           },
         };
       }

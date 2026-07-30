@@ -99,6 +99,13 @@
       "when": 1785270000000,
       "tag": "0013_substrate_ssh_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1785464400000,
+      "tag": "0014_campaign_resolution_grants",
+      "breakpoints": true
     }
   ]
 }
