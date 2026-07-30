@@ -3,7 +3,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends openssh-server ca-certificates tini \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --create-home --shell /bin/sh play \
- && passwd -l play
+ && passwd -d play
 WORKDIR /app
 COPY ssh /app/ssh
 RUN chmod 0755 /app/ssh/authorized-keys-command /app/ssh/session-entry /app/ssh/entrypoint.sh \
