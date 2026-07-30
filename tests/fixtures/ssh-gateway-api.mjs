@@ -1,6 +1,7 @@
-import http from "node:http";
+import https from "node:https";
+import { readFileSync } from "node:fs";
 
-const port=Number(process.env.PORT??9080);
+const port=Number(process.env.PORT??9443);
 const token=process.env.GATEWAY_TOKEN??"";
 const expectedKey=process.env.PUBLIC_KEY??"";
 const [expectedAlgorithm,expectedKeyData]=expectedKey.trim().split(/\s+/);
@@ -12,12 +13,15 @@ const json=(response,status,payload)=>{
   response.end(body);
 };
 
-const server=http.createServer(async(request,response)=>{
+const server=https.createServer({
+  key:readFileSync(process.env.TLS_KEY),
+  cert:readFileSync(process.env.TLS_CERT),
+},async(request,response)=>{
   if(request.headers.authorization!==`Bearer ${token}`)return json(response,401,{error:"unauthorized"});
   const chunks=[];
   for await(const chunk of request)chunks.push(chunk);
   const body=chunks.length?JSON.parse(Buffer.concat(chunks).toString("utf8")):{};
-  const url=new URL(request.url,"http://gateway.test");
+  const url=new URL(request.url,"https://gateway.test");
 
   if(url.pathname==="/api/ssh/gateway/authorize"&&request.method==="POST"){
     const authorized=body.algorithm===expectedAlgorithm&&body.keyData===expectedKeyData;
