@@ -44,6 +44,9 @@ jobs:
       - name: Bundle the public SSH gateway
         run: npm run build:ssh-gateway
 
+      - name: Build the OpenSSH gateway image
+        run: docker build --file packages/ssh-gateway/Dockerfile --tag delenda-ssh-gateway:test .
+
       - name: Run OG Ava compiler and terminal suites
         run: bash scripts/test-ava.sh
 
