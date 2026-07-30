@@ -35,4 +35,4 @@ TCPKeepAlive yes
 UseDNS no
 PrintMotd no
 PrintLastLog no
-LogLevel DEBUG3
+LogLevel VERBOSE
