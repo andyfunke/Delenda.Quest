@@ -1,11 +1,17 @@
 name: Apply autonomous SSH implementation
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".agent/**"
+      - ".github/workflows/apply-agent-patch.yml"
   push:
     branches:
       - agent/production-ssh-daemon
     paths:
-      - ".agent/production-ssh.patch.gz.b64.*"
+      - ".agent/**"
       - ".github/workflows/apply-agent-patch.yml"
   workflow_dispatch:
 
@@ -14,10 +20,12 @@ permissions:
 
 jobs:
   apply:
+    if: github.head_ref == 'agent/production-ssh-daemon' || github.ref == 'refs/heads/agent/production-ssh-daemon'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: agent/production-ssh-daemon
           fetch-depth: 0
       - name: Materialize implementation
         run: |
