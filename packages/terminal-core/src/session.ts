@@ -34,7 +34,8 @@ export const runTerminalLine = (
   response: SemanticResponse<unknown>;
   text: string;
 } => {
-  const result = runAvaKernelLine(line, ctx, state, session);
+  const canonicalLine = line.trim().toLowerCase() === "brief" ? "daily brief" : line;
+  const result = runAvaKernelLine(canonicalLine, ctx, state, session);
   return {
     state: result.state,
     session: {
