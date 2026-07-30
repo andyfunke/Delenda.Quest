@@ -33,13 +33,14 @@ done
 grep -q '^READY ' "$TMP/api.log"
 
 HOST_KEY_B64="$(base64 -w0 < "$TMP/host")"
+TEST_CA_B64="$(base64 -w0 < "$TMP/tls.crt")"
 docker run -d --rm --name "$CONTAINER" \
   --add-host host.docker.internal:host-gateway \
   -p 127.0.0.1:2222:2222 \
   -e DELENDA_API_BASE=https://host.docker.internal:9443 \
   -e DELENDA_SSH_GATEWAY_TOKEN="$TOKEN" \
   -e DELENDA_SSH_HOST_KEY_B64="$HOST_KEY_B64" \
-  -e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+  -e DELENDA_SSH_TEST_CA_B64="$TEST_CA_B64" \
   "$IMAGE" >/dev/null
 
 ready=0
