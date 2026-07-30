@@ -13,6 +13,7 @@ export type ActiveCampaignSubmission={
 
 const clean=(value:unknown,max:number)=>typeof value==="string"?value.trim().replace(/[^a-zA-Z0-9._:-]+/g,"").slice(0,max):"";
 const finite=(value:unknown)=>Number.isFinite(Number(value))?Math.trunc(Number(value)):0;
+const cleanOwner=(value:unknown)=>typeof value==="string"&&/^[^\s@]+@[^\s@]+$/.test(value)&&value.length<=320?value.toLowerCase():"";
 
 const prepareCampaign=(input:ActiveCampaignSubmission)=>{
   if(!input.state||typeof input.state!=="object"||Array.isArray(input.state))throw new Error("Campaign state is required.");
@@ -39,14 +40,18 @@ const restore=(row:typeof activeCampaigns.$inferSelect)=>{
   }catch{return null}
 };
 
-export async function activeCampaignFor(user:AuthenticatedUser){
-  const db=await getDb(),ownerEmail=await ensureAccount(user);
+export async function activeCampaignForOwner(ownerInput:string){
+  const ownerEmail=cleanOwner(ownerInput);
+  if(!ownerEmail)throw new Error("Campaign owner is invalid.");
+  const db=await getDb();
   const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
   return{accountKey:ownerEmail,campaign:row?restore(row):null};
 }
 
-export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCampaignSubmission){
-  const db=await getDb(),ownerEmail=await ensureAccount(user),campaign=prepareCampaign(input),now=Date.now();
+export async function saveActiveCampaignForOwner(ownerInput:string,input:ActiveCampaignSubmission){
+  const ownerEmail=cleanOwner(ownerInput);
+  if(!ownerEmail)throw new Error("Campaign owner is invalid.");
+  const db=await getDb(),campaign=prepareCampaign(input),now=Date.now();
   const account=(await db.select({accountEnabled:users.accountEnabled}).from(users).where(eq(users.email,ownerEmail)).limit(1))[0];
   if(!account?.accountEnabled)throw new Error("Account campaign services are disabled.");
   await db.insert(activeCampaigns).values({ownerEmail,...campaign,revision:1,createdAt:now,updatedAt:now}).onConflictDoUpdate({
@@ -55,6 +60,14 @@ export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCamp
   });
   const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
   return{accountKey:ownerEmail,campaign:row?restore(row):null};
+}
+
+export async function activeCampaignFor(user:AuthenticatedUser){
+  return activeCampaignForOwner(await ensureAccount(user));
+}
+
+export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCampaignSubmission){
+  return saveActiveCampaignForOwner(await ensureAccount(user),input);
 }
 
 export async function deleteActiveCampaign(user:AuthenticatedUser){
