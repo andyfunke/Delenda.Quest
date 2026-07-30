@@ -1,0 +1,32 @@
+app = "delenda-quest-ssh"
+primary_region = "sea"
+
+[build]
+  dockerfile = "packages/ssh-gateway/Dockerfile"
+
+[env]
+  DELENDA_API_BASE = "https://delenda.quest"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 2222
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 22
+
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 80
+    hard_limit = 160
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
