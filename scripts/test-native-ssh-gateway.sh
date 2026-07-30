@@ -21,6 +21,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
 
 TOKEN="$(printf 'a%.0s' {1..64})"
 PUBLIC_KEY="$(cat "$TMP/client.pub")"
+read -r KEY_ALGORITHM KEY_DATA _ <<<"$PUBLIC_KEY"
 GATEWAY_TOKEN="$TOKEN" PUBLIC_KEY="$PUBLIC_KEY" TLS_KEY="$TMP/tls.key" TLS_CERT="$TMP/tls.crt" PORT=9443 \
   node tests/fixtures/ssh-gateway-api.mjs >"$TMP/api.log" 2>&1 &
 API_PID=$!
@@ -49,6 +50,21 @@ for _ in {1..80}; do
 done
 if [[ "$ready" != "1" ]]; then
   echo 'SSH gateway did not open port 2222.' >&2
+  docker logs "$CONTAINER" >&2 || true
+  cat "$TMP/api.log" >&2 || true
+  exit 1
+fi
+
+set +e
+HELPER_OUTPUT="$(docker exec --user delenda-auth "$CONTAINER" \
+  /usr/local/bin/node /app/packages/ssh-gateway/dist/authorized-keys.mjs \
+  "$KEY_ALGORITHM" "$KEY_DATA" 2>"$TMP/helper.log")"
+HELPER_STATUS=$?
+set -e
+if [[ "$HELPER_STATUS" != "0" || "$HELPER_OUTPUT" != command=* ]]; then
+  echo "AuthorizedKeysCommand helper failed with status $HELPER_STATUS." >&2
+  printf 'OUTPUT: %s\n' "$HELPER_OUTPUT" >&2
+  cat "$TMP/helper.log" >&2 || true
   docker logs "$CONTAINER" >&2 || true
   cat "$TMP/api.log" >&2 || true
   exit 1
