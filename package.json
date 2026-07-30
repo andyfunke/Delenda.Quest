@@ -9,6 +9,7 @@
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
+    "build:ssh-gateway": "mkdir -p .tmp/ssh-gateway && esbuild packages/ssh-gateway/src/authorized-keys.ts --bundle --platform=node --format=esm --target=node22 --outfile=.tmp/ssh-gateway/authorized-keys.mjs && esbuild packages/ssh-gateway/src/session.ts --bundle --platform=node --format=esm --target=node22 --outfile=.tmp/ssh-gateway/session.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "cloudflare:types": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false --include-runtime=false",
     "cloudflare:types:check": "bash scripts/cloudflare-env.sh -- npx wrangler types worker-configuration.d.ts --config wrangler.jsonc --env-file cloudflare/.dev.vars.example --strict-vars=false --include-runtime=false --check",
