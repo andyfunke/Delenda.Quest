@@ -13,7 +13,7 @@ UsePAM no
 
 AllowUsers play
 AuthorizedKeysFile none
-AuthorizedKeysCommand /usr/bin/node /app/packages/ssh-gateway/dist/authorized-keys.mjs %t %k
+AuthorizedKeysCommand /usr/local/bin/node /app/packages/ssh-gateway/dist/authorized-keys.mjs %t %k
 AuthorizedKeysCommandUser delenda-auth
 
 PermitTTY yes
