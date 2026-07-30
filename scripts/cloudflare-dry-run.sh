@@ -9,9 +9,11 @@ if [[ ! -f "${project_root}/dist/server/index.js" ]]; then
   exit 1
 fi
 
+# The Cloudflare Vite plugin writes .wrangler/deploy/config.json during the
+# verified build. Do not force the source wrangler.jsonc here: Wrangler must
+# follow that redirect to validate the generated Worker and virtual modules.
 exec "${script_dir}/cloudflare-env.sh" -- \
   npx wrangler deploy \
-  --config wrangler.jsonc \
   --dry-run \
   --strict \
   --outdir .wrangler/deploy/production
