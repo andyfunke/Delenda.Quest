@@ -1,4 +1,9 @@
-import { activeCampaignForOwner, saveActiveCampaignForOwner, type ActiveCampaignSubmission } from "../../../../../db/campaigns";
+import {
+  ActiveCampaignConflictError,
+  activeCampaignForOwner,
+  saveActiveCampaignForOwner,
+  type ActiveCampaignSubmission,
+} from "../../../../../db/campaigns";
 import { authorizeGatewayRequest, gatewayUnauthorized } from "../auth";
 
 const playerFromUrl=(request:Request)=>new URL(request.url).searchParams.get("player")??"";
@@ -21,6 +26,16 @@ export async function PUT(request:Request){
     if(typeof input.playerId!=="string"||!input.campaign)throw new Error("Campaign gateway request is incomplete.");
     return Response.json(await saveActiveCampaignForOwner(input.playerId,input.campaign),{headers:{"Cache-Control":"no-store"}});
   }catch(error){
+    if(error instanceof ActiveCampaignConflictError)
+      return Response.json(
+        {
+          error:error.message,
+          code:error.code,
+          conflict:error.conflict,
+          campaign:error.campaign,
+        },
+        {status:409,headers:{"Cache-Control":"no-store"}},
+      );
     return Response.json({error:error instanceof Error?error.message:"Campaign could not be saved."},{status:400,headers:{"Cache-Control":"no-store"}});
   }
 }

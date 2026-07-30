@@ -139,6 +139,14 @@ import { avaInterfaceIntent } from "./ava/interface-intent";
 import { warFeedForInvocation } from "./war-feed";
 import { visibleDirectiveView } from "./substrate/visible-directives";
 import { getVisibleChoice } from "./substrate/services";
+import {
+  campaignPayloadSeal,
+  campaignRevision,
+  campaignSaveWasAccepted,
+  selectCampaignForHydration,
+  type StoredCampaignEnvelope,
+} from "./campaign-persistence";
+import type { AvaResolutionGrant } from "./ava/request-ir";
 
 type TurnAccess = {
   godMode: boolean;
@@ -147,6 +155,7 @@ type TurnAccess = {
   canResolve: boolean;
   nextTurnAt: number;
   timeZone: string;
+  resolutionGrant?: AvaResolutionGrant;
 };
 type AccountBootstrap = {
   isAdmin?: boolean;
@@ -3617,15 +3626,6 @@ const APHORISM_LEDGER_KEY = "delenda.quest.aphorism-ledger.v1";
 const APHORISM_ASSIGNMENT_KEY = "delenda.quest.aphorism-assignments.v2";
 const APHORISM_LAST_KEY = "delenda.quest.aphorism-last.v1";
 const DEVICE_KEY = "delenda.quest.device-key.v1";
-type StoredCampaignEnvelope={
-  accountKey?:string;
-  state?:unknown;
-  clock?:{start?:number;end?:number};
-  runToken?:string;
-  multiplayerRun?:boolean;
-  savedAt?:number;
-  updatedAt?:number;
-};
 type CampaignInspectorSelection = {
   kind: "main" | "sub";
   id: string;
@@ -3787,10 +3787,19 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   const priorDay = useRef(s.day);
   const activeArchiveKey = useRef("");
   const campaignAccountKey = useRef("");
+  const campaignRevisionRef = useRef(0);
+  const lastPersistedCampaignSeal = useRef("");
+  const campaignPersistenceEpoch = useRef(0);
+  const campaignSaveChain = useRef<Promise<void>>(Promise.resolve());
+  const campaignSyncSuppressed = useRef(false);
   const remoteSaveFailureNotified = useRef(false);
+  const localSaveFailureNotified = useRef(false);
   const overdueTurnCount = useRef(0);
   const overdueTurnsApplied = useRef(false);
   const turnClaimInFlight = useRef(false);
+  const campaignMutationsHeld = useRef(false);
+  const liveStateRef = useRef(s);
+  liveStateRef.current = s;
   const priorTelemetryModule = useRef<Page>("campaign");
   const [initialModuleEnteredAt] = useState(Date.now);
   const moduleEnteredAt = useRef(initialModuleEnteredAt);
@@ -3860,38 +3869,58 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       setAvaArchiveHydrated(true);
     };
     const hydrateCampaign=async()=>{
-      let record:StoredCampaignEnvelope|null=null;
+      let remoteRecord:StoredCampaignEnvelope|null=null;
       let accountKey="";
+      let remoteAvailable=false;
       try{
         const response=await fetch("/api/campaign",{cache:"no-store"});
         if(!response.ok)throw new Error("Account campaign state is unavailable.");
         const payload=await response.json() as {accountKey?:string;campaign?:StoredCampaignEnvelope|null};
         accountKey=typeof payload.accountKey==="string"?payload.accountKey:"";
         campaignAccountKey.current=accountKey;
-        record=payload.campaign??null;
+        remoteRecord=payload.campaign??null;
+        remoteAvailable=true;
       }catch{
         if(live)setSystemNotice("ACCOUNT CAMPAIGN SYNC UNAVAILABLE // DEVICE SAVE REMAINS AVAILABLE // RELOAD TO RETRY");
       }
+      let localRecord:StoredCampaignEnvelope|null=null;
+      let migrated=false;
       try{
         const raw=window.localStorage.getItem(SAVE_KEY);
-        const local=raw?JSON.parse(raw) as StoredCampaignEnvelope:null;
-        const migrated=window.localStorage.getItem(SERVER_MIGRATION_KEY)==="1";
-        const belongsToAccount=!!local&&(
-          !accountKey||
-          local.accountKey===accountKey||
-          (!local.accountKey&&!migrated)
-        );
-        const localIsNewer=
-          belongsToAccount&&
-          (Number(local?.savedAt)||0)>(Number(record?.updatedAt)||0);
-        if(belongsToAccount&&(!record||localIsNewer)){
-          record=local;
-          if(accountKey&&!local?.accountKey)window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
-        }
+        localRecord=raw?JSON.parse(raw) as StoredCampaignEnvelope:null;
+        migrated=window.localStorage.getItem(SERVER_MIGRATION_KEY)==="1";
       }catch{}
       if(!live)return;
+      const hydration=selectCampaignForHydration({
+        remote:remoteRecord,
+        local:localRecord,
+        accountKey,
+        migrated,
+        remoteAvailable,
+      });
+      const record=hydration.record;
+      campaignRevisionRef.current=hydration.expectedRevision;
+      campaignSyncSuppressed.current=hydration.remoteDeleted;
+      if(
+        hydration.source==="device"&&
+        accountKey&&
+        !record?.accountKey
+      )
+        try{window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");}catch{}
+      if(hydration.discardedDeviceBranch)
+        try{window.localStorage.removeItem(SAVE_KEY);}catch{}
       const restored=restoreCampaignState(record?.state);
-      if(!restored){fresh();setHydrated(true);return}
+      if(!restored){
+        fresh();
+        if(hydration.remoteDeleted)
+          setSystemNotice(
+            "ACCOUNT CAMPAIGN REMOVED IN ANOTHER SESSION // STALE DEVICE STATE WAS RETIRED // START A NEW CAMPAIGN TO CREATE A NEW RECORD",
+          );
+        setHydrated(true);
+        return;
+      }
+      if(hydration.source==="remote"&&record)
+        lastPersistedCampaignSeal.current=campaignPayloadSeal(record);
       const savedEnd=record?.clock?.end;
       if(typeof savedEnd==="number"&&savedEnd<Date.now())
         overdueTurnCount.current=Math.min(
@@ -4200,35 +4229,133 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       runToken,
       multiplayerRun,
       savedAt:Date.now(),
+      revision:campaignRevisionRef.current,
     };
     try {
       window.localStorage.setItem(SAVE_KEY,JSON.stringify(envelope));
       setHasSave(true);
-    } catch {}
-    if(!campaignAccountKey.current)return;
-    const controller=new AbortController();
+      localSaveFailureNotified.current=false;
+    } catch {
+      if(!localSaveFailureNotified.current){
+        localSaveFailureNotified.current=true;
+        setSystemNotice(
+          "DEVICE SAVE FAILED // ACCOUNT SYNC WILL CONTINUE // FREE DEVICE STORAGE AND MAKE ANOTHER CHANGE TO RETRY",
+        );
+      }
+    }
+    if(
+      !campaignAccountKey.current||
+      campaignSyncSuppressed.current||
+      campaignPayloadSeal(envelope)===lastPersistedCampaignSeal.current
+    )return;
+    const epoch=campaignPersistenceEpoch.current;
     const timer=window.setTimeout(()=>{
-      void fetch("/api/campaign",{
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(envelope),
-        signal:controller.signal,
-      }).then(async(response)=>{
-        const payload=await response.json().catch(()=>({})) as {accountKey?:string;error?:string};
-        if(!response.ok)throw new Error(payload.error??"Campaign save was not accepted.");
-        if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
-        window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
-        remoteSaveFailureNotified.current=false;
-      }).catch((error)=>{
-        if(error instanceof DOMException&&error.name==="AbortError")return;
-        if(remoteSaveFailureNotified.current)return;
-        remoteSaveFailureNotified.current=true;
-        setSystemNotice("ACCOUNT SAVE DELAYED // DEVICE SAVE IS CURRENT // RETRYING AFTER THE NEXT CHANGE");
+      campaignSaveChain.current=campaignSaveChain.current.then(async()=>{
+        if(epoch!==campaignPersistenceEpoch.current)return;
+        const submission:StoredCampaignEnvelope={
+          ...envelope,
+          expectedRevision:campaignRevisionRef.current,
+        };
+        try{
+          const response=await fetch("/api/campaign",{
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(submission),
+          });
+          const payload=await response.json().catch(()=>({})) as {
+            accountKey?:string;
+            error?:string;
+            code?:string;
+            conflict?:"modified"|"deleted";
+            campaign?:StoredCampaignEnvelope|null;
+          };
+          if(response.status===409&&payload.code==="CAMPAIGN_REVISION_CONFLICT"){
+            campaignPersistenceEpoch.current+=1;
+            if(payload.campaign){
+              const restored=restoreCampaignState(payload.campaign.state);
+              if(!restored)
+                throw new Error("The authoritative campaign could not be restored.");
+              campaignRevisionRef.current=campaignRevision(payload.campaign.revision);
+              campaignSyncSuppressed.current=false;
+              lastPersistedCampaignSeal.current=campaignPayloadSeal(payload.campaign);
+              const restoredRunToken=
+                typeof payload.campaign.runToken==="string"&&payload.campaign.runToken
+                  ? payload.campaign.runToken
+                  : portableId();
+              liveStateRef.current=restored;
+              setS(restored);
+              setRunToken(restoredRunToken);
+              activeArchiveKey.current=restoredRunToken;
+              setMultiplayerRun(!!payload.campaign.multiplayerRun);
+              if(
+                typeof payload.campaign.clock?.start==="number"&&
+                typeof payload.campaign.clock.end==="number"
+              )
+                setClock({
+                  start:payload.campaign.clock.start,
+                  end:payload.campaign.clock.end,
+                });
+              const authoritativeDeviceCopy:StoredCampaignEnvelope={
+                ...payload.campaign,
+                accountKey:campaignAccountKey.current||undefined,
+                savedAt:Date.now(),
+              };
+              try{
+                window.localStorage.setItem(
+                  SAVE_KEY,
+                  JSON.stringify(authoritativeDeviceCopy),
+                );
+              }catch{}
+              setSystemNotice(
+                "CAMPAIGN RECONCILED // ANOTHER SESSION SAVED FIRST // THE AUTHORITATIVE ACCOUNT STATE IS NOW LOADED",
+              );
+            }else{
+              campaignRevisionRef.current=0;
+              campaignSyncSuppressed.current=true;
+              lastPersistedCampaignSeal.current="";
+              try{window.localStorage.removeItem(SAVE_KEY);}catch{}
+              setSystemNotice(
+                "ACCOUNT CAMPAIGN REMOVED IN ANOTHER SESSION // STALE DEVICE STATE WILL NOT BE RECREATED // START A NEW CAMPAIGN TO CONTINUE",
+              );
+            }
+            return;
+          }
+          if(!response.ok)
+            throw new Error(payload.error??"Campaign save was not accepted.");
+          if(!campaignSaveWasAccepted(submission,payload.campaign))
+            throw new Error("Campaign save acknowledgment did not match the submitted state.");
+          campaignRevisionRef.current=campaignRevision(payload.campaign?.revision);
+          lastPersistedCampaignSeal.current=campaignPayloadSeal(submission);
+          if(payload.accountKey)campaignAccountKey.current=payload.accountKey;
+          try{
+            const currentRaw=window.localStorage.getItem(SAVE_KEY);
+            const current=currentRaw
+              ? JSON.parse(currentRaw) as StoredCampaignEnvelope
+              : null;
+            if(current&&campaignPayloadSeal(current)===campaignPayloadSeal(submission))
+              window.localStorage.setItem(
+                SAVE_KEY,
+                JSON.stringify({
+                  ...current,
+                  revision:campaignRevisionRef.current,
+                }),
+              );
+            window.localStorage.setItem(SERVER_MIGRATION_KEY,"1");
+          }catch{}
+          remoteSaveFailureNotified.current=false;
+        }catch(error){
+          if(remoteSaveFailureNotified.current)return;
+          remoteSaveFailureNotified.current=true;
+          setSystemNotice(
+            error instanceof Error
+              ? `ACCOUNT SAVE DELAYED // DEVICE SAVE IS CURRENT // ${error.message.toUpperCase()}`
+              : "ACCOUNT SAVE DELAYED // DEVICE SAVE IS CURRENT // RETRYING AFTER THE NEXT CHANGE",
+          );
+        }
       });
     },450);
     return()=>{
       window.clearTimeout(timer);
-      controller.abort();
     };
   }, [s, clock, runToken, multiplayerRun, hydrated]);
   useEffect(() => {
@@ -4437,7 +4564,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   }, [opportunityOpen, opportunityWindow.status]);
   useEffect(() => {
     const packet = opportunityWindow.packet;
-    if (!hydrated || !rotationReady || !packet) return;
+    if (
+      !hydrated ||
+      !rotationReady ||
+      !packet ||
+      campaignMutationsHeld.current
+    ) return;
     const assignment = s.opportunityAssignments.find(
       (item) =>
         item.campaignId === s.campaignId &&
@@ -4489,6 +4621,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     opportunityWindow.status,
     opportunityWindow.packet?.id,
     s,
+    turnBusy,
   ]);
   const theater = THEATERS.find((x) => x.id === s.theater) ?? THEATERS[0];
   const projectedProduction = useMemo(() => projectProduction(s), [s]);
@@ -4537,13 +4670,25 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     }
     return alerts;
   }, [opportunityWindow.status, opportunityWindow.packet, projectedProduction, s]);
+  const rejectMutationDuringTurnClaim = () => {
+    if (!campaignMutationsHeld.current) return false;
+    setSystemNotice(
+      "CAMPAIGN MUTATION HELD // DAILY TURN AUTHORITY IS BEING VERIFIED",
+    );
+    return true;
+  };
   const startCampaign = (config: CampaignConfig) => {
+    if(rejectMutationDuringTurnClaim())return;
     if(s.status==="active"&&s.resolutionHistory.length>0&&runToken)
       void submitCampaignRecord(s,`${runToken}-abandoned`,{abandoned:true,multiplayer:multiplayerRun}).catch(()=>undefined);
     const next = initialState(config);
     const n = Date.now();
     const nextRunToken = portableId();
+    if(campaignSyncSuppressed.current)campaignRevisionRef.current=0;
+    campaignSyncSuppressed.current=false;
+    lastPersistedCampaignSeal.current="";
     if (runToken) void deleteAvaShellArchive(runToken).catch(() => undefined);
+    liveStateRef.current=next;
     setS(next);
     activeArchiveKey.current = nextRunToken;
     setRunToken(nextRunToken);
@@ -4579,6 +4724,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       );
   };
   const issueDirective = (selectedFamily: Family, choice: Choice) => {
+    if(rejectMutationDuringTurnClaim())return;
     const visibility = getVisibleChoice(
       {
         playerId: "web",
@@ -4606,6 +4752,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       setSystemNotice(`ORDER NOT EXECUTED // ${result.rejection}`);
       return;
     }
+    liveStateRef.current=result.state;
     setS(result.state);
     announceOpenDay(result.state);
   };
@@ -4623,6 +4770,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     domesticId?: string;
     networkId?: string;
   }) => {
+    if(rejectMutationDuringTurnClaim())return;
     const packet = compileConvergence(s),
       actions: AvaActionRef[] = [];
     if (selection.maneuverId)
@@ -4653,10 +4801,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       setSystemNotice(`ORDERS NOT EXECUTED // ${result.rejection}`);
       return;
     }
+    liveStateRef.current=result.state;
     setS(result.state);
     announceOpenDay(result.state);
   };
   const issueManeuver = (selection?: Maneuver) => {
+    if(rejectMutationDuringTurnClaim())return;
     const maneuver = selection ?? pendingManeuver;
     if (!maneuver) return;
     const result = executeAvaAction(
@@ -4668,11 +4818,13 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       setSystemNotice(`ORDER REJECTED // ${result.rejection}`);
       return;
     }
+    liveStateRef.current=result.state;
     setS(result.state);
     announceOpenDay(result.state);
     setPendingManeuver(null);
   };
   const issueOpportunity = (responseId: string) => {
+    if(rejectMutationDuringTurnClaim())return;
     const packet =
       opportunityWindow.status === "active" ? opportunityWindow.packet : null;
     if (!packet) return;
@@ -4688,6 +4840,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     const record = result.state.opportunityHistory.find(
       (item) => item.day === s.day && item.opportunityId === packet.id,
     );
+    liveStateRef.current=result.state;
     setS(result.state);
     try {
       window.localStorage.setItem(
@@ -4710,6 +4863,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     setOpportunityOpen(false);
   };
   const applyDoctrine = (vector: DoctrineVector, stage: DoctrineStage) => {
+    if(rejectMutationDuringTurnClaim())return;
     const result = executeAvaAction(
       s,
       { kind: "doctrine-stage", vectorId: vector.id, stageId: stage.id },
@@ -4719,6 +4873,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       setSystemNotice(`DOCTRINE NOT INTERNALIZED // ${result.rejection}`);
       return;
     }
+    liveStateRef.current=result.state;
     setS(result.state);
     setSystemNotice(
       `${stage.label.toUpperCase()} INTERNALIZED // ${stage.effect}`,
@@ -4730,13 +4885,20 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     setPendingDoctrine(null);
   };
   const claimTurn = useCallback(async () => {
-    if (turnClaimInFlight.current) return null;
+    if (turnClaimInFlight.current || campaignMutationsHeld.current) return null;
+    const target=liveStateRef.current;
     turnClaimInFlight.current = true;
+    campaignMutationsHeld.current = true;
     setTurnBusy(true);
+    let granted=false;
     try {
       const response = await fetch("/api/turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body:JSON.stringify({
+          campaignId:target.campaignId,
+          campaignDay:target.day,
+        }),
       });
       const payload = (await response.json()) as TurnAccess & {
         allowed?: boolean;
@@ -4751,10 +4913,20 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       }
       if (!response.ok && payload.allowed !== false)
         throw new Error(payload.error ?? "Campaign turnover is unavailable.");
-      return {
+      const claimed={
         ...payload,
         allowed: response.ok && payload.allowed !== false,
       };
+      if(claimed.allowed){
+        if(
+          !claimed.resolutionGrant||
+          claimed.resolutionGrant.campaignId!==target.campaignId||
+          claimed.resolutionGrant.campaignDay!==target.day
+        )
+          throw new Error("Campaign turnover returned an invalid resolution grant.");
+        granted=true;
+      }
+      return claimed;
     } catch (error) {
       setSystemNotice(
         error instanceof Error
@@ -4764,15 +4936,27 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       return null;
     } finally {
       turnClaimInFlight.current = false;
-      setTurnBusy(false);
+      if(!granted){
+        campaignMutationsHeld.current=false;
+        setTurnBusy(false);
+      }
     }
+  }, []);
+  const releaseTurnClaim = useCallback(() => {
+    campaignMutationsHeld.current=false;
+    setTurnBusy(false);
   }, []);
   const advance = useCallback(async (
     source: "manual" | "automatic" = "manual",
   ) => {
-    const result = executeAvaAction(s, { kind: "resolve-day" }, fraction);
-    if (!result.executed) {
-      setSystemNotice(`DAY NOT RESOLVED // ${result.rejection}`);
+    if(campaignMutationsHeld.current)return false;
+    const preview=executeAvaAction(
+      liveStateRef.current,
+      {kind:"resolve-day"},
+      fraction,
+    );
+    if(!preview.executed){
+      setSystemNotice(`DAY NOT RESOLVED // ${preview.rejection}`);
       return false;
     }
     const claim = await claimTurn();
@@ -4785,71 +4969,59 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       );
       return false;
     }
-    const next = result.state;
-    setS(next);
-    setAvaSession((current) => ({
-      ...initialAvaTerminalSession(),
-      shell: current.shell,
-      discourse: current.discourse,
-      voiceCursor: current.voiceCursor,
-    }));
-    setPendingManeuver(null);
-    setDayModal(false);
-    setTurnBlackout(true);
-    window.setTimeout(() => setTurnBlackout(false), 240);
-    const n = Date.now();
-    setClock(accountClockAfterClaim(claim.timeZone,accountTimeZone,n));
-    setNow(n);
-    setLedgerNow(n);
-    setOpportunityInterruptAcknowledged(false);
-    setAlertMenuOpen(false);
-    setSystemNotice(
-      claim.godMode
-        ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
-        : source === "automatic"
-          ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
-          : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
-    );
-    return true;
-  }, [accountTimeZone, claimTurn, fraction, s]);
+    try{
+      const current=liveStateRef.current;
+      const result=executeAvaAction(current,{kind:"resolve-day"},fraction);
+      if(
+        !result.executed||
+        result.state.day!==current.day+1||
+        result.state.resolutionHistory.length!==
+          current.resolutionHistory.length+1
+      ){
+        setSystemNotice(
+          `DAY NOT RESOLVED // ${result.rejection??"THE RESTAGED RESOLUTION DID NOT PRODUCE EXACTLY ONE CAMPAIGN DAY"}`,
+        );
+        return false;
+      }
+      const next = result.state;
+      liveStateRef.current=next;
+      setS(next);
+      setAvaSession((currentSession) => ({
+        ...initialAvaTerminalSession(),
+        shell: currentSession.shell,
+        discourse: currentSession.discourse,
+        voiceCursor: currentSession.voiceCursor,
+      }));
+      setPendingManeuver(null);
+      setDayModal(false);
+      setTurnBlackout(true);
+      window.setTimeout(() => setTurnBlackout(false), 240);
+      const n = Date.now();
+      setClock(accountClockAfterClaim(claim.timeZone,accountTimeZone,n));
+      setNow(n);
+      setLedgerNow(n);
+      setOpportunityInterruptAcknowledged(false);
+      setAlertMenuOpen(false);
+      setSystemNotice(
+        claim.godMode
+          ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
+          : source === "automatic"
+            ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
+            : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
+      );
+      return true;
+    }finally{
+      releaseTurnClaim();
+    }
+  }, [accountTimeZone, claimTurn, fraction, releaseTurnClaim]);
   useEffect(() => {
     if (!hydrated || !turnAccess || overdueTurnsApplied.current) return;
     overdueTurnsApplied.current = true;
     const elapsed = overdueTurnCount.current;
     overdueTurnCount.current = 0;
     if (!elapsed || turnAccess.godMode) return;
-    void claimTurn().then((claim) => {
-      if (!claim?.allowed) return;
-      let resolved = 0;
-      setS((current) => {
-        let next = current;
-        for (
-          let index = 0;
-          index < elapsed && next.status === "active";
-          index += 1
-        ) {
-          const result = executeAvaAction(next, { kind: "resolve-day" }, 1);
-          if (!result.executed) break;
-          next = result.state;
-          resolved += 1;
-        }
-        return next;
-      });
-      setPendingManeuver(null);
-      setDayModal(false);
-      setOpportunityInterruptAcknowledged(false);
-      setAlertMenuOpen(false);
-      const current = Date.now();
-      setClock(accountDayBounds(claim.timeZone, current));
-      setNow(current);
-      setLedgerNow(current);
-      window.setTimeout(() => {
-        setSystemNotice(
-          `DAILY TURNOVER CAUGHT UP // ${resolved} CAMPAIGN DAY${resolved === 1 ? "" : "S"} RESOLVED`,
-        );
-      });
-    });
-  }, [claimTurn, hydrated, turnAccess]);
+    void advance("automatic");
+  }, [advance, hydrated, turnAccess]);
   useEffect(() => {
     if (
       !hydrated ||

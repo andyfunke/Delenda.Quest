@@ -8,11 +8,23 @@ export type RemoteCampaignEnvelope={
   runToken:string;
   multiplayerRun:boolean;
   revision?:number;
+  expectedRevision?:number;
   updatedAt?:number;
 };
 
 type CampaignResponse={accountKey:string;campaign:RemoteCampaignEnvelope|null};
 type GatewayRequestInit={method?:"GET"|"POST"|"PUT";body?:string};
+
+export class GatewayRequestError extends Error{
+  constructor(
+    message:string,
+    readonly status:number,
+    readonly payload:unknown,
+  ){
+    super(message);
+    this.name="GatewayRequestError";
+  }
+}
 
 export async function readGatewayConfig(path=process.env.DELENDA_SSH_CONFIG??"/etc/delenda-gateway/config.json"):Promise<GatewayConfig>{
   const parsed=JSON.parse(await readFile(path,"utf8")) as Partial<GatewayConfig>;
@@ -51,7 +63,13 @@ const request=async<T>(config:GatewayConfig,path:string,init:GatewayRequestInit=
           const text=Buffer.concat(chunks).toString("utf8");
           const payload=(text?JSON.parse(text):{}) as T&{error?:string};
           if((response.statusCode??500)<200||(response.statusCode??500)>=300)
-            reject(new Error(payload.error??`Gateway API failed with ${response.statusCode}.`));
+            reject(
+              new GatewayRequestError(
+                payload.error??`Gateway API failed with ${response.statusCode}.`,
+                response.statusCode??500,
+                payload,
+              ),
+            );
           else resolve(payload);
         }catch(error){reject(error)}
       });
@@ -73,7 +91,18 @@ export const loadRemoteCampaign=(config:GatewayConfig,playerId:string)=>
 
 export const saveRemoteCampaign=(config:GatewayConfig,playerId:string,campaign:RemoteCampaignEnvelope)=>
   request<CampaignResponse>(config,"/api/ssh/gateway/campaign",{
-    method:"PUT",body:JSON.stringify({playerId,campaign}),
+    method:"PUT",
+    body:JSON.stringify({
+      playerId,
+      campaign:{
+        ...campaign,
+        expectedRevision:Number.isInteger(campaign.revision)
+          ? campaign.revision
+          : Number.isInteger(campaign.expectedRevision)
+            ? campaign.expectedRevision
+            : 0,
+      },
+    }),
   });
 
 export const openRemoteAudit=(config:GatewayConfig,input:{id:string;playerId:string;credentialId:string;remoteRiskHash?:string;clientVersion?:string})=>

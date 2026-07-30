@@ -19,6 +19,38 @@ export type AccountTurnSnapshot = {
   timeZone: string;
 };
 
+export type DailyResolutionGrant = {
+  grantId: string;
+  campaignId: string;
+  campaignDay: number;
+  accountDayKey: string;
+};
+
+const resolutionTarget = (input: {
+  campaignId?: unknown;
+  campaignDay?: unknown;
+}) => {
+  const campaignId =
+    typeof input.campaignId === "string" &&
+    /^[a-zA-Z0-9._:-]{1,100}$/.test(input.campaignId)
+      ? input.campaignId
+      : "";
+  const campaignDay = Number(input.campaignDay);
+  if (!campaignId || !Number.isInteger(campaignDay) || campaignDay < 1)
+    throw new Error("A current campaign and day are required.");
+  return { campaignId, campaignDay };
+};
+
+const grantFor = (
+  target: ReturnType<typeof resolutionTarget>,
+  accountDayKey: string,
+): DailyResolutionGrant => ({
+  grantId: crypto.randomUUID(),
+  campaignId: target.campaignId,
+  campaignDay: target.campaignDay,
+  accountDayKey,
+});
+
 const ensureTurnState = async (user: AuthenticatedUser) => {
   const db = await getDb();
   const ownerEmail = await ensureAccount(user);
@@ -112,7 +144,11 @@ export async function setGodMode(user: AuthenticatedUser, enabled: boolean) {
   );
 }
 
-export async function claimDailyResolution(user: AuthenticatedUser) {
+export async function claimDailyResolution(
+  user: AuthenticatedUser,
+  input: { campaignId?: unknown; campaignDay?: unknown },
+) {
+  const target = resolutionTarget(input);
   const state = await ensureTurnState(user);
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
@@ -121,6 +157,7 @@ export async function claimDailyResolution(user: AuthenticatedUser) {
     return {
       allowed: true,
       ...snapshotFrom(state, now),
+      resolutionGrant: grantFor(target, currentDayKey),
     };
 
   const claimed = await state.db
@@ -162,5 +199,6 @@ export async function claimDailyResolution(user: AuthenticatedUser) {
       },
       now,
     ),
+    resolutionGrant: grantFor(target, currentDayKey),
   };
 }
