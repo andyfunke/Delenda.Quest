@@ -29,11 +29,17 @@ jobs:
       - name: Validate the Cloudflare artifact
         run: npm run cloudflare:validate
 
+      - name: Validate the autonomous SSH provisioner
+        run: node --check scripts/provision-ssh-production.mjs
+
       - name: Run rules tests
         run: bash scripts/test-rules.sh
 
       - name: Run Ava tests
         run: bash scripts/test-ava.sh
+
+      - name: Run substrate and SSH authority tests
+        run: bash scripts/test-substrate.sh
 
       - name: Run rendered and plumbing tests
         run: node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs

@@ -160,3 +160,51 @@ export const accountRotationLedger=sqliteTable("account_rotation_ledger",{
   uniqueIndex("account_rotation_owner_kind_item_unique").on(table.ownerEmail,table.kind,table.itemId),
   index("account_rotation_owner_kind_idx").on(table.ownerEmail,table.kind),
 ]);
+
+/** Player-managed SSH public keys. UI revocation can land later; service layer is authoritative. */
+export const sshCredentials=sqliteTable("ssh_credentials",{
+  id:text("id").primaryKey(),
+  ownerEmail:text("owner_email").notNull(),
+  label:text("label").notNull(),
+  algorithm:text("algorithm").notNull(),
+  publicKey:text("public_key").notNull(),
+  fingerprint:text("fingerprint").notNull(),
+  createdAt:integer("created_at").notNull(),
+  lastUsedAt:integer("last_used_at"),
+  revokedAt:integer("revoked_at"),
+},table=>[
+  uniqueIndex("ssh_credentials_fingerprint_unique").on(table.fingerprint),
+  index("ssh_credentials_owner_idx").on(table.ownerEmail),
+]);
+
+
+export const sshPairingChallenges=sqliteTable("ssh_pairing_challenges",{
+  code:text("code").primaryKey(),
+  fingerprint:text("fingerprint").notNull(),
+  algorithm:text("algorithm").notNull(),
+  publicKey:text("public_key").notNull(),
+  ownerEmail:text("owner_email"),
+  createdAt:integer("created_at").notNull(),
+  expiresAt:integer("expires_at").notNull(),
+  completedAt:integer("completed_at"),
+  consumedAt:integer("consumed_at"),
+},table=>[
+  index("ssh_pairing_fingerprint_idx").on(table.fingerprint),
+  index("ssh_pairing_owner_idx").on(table.ownerEmail),
+  index("ssh_pairing_expires_idx").on(table.expiresAt),
+]);
+
+export const sshSessionAudits=sqliteTable("ssh_session_audits",{
+  id:text("id").primaryKey(),
+  ownerEmail:text("owner_email"),
+  credentialId:text("credential_id"),
+  connectedAt:integer("connected_at").notNull(),
+  disconnectedAt:integer("disconnected_at"),
+  remoteRiskHash:text("remote_risk_hash"),
+  clientVersion:text("client_version"),
+  commandsRead:integer("commands_read").notNull().default(0),
+  consequentialAttempts:integer("consequential_attempts").notNull().default(0),
+},table=>[
+  index("ssh_session_audits_owner_idx").on(table.ownerEmail),
+  index("ssh_session_audits_connected_idx").on(table.connectedAt),
+]);

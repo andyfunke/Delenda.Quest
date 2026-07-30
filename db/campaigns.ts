@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { AuthenticatedUser } from "../app/auth";
 import { ensureAccount } from "./accounts";
 import { getDb } from "./index";
@@ -39,10 +39,22 @@ const restore=(row:typeof activeCampaigns.$inferSelect)=>{
   }catch{return null}
 };
 
-export async function activeCampaignFor(user:AuthenticatedUser){
-  const db=await getDb(),ownerEmail=await ensureAccount(user);
+export async function activeCampaignForOwner(ownerEmail:string){
+  const db=await getDb();
   const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
-  return{accountKey:ownerEmail,campaign:row?restore(row):null};
+  return row?restore(row):null;
+}
+
+export async function activeCampaignFor(user:AuthenticatedUser){
+  const ownerEmail=await ensureAccount(user);
+  return{accountKey:ownerEmail,campaign:await activeCampaignForOwner(ownerEmail)};
+}
+
+export async function saveCampaignStateForOwner(ownerEmail:string,state:unknown,expectedRevision:number){
+  const db=await getDb(),payload=JSON.stringify(state),now=Date.now();
+  if(payload.length>750_000)throw new Error("Campaign state exceeds the account save limit.");
+  const updated=await db.update(activeCampaigns).set({state:payload,revision:sql`${activeCampaigns.revision}+1`,updatedAt:now}).where(and(eq(activeCampaigns.ownerEmail,ownerEmail),eq(activeCampaigns.revision,expectedRevision))).returning({revision:activeCampaigns.revision});
+  return updated[0]?.revision??null;
 }
 
 export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCampaignSubmission){
@@ -53,8 +65,7 @@ export async function saveActiveCampaign(user:AuthenticatedUser,input:ActiveCamp
     target:activeCampaigns.ownerEmail,
     set:{...campaign,revision:sql`${activeCampaigns.revision}+1`,updatedAt:now},
   });
-  const row=(await db.select().from(activeCampaigns).where(eq(activeCampaigns.ownerEmail,ownerEmail)).limit(1))[0];
-  return{accountKey:ownerEmail,campaign:row?restore(row):null};
+  return{accountKey:ownerEmail,campaign:await activeCampaignForOwner(ownerEmail)};
 }
 
 export async function deleteActiveCampaign(user:AuthenticatedUser){

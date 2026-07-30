@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+user="${1:-}"
+algorithm="${2:-}"
+key_blob="${3:-}"
+fingerprint="${4:-}"
+[ "$user" = "play" ] || exit 0
+case "$algorithm" in
+  ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521|rsa-sha2-256|rsa-sha2-512|ssh-rsa) ;;
+  *) exit 0 ;;
+esac
+case "$key_blob" in
+  *[!A-Za-z0-9+/=]*|'') exit 0 ;;
+esac
+case "$fingerprint" in
+  SHA256:*) ;;
+  *) exit 0 ;;
+esac
+printf 'restrict,command="/app/ssh/session-entry %s %s %s" %s %s\n' "$fingerprint" "$algorithm" "$key_blob" "$algorithm" "$key_blob"

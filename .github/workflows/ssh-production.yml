@@ -1,0 +1,61 @@
+name: SSH production activation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile.ssh"
+      - "ssh/**"
+      - "scripts/provision-ssh-production.mjs"
+      - "app/api/ssh/**"
+      - "db/ssh.ts"
+      - "drizzle/0014_ssh_pairing_challenges.sql"
+      - ".github/workflows/ssh-production.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ACTIVATION_APPROVED: ${{ secrets.SSH_PRODUCTION_ACTIVATION_APPROVED }}
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        run: |
+          if [[ "$ACTIVATION_APPROVED" == "yes" && -n "$RAILWAY_API_TOKEN" && -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  activate:
+    needs: readiness
+    if: needs.readiness.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RAILWAY_PROJECT_NAME: Delenda Quest SSH
+      RAILWAY_SERVICE_NAME: delenda-ssh
+      CLOUDFLARE_ZONE_NAME: delenda.quest
+      SSH_PUBLIC_HOST: ssh.delenda.quest
+      SSH_AUTHORITY_URL: https://delenda.quest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Provision, deploy, and verify native SSH
+        run: node scripts/provision-ssh-production.mjs

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DAILY_ORDERS,
   DOCTRINES,
-  FAMILIES,
   coverage,
   directiveRejection,
   estimateDay,
@@ -35,6 +34,7 @@ import { operationalObjectiveForProblemClass } from "./campaign-substrate";
 import type { Aphorism } from "./aphorisms";
 import { campaignSeedId } from "./campaign-id";
 import { AccountPage } from "./AccountPage";
+import { visibleDirectiveView } from "./substrate/visible-directives";
 
 type BriefingIssue = {
   maneuverId?: string;
@@ -291,16 +291,21 @@ export function DirectiveSurface({
   issue: (family: Family, choice: Choice) => void;
   epigraph: Aphorism | null;
 }) {
+  const [selectedChoiceId, setSelectedChoiceId] = useState("");
+  const [selectedActor, setSelectedActor] = useState(s.actors[0]?.id ?? "");
   const families = useMemo(
-      () => FAMILIES.filter((family) => family.module === module),
-      [module],
+      () =>
+        visibleDirectiveView(
+          s,
+          module,
+          module === "diplomacy" ? selectedActor : undefined,
+        ).families,
+      [s, module, selectedActor],
     ),
     groups = [...new Set(families.map((family) => family.category))];
   const [selectedFamilyId, setSelectedFamilyId] = useState(
     families[0]?.id ?? "",
   );
-  const [selectedChoiceId, setSelectedChoiceId] = useState("");
-  const [selectedActor, setSelectedActor] = useState(s.actors[0]?.id ?? "");
   const family =
       families.find((item) => item.id === selectedFamilyId) ?? families[0],
     choice =
@@ -312,8 +317,8 @@ export function DirectiveSurface({
         : (families[0]?.id ?? ""),
     );
     setSelectedChoiceId("");
-  }, [focusFamilyId, families]);
-  useEffect(() => setSelectedChoiceId(""), [selectedFamilyId, s.day]);
+  }, [focusFamilyId, families, selectedActor, s.day]);
+  useEffect(() => setSelectedChoiceId(""), [selectedFamilyId, s.day, selectedActor]);
   const moduleLabel =
     module === "national" ? "PRODUCTION" : module.toUpperCase();
   return (

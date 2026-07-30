@@ -1,0 +1,37 @@
+name: Native SSH contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile.ssh"
+      - "ssh/**"
+      - "scripts/test-ssh-protocol.sh"
+      - "tests/fixtures/mock-ssh-authority.mjs"
+      - ".github/workflows/ssh-protocol.yml"
+  push:
+    branches:
+      - main
+      - agent/production-ssh-daemon
+    paths:
+      - "Dockerfile.ssh"
+      - "ssh/**"
+      - "scripts/test-ssh-protocol.sh"
+      - "tests/fixtures/mock-ssh-authority.mjs"
+      - ".github/workflows/ssh-protocol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-ssh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run hostile native SSH acceptance suite
+        run: bash scripts/test-ssh-protocol.sh

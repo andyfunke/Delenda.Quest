@@ -1,5 +1,12 @@
 # DELENDA.QUEST agent contract
 
+## Substrate doctrine
+
+Mandatory product law for shared I/O substrate, gate calculus, daily dockets,
+Ava Classic, and client adapters lives in `SUBSTRATE_DOCTRINE.md`. Read it
+before implementing game channels, parsers, LLM features, or new modalities.
+Do not duplicate the doctrine here.
+
 ## Hosting topology
 
 - GitHub repository `andyfunke/Delenda.Quest` is the only source of truth.
