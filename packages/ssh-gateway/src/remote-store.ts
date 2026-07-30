@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-export type GatewayConfig={apiBase:string;token:string};
+export type GatewayConfig={apiBase:string;token:string;allowInsecureHttp?:boolean};
 export type RemoteCampaignEnvelope={
   state:unknown;
   clock:{start:number;end:number};
@@ -16,8 +16,11 @@ export async function readGatewayConfig(path=process.env.DELENDA_SSH_CONFIG??"/e
   const parsed=JSON.parse(await readFile(path,"utf8")) as Partial<GatewayConfig>;
   const apiBase=typeof parsed.apiBase==="string"?parsed.apiBase.replace(/\/+$/g,""):"";
   const token=typeof parsed.token==="string"?parsed.token:"";
-  if(!/^https:\/\//.test(apiBase)||token.length<32)throw new Error("SSH gateway configuration is incomplete.");
-  return{apiBase,token};
+  const allowInsecureHttp=parsed.allowInsecureHttp===true;
+  const secure=/^https:\/\//.test(apiBase);
+  const localInsecure=allowInsecureHttp&&/^http:\/\/(?:host\.docker\.internal|127\.0\.0\.1|localhost)(?::\d+)?$/.test(apiBase);
+  if((!secure&&!localInsecure)||token.length<32)throw new Error("SSH gateway configuration is incomplete.");
+  return{apiBase,token,allowInsecureHttp};
 }
 
 const request=async<T>(config:GatewayConfig,path:string,init:RequestInit={}):Promise<T>=>{
