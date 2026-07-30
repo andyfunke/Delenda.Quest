@@ -128,12 +128,17 @@ export type AvaSemanticQuery = {
     type: AvaSemanticSubject;
     entityIds: string[];
   };
+  directive?: {
+    channel: "production" | "military" | "diplomacy";
+    actorId?: string;
+  };
   scope: {
     group?: AvaScopeGroup;
     domains: AvaScopeDomain[];
     excludedDomains: AvaScopeDomain[];
   };
   metric?: string;
+  metricOperands?: string[];
   timeframe:
     | "CURRENT_DOCKET"
     | "CURRENT_DAY"
@@ -386,6 +391,13 @@ export type AvaCompilerTrace = {
   grammarProvenance?: string[];
   exactIndexHit: boolean;
   tokenCount: number;
+  tokenLedger: Array<{
+    token: string;
+    index: number;
+    status: "consumed" | "unresolved";
+    material: boolean;
+    consumedBy?: string;
+  }>;
   entityKinds: AvaEntityKind[];
   unresolvedTokenCount: number;
 };

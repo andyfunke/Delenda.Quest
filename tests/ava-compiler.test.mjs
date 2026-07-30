@@ -117,6 +117,212 @@ test("campaign corpus compiles to typed semantic structures without collisions",
   }
 });
 
+test("the generated grammar proves all 4,800 utterances by whole-IR equality",()=>{
+  const bundle=mod.AVA_COMPILED_AGENCY_BUNDLE;
+  assert.equal(bundle.recipes.length,4800);
+  assert.equal(mod.AVA_UTTERANCE_COVERAGE.recognizedUtterances,4800);
+  assert.equal(bundle.collisions.length,0);
+  assert.equal(bundle.verifyRoundTrip(),true);
+  for(const recipe of bundle.recipes){
+    const result=mod.compileAvaCommand(recipe.normalized,context);
+    assert.equal(result.status,"compiled",recipe.id);
+    assert.equal(result.instruction.kind,"SEMANTIC",recipe.id);
+    assert.equal(result.trace.exactIndexHit,true,recipe.id);
+    assert.deepEqual(result.semantic,recipe.expectedQuery,recipe.id);
+    assert.deepEqual(result.instruction.query,recipe.expectedQuery,recipe.id);
+    assert.deepEqual(bundle.parse(recipe.normalized),recipe.expectedQuery,recipe.id);
+    assert.equal(
+      Object.keys(recipe.semanticOwners).length,
+      mod.AVA_DELENDA_DOMAIN_PACK.requiredFields.length,
+      recipe.id,
+    );
+  }
+});
+
+test("grammar compilation rejects empty, incomplete, and multiply-owned semantic productions",()=>{
+  const compile=grammarSpec=>mod.compileAgencyBundle({
+    grammarSpec,
+    domainPack:mod.AVA_DELENDA_DOMAIN_PACK,
+    capabilityRegistry:mod.AVA_CLASSIC_CAPABILITY_REGISTRY,
+    normalizeSurface:value=>mod.normalizeSemanticInput(value).normalized,
+  });
+  const source=mod.AVA_CAMPAIGN_ADVICE_GRAMMAR;
+  assert.throws(
+    ()=>compile({...source,id:"empty-slots",slots:[]}),
+    /grammar surface is empty/i,
+  );
+  assert.throws(
+    ()=>compile({
+      ...source,
+      id:"empty-atom-surface",
+      slots:[
+        {...source.slots[0],atoms:[]},
+        ...source.slots.slice(1),
+      ],
+    }),
+    /grammar surface is empty/i,
+  );
+  assert.throws(
+    ()=>compile({
+      ...source,
+      id:"missing-operation",
+      slots:source.slots.slice(1),
+    }),
+    /missing semantic fields: operation/i,
+  );
+  assert.throws(
+    ()=>compile({
+      ...source,
+      id:"duplicate-operation",
+      fixedAtoms:[
+        ...source.fixedAtoms,
+        {
+          id:"second-operation-owner",
+          surfaces:["@fixed"],
+          owns:["operation"],
+          semantic:{operation:"ADVISE"},
+        },
+      ],
+    }),
+    /operation has multiple owners/i,
+  );
+});
+
+test("negated consequential language never lowers to a positive mutation",()=>{
+  for(const phrase of [
+    "never resolve day",
+    "do not resolve the day",
+    "don't issue M1",
+    "never commit M1",
+    "do not stage M1",
+    "stop executing M1",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"clarify",phrase);
+    assert.equal(result.failure,"unsupported-combination",phrase);
+    assert.equal(result.semantic.polarity,"NEGATED",phrase);
+    assert.equal(result.trace.rule,"negated-consequential",phrase);
+  }
+});
+
+test("consequential grammar conserves every material token and rejects partial targets",()=>{
+  for(const phrase of [
+    "stage M1 and M9",
+    "prepare M1 counterfeit",
+    "issue M1 and bogus",
+    "choose M1 with nonsense",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"clarify",phrase);
+    assert.equal(result.failure,"unsupported-combination",phrase);
+    assert.ok(result.trace.unresolvedTokenCount>0,phrase);
+    assert.ok(
+      result.trace.tokenLedger.some(
+        entry=>entry.material&&entry.status==="unresolved",
+      ),
+      phrase,
+    );
+  }
+
+  for(const phrase of [
+    "prepare M1 and M2",
+    "stage reinforce salient and exploit gap please",
+    "resolve day please",
+    "yes do it",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.trace.unresolvedTokenCount,0,phrase);
+    assert.ok(
+      result.trace.tokenLedger
+        .filter(entry=>entry.material)
+        .every(entry=>entry.status==="consumed"),
+      phrase,
+    );
+  }
+});
+
+test("directive judgment compiles channel and actor without stealing campaign-choice criteria",()=>{
+  for(const [phrase,channel] of [
+    ["what should i do about producion","production"],
+    ["advise production","production"],
+    ["rank military","military"],
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.instruction.kind,"SEMANTIC",phrase);
+    assert.equal(result.semantic.subject.type,"DIRECTIVE",phrase);
+    assert.equal(result.semantic.directive.channel,channel,phrase);
+  }
+
+  const actor={id:"valeria",kind:"foreign-actor",label:"Valeria",aliases:["Valerian Republic"]};
+  const diplomacy=mod.compileAvaCommand(
+    "advise diplomacy with Valeria",
+    {...context,entities:[...entities,actor]},
+  );
+  assert.equal(diplomacy.status,"compiled");
+  assert.equal(diplomacy.semantic.subject.type,"DIRECTIVE");
+  assert.deepEqual(diplomacy.semantic.directive,{
+    channel:"diplomacy",
+    actorId:"valeria",
+  });
+  assert.deepEqual(diplomacy.semantic.subject.entityIds,["valeria"]);
+
+  for(const phrase of ["advise diplomacy","advise diplomacy with Atlantis"]){
+    const result=mod.compileAvaCommand(
+      phrase,
+      {...context,entities:[...entities,actor]},
+    );
+    assert.equal(result.status,"clarify",phrase);
+    assert.equal(result.failure,"missing-target",phrase);
+  }
+
+  const choice=mod.compileAvaCommand(
+    "would you still recommend it without the production gain",
+    context,
+  );
+  assert.equal(choice.status,"compiled");
+  assert.equal(choice.semantic.subject.type,"CAMPAIGN_CHOICE");
+  assert.equal(choice.semantic.directive,undefined);
+});
+
+test("metric challenges carry explicit operands and incomplete challenges clarify",()=>{
+  const complete=mod.compileAvaCommand(
+    "is production secondary to military readiness",
+    context,
+  );
+  assert.equal(complete.status,"compiled");
+  assert.equal(complete.semantic.subject.type,"METRIC");
+  assert.equal(complete.semantic.operation,"CHALLENGE");
+  assert.deepEqual(complete.semantic.metricOperands,[
+    "production",
+    "readiness",
+  ]);
+
+  const incomplete=mod.compileAvaCommand("challenge production",context);
+  assert.equal(incomplete.status,"clarify");
+  assert.equal(incomplete.failure,"missing-target");
+});
+
+test("campaign comparisons require two complete targets or two explicit domains",()=>{
+  for(const phrase of [
+    "compare reinforce salient with nonsense",
+    "compare reinforce salient with exploit gap plus M9",
+    "compare missions",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"clarify",phrase);
+  }
+  for(const phrase of [
+    "compare reinforce salient with exploit gap",
+    "compare domestic and network",
+    "compare n and d",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+  }
+});
+
 test("secondary is a reusable scope while ordinal and attachment neighbors remain distinct",()=>{
   const secondary=mod.compileAvaCommand("which side operation fucks me least",context);
   assert.equal(secondary.status,"compiled");
