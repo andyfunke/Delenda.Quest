@@ -7,6 +7,7 @@ interface __BaseEnv_Env {
 	DELENDA_MAINTENANCE_MODE: string;
 	DELENDA_ADMIN_EMAILS: string;
 	DELENDA_REPLICATION_TOKEN: string;
+	SSH_AUTHORITY_SECRET: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
@@ -19,5 +20,5 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "DELENDA_MAINTENANCE_MODE" | "DELENDA_ADMIN_EMAILS" | "DELENDA_REPLICATION_TOKEN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "DELENDA_MAINTENANCE_MODE" | "DELENDA_ADMIN_EMAILS" | "DELENDA_REPLICATION_TOKEN" | "SSH_AUTHORITY_SECRET">> {}
 }

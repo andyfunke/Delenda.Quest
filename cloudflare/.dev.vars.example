@@ -2,3 +2,5 @@
 # Never commit real values.
 DELENDA_ADMIN_EMAILS=admin@example.com
 DELENDA_REPLICATION_TOKEN=replace-with-a-cryptographically-random-secret
+
+SSH_AUTHORITY_SECRET=replace-with-at-least-32-random-characters

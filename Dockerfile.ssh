@@ -1,0 +1,14 @@
+FROM node:22-bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssh-server ca-certificates tini \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --create-home --shell /bin/sh play \
+ && passwd -l play
+WORKDIR /app
+COPY ssh /app/ssh
+RUN chmod 0755 /app/ssh/authorized-keys-command /app/ssh/session-entry /app/ssh/entrypoint.sh \
+ && chmod 0644 /app/ssh/session.mjs /app/ssh/sshd_config
+ENV PORT=2222
+EXPOSE 2222
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 CMD ssh-keyscan -T 3 -p "$PORT" 127.0.0.1 >/dev/null 2>&1 || exit 1
+ENTRYPOINT ["/app/ssh/entrypoint.sh"]

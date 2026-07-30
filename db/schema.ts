@@ -177,6 +177,23 @@ export const sshCredentials=sqliteTable("ssh_credentials",{
   index("ssh_credentials_owner_idx").on(table.ownerEmail),
 ]);
 
+
+export const sshPairingChallenges=sqliteTable("ssh_pairing_challenges",{
+  code:text("code").primaryKey(),
+  fingerprint:text("fingerprint").notNull(),
+  algorithm:text("algorithm").notNull(),
+  publicKey:text("public_key").notNull(),
+  ownerEmail:text("owner_email"),
+  createdAt:integer("created_at").notNull(),
+  expiresAt:integer("expires_at").notNull(),
+  completedAt:integer("completed_at"),
+  consumedAt:integer("consumed_at"),
+},table=>[
+  index("ssh_pairing_fingerprint_idx").on(table.fingerprint),
+  index("ssh_pairing_owner_idx").on(table.ownerEmail),
+  index("ssh_pairing_expires_idx").on(table.expiresAt),
+]);
+
 export const sshSessionAudits=sqliteTable("ssh_session_audits",{
   id:text("id").primaryKey(),
   ownerEmail:text("owner_email"),
