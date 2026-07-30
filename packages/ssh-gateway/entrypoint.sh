@@ -24,6 +24,7 @@ NODE
 chown root:delenda "$CONFIG_PATH"
 chmod 0640 "$CONFIG_PATH"
 
+rm -f "${HOST_KEY}.pub"
 if [[ -n "${DELENDA_SSH_HOST_KEY_B64:-}" ]]; then
   printf '%s' "$DELENDA_SSH_HOST_KEY_B64" | base64 -d > "$HOST_KEY"
   chmod 0600 "$HOST_KEY"
