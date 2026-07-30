@@ -76,6 +76,54 @@ test("PTY command session and one-shot confirm denied", () => {
   assert.equal(confirm.status, "CONFIRMATION_REQUIRED");
 });
 
+test("OG Ava language compiles through the substrate authority", () => {
+  const server = makeServer();
+  const credential = server.store.addKey({
+    id: "k-og",
+    playerId: "og-ava@example.com",
+    label: "command terminal",
+    algorithm: "ssh-ed25519",
+    publicKey: "ssh-ed25519 AAAA og-ava-key",
+  });
+  const opened = server.openSession({
+    playerId: credential.playerId,
+    credentialId: credential.id,
+    interactive: true,
+  });
+
+  const docket = server.handleLine(opened.sessionId, "production");
+  assert.equal(docket.status, "OK");
+  assert.ok(docket.response.fact.choiceIds.length >= 2);
+  const choiceId = docket.response.fact.choiceIds[0];
+
+  const colloquial = server.handleLine(
+    opened.sessionId,
+    "which one fucks me least",
+  );
+  assert.equal(colloquial.status, "OK");
+  assert.match(colloquial.text, /JUDGMENT|SCORE|RANK/i);
+
+  const typo = server.handleLine(
+    opened.sessionId,
+    "what should i do about producion",
+  );
+  assert.equal(typo.status, "OK");
+  assert.match(typo.text, /JUDGMENT|SCORE/i);
+
+  const prepared = server.handleLine(opened.sessionId, `choose ${choiceId}`);
+  assert.equal(prepared.status, "PREPARED");
+  assert.ok(prepared.response.fact.proposalToken.startsWith("prp_"));
+
+  const confirmed = server.handleLine(opened.sessionId, "yes");
+  assert.equal(confirmed.status, "EXECUTED");
+  assert.ok(confirmed.response.auditId);
+  assert.ok(
+    confirmed.state.decisions.some(
+      (decision) => decision.choiceId === choiceId,
+    ),
+  );
+});
+
 test("forwarding and sftp denied; mutation kill switch", () => {
   const server = makeServer({ globalMutationsEnabled: false });
   assert.equal(server.requestForwarding("port-forwarding").ok, false);
