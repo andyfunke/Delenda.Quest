@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { request as httpsRequest } from "node:https";
 
-export type GatewayConfig={apiBase:string;token:string;allowInsecureHttp?:boolean};
+export type GatewayConfig={apiBase:string;token:string;caPem?:string};
 export type RemoteCampaignEnvelope={
   state:unknown;
   clock:{start:number;end:number};
@@ -11,27 +12,55 @@ export type RemoteCampaignEnvelope={
 };
 
 type CampaignResponse={accountKey:string;campaign:RemoteCampaignEnvelope|null};
+type GatewayRequestInit={method?:"GET"|"POST"|"PUT";body?:string};
 
 export async function readGatewayConfig(path=process.env.DELENDA_SSH_CONFIG??"/etc/delenda-gateway/config.json"):Promise<GatewayConfig>{
   const parsed=JSON.parse(await readFile(path,"utf8")) as Partial<GatewayConfig>;
   const apiBase=typeof parsed.apiBase==="string"?parsed.apiBase.replace(/\/+$/g,""):"";
   const token=typeof parsed.token==="string"?parsed.token:"";
-  const allowInsecureHttp=parsed.allowInsecureHttp===true;
-  const secure=/^https:\/\//.test(apiBase);
-  const localInsecure=allowInsecureHttp&&/^http:\/\/(?:host\.docker\.internal|127\.0\.0\.1|localhost)(?::\d+)?$/.test(apiBase);
-  if((!secure&&!localInsecure)||token.length<32)throw new Error("SSH gateway configuration is incomplete.");
-  return{apiBase,token,allowInsecureHttp};
+  const caPem=typeof parsed.caPem==="string"&&parsed.caPem.includes("BEGIN CERTIFICATE")?parsed.caPem:undefined;
+  if(!/^https:\/\//.test(apiBase)||token.length<32)throw new Error("SSH gateway configuration is incomplete.");
+  return{apiBase,token,caPem};
 }
 
-const request=async<T>(config:GatewayConfig,path:string,init:RequestInit={}):Promise<T>=>{
-  const response=await fetch(`${config.apiBase}${path}`,{
-    ...init,
-    headers:{authorization:`Bearer ${config.token}`,"content-type":"application/json",...(init.headers??{})},
-    signal:AbortSignal.timeout(12_000),
+const request=async<T>(config:GatewayConfig,path:string,init:GatewayRequestInit={}):Promise<T>=>{
+  const target=new URL(path,`${config.apiBase}/`);
+  const body=init.body??"";
+  return new Promise<T>((resolve,reject)=>{
+    const operation=httpsRequest(target,{
+      method:init.method??"GET",
+      headers:{
+        authorization:`Bearer ${config.token}`,
+        accept:"application/json",
+        ...(body?{"content-type":"application/json","content-length":Buffer.byteLength(body)}:{}),
+      },
+      ca:config.caPem,
+      rejectUnauthorized:true,
+      timeout:12_000,
+    },response=>{
+      const chunks:Buffer[]=[];
+      let size=0;
+      response.on("data",chunk=>{
+        const bytes=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);
+        size+=bytes.length;
+        if(size>2_000_000){operation.destroy(new Error("Gateway API response exceeded the safety limit."));return;}
+        chunks.push(bytes);
+      });
+      response.on("end",()=>{
+        try{
+          const text=Buffer.concat(chunks).toString("utf8");
+          const payload=(text?JSON.parse(text):{}) as T&{error?:string};
+          if((response.statusCode??500)<200||(response.statusCode??500)>=300)
+            reject(new Error(payload.error??`Gateway API failed with ${response.statusCode}.`));
+          else resolve(payload);
+        }catch(error){reject(error)}
+      });
+    });
+    operation.on("timeout",()=>operation.destroy(new Error("Gateway API request timed out.")));
+    operation.on("error",reject);
+    if(body)operation.write(body);
+    operation.end();
   });
-  const payload=await response.json().catch(()=>({})) as T&{error?:string};
-  if(!response.ok)throw new Error(payload.error??`Gateway API failed with ${response.status}.`);
-  return payload;
 };
 
 export const authorizeRemoteKey=(config:GatewayConfig,algorithm:string,keyData:string)=>
