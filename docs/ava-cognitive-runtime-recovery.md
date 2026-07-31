@@ -177,3 +177,27 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 5 — constraint and feasibility engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `bb0256f`
+- State: reconstructed and verified atop Savepoint 4
+- Scope:
+  - compiler-closed predicate, quantifier, precondition, invariant, doctrine,
+    resource, failure, and repair language
+  - eight distinct outcomes: feasible, prerequisite-bound, resource-bound,
+    impossible, forbidden, underspecified, uncertain, and dominated
+  - Ava-visible responsible facts, prerequisites, smallest replayable repair,
+    closest feasible alternative, and Pareto domination
+  - action bindings, quantity ranges, authority ceilings, world revisions,
+    world digests, alternatives, and repairs validated fail-closed
+  - proof-bearing authored adapters for `SATISFY` and `CHECK_PRECONDITION`
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 106/106 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

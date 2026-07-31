@@ -116,7 +116,7 @@ const coreIntrinsic = new Set<CognitiveOperator>([
   "DELTA",
 ]);
 const genericIntrinsic = new Set<CognitiveOperator>([
-  "SATISFY", "SEQUENCE", "DELAY", "COMPARE", "SCORE", "RANK", "BRANCH",
+  "SEQUENCE", "DELAY", "COMPARE", "SCORE", "RANK", "BRANCH",
   "RESERVE", "TERMINATE",
 ]);
 
@@ -158,7 +158,8 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
   INTERSECTION: [{ id: "left", kind: "LIST" }, { id: "right", kind: "LIST" }],
   DIFFERENCE: [{ id: "left", kind: "LIST" }, { id: "right", kind: "LIST" }],
   JOIN: [{ id: "left", kind: "RECORD" }, { id: "right", kind: "RECORD" }],
-  SATISFY: [{ id: "conditions", kind: "LIST" }],
+  SATISFY: [{ id: "request", kind: "RECORD" }],
+  CHECK_PRECONDITION: [{ id: "request", kind: "RECORD" }],
   SEQUENCE: [{ id: "values", kind: "LIST" }],
   DELAY: [{ id: "value", kind: "ANY" }, { id: "phases", kind: "NUMBER" }],
   COMPARE: [{ id: "left", kind: "NUMBER" }, { id: "right", kind: "NUMBER" }],
@@ -172,13 +173,14 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
 const defaultInputs: readonly CognitiveInputSpec[] = [{ id: "value", kind: "ANY" }];
 const outputKind = (operator: CognitiveOperator): CognitiveDatumKind => {
   if (["COUNT","SUM","AVERAGE","MINIMUM","MAXIMUM","NORMALIZE","CLAMP","RATIO","DELTA","SCORE"].includes(operator)) return "NUMBER";
-  if (["SATISFY","CHECK_PRECONDITION","TERMINATE"].includes(operator)) return "BOOLEAN";
+  if (["TERMINATE"].includes(operator)) return "BOOLEAN";
   if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE","SEQUENCE","RANK"].includes(operator)) return "LIST";
   if ([
     "JOIN","DELAY","COMPARE","BRANCH","RESERVE","FORECAST","INTERVENE",
     "COUNTERFACTUAL","PROPAGATE_EFFECT","FIND_CAUSE","CORROBORATE","DISPUTE",
     "ASSUME","BOUND","DOWNWEIGHT","MARGINALIZE","OPTIMIZE","SENSITIVITY",
-    "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","EXPLAIN",
+    "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","EXPLAIN","SATISFY",
+    "CHECK_PRECONDITION",
   ].includes(operator)) return "RECORD";
   return "ANY";
 };

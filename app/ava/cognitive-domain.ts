@@ -46,6 +46,51 @@ export type CognitiveActionSpec = {
   arguments: readonly CognitiveArgumentSpec[];
   resourceVariables: readonly string[];
   durationPhases: number;
+  constraintIds: readonly string[];
+};
+
+export type CognitiveConstraintOperand =
+  | { kind: "VARIABLE"; variableId: string }
+  | { kind: "BINDING"; bindingId: string }
+  | { kind: "LITERAL"; value: string | number | boolean | null };
+
+export type CognitiveConstraintExpression =
+  | {
+      kind: "COMPARE";
+      left: CognitiveConstraintOperand;
+      operator: "EQ" | "NE" | "LT" | "LTE" | "GT" | "GTE" | "IN";
+      right: CognitiveConstraintOperand;
+    }
+  | { kind: "ALL" | "ANY"; expressions: readonly CognitiveConstraintExpression[] }
+  | { kind: "NOT"; expression: CognitiveConstraintExpression }
+  | {
+      kind: "QUANTIFY";
+      values: CognitiveConstraintOperand;
+      quantifier: "EVERY" | "SOME" | "NONE";
+      operator: "EQ" | "NE" | "LT" | "LTE" | "GT" | "GTE";
+      right: CognitiveConstraintOperand;
+    };
+
+export type CognitiveConstraintFailure =
+  | "PREREQUISITE_BOUND"
+  | "RESOURCE_BOUND"
+  | "IMPOSSIBLE"
+  | "FORBIDDEN";
+
+export type CognitiveConstraintRepairSpec = {
+  id: string;
+  target: { kind: "BINDING"; bindingId: string };
+  value: CognitiveConstraintOperand;
+};
+
+export type CognitiveConstraintSpec = {
+  id: string;
+  label: string;
+  scope: "PRECONDITION" | "INVARIANT" | "DOCTRINE" | "RESOURCE";
+  actionId?: string;
+  expression: CognitiveConstraintExpression;
+  failure: CognitiveConstraintFailure;
+  repairs: readonly CognitiveConstraintRepairSpec[];
 };
 
 export type CognitiveDomainSpec = {
@@ -54,6 +99,7 @@ export type CognitiveDomainSpec = {
   variables: readonly CognitiveVariableSpec[];
   concepts: readonly CognitiveConceptSpec[];
   actions: readonly CognitiveActionSpec[];
+  constraints: readonly CognitiveConstraintSpec[];
 };
 
 export type CompiledCognitiveDomain = {
@@ -63,11 +109,13 @@ export type CompiledCognitiveDomain = {
   variables: ReadonlyMap<string, CognitiveVariableSpec>;
   concepts: ReadonlyMap<string, CognitiveConceptSpec>;
   actions: ReadonlyMap<string, CognitiveActionSpec>;
+  constraints: ReadonlyMap<string, CognitiveConstraintSpec>;
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
     conceptIds: readonly string[];
     actionIds: readonly string[];
+    constraintIds: readonly string[];
   };
 };
 
@@ -113,12 +161,16 @@ export const compileCognitiveDomain = (
   const variableIds = source.variables.map((item) => item.id);
   const conceptIds = source.concepts.map((item) => item.id);
   const actionIds = source.actions.map((item) => item.id);
+  const constraintIds = source.constraints.map((item) => item.id);
   if (!uniqueStrings(variableIds)) throw new Error(`${source.id}: duplicate variable id`);
   if (!uniqueStrings(conceptIds)) throw new Error(`${source.id}: duplicate concept id`);
   if (!uniqueStrings(actionIds)) throw new Error(`${source.id}: duplicate action id`);
+  if (!uniqueStrings(constraintIds)) throw new Error(`${source.id}: duplicate constraint id`);
   source.variables.forEach(validateVariable);
   const variableSet = new Set(variableIds);
   const conceptSet = new Set(conceptIds);
+  const actionSet = new Set(actionIds);
+  const constraintSet = new Set(constraintIds);
 
   const aliasOwners = new Map<string, string[]>();
   for (const concept of source.concepts) {
@@ -157,6 +209,65 @@ export const compileCognitiveDomain = (
     for (const variableId of action.resourceVariables)
       if (!variableSet.has(variableId))
         throw new Error(`${action.id}: unknown resource variable ${variableId}`);
+    if (!uniqueStrings(action.constraintIds))
+      throw new Error(`${action.id}: duplicate constraint reference`);
+    for (const constraintId of action.constraintIds)
+      if (!constraintSet.has(constraintId))
+        throw new Error(`${action.id}: unknown constraint ${constraintId}`);
+  }
+
+  const validateOperand = (
+    operand: CognitiveConstraintOperand,
+    constraint: CognitiveConstraintSpec,
+  ) => {
+    if (operand.kind === "VARIABLE") {
+      if (!variableSet.has(operand.variableId))
+        throw new Error(`${constraint.id}: unknown constraint variable ${operand.variableId}`);
+      return;
+    }
+    if (operand.kind === "BINDING") {
+      const action = constraint.actionId
+        ? source.actions.find((item) => item.id === constraint.actionId)
+        : undefined;
+      if (!action?.arguments.some((argument) => argument.id === operand.bindingId))
+        throw new Error(`${constraint.id}: unknown constraint binding ${operand.bindingId}`);
+    }
+  };
+  const validateExpression = (
+    expression: CognitiveConstraintExpression,
+    constraint: CognitiveConstraintSpec,
+  ): void => {
+    if (expression.kind === "COMPARE") {
+      validateOperand(expression.left, constraint);
+      validateOperand(expression.right, constraint);
+      return;
+    }
+    if (expression.kind === "NOT") {
+      validateExpression(expression.expression, constraint);
+      return;
+    }
+    if ("expressions" in expression) {
+      if (!expression.expressions.length)
+        throw new Error(`${constraint.id}: logical constraint cannot be empty`);
+      expression.expressions.forEach((child) => validateExpression(child, constraint));
+      return;
+    }
+    validateOperand(expression.values, constraint);
+    validateOperand(expression.right, constraint);
+  };
+  for (const constraint of source.constraints) {
+    assertIdentifier(constraint.id, "constraint");
+    if (!constraint.label.trim()) throw new Error(`${constraint.id}: constraint label is empty`);
+    if (constraint.actionId && !actionSet.has(constraint.actionId))
+      throw new Error(`${constraint.id}: unknown constraint action ${constraint.actionId}`);
+    validateExpression(constraint.expression, constraint);
+    const repairIds = constraint.repairs.map((repair) => repair.id);
+    if (!uniqueStrings(repairIds)) throw new Error(`${constraint.id}: duplicate repair id`);
+    for (const repair of constraint.repairs) {
+      assertIdentifier(repair.id, `${constraint.id} repair`);
+      validateOperand(repair.target, constraint);
+      validateOperand(repair.value, constraint);
+    }
   }
 
   const snapshot = cloneCognitive({
@@ -164,6 +275,7 @@ export const compileCognitiveDomain = (
     variables: [...source.variables].sort((a, b) => a.id.localeCompare(b.id)),
     concepts: [...source.concepts].sort((a, b) => a.id.localeCompare(b.id)),
     actions: [...source.actions].sort((a, b) => a.id.localeCompare(b.id)),
+    constraints: [...source.constraints].sort((a, b) => a.id.localeCompare(b.id)),
   });
   return {
     id: source.id,
@@ -172,6 +284,7 @@ export const compileCognitiveDomain = (
     variables: new Map(snapshot.variables.map((item) => [item.id, item])),
     concepts: new Map(snapshot.concepts.map((item) => [item.id, item])),
     actions: new Map(snapshot.actions.map((item) => [item.id, item])),
+    constraints: new Map(snapshot.constraints.map((item) => [item.id, item])),
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -179,6 +292,7 @@ export const compileCognitiveDomain = (
       variableIds: [...variableIds].sort(),
       conceptIds: [...conceptIds].sort(),
       actionIds: [...actionIds].sort(),
+      constraintIds: [...constraintIds].sort(),
     },
   };
 };
@@ -199,11 +313,20 @@ const percentVariables = new Set([
   "reciprocity", "desertionPressure",
 ]);
 
+const nonnegativeStateVariables = new Set([
+  "day", "actions", "population", "workforce", "armed", "deployable",
+  "voluntary", "forced", "queue", "training", "duration", "reserves",
+  "equipment", "materiel", "treasury", "intelligence", "enemy", "doctrine",
+  "doctrineEarned", "deserters", "retained", "intercepted",
+  "patrolCommitment", "maintenanceDebt",
+]);
+
 const baseVariables: CognitiveVariableSpec[] = numericStateVariables.map((id) => ({
   id: `state.${id}`,
   kind: "NUMBER",
   visibility: "AVA_VISIBLE",
   authority: "READ_ONLY",
+  ...(nonnegativeStateVariables.has(id) ? { minimum: 0 } : {}),
   ...(percentVariables.has(id) ? { unit: "percent", minimum: 0, maximum: 100 } : {}),
 }));
 
@@ -241,14 +364,81 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
       arguments: [{ id: "subject", kind: "ENTITY_ID", required: true }],
       resourceVariables: [],
       durationPhases: 0,
+      constraintIds: [],
     },
     {
       id: "issue-order",
       label: "Prepare an authored campaign order",
       authority: "PREPARE",
-      arguments: [{ id: "actionId", kind: "ENTITY_ID", required: true }],
+      arguments: [
+        { id: "actionId", kind: "ENTITY_ID", required: true },
+        { id: "amount", kind: "NUMBER", required: true, variableId: "state.actions" },
+      ],
       resourceVariables: ["state.actions"],
       durationPhases: 1,
+      constraintIds: ["campaign-has-orders", "issue-order-capacity"],
+    },
+  ],
+  constraints: [
+    {
+      id: "campaign-has-orders",
+      label: "At least one strategic order remains",
+      scope: "PRECONDITION",
+      actionId: "issue-order",
+      expression: {
+        kind: "COMPARE",
+        left: { kind: "VARIABLE", variableId: "state.actions" },
+        operator: "GTE",
+        right: { kind: "LITERAL", value: 1 },
+      },
+      failure: "PREREQUISITE_BOUND",
+      repairs: [],
+    },
+    {
+      id: "issue-order-capacity",
+      label: "Requested orders do not exceed the visible order budget",
+      scope: "RESOURCE",
+      actionId: "issue-order",
+      expression: {
+        kind: "COMPARE",
+        left: { kind: "VARIABLE", variableId: "state.actions" },
+        operator: "GTE",
+        right: { kind: "BINDING", bindingId: "amount" },
+      },
+      failure: "RESOURCE_BOUND",
+      repairs: [
+        {
+          id: "cap-order-amount",
+          target: { kind: "BINDING", bindingId: "amount" },
+          value: { kind: "VARIABLE", variableId: "state.actions" },
+        },
+      ],
+    },
+    {
+      id: "front-survivable",
+      label: "The front remains above the declared loss line",
+      scope: "INVARIANT",
+      expression: {
+        kind: "COMPARE",
+        left: { kind: "VARIABLE", variableId: "state.front" },
+        operator: "GT",
+        right: { kind: "LITERAL", value: -12 },
+      },
+      failure: "IMPOSSIBLE",
+      repairs: [],
+    },
+    {
+      id: "atrocity-doctrine-limit",
+      label: "Atrocity exposure remains within command doctrine",
+      scope: "DOCTRINE",
+      expression: {
+        kind: "COMPARE",
+        left: { kind: "VARIABLE", variableId: "state.atrocityExposure" },
+        operator: "LTE",
+        right: { kind: "LITERAL", value: 90 },
+      },
+      failure: "FORBIDDEN",
+      repairs: [],
     },
   ],
 };

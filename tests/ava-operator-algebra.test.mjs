@@ -31,12 +31,12 @@ const program = (ctx, nodes, outputNodeId, extra = {}) => ({
   worldRevision: ctx.world.revision, authorityCeiling: "READ_ONLY", nodes, outputNodeId, ...extra,
 });
 
-test("operator registry contains exactly 55 unique typed routes and 31 intrinsic kernels", () => {
+test("operator registry contains exactly 55 unique typed routes with constraint execution authored", () => {
   const manifest = cognition.cognitiveOperatorManifest();
   assert.equal(manifest.count, 55);
   assert.equal(new Set(cognition.COGNITIVE_OPERATORS).size, 55);
-  assert.equal(manifest.intrinsic.length, 31);
-  assert.equal(manifest.adapted.length, 24);
+  assert.equal(manifest.intrinsic.length, 30);
+  assert.equal(manifest.adapted.length, 25);
   for (const operator of cognition.COGNITIVE_OPERATORS)
     assert.equal(cognition.COGNITIVE_OPERATOR_REGISTRY.get(operator).id, operator);
 });
