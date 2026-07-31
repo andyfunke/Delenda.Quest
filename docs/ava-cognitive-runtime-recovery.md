@@ -152,3 +152,28 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 4 — canonical proof and explanation graph reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `b84c1ae`
+- State: reconstructed and verified atop Savepoint 3
+- Scope:
+  - one immutable, digest-sealed proof graph for advisory, operator execution,
+    Terminal, and Nexus response envelopes
+  - completed and blocked execution retention for evidence, provenance,
+    assumptions, operator lineage, obligations, authority, and blockers
+  - concise, operational, full-proof, counterfactual, diagnostic, and receipt
+    selectors that can emit only graph-backed claims
+  - replay verification for execution digests and fail-closed forged, dangling,
+    orphaned, altered, or hidden proof material
+  - surface-independent graph identity across equivalent web, SSH, and MCP
+    requests
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 99/99 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

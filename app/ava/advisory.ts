@@ -16,6 +16,10 @@ import type {
   AvaSemanticQuery,
 } from "./schema";
 import { projectAvaEnvelope } from "./projection";
+import {
+  buildAdvisoryProofGraph,
+  type CanonicalProofGraph,
+} from "./proof-graph";
 
 export type AvaEvaluatedAction = {
   descriptor: AvaActionDescriptor;
@@ -378,6 +382,7 @@ export type AvaSemanticAnswer = {
   answerPlan: AvaAnswerPlan;
   discourse: AvaDiscourseState;
   retrievedFacts: string[];
+  proofGraph: CanonicalProofGraph;
 };
 
 const planBase = (
@@ -398,12 +403,12 @@ const planBase = (
   clauseIds: [],
 });
 
-export const answerSemanticQuery = (
+const answerSemanticQueryUnproven = (
   state: GameState,
   query: AvaSemanticQuery,
   discourse: AvaDiscourseState,
   opportunityFraction = 0,
-): AvaSemanticAnswer => {
+): Omit<AvaSemanticAnswer, "proofGraph"> => {
   const situation = situationForState(state);
   if (query.polarity === "NEGATED" && query.operation === "CORRECT") {
     const narrative = chooseNarrative("refusal", discourse, state.day);
@@ -734,5 +739,28 @@ export const answerSemanticQuery = (
         `structure:${structureId}`,
       ].slice(-40),
     },
+  };
+};
+
+export const answerSemanticQuery = (
+  state: GameState,
+  query: AvaSemanticQuery,
+  discourse: AvaDiscourseState,
+  opportunityFraction = 0,
+): AvaSemanticAnswer => {
+  const answer = answerSemanticQueryUnproven(
+    state,
+    query,
+    discourse,
+    opportunityFraction,
+  );
+  return {
+    ...answer,
+    proofGraph: buildAdvisoryProofGraph({
+      worldRevision: avaStateRevision(state),
+      semantic: query,
+      answerPlan: answer.answerPlan,
+      retrievedFacts: answer.retrievedFacts,
+    }),
   };
 };

@@ -67,6 +67,10 @@ import {
   executeAvaAction,
   executeAvaPlan,
 } from "./runtime";
+import {
+  buildNexusProofGraph,
+  type CanonicalProofGraph,
+} from "./proof-graph";
 
 type DirectiveChannel = Extract<
   Channel,
@@ -222,6 +226,7 @@ export type AvaNexusResult = {
   text: string;
   compile?: AvaCompileResult;
   terminalResult?: AvaTerminalResult;
+  proofGraph: CanonicalProofGraph;
 };
 
 export type AvaKernelResult = AvaNexusResult;
@@ -469,7 +474,7 @@ const oldAvaResponse = (
   campaignRevision: revisionOf(result.state ?? state),
 });
 
-type AvaNexusExecutionResult = Omit<AvaNexusResult, "envelope">;
+type AvaNexusExecutionResult = Omit<AvaNexusResult, "envelope" | "proofGraph">;
 
 const prepareDirective = (
   ctx: PlayerContext,
@@ -565,10 +570,19 @@ const withEnvelope = (
     request.kind === "instruction" ? request.semantic : undefined;
   const trace = request.kind === "instruction" ? request.trace : undefined;
   const compile = options.compile ?? result.compile;
+  const terminalResult = options.terminalResult ?? result.terminalResult;
+  const proofGraph =
+    terminalResult?.proofGraph ??
+    buildNexusProofGraph({
+      worldRevision: result.response.campaignRevision,
+      request,
+      response: result.response,
+    });
   return {
     ...result,
     compile,
-    terminalResult: options.terminalResult ?? result.terminalResult,
+    terminalResult,
+    proofGraph,
     envelope: {
       requestKind: request.kind,
       instructionKind:
@@ -579,9 +593,10 @@ const withEnvelope = (
       trace,
       compile,
       response: result.response,
+      proofGraph,
       presentation: terminalPresentation(
         result.text,
-        options.terminalResult ?? result.terminalResult,
+        terminalResult,
       ),
     },
   };

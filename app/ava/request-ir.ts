@@ -23,6 +23,7 @@ import type {
 } from "./schema";
 import { semanticQueriesEqual } from "./grammar-compiler";
 import { genericSemanticQuery } from "./grammar";
+import type { CanonicalProofGraph } from "./proof-graph";
 
 export type AvaRequestOrigin =
   | "browser-text"
@@ -152,6 +153,7 @@ export type AvaResponseEnvelope = {
   trace?: AvaCompilerTrace;
   compile?: AvaCompileResult;
   response: SemanticResponse<unknown>;
+  proofGraph: CanonicalProofGraph;
   presentation: AvaEnvelopePresentation;
 };
 

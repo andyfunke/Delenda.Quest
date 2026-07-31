@@ -4,3 +4,4 @@ export * from "./world-model";
 export * from "./surface-ast";
 export * from "./resolved-semantic-tree";
 export * from "./operator-algebra";
+export * from "./proof-graph";

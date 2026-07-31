@@ -44,6 +44,7 @@ import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
 import { answerSemanticQuery } from "./advisory";
 import { projectAvaEnvelope } from "./projection";
 import type { AvaDarkNetContext } from "./darknet";
+import type { CanonicalProofGraph } from "./proof-graph";
 import type {
   AvaAnswerPlan,
   AvaCompilerTrace,
@@ -83,11 +84,13 @@ export type AvaTerminalResult = {
     stateRevision: string;
   };
   answerPlan?: AvaAnswerPlan;
+  proofGraph?: CanonicalProofGraph;
   trace?: {
     compiler?: AvaCompilerTrace;
     semantic?: AvaSemanticQuery;
     retrievedFacts: string[];
     answerPlan?: AvaAnswerPlan;
+    proofGraph?: CanonicalProofGraph;
     renderedResponse: string;
   };
 };
@@ -571,10 +574,12 @@ function executeAvaInstruction(
     const next = { ...session, discourse: answer.discourse };
     return finalize(state, next, withHeader(state, answer.text), {
       answerPlan: answer.answerPlan,
+      proofGraph: answer.proofGraph,
       trace: {
         semantic: instruction.query,
         retrievedFacts: answer.retrievedFacts,
         answerPlan: answer.answerPlan,
+        proofGraph: answer.proofGraph,
         renderedResponse: answer.text,
       },
     });
@@ -735,9 +740,11 @@ function executeAvaInstruction(
       withHeader(state, answer.text),
       {
         answerPlan: answer.answerPlan,
+        proofGraph: answer.proofGraph,
         trace: {
           retrievedFacts: answer.retrievedFacts,
           answerPlan: answer.answerPlan,
+          proofGraph: answer.proofGraph,
           renderedResponse: answer.text,
         },
       },
@@ -1304,6 +1311,7 @@ export function runAvaInstruction(
       semantic: query,
       retrievedFacts: result.trace?.retrievedFacts ?? [],
       answerPlan: result.answerPlan,
+      proofGraph: result.proofGraph,
       renderedResponse: voiced,
     },
   };
