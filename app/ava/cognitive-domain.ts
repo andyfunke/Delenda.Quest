@@ -131,6 +131,28 @@ export type CognitiveEpistemicPolicySpec = {
   downweightFactors: Readonly<Record<"DEPENDENT" | "AGED", number>>;
 };
 
+export type CognitiveDecisionMetricSpec = {
+  id: string;
+  variableId: string;
+  direction: "MAXIMIZE" | "MINIMIZE";
+  minimum: number;
+  maximum: number;
+};
+
+export type CognitiveDecisionModelSpec = {
+  id: string;
+  objectives: readonly {
+    metricId: string;
+    weight: number;
+    hardMinimum?: number;
+  }[];
+};
+
+export type CognitiveDecisionPolicySpec = {
+  metrics: readonly CognitiveDecisionMetricSpec[];
+  models: readonly CognitiveDecisionModelSpec[];
+};
+
 export type CognitiveDomainSpec = {
   id: string;
   version: string;
@@ -141,6 +163,7 @@ export type CognitiveDomainSpec = {
   temporal: CognitiveTemporalPolicySpec;
   causal: CognitiveCausalPolicySpec;
   epistemic: CognitiveEpistemicPolicySpec;
+  decision: CognitiveDecisionPolicySpec;
 };
 
 export type CompiledCognitiveDomain = {
@@ -157,6 +180,10 @@ export type CompiledCognitiveDomain = {
     order: readonly string[];
   };
   epistemic: CognitiveEpistemicPolicySpec;
+  decision: {
+    metrics: ReadonlyMap<string, CognitiveDecisionMetricSpec>;
+    models: ReadonlyMap<string, CognitiveDecisionModelSpec>;
+  };
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
@@ -165,6 +192,8 @@ export type CompiledCognitiveDomain = {
     constraintIds: readonly string[];
     causalEquationIds: readonly string[];
     epistemicPolicyId: string;
+    decisionMetricIds: readonly string[];
+    decisionModelIds: readonly string[];
   };
 };
 
@@ -432,6 +461,37 @@ export const compileCognitiveDomain = (
     if (!Number.isFinite(factor) || factor <= 0 || factor > 1)
       throw new Error(`${source.epistemic.id}: ${reason} downweight is outside (0,1]`);
 
+  const decisionMetricIds = source.decision.metrics.map((metric) => metric.id);
+  const decisionModelIds = source.decision.models.map((model) => model.id);
+  if (!decisionMetricIds.length || !uniqueStrings(decisionMetricIds))
+    throw new Error(`${source.id}: decision metrics must be nonempty and unique`);
+  if (!decisionModelIds.length || !uniqueStrings(decisionModelIds))
+    throw new Error(`${source.id}: decision models must be nonempty and unique`);
+  const metricSet = new Set(decisionMetricIds);
+  for (const metric of source.decision.metrics) {
+    assertIdentifier(metric.id, "decision metric");
+    if (source.variables.find((variable) => variable.id === metric.variableId)?.kind !== "NUMBER")
+      throw new Error(`${metric.id}: decision metric requires a compiled numeric variable`);
+    if (!Number.isFinite(metric.minimum) || !Number.isFinite(metric.maximum) || metric.maximum <= metric.minimum)
+      throw new Error(`${metric.id}: decision normalization range is invalid`);
+  }
+  for (const model of source.decision.models) {
+    assertIdentifier(model.id, "decision model");
+    const objectiveIds = model.objectives.map((objective) => objective.metricId);
+    if (!objectiveIds.length || !uniqueStrings(objectiveIds))
+      throw new Error(`${model.id}: decision objectives must be nonempty and unique`);
+    let weight = 0;
+    for (const objective of model.objectives) {
+      if (!metricSet.has(objective.metricId)) throw new Error(`${model.id}: unknown metric ${objective.metricId}`);
+      if (!Number.isFinite(objective.weight) || objective.weight < 0)
+        throw new Error(`${model.id}: objective weight is invalid`);
+      if (objective.hardMinimum !== undefined && !Number.isFinite(objective.hardMinimum))
+        throw new Error(`${model.id}: hard objective is invalid`);
+      weight += objective.weight;
+    }
+    if (Math.abs(weight - 1) > 1e-9) throw new Error(`${model.id}: objective weights must sum to one`);
+  }
+
   const snapshot = cloneCognitive({
     ...source,
     variables: [...source.variables].sort((a, b) => a.id.localeCompare(b.id)),
@@ -442,6 +502,10 @@ export const compileCognitiveDomain = (
       equations: [...source.causal.equations].sort((a, b) => a.id.localeCompare(b.id)),
     },
     epistemic: source.epistemic,
+    decision: {
+      metrics: [...source.decision.metrics].sort((a, b) => a.id.localeCompare(b.id)),
+      models: [...source.decision.models].sort((a, b) => a.id.localeCompare(b.id)),
+    },
   });
   return {
     id: source.id,
@@ -457,6 +521,10 @@ export const compileCognitiveDomain = (
       order: equationOrder,
     },
     epistemic: snapshot.epistemic,
+    decision: {
+      metrics: new Map(snapshot.decision.metrics.map((item) => [item.id, item])),
+      models: new Map(snapshot.decision.models.map((item) => [item.id, item])),
+    },
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -467,6 +535,8 @@ export const compileCognitiveDomain = (
       constraintIds: [...constraintIds].sort(),
       causalEquationIds: [...equationIds].sort(),
       epistemicPolicyId: snapshot.epistemic.id,
+      decisionMetricIds: [...decisionMetricIds].sort(),
+      decisionModelIds: [...decisionModelIds].sort(),
     },
   };
 };
@@ -660,6 +730,31 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
     contradictionRule: "PRESERVE_SUPPORT_AND_REFUTATION",
     marginalizationModelId: "FINITE_HYPOTHESIS_SUM",
     downweightFactors: { DEPENDENT: 0.5, AGED: 0.5 },
+  },
+  decision: {
+    metrics: [
+      { id: "readiness", variableId: "state.readiness", direction: "MAXIMIZE", minimum: 0, maximum: 100 },
+      { id: "front", variableId: "state.front", direction: "MAXIMIZE", minimum: -12, maximum: 12 },
+      { id: "treasury", variableId: "state.treasury", direction: "MAXIMIZE", minimum: 0, maximum: 100 },
+    ],
+    models: [
+      {
+        id: "strategic-balance",
+        objectives: [
+          { metricId: "readiness", weight: 0.4 },
+          { metricId: "front", weight: 0.4, hardMinimum: -12 },
+          { metricId: "treasury", weight: 0.2 },
+        ],
+      },
+      {
+        id: "front-priority",
+        objectives: [
+          { metricId: "readiness", weight: 0.2 },
+          { metricId: "front", weight: 0.7, hardMinimum: -12 },
+          { metricId: "treasury", weight: 0.1 },
+        ],
+      },
+    ],
   },
 };
 

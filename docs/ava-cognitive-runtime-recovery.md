@@ -277,3 +277,28 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 9 — decision and tradeoff engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `5dbbfdc`
+- State: reconstructed and verified atop Savepoint 8
+- Scope:
+  - compiler-approved metrics, normalization ranges, objective weights, hard
+    objectives, and sensitivity models
+  - feasibility replay against authoritative state with scenario projections
+    isolated from mutation authority
+  - interval-aware utility, robust ranking, worst-case regret, tradeoffs, and
+    metric-wise Pareto dominance
+  - replayed falsification and compiler-bounded sensitivity instead of
+    caller-supplied analysis or weights
+  - permissive intrinsic comparison, scoring, and ranking kernels removed
+  - proof-bearing authored adapters for all eight decision primitives
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 137/137 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

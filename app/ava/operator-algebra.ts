@@ -116,8 +116,7 @@ const coreIntrinsic = new Set<CognitiveOperator>([
   "DELTA",
 ]);
 const genericIntrinsic = new Set<CognitiveOperator>([
-  "COMPARE", "SCORE", "RANK", "BRANCH",
-  "RESERVE", "TERMINATE",
+  "BRANCH", "RESERVE", "TERMINATE",
 ]);
 
 const categories: Record<CognitiveOperator, CognitiveOperatorSpec["category"]> = {
@@ -174,9 +173,14 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
   BOUND: [{ id: "request", kind: "RECORD" }],
   DOWNWEIGHT: [{ id: "request", kind: "RECORD" }],
   MARGINALIZE: [{ id: "request", kind: "RECORD" }],
-  COMPARE: [{ id: "left", kind: "NUMBER" }, { id: "right", kind: "NUMBER" }],
-  SCORE: [{ id: "values", kind: "LIST" }, { id: "weights", kind: "LIST" }],
-  RANK: [{ id: "values", kind: "LIST" }],
+  COMPARE: [{ id: "request", kind: "RECORD" }],
+  SCORE: [{ id: "request", kind: "RECORD" }],
+  RANK: [{ id: "request", kind: "RECORD" }],
+  OPTIMIZE: [{ id: "request", kind: "RECORD" }],
+  DOMINANCE: [{ id: "request", kind: "RECORD" }],
+  PARETO: [{ id: "request", kind: "RECORD" }],
+  FALSIFY: [{ id: "request", kind: "RECORD" }],
+  SENSITIVITY: [{ id: "request", kind: "RECORD" }],
   BRANCH: [{ id: "condition", kind: "BOOLEAN" }, { id: "whenTrue", kind: "ANY" }, { id: "whenFalse", kind: "ANY" }],
   RESERVE: [{ id: "resource", kind: "STRING" }, { id: "amount", kind: "NUMBER" }],
   TERMINATE: [{ id: "condition", kind: "BOOLEAN" }],
@@ -184,13 +188,14 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
 
 const defaultInputs: readonly CognitiveInputSpec[] = [{ id: "value", kind: "ANY" }];
 const outputKind = (operator: CognitiveOperator): CognitiveDatumKind => {
-  if (["COUNT","SUM","AVERAGE","MINIMUM","MAXIMUM","NORMALIZE","CLAMP","RATIO","DELTA","SCORE"].includes(operator)) return "NUMBER";
+  if (["COUNT","SUM","AVERAGE","MINIMUM","MAXIMUM","NORMALIZE","CLAMP","RATIO","DELTA"].includes(operator)) return "NUMBER";
   if (["TERMINATE"].includes(operator)) return "BOOLEAN";
-  if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE","RANK"].includes(operator)) return "LIST";
+  if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE"].includes(operator)) return "LIST";
   if ([
     "JOIN","DELAY","SEQUENCE","COMPARE","BRANCH","RESERVE","FORECAST","INTERVENE",
     "COUNTERFACTUAL","PROPAGATE_EFFECT","FIND_CAUSE","CORROBORATE","DISPUTE",
-    "ASSUME","BOUND","DOWNWEIGHT","MARGINALIZE","OPTIMIZE","SENSITIVITY",
+    "ASSUME","BOUND","DOWNWEIGHT","MARGINALIZE","COMPARE","SCORE","RANK",
+    "OPTIMIZE","DOMINANCE","PARETO","FALSIFY","SENSITIVITY",
     "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","EXPLAIN","SATISFY",
     "CHECK_PRECONDITION",
   ].includes(operator)) return "RECORD";
