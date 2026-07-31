@@ -16,7 +16,8 @@ SSH_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ssh-server.XXXXXX.mjs")"
 NEXUS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-nexus.XXXXXX.mjs")"
 COMPILER_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-compiler.XXXXXX.mjs")"
 GAME_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-substrate-game.XXXXXX.mjs")"
-trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE"' EXIT
+COGNITIVE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-cognitive.XXXXXX.mjs")"
+trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/substrate/gates.ts --bundle --platform=node --format=esm --outfile="$GATE_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/substrate/docket.ts --bundle --platform=node --format=esm --outfile="$DOCKET_BUNDLE" >/dev/null
@@ -31,6 +32,7 @@ node_modules/.bin/esbuild packages/ssh-server/src/index.ts --bundle --platform=n
 node_modules/.bin/esbuild app/ava/nexus.ts --bundle --platform=node --format=esm --outfile="$NEXUS_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$COMPILER_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/game.ts --bundle --platform=node --format=esm --outfile="$GAME_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/ava/cognitive-runtime.ts --bundle --platform=node --format=esm --outfile="$COGNITIVE_BUNDLE" >/dev/null
 
 DELENDA_SUBSTRATE_GATES_BUNDLE="file://$GATE_BUNDLE" \
 DELENDA_SUBSTRATE_DOCKET_BUNDLE="file://$DOCKET_BUNDLE" \
@@ -45,4 +47,5 @@ DELENDA_SSH_SERVER_BUNDLE="file://$SSH_BUNDLE" \
 DELENDA_AVA_NEXUS_BUNDLE="file://$NEXUS_BUNDLE" \
 DELENDA_AVA_COMPILER_BUNDLE="file://$COMPILER_BUNDLE" \
 DELENDA_SUBSTRATE_GAME_BUNDLE="file://$GAME_BUNDLE" \
-node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/ava-nexus.test.mjs
+DELENDA_AVA_COGNITIVE_BUNDLE="file://$COGNITIVE_BUNDLE" \
+node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs

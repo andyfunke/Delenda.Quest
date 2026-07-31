@@ -78,3 +78,25 @@ For every subsequent epoch:
 6. Verify the remote branch resolves to the committed object.
 7. Append the new savepoint below; never rewrite an older entry to make later
    work appear complete.
+
+## Savepoint 1 — dependencies 1–3 reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `345fdfe`
+- State: reconstructed and verified from the surviving compiler/Nexus base
+- Scope:
+  - closed, versioned cognitive domain compiler and manifest
+  - typed campaign world snapshots with revision, provenance, uncertainty,
+    lineage, visibility, and authoritative GameState projection
+  - canonical Surface AST with lexeme spans, clause ownership, deterministic
+    concept activation, and compiler-bounded suggestion validation
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 78/78 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved
+- Production deployment: blocked pending restoration of Cloudflare
+  authentication; source is safe to deploy without configuration changes
