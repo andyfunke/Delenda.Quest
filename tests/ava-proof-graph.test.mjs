@@ -98,7 +98,7 @@ test("blocked operator programs retain their adapter blocker and missing obligat
   const compiled = program(ctx, [{
     id: "forecast",
     operator: "FORECAST",
-    inputs: { value: { kind: "LITERAL", datum: datum({ horizon: "short" }) } },
+    inputs: { request: { kind: "LITERAL", datum: datum({ horizon: "short" }) } },
   }], "forecast");
   const result = cognition.executeCognitiveProgram(compiled, ctx);
   const graph = cognition.buildOperatorProofGraph({ program: compiled, result, world: ctx.world });

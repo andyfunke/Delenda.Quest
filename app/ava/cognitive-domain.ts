@@ -93,6 +93,18 @@ export type CognitiveConstraintSpec = {
   repairs: readonly CognitiveConstraintRepairSpec[];
 };
 
+export type CognitiveTemporalPolicySpec = {
+  phaseOrder: readonly string[];
+  projectionLimitPhases: number;
+  defaultFreshnessDays: number;
+  intervalSemantics: "CLOSED_OPEN";
+  horizons: readonly {
+    id: string;
+    startPhase: number;
+    endPhase: number;
+  }[];
+};
+
 export type CognitiveDomainSpec = {
   id: string;
   version: string;
@@ -100,6 +112,7 @@ export type CognitiveDomainSpec = {
   concepts: readonly CognitiveConceptSpec[];
   actions: readonly CognitiveActionSpec[];
   constraints: readonly CognitiveConstraintSpec[];
+  temporal: CognitiveTemporalPolicySpec;
 };
 
 export type CompiledCognitiveDomain = {
@@ -110,6 +123,7 @@ export type CompiledCognitiveDomain = {
   concepts: ReadonlyMap<string, CognitiveConceptSpec>;
   actions: ReadonlyMap<string, CognitiveActionSpec>;
   constraints: ReadonlyMap<string, CognitiveConstraintSpec>;
+  temporal: CognitiveTemporalPolicySpec;
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
@@ -269,6 +283,35 @@ export const compileCognitiveDomain = (
       validateOperand(repair.value, constraint);
     }
   }
+  if (!source.temporal.phaseOrder.length || !uniqueStrings(source.temporal.phaseOrder))
+    throw new Error(`${source.id}: temporal phase order must be nonempty and unique`);
+  if (
+    !Number.isInteger(source.temporal.projectionLimitPhases) ||
+    source.temporal.projectionLimitPhases < 1
+  )
+    throw new Error(`${source.id}: temporal projection limit must be positive`);
+  if (
+    !Number.isInteger(source.temporal.defaultFreshnessDays) ||
+    source.temporal.defaultFreshnessDays < 0
+  )
+    throw new Error(`${source.id}: temporal freshness must be nonnegative`);
+  const horizonIds = source.temporal.horizons.map((horizon) => horizon.id);
+  if (!source.temporal.horizons.length || !uniqueStrings(horizonIds))
+    throw new Error(`${source.id}: temporal horizons must be nonempty and unique`);
+  let nextPhase = 0;
+  for (const horizon of source.temporal.horizons) {
+    assertIdentifier(horizon.id, "temporal horizon");
+    if (
+      !Number.isInteger(horizon.startPhase) ||
+      !Number.isInteger(horizon.endPhase) ||
+      horizon.startPhase !== nextPhase ||
+      horizon.endPhase <= horizon.startPhase
+    )
+      throw new Error(`${source.id}: temporal horizons overlap or contain a gap`);
+    nextPhase = horizon.endPhase;
+  }
+  if (nextPhase !== source.temporal.projectionLimitPhases)
+    throw new Error(`${source.id}: temporal horizons must cover the projection limit`);
 
   const snapshot = cloneCognitive({
     ...source,
@@ -285,6 +328,7 @@ export const compileCognitiveDomain = (
     concepts: new Map(snapshot.concepts.map((item) => [item.id, item])),
     actions: new Map(snapshot.actions.map((item) => [item.id, item])),
     constraints: new Map(snapshot.constraints.map((item) => [item.id, item])),
+    temporal: snapshot.temporal,
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -441,6 +485,18 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
       repairs: [],
     },
   ],
+  temporal: {
+    phaseOrder: ["DAWN", "COMMAND", "ACTION", "RESOLUTION"],
+    projectionLimitPhases: 16,
+    defaultFreshnessDays: 1,
+    intervalSemantics: "CLOSED_OPEN",
+    horizons: [
+      { id: "immediate", startPhase: 0, endPhase: 1 },
+      { id: "current-day", startPhase: 1, endPhase: 4 },
+      { id: "near", startPhase: 4, endPhase: 8 },
+      { id: "operational", startPhase: 8, endPhase: 16 },
+    ],
+  },
 };
 
 export const DELENDA_COGNITIVE_DOMAIN = compileCognitiveDomain(

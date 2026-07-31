@@ -116,7 +116,7 @@ const coreIntrinsic = new Set<CognitiveOperator>([
   "DELTA",
 ]);
 const genericIntrinsic = new Set<CognitiveOperator>([
-  "SEQUENCE", "DELAY", "COMPARE", "SCORE", "RANK", "BRANCH",
+  "COMPARE", "SCORE", "RANK", "BRANCH",
   "RESERVE", "TERMINATE",
 ]);
 
@@ -160,8 +160,9 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
   JOIN: [{ id: "left", kind: "RECORD" }, { id: "right", kind: "RECORD" }],
   SATISFY: [{ id: "request", kind: "RECORD" }],
   CHECK_PRECONDITION: [{ id: "request", kind: "RECORD" }],
-  SEQUENCE: [{ id: "values", kind: "LIST" }],
-  DELAY: [{ id: "value", kind: "ANY" }, { id: "phases", kind: "NUMBER" }],
+  SEQUENCE: [{ id: "request", kind: "RECORD" }],
+  FORECAST: [{ id: "request", kind: "RECORD" }],
+  DELAY: [{ id: "request", kind: "RECORD" }],
   COMPARE: [{ id: "left", kind: "NUMBER" }, { id: "right", kind: "NUMBER" }],
   SCORE: [{ id: "values", kind: "LIST" }, { id: "weights", kind: "LIST" }],
   RANK: [{ id: "values", kind: "LIST" }],
@@ -174,9 +175,9 @@ const defaultInputs: readonly CognitiveInputSpec[] = [{ id: "value", kind: "ANY"
 const outputKind = (operator: CognitiveOperator): CognitiveDatumKind => {
   if (["COUNT","SUM","AVERAGE","MINIMUM","MAXIMUM","NORMALIZE","CLAMP","RATIO","DELTA","SCORE"].includes(operator)) return "NUMBER";
   if (["TERMINATE"].includes(operator)) return "BOOLEAN";
-  if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE","SEQUENCE","RANK"].includes(operator)) return "LIST";
+  if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE","RANK"].includes(operator)) return "LIST";
   if ([
-    "JOIN","DELAY","COMPARE","BRANCH","RESERVE","FORECAST","INTERVENE",
+    "JOIN","DELAY","SEQUENCE","COMPARE","BRANCH","RESERVE","FORECAST","INTERVENE",
     "COUNTERFACTUAL","PROPAGATE_EFFECT","FIND_CAUSE","CORROBORATE","DISPUTE",
     "ASSUME","BOUND","DOWNWEIGHT","MARGINALIZE","OPTIMIZE","SENSITIVITY",
     "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","EXPLAIN","SATISFY",

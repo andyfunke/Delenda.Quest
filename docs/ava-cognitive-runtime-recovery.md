@@ -201,3 +201,28 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 6 — temporal engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `da50c45`
+- State: reconstructed and verified atop Savepoint 5
+- Scope:
+  - compiled campaign phase order, closed-open intervals, contiguous named
+    horizons, projection limits, and evidence freshness policy
+  - all thirteen interval relations plus serial and dependency scheduling
+  - deadlines, slack, exclusive resources, cycles, and cumulative projection
+    conflicts
+  - five evidence-age states without confusing historical records with stale
+    evidence
+  - scenario-bound forecast envelopes whose outcome semantics remain explicitly
+    `UNBOUND`
+  - proof-bearing authored adapters for `SEQUENCE`, `FORECAST`, and `DELAY`
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 114/114 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

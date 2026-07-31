@@ -35,8 +35,8 @@ test("operator registry contains exactly 55 unique typed routes with constraint 
   const manifest = cognition.cognitiveOperatorManifest();
   assert.equal(manifest.count, 55);
   assert.equal(new Set(cognition.COGNITIVE_OPERATORS).size, 55);
-  assert.equal(manifest.intrinsic.length, 30);
-  assert.equal(manifest.adapted.length, 25);
+  assert.equal(manifest.intrinsic.length, 28);
+  assert.equal(manifest.adapted.length, 27);
   for (const operator of cognition.COGNITIVE_OPERATORS)
     assert.equal(cognition.COGNITIVE_OPERATOR_REGISTRY.get(operator).id, operator);
 });
@@ -63,7 +63,7 @@ test("unbound authored operators block at their named adapter without fabricatin
   const ctx = context();
   const result = cognition.executeCognitiveProgram(program(ctx, [{
     id: "forecast", operator: "FORECAST",
-    inputs: { value: { kind: "LITERAL", datum: datum({ horizon: "short" }) } },
+    inputs: { request: { kind: "LITERAL", datum: datum({ horizon: "short" }) } },
   }], "forecast"), ctx);
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.output, undefined);
@@ -104,7 +104,7 @@ test("world revision, semantic digest, hidden facts, and authority all fail clos
 
 test("bound adapters must honor output type, authority, and evidence contracts", () => {
   const ctx = context();
-  const p = program(ctx, [{ id: "forecast", operator: "FORECAST", inputs: { value: { kind: "LITERAL", datum: datum({ horizon: "short" }) } } }], "forecast");
+  const p = program(ctx, [{ id: "forecast", operator: "FORECAST", inputs: { request: { kind: "LITERAL", datum: datum({ horizon: "short" }) } } }], "forecast");
   const wrongType = cognition.executeCognitiveProgram(p, { ...ctx, adapters: {
     "temporal-engine": () => ({ datum: datum(1), evidence: [] }),
   } });
