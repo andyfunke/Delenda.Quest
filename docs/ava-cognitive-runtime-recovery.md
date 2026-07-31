@@ -226,3 +226,30 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 7 — causal and counterfactual engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `f041cb8`
+- State: reconstructed and verified atop Savepoint 6
+- Scope:
+  - compiler-approved acyclic structural equations with bounded delays,
+    coefficients, clamps, and deterministic topological evaluation
+  - surgical, scenario-scoped interventions that sever incoming equations for
+    intervened variables
+  - baseline-versus-counterfactual propagation with explicit causal lineage,
+    assumptions, source facts, and temporal delays
+  - cause identification only by replaying an original intervention request;
+    observational evidence remains candidates-only
+  - hidden, stale, irrelevant, contradictory, malformed, or fabricated causal
+    evidence rejected fail-closed
+  - proof-bearing authored adapters for `INTERVENE`, `COUNTERFACTUAL`,
+    `PROPAGATE_EFFECT`, and `FIND_CAUSE`
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 121/121 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

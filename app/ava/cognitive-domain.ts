@@ -105,6 +105,20 @@ export type CognitiveTemporalPolicySpec = {
   }[];
 };
 
+export type CognitiveCausalEquationSpec = {
+  id: string;
+  targetVariableId: string;
+  inputs: readonly { variableId: string; coefficient: number }[];
+  intercept: number;
+  minimum?: number;
+  maximum?: number;
+  delayPhases: number;
+};
+
+export type CognitiveCausalPolicySpec = {
+  equations: readonly CognitiveCausalEquationSpec[];
+};
+
 export type CognitiveDomainSpec = {
   id: string;
   version: string;
@@ -113,6 +127,7 @@ export type CognitiveDomainSpec = {
   actions: readonly CognitiveActionSpec[];
   constraints: readonly CognitiveConstraintSpec[];
   temporal: CognitiveTemporalPolicySpec;
+  causal: CognitiveCausalPolicySpec;
 };
 
 export type CompiledCognitiveDomain = {
@@ -124,12 +139,17 @@ export type CompiledCognitiveDomain = {
   actions: ReadonlyMap<string, CognitiveActionSpec>;
   constraints: ReadonlyMap<string, CognitiveConstraintSpec>;
   temporal: CognitiveTemporalPolicySpec;
+  causal: {
+    equations: ReadonlyMap<string, CognitiveCausalEquationSpec>;
+    order: readonly string[];
+  };
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
     conceptIds: readonly string[];
     actionIds: readonly string[];
     constraintIds: readonly string[];
+    causalEquationIds: readonly string[];
   };
 };
 
@@ -313,12 +333,71 @@ export const compileCognitiveDomain = (
   if (nextPhase !== source.temporal.projectionLimitPhases)
     throw new Error(`${source.id}: temporal horizons must cover the projection limit`);
 
+  const equationIds = source.causal.equations.map((equation) => equation.id);
+  if (!uniqueStrings(equationIds)) throw new Error(`${source.id}: duplicate causal equation id`);
+  const targetOwners = new Map<string, string>();
+  for (const equation of source.causal.equations) {
+    assertIdentifier(equation.id, "causal equation");
+    if (!variableSet.has(equation.targetVariableId))
+      throw new Error(`${equation.id}: unknown causal target ${equation.targetVariableId}`);
+    if (targetOwners.has(equation.targetVariableId))
+      throw new Error(`${equation.id}: duplicate causal target ${equation.targetVariableId}`);
+    targetOwners.set(equation.targetVariableId, equation.id);
+    if (!equation.inputs.length || !uniqueStrings(equation.inputs.map((input) => input.variableId)))
+      throw new Error(`${equation.id}: causal inputs must be nonempty and unique`);
+    for (const input of equation.inputs) {
+      if (!variableSet.has(input.variableId))
+        throw new Error(`${equation.id}: unknown causal input ${input.variableId}`);
+      if (!Number.isFinite(input.coefficient))
+        throw new Error(`${equation.id}: causal coefficient must be finite`);
+    }
+    if (!Number.isFinite(equation.intercept))
+      throw new Error(`${equation.id}: causal intercept must be finite`);
+    if (
+      equation.minimum !== undefined &&
+      equation.maximum !== undefined &&
+      equation.minimum > equation.maximum
+    )
+      throw new Error(`${equation.id}: causal range is inverted`);
+    if (
+      !Number.isInteger(equation.delayPhases) ||
+      equation.delayPhases < 0 ||
+      equation.delayPhases > source.temporal.projectionLimitPhases
+    )
+      throw new Error(`${equation.id}: causal delay exceeds temporal policy`);
+  }
+  const equationByTarget = new Map(
+    source.causal.equations.map((equation) => [equation.targetVariableId, equation]),
+  );
+  const equationOrder: string[] = [];
+  const equationVisiting = new Set<string>();
+  const equationVisited = new Set<string>();
+  const visitEquation = (equation: CognitiveCausalEquationSpec) => {
+    if (equationVisiting.has(equation.id))
+      throw new Error(`${source.id}: causal graph contains a cycle at ${equation.id}`);
+    if (equationVisited.has(equation.id)) return;
+    equationVisiting.add(equation.id);
+    for (const input of equation.inputs) {
+      const parent = equationByTarget.get(input.variableId);
+      if (parent) visitEquation(parent);
+    }
+    equationVisiting.delete(equation.id);
+    equationVisited.add(equation.id);
+    equationOrder.push(equation.id);
+  };
+  [...source.causal.equations]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .forEach(visitEquation);
+
   const snapshot = cloneCognitive({
     ...source,
     variables: [...source.variables].sort((a, b) => a.id.localeCompare(b.id)),
     concepts: [...source.concepts].sort((a, b) => a.id.localeCompare(b.id)),
     actions: [...source.actions].sort((a, b) => a.id.localeCompare(b.id)),
     constraints: [...source.constraints].sort((a, b) => a.id.localeCompare(b.id)),
+    causal: {
+      equations: [...source.causal.equations].sort((a, b) => a.id.localeCompare(b.id)),
+    },
   });
   return {
     id: source.id,
@@ -329,6 +408,10 @@ export const compileCognitiveDomain = (
     actions: new Map(snapshot.actions.map((item) => [item.id, item])),
     constraints: new Map(snapshot.constraints.map((item) => [item.id, item])),
     temporal: snapshot.temporal,
+    causal: {
+      equations: new Map(snapshot.causal.equations.map((item) => [item.id, item])),
+      order: equationOrder,
+    },
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -337,6 +420,7 @@ export const compileCognitiveDomain = (
       conceptIds: [...conceptIds].sort(),
       actionIds: [...actionIds].sort(),
       constraintIds: [...constraintIds].sort(),
+      causalEquationIds: [...equationIds].sort(),
     },
   };
 };
@@ -495,6 +579,29 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
       { id: "current-day", startPhase: 1, endPhase: 4 },
       { id: "near", startPhase: 4, endPhase: 8 },
       { id: "operational", startPhase: 8, endPhase: 16 },
+    ],
+  },
+  causal: {
+    equations: [
+      {
+        id: "readiness-from-support",
+        targetVariableId: "state.readiness",
+        inputs: [
+          { variableId: "state.materiel", coefficient: 0.5 },
+          { variableId: "state.equipment", coefficient: 0.5 },
+        ],
+        intercept: 0,
+        minimum: 0,
+        maximum: 100,
+        delayPhases: 1,
+      },
+      {
+        id: "front-from-readiness",
+        targetVariableId: "state.front",
+        inputs: [{ variableId: "state.readiness", coefficient: 0.1 }],
+        intercept: -5,
+        delayPhases: 1,
+      },
     ],
   },
 };
