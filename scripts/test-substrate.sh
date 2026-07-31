@@ -48,4 +48,4 @@ DELENDA_AVA_NEXUS_BUNDLE="file://$NEXUS_BUNDLE" \
 DELENDA_AVA_COMPILER_BUNDLE="file://$COMPILER_BUNDLE" \
 DELENDA_SUBSTRATE_GAME_BUNDLE="file://$GAME_BUNDLE" \
 DELENDA_AVA_COGNITIVE_BUNDLE="file://$COGNITIVE_BUNDLE" \
-node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs
+node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-semantic-tree.test.mjs

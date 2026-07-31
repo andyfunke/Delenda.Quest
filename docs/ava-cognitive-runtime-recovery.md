@@ -100,3 +100,31 @@ For every subsequent epoch:
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
 - Production deployment: blocked pending restoration of Cloudflare
   authentication; source is safe to deploy without configuration changes
+
+### Production promotion note
+
+- Savepoint 1 was subsequently fast-forwarded to `main` at remote commit
+  `7ef9897` through the connected GitHub authority.
+- Cloudflare production remained healthy across all four live-entry contracts.
+- The repository-owned Cloudflare Build path is the production promotion
+  authority for subsequent reconstruction epochs.
+
+## Savepoint 2 — canonical semantic resolution reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `c1df6cf`
+- State: reconstructed and verified atop Savepoint 1
+- Scope:
+  - canonical Resolved Semantic Tree with typed nodes for every query field
+  - compiler, source-clause, discourse, and visible-world provenance ownership
+  - closed dynamic campaign-entity bindings without widening the domain spec
+  - exact lowering back to the complete legacy `AvaSemanticQuery`
+  - fail-closed source/world/tree digests, hidden facts, open concepts, and stale
+    world revisions
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 85/85 substrate contracts passed
+  - TypeScript, production build, lint, Cloudflare types, and Wrangler dry run
+    passed with the production D1 binding preserved
