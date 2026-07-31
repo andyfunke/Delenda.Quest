@@ -128,3 +128,27 @@ For every subsequent epoch:
   - 85/85 substrate contracts passed
   - TypeScript, production build, lint, Cloudflare types, and Wrangler dry run
     passed with the production D1 binding preserved
+
+## Savepoint 3 — typed cognitive operator algebra reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `aecf0ca`
+- State: reconstructed and verified atop Savepoint 2
+- Scope:
+  - closed registry and exactly one typed dispatch route for all 55 cognitive
+    primitives
+  - executable intrinsic kernels for domain-independent primitives and named,
+    fail-closed adapters for authored domain engines
+  - typed program graphs with exact input/output slots, dependency validation,
+    deterministic ordering, and cycle rejection
+  - proof obligations, visible-world evidence, provenance, and authority ceilings
+    enforced before results escape execution
+  - deterministic program/result digests for replay and later proof-graph binding
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 91/91 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved
