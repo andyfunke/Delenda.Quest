@@ -8,3 +8,4 @@ export * from "./proof-graph";
 export * from "./constraint-engine";
 export * from "./temporal-engine";
 export * from "./causal-engine";
+export * from "./epistemic-engine";

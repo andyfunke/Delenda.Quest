@@ -119,6 +119,18 @@ export type CognitiveCausalPolicySpec = {
   equations: readonly CognitiveCausalEquationSpec[];
 };
 
+export type CognitiveEpistemicPolicySpec = {
+  id: string;
+  actorIds: readonly string[];
+  minimumSourceReliability: number;
+  maximumEvidenceAgeDays: number;
+  corroborationRule: "INDEPENDENT_RELIABILITY_MEAN";
+  numericEstimationRule: "RELIABILITY_WEIGHTED_MEDIAN";
+  contradictionRule: "PRESERVE_SUPPORT_AND_REFUTATION";
+  marginalizationModelId: "FINITE_HYPOTHESIS_SUM";
+  downweightFactors: Readonly<Record<"DEPENDENT" | "AGED", number>>;
+};
+
 export type CognitiveDomainSpec = {
   id: string;
   version: string;
@@ -128,6 +140,7 @@ export type CognitiveDomainSpec = {
   constraints: readonly CognitiveConstraintSpec[];
   temporal: CognitiveTemporalPolicySpec;
   causal: CognitiveCausalPolicySpec;
+  epistemic: CognitiveEpistemicPolicySpec;
 };
 
 export type CompiledCognitiveDomain = {
@@ -143,6 +156,7 @@ export type CompiledCognitiveDomain = {
     equations: ReadonlyMap<string, CognitiveCausalEquationSpec>;
     order: readonly string[];
   };
+  epistemic: CognitiveEpistemicPolicySpec;
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
@@ -150,6 +164,7 @@ export type CompiledCognitiveDomain = {
     actionIds: readonly string[];
     constraintIds: readonly string[];
     causalEquationIds: readonly string[];
+    epistemicPolicyId: string;
   };
 };
 
@@ -389,6 +404,34 @@ export const compileCognitiveDomain = (
     .sort((a, b) => a.id.localeCompare(b.id))
     .forEach(visitEquation);
 
+  assertIdentifier(source.epistemic.id, "epistemic policy");
+  if (!source.epistemic.actorIds.length || !uniqueStrings(source.epistemic.actorIds))
+    throw new Error(`${source.epistemic.id}: epistemic actors must be nonempty and unique`);
+  source.epistemic.actorIds.forEach((actorId) => assertIdentifier(actorId, "epistemic actor"));
+  if (
+    !Number.isFinite(source.epistemic.minimumSourceReliability) ||
+    source.epistemic.minimumSourceReliability < 0 ||
+    source.epistemic.minimumSourceReliability > 1
+  ) throw new Error(`${source.epistemic.id}: minimum source reliability is outside [0,1]`);
+  if (
+    !Number.isInteger(source.epistemic.maximumEvidenceAgeDays) ||
+    source.epistemic.maximumEvidenceAgeDays < 0
+  ) throw new Error(`${source.epistemic.id}: evidence age must be a nonnegative integer`);
+  if (source.epistemic.corroborationRule !== "INDEPENDENT_RELIABILITY_MEAN")
+    throw new Error(`${source.epistemic.id}: unknown corroboration rule`);
+  if (source.epistemic.numericEstimationRule !== "RELIABILITY_WEIGHTED_MEDIAN")
+    throw new Error(`${source.epistemic.id}: unknown estimation rule`);
+  if (source.epistemic.contradictionRule !== "PRESERVE_SUPPORT_AND_REFUTATION")
+    throw new Error(`${source.epistemic.id}: unknown contradiction rule`);
+  if (source.epistemic.marginalizationModelId !== "FINITE_HYPOTHESIS_SUM")
+    throw new Error(`${source.epistemic.id}: unknown marginalization model`);
+  if (!Object.hasOwn(source.epistemic.downweightFactors, "DEPENDENT") ||
+      !Object.hasOwn(source.epistemic.downweightFactors, "AGED"))
+    throw new Error(`${source.epistemic.id}: downweight factors are incomplete`);
+  for (const [reason, factor] of Object.entries(source.epistemic.downweightFactors))
+    if (!Number.isFinite(factor) || factor <= 0 || factor > 1)
+      throw new Error(`${source.epistemic.id}: ${reason} downweight is outside (0,1]`);
+
   const snapshot = cloneCognitive({
     ...source,
     variables: [...source.variables].sort((a, b) => a.id.localeCompare(b.id)),
@@ -398,6 +441,7 @@ export const compileCognitiveDomain = (
     causal: {
       equations: [...source.causal.equations].sort((a, b) => a.id.localeCompare(b.id)),
     },
+    epistemic: source.epistemic,
   });
   return {
     id: source.id,
@@ -412,6 +456,7 @@ export const compileCognitiveDomain = (
       equations: new Map(snapshot.causal.equations.map((item) => [item.id, item])),
       order: equationOrder,
     },
+    epistemic: snapshot.epistemic,
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -421,6 +466,7 @@ export const compileCognitiveDomain = (
       actionIds: [...actionIds].sort(),
       constraintIds: [...constraintIds].sort(),
       causalEquationIds: [...equationIds].sort(),
+      epistemicPolicyId: snapshot.epistemic.id,
     },
   };
 };
@@ -603,6 +649,17 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
         delayPhases: 1,
       },
     ],
+  },
+  epistemic: {
+    id: "delenda-evidence-policy",
+    actorIds: ["ava", "command", "player"],
+    minimumSourceReliability: 0.1,
+    maximumEvidenceAgeDays: 3,
+    corroborationRule: "INDEPENDENT_RELIABILITY_MEAN",
+    numericEstimationRule: "RELIABILITY_WEIGHTED_MEDIAN",
+    contradictionRule: "PRESERVE_SUPPORT_AND_REFUTATION",
+    marginalizationModelId: "FINITE_HYPOTHESIS_SUM",
+    downweightFactors: { DEPENDENT: 0.5, AGED: 0.5 },
   },
 };
 

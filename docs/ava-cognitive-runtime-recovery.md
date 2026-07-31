@@ -253,3 +253,27 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 8 — epistemic engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `e223479`
+- State: reconstructed and verified atop Savepoint 7
+- Scope:
+  - compiler-owned reliability, independence, freshness, contradiction,
+    estimation, downweighting, actor, and marginalization policy
+  - actor/scenario-scoped assumptions and belief assessments with immutable
+    support and refutation sets
+  - lineage-aware independent-record selection without duplicate confidence
+    inflation
+  - authored reliability-weighted median estimates and replay-derived bounds
+  - evidence-backed downweight reasons and explicit finite hypothesis summation
+  - proof-bearing authored adapters for all seven epistemic primitives
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 129/129 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved
