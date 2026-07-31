@@ -1,0 +1,23 @@
+name: Deploy SSH gateway
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delenda-ssh-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ssh-production
+    steps:
+      - uses: actions/checkout@v6
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy public TCP gateway
+        run: flyctl deploy --remote-only --config packages/ssh-gateway/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

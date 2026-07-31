@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUNDLE="$(mktemp /tmp/delenda-balance-game.XXXXXX.mjs)"
+TEMP_ROOT="${TMPDIR:-${PWD}/.tmp}"
+mkdir -p "$TEMP_ROOT"
+BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-balance-game.XXXXXX.mjs")"
 trap 'rm -f "$BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/game.ts \

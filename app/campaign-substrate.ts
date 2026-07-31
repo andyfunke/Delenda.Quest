@@ -2,6 +2,10 @@ import {
   FUNGIBLE_BLUEPRINT_RULES,
   FUNGIBLE_SITUATION_TEMPLATES,
 } from "./main-situation-content";
+import {
+  evaluateGate as evaluateSubstrateGate,
+  type SubstrateGate,
+} from "./substrate/gates";
 
 export type Theater = "lowland" | "ridge" | "industrial" | "river";
 export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
@@ -65,16 +69,8 @@ export type OperationalBands = {
 
 export type ScalarKey = "front"|"readiness"|"reserves"|"intelligence"|"legitimacy"|"resistance"|"dependency"|"munitionsCoverage"|"sectorSupply"|"sectorDamage"|"sectorFortification";
 export type BandKey = keyof OperationalBands;
-export type Gate =
-  | {op:"always"}
-  | {op:"all"|"any"|"none";gates:Gate[]}
-  | {op:"not";gate:Gate}
-  | {op:"fact";id:string;present?:boolean;sector?:"target"|"any"}
-  | {op:"band";key:BandKey;values:string[]}
-  | {op:"scalar";key:ScalarKey;compare:"eq"|"neq"|"gt"|"gte"|"lt"|"lte"|"between"|"outside";value:number|[number,number]}
-  | {op:"phase";values:CampaignPhaseId[]}
-  | {op:"theater";values:Theater[]}
-  | {op:"history";blueprintId?:string;factId?:string;withinDays:number;present?:boolean};
+/** Campaign gates use the shared substrate grammar (authoritative in app/substrate/gates.ts). */
+export type Gate = SubstrateGate;
 
 export type SituationBlueprintRule = {
   id:string; problemClass:ProblemClass; theaters:Theater[]; requires:Gate; forbids?:Gate;
@@ -453,29 +449,28 @@ const scalarValue=(context:GateContext,key:ScalarKey)=>{
   if(key==="sectorFortification")return sector.fortification;
   return state[key];
 };
-const compare=(actual:number,operator:Extract<Gate,{op:"scalar"}>["compare"],expected:number|[number,number])=>{
-  if(operator==="between"||operator==="outside"){const [low,high]=expected as [number,number];const inside=actual>=low&&actual<=high;return operator==="between"?inside:!inside;}
-  const value=expected as number;
-  if(operator==="eq")return actual===value;if(operator==="neq")return actual!==value;if(operator==="gt")return actual>value;if(operator==="gte")return actual>=value;if(operator==="lt")return actual<value;return actual<=value;
-};
-
 export const evaluateGate=(gate:Gate,context:GateContext):boolean=>{
-  if(gate.op==="always")return true;
-  if(gate.op==="all")return gate.gates.every(x=>evaluateGate(x,context));
-  if(gate.op==="any")return gate.gates.some(x=>evaluateGate(x,context));
-  if(gate.op==="none")return gate.gates.every(x=>!evaluateGate(x,context));
-  if(gate.op==="not")return !evaluateGate(gate.gate,context);
-  if(gate.op==="phase")return gate.values.includes(phaseForState(context.state));
-  if(gate.op==="theater")return gate.values.includes(context.state.theater);
-  if(gate.op==="band")return gate.values.includes(String(context.bands[gate.key]));
-  if(gate.op==="scalar")return compare(scalarValue(context,gate.key),gate.compare,gate.value);
-  if(gate.op==="fact"){const present=activeFacts(context.state,gate.sector==="any"?undefined:context.sector.id).some(x=>x.id===gate.id);return gate.present===false?!present:present;}
-  if(gate.op==="history"){
-    const since=context.state.day-gate.withinDays;
-    const present=gate.factId?activeFacts(context.state).some(x=>x.id===gate.factId&&x.createdDay>=since):(context.state.situationHistory??[]).some(x=>(!gate.blueprintId||x.blueprintId===gate.blueprintId)&&x.day>=since);
-    return gate.present===false?!present:present;
+  const scalars:Record<string,number|undefined>={};
+  for(const key of ["front","readiness","reserves","intelligence","legitimacy","resistance","dependency","munitionsCoverage","sectorSupply","sectorDamage","sectorFortification"] as ScalarKey[]){
+    scalars[key]=scalarValue(context,key);
   }
-  return false;
+  const bands:Record<string,string>={};
+  for(const [key,value] of Object.entries(context.bands))bands[key]=String(value);
+  return evaluateSubstrateGate(gate,{
+    phase:phaseForState(context.state),
+    theater:context.state.theater,
+    bands,
+    scalars,
+    facts:activeFacts(context.state).map(fact=>({id:fact.id,sectorId:fact.sectorId,createdDay:fact.createdDay})),
+    targetSectorId:context.sector.id,
+    history:(context.state.situationHistory??[]).map(record=>({
+      day:record.day,
+      blueprintId:record.blueprintId,
+      eventId:record.blueprintId,
+    })),
+    day:context.state.day,
+    campaignDay:context.state.day,
+  });
 };
 
 const targetSector=(rule:SituationBlueprintRule,sectors:TheaterSector[])=>{

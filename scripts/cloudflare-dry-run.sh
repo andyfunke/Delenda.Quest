@@ -9,9 +9,13 @@ if [[ ! -f "${project_root}/dist/server/index.js" ]]; then
   exit 1
 fi
 
+if [[ ! -f "${project_root}/.wrangler/deploy/config.json" ]]; then
+  echo "Cloudflare dry run requires the generated Worker deployment config." >&2
+  exit 1
+fi
+
 exec "${script_dir}/cloudflare-env.sh" -- \
   npx wrangler deploy \
-  --config wrangler.jsonc \
   --dry-run \
   --strict \
   --outdir .wrangler/deploy/production

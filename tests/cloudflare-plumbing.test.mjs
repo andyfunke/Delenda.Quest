@@ -34,6 +34,8 @@ test("production deploys the custom domain and production Worker URL", async () 
   assert.equal(config.d1_databases[0].database_id, "a2d8a23e-f038-48a6-801a-46a30d58f1ba");
   assert.equal(config.d1_databases[0].binding, "DB");
   assert.equal(config.assets.binding, "ASSETS");
+  assert.equal(config.assets.directory, "dist/client");
+  assert.equal(config.assets.not_found_handling, "none");
   assert.equal(config.assets.run_worker_first, undefined);
   assert.equal(config.images.binding, "IMAGES");
   assert.equal(config.observability.enabled, true);
@@ -70,9 +72,59 @@ test("replication export is read-only, allowlisted, and secret gated", async () 
     "utf8",
   );
   for (const table of TABLES) assert.match(replication, new RegExp(`"${table}"`));
+  assert.doesNotMatch(replication, /"campaign_resolution_grants"/);
   assert.match(replication, /DELENDA_REPLICATION_TOKEN/);
-  assert.match(replication, /schemaVersion:\s*12/);
+  assert.match(replication, /REPLICATION_SCHEMA_VERSION = 13/);
+  assert.match(replication, /schemaVersion:\s*REPLICATION_SCHEMA_VERSION/);
   assert.match(replication, /timingSafeEqual/);
   assert.match(replication, /SELECT rowid AS __rowid/);
   assert.doesNotMatch(replication, /\b(?:INSERT|UPDATE|DELETE|DROP|ALTER)\b/);
+});
+
+test("resolution authority migration is journaled but its bearer table is not exported",async()=>{
+  const[journal,migration,schema,replication]=await Promise.all([
+    readFile(new URL("../drizzle/meta/_journal.json",import.meta.url),"utf8"),
+    readFile(
+      new URL("../drizzle/0014_campaign_resolution_grants.sql",import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(
+      new URL("../app/api/admin/replication/route.ts",import.meta.url),
+      "utf8",
+    ),
+  ]);
+  assert.match(journal,/"idx": 14[\s\S]{0,160}"tag": "0014_campaign_resolution_grants"/);
+  assert.match(migration,/CREATE TABLE `campaign_resolution_grants`/);
+  assert.match(migration,/ADD `last_resolution_grant_marker` text/);
+  assert.match(schema,/campaignResolutionGrants=sqliteTable\("campaign_resolution_grants"/);
+  assert.doesNotMatch(replication,/"campaign_resolution_grants"/);
+});
+
+test("browser and SSH campaign persistence use one revision contract", async () => {
+  const [store, browserRoute, gatewayRoute, remoteStore, sshSession] =
+    await Promise.all([
+      readFile(new URL("../db/campaigns.ts", import.meta.url), "utf8"),
+      readFile(new URL("../app/api/campaign/route.ts", import.meta.url), "utf8"),
+      readFile(
+        new URL("../app/api/ssh/gateway/campaign/route.ts", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../packages/ssh-gateway/src/remote-store.ts", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../packages/ssh-gateway/src/session.ts", import.meta.url),
+        "utf8",
+      ),
+    ]);
+  assert.match(store, /eq\(activeCampaigns\.revision,prepared\.expectedRevision\)/);
+  assert.match(store, /ActiveCampaignConflictError/);
+  assert.match(browserRoute, /status:409/);
+  assert.match(gatewayRoute, /status:409/);
+  assert.match(remoteStore, /expectedRevision/);
+  assert.match(remoteStore, /GatewayRequestError/);
+  assert.match(sshSession, /CONCURRENT CAMPAIGN REVISION WON/);
+  assert.match(sshSession, /winner=restoreCampaignState/);
 });

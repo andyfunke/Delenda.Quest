@@ -16,13 +16,35 @@ import {
   type SemanticCompilation,
 } from "./grammar";
 export {
+  AVA_CAMPAIGN_ADVICE_GRAMMAR,
   AVA_CAMPAIGN_LANGUAGE_CORPUS,
+  AVA_CLASSIC_CAPABILITY_REGISTRY,
+  AVA_COMPILED_AGENCY_BUNDLE,
+  AVA_DELENDA_DOMAIN_PACK,
   AVA_UTTERANCE_COLLISIONS,
   AVA_UTTERANCE_COVERAGE,
   AVA_UTTERANCE_INDEX,
+  compileAgencyBundle,
+  compileCompiledAgencyBundle,
+  compileGrammarSpec,
   normalizeSemanticInput,
+  semanticQueriesEqual,
+  semanticQuerySignature,
   stableUtteranceHash,
 } from "./grammar";
+export type {
+  AvaSemanticField,
+  CapabilityRegistry,
+  CompiledAgencyBundle,
+  CompiledSemanticRecipe,
+  CompileAgencyBundleInput,
+  DomainPack,
+  GrammarAtom,
+  GrammarCollision,
+  GrammarSlot,
+  GrammarSpec,
+} from "./grammar";
+export { AVA_COMMAND_HELP } from "./schema";
 
 const filler = new Set([
   "a",
@@ -53,6 +75,16 @@ export const normalizeAvaInput = (raw: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+
+export const isAvaConfirmationInput=(raw:string)=>{
+  const input=normalizeAvaInput(raw);
+  return(
+    /^confirm(?:\s+[a-z0-9]+)*$/.test(input)||
+    /^(?:yes|yes issue it|yes do it|accept|commit|do it|issue it|commit it|execute it)$/.test(
+      input,
+    )
+  );
+};
 
 export type AvaGodModeIntent = {
   kind: "force-random-event";
@@ -138,6 +170,26 @@ const trace = (
     .flatMap(phraseSet)
     .flatMap(words)
     .forEach((token) => known.add(token));
+  semantic?.concepts
+    .flatMap((item) => words(item.source))
+    .forEach((token) => known.add(token));
+  const tokenLedger: AvaCompilerTrace["tokenLedger"] = tokens.map(
+    (token, index) => {
+      const isFiller = filler.has(token);
+      const isKnown = known.has(token);
+      return {
+        token,
+        index,
+        status: isKnown ? "consumed" : "unresolved",
+        material: !isFiller,
+        consumedBy: isKnown
+          ? isFiller
+            ? "filler"
+            : "grammar"
+          : undefined,
+      };
+    },
+  );
   return {
     rule,
     rawInput: input,
@@ -149,8 +201,11 @@ const trace = (
     grammarProvenance: semantic?.grammarProvenance,
     exactIndexHit: semantic?.exactIndexHit ?? false,
     tokenCount: tokens.length,
+    tokenLedger,
     entityKinds: [...new Set(entities.map((entity) => entity.kind))],
-    unresolvedTokenCount: tokens.filter((token) => !known.has(token)).length,
+    unresolvedTokenCount: tokenLedger.filter(
+      (entry) => entry.status === "unresolved" && entry.material,
+    ).length,
   };
 };
 const clarification = (
@@ -301,6 +356,201 @@ const actionMatches = (input: string, context: AvaCompilerContext) => {
   }
   return [...byLabel.values()];
 };
+
+const consequentialKinds = new Set<AvaInstruction["kind"]>([
+  "STAGE",
+  "UNSTAGE",
+  "ISSUE",
+  "ISSUE_PLAN",
+  "CLEAR_PLAN",
+  "CLEAR",
+  "SELECT",
+  "COMMIT",
+  "RESOLVE_DAY",
+  "CONFIRM",
+  "CANCEL",
+  "COMPARE",
+]);
+
+const consequentialRuleWords: Record<string, string[]> = {
+  stage: [
+    "stage",
+    "prepare",
+    "select",
+    "order",
+    "orders",
+    "action",
+    "actions",
+    "mission",
+    "missions",
+    "maneuver",
+    "maneuvers",
+    "manoeuvre",
+    "manoeuvres",
+  ],
+  unstage: [
+    "unstage",
+    "remove",
+    "order",
+    "orders",
+    "action",
+    "actions",
+  ],
+  "issue-actions": [
+    "issue",
+    "commit",
+    "execute",
+    "order",
+    "orders",
+    "action",
+    "actions",
+  ],
+  internalize: ["internalize", "learn", "doctrine", "stage"],
+  respond: ["respond", "exploit", "answer", "opportunity", "response", "to"],
+  "resolve-day": ["resolve", "end", "close", "day", "today"],
+  "clear-plan": ["clear", "discard", "unselect", "plan", "all", "staged"],
+  "issue-plan": ["issue", "commit", "execute", "plan", "staged"],
+  confirm: ["confirm", "yes", "issue", "do", "it"],
+  clear: ["clear", "unselect", "selection", "that", "order", "maneuver", "manoeuvre"],
+  commit: ["do", "issue", "commit", "execute", "it"],
+  select: ["choose", "maneuver", "manoeuvre", "order", "action"],
+  "implicit-select": [],
+  cancel: ["cancel", "never", "mind", "nevermind"],
+  compare: [
+    "compare",
+    "versus",
+    "vs",
+    "v",
+    "with",
+    "and",
+    "main",
+    "domestic",
+    "network",
+    "n",
+    "d",
+    "secondary",
+    "mission",
+    "missions",
+    "operation",
+    "operations",
+    "option",
+    "options",
+    "choice",
+    "choices",
+  ],
+};
+
+const markTokenSequence = (
+  inputTokens: string[],
+  sequence: string[],
+  consumedBy: Array<string | undefined>,
+  owner: string,
+) => {
+  if (!sequence.length) return;
+  for (
+    let start = 0;
+    start <= inputTokens.length - sequence.length;
+    start += 1
+  ) {
+    if (
+      sequence.every(
+        (token, offset) => inputTokens[start + offset] === token,
+      )
+    )
+      for (let offset = 0; offset < sequence.length; offset += 1)
+        consumedBy[start + offset] = owner;
+  }
+};
+
+const consequentialTokenLedger = (
+  raw: string,
+  rule: string,
+  entities: AvaEntity[],
+): AvaCompilerTrace["tokenLedger"] => {
+  const tokens = normalizeSemanticInput(raw).tokens;
+  const consumedBy: Array<string | undefined> = tokens.map(() => undefined);
+  const allowed = new Set([
+    ...(consequentialRuleWords[rule] ?? []),
+    ...filler,
+    "and",
+    "the",
+  ]);
+  tokens.forEach((token, index) => {
+    if (allowed.has(token))
+      consumedBy[index] = filler.has(token) ? "filler" : `rule:${rule}`;
+  });
+  for (const entity of entities)
+    for (const phrase of phraseSet(entity))
+      markTokenSequence(
+        tokens,
+        words(phrase),
+        consumedBy,
+        `entity:${entity.id}`,
+      );
+
+  // Confirmation tokens are opaque authority handles. Once CONFIRM has
+  // consumed its command head, the remainder belongs to that token rather
+  // than to natural-language grammar.
+  if (rule === "confirm" && tokens[0] === "confirm")
+    for (let index = 1; index < tokens.length; index += 1)
+      consumedBy[index] = "confirmation-token";
+
+  return tokens.map((token, index) => ({
+    token,
+    index,
+    status: consumedBy[index] ? "consumed" : "unresolved",
+    material: !filler.has(token),
+    consumedBy: consumedBy[index],
+  }));
+};
+
+const conserveConsequentialTokens = (
+  raw: string,
+  result: AvaCompileResult,
+): AvaCompileResult => {
+  if (
+    result.status !== "compiled" ||
+    !consequentialKinds.has(result.instruction.kind)
+  )
+    return result;
+  const entities =
+    "entities" in result.instruction
+      ? result.instruction.entities
+      : "entity" in result.instruction && result.instruction.entity
+        ? [result.instruction.entity]
+        : [];
+  const tokenLedger = consequentialTokenLedger(
+    raw,
+    result.trace.rule,
+    entities,
+  );
+  const unresolved = tokenLedger.filter(
+    (entry) => entry.material && entry.status === "unresolved",
+  );
+  const guardedTrace = {
+    ...result.trace,
+    rawInput: raw,
+    tokenLedger,
+    unresolvedTokenCount: unresolved.length,
+  };
+  if (!unresolved.length) return { ...result, trace: guardedTrace };
+  return {
+    status: "clarify",
+    failure: "unsupported-combination",
+    prompt: `I recognized ${result.trace.rule.toUpperCase()}, but did not consume: ${unresolved
+      .map((entry) => entry.token)
+      .join(", ")}. Restate the complete consequential command with listed handles only.`,
+    candidates: entities,
+    semantic: result.semantic,
+    trace: guardedTrace,
+  };
+};
+
+const isNegatedConsequentialInput = (input: string) =>
+  /\b(?:do not|dont|never|not|stop)\b(?:\s+[a-z0-9]+){0,4}\s+\b(?:stage|staging|prepare|preparing|select|selecting|choose|choosing|unstage|unstaging|remove|removing|issue|issuing|commit|committing|execute|executing|confirm|confirming|resolve|resolving|end|ending|close|closing|internalize|internalizing|learn|learning|respond|responding|exploit|exploiting|clear|clearing)\b/.test(
+    input,
+  ) ||
+  /\b(?:do not|dont|never|not|stop)\s+(?:resolve|end|close)\b/.test(input);
 
 const reportTopic = (
   input: string,
@@ -807,6 +1057,16 @@ export function compileAvaCommand(
         grammarProvenance: [`SHELL:${shell.command}`],
         exactIndexHit: true,
         tokenCount: 1 + shell.args.length,
+        tokenLedger: [
+          shell.command.toLowerCase(),
+          ...shell.args,
+        ].map((token, index) => ({
+          token,
+          index,
+          status: "consumed" as const,
+          material: true,
+          consumedBy: "shell-grammar",
+        })),
         entityKinds: [],
         unresolvedTokenCount: 0,
       },
@@ -830,7 +1090,128 @@ export function compileAvaCommand(
       semantic,
     );
   const normalized = normalizeSemanticInput(raw).normalized;
-  if (shouldUseSemanticInstruction(normalized, semantic)) {
+  if (isNegatedConsequentialInput(normalized))
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "unsupported-combination",
+        prompt:
+          "I recognized a negated consequential command. Negation can never authorize or invert a campaign mutation; state the non-mutating question or cancellation you intend.",
+        semantic: {
+          ...semantic.query,
+          polarity: "NEGATED",
+        },
+        trace: trace("negated-consequential", raw, [], semantic),
+      },
+      raw,
+      {
+        ...semantic,
+        query: {
+          ...semantic.query,
+          polarity: "NEGATED",
+        },
+      },
+    );
+  if (semantic.clarification)
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: semantic.clarification.failure,
+        prompt: semantic.clarification.prompt,
+        candidates: semantic.clarification.candidates,
+        semantic: semantic.query,
+        trace: trace(
+          "semantic-clarification",
+          raw,
+          semantic.clarification.candidates,
+          semantic,
+        ),
+      },
+      raw,
+      semantic,
+    );
+  const useSemanticInstruction = shouldUseSemanticInstruction(
+    normalized,
+    semantic,
+  );
+  if (
+    useSemanticInstruction &&
+    semantic.query.operation === "CHALLENGE" &&
+    semantic.query.subject.type === "METRIC" &&
+    (semantic.query.metricOperands?.length ?? 0) < 2
+  )
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "missing-target",
+        prompt:
+          "A metric challenge requires two explicit metric operands. Name both systems to compare.",
+        semantic: semantic.query,
+        trace: trace("metric-challenge-operands", raw, [], semantic),
+      },
+      raw,
+      semantic,
+    );
+  if (
+    useSemanticInstruction &&
+    semantic.query.operation === "LIST" &&
+    semantic.query.subject.type !== "CAMPAIGN_CHOICE"
+  )
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "unsupported-combination",
+        prompt:
+          "LIST is defined only for a declared docket or campaign-choice scope. Name the list surface you want.",
+        semantic: semantic.query,
+        trace: trace("closed-list-subject", raw, [], semantic),
+      },
+      raw,
+      semantic,
+    );
+  if (
+    useSemanticInstruction &&
+    semantic.query.operation === "COMPARE" &&
+    semantic.query.subject.type === "CAMPAIGN_CHOICE"
+  ) {
+    const targetEntities = context.entities.filter((entity) =>
+      semantic.query.subject.entityIds.includes(entity.id),
+    );
+    const ledger = consequentialTokenLedger(
+      raw,
+      "compare",
+      targetEntities,
+    );
+    const unresolved = ledger.filter(
+      (entry) => entry.material && entry.status === "unresolved",
+    );
+    const exactTargets =
+      semantic.query.subject.entityIds.length === 2 ||
+      (semantic.query.subject.entityIds.length === 0 &&
+        semantic.query.scope.domains.length === 2);
+    if (!exactTargets || unresolved.length)
+      return applySemanticTrace(
+        {
+          status: "clarify",
+          failure:
+            semantic.query.subject.entityIds.length > 2
+              ? "ambiguous-target"
+              : "missing-target",
+          prompt:
+            "COMPARE requires exactly two complete action targets or two explicit campaign domains.",
+          candidates: targetEntities,
+          semantic: semantic.query,
+          trace: {
+            ...trace("compare-exact-targets", raw, targetEntities, semantic),
+            tokenLedger: ledger,
+            unresolvedTokenCount: unresolved.length,
+          },
+        },
+        raw,
+        semantic,
+      );
+  }
+  if (useSemanticInstruction) {
     const instruction: AvaInstruction = {
       kind: "SEMANTIC",
       query: semantic.query,
@@ -849,5 +1230,25 @@ export function compileAvaCommand(
       ),
     };
   }
-  return applySemanticTrace(compileLegacyCommand(raw, context), raw, semantic);
+  const legacy = applySemanticTrace(
+    conserveConsequentialTokens(
+      raw,
+      compileLegacyCommand(raw, context),
+    ),
+    raw,
+    semantic,
+  );
+  if (legacy.status !== "compiled") return legacy;
+  const canonicalSemantic = genericSemanticQuery(
+    legacy.instruction,
+    context,
+  );
+  return {
+    ...legacy,
+    semantic: canonicalSemantic,
+    trace: {
+      ...legacy.trace,
+      semanticQuery: canonicalSemantic,
+    },
+  };
 }

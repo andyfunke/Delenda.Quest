@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { activeCampaignFor, deleteActiveCampaign, saveActiveCampaign, type ActiveCampaignSubmission } from "../../../db/campaigns";
+import {
+  ActiveCampaignConflictError,
+  activeCampaignFor,
+  deleteActiveCampaign,
+  saveActiveCampaign,
+  type ActiveCampaignSubmission,
+} from "../../../db/campaigns";
 import { getAuthenticatedUser } from "../../auth";
 
 export async function GET(){
@@ -14,7 +20,22 @@ export async function PUT(request:Request){
   const length=Number(request.headers.get("content-length")??0);
   if(length>900_000)return NextResponse.json({error:"Campaign state is too large."},{status:413});
   try{return NextResponse.json(await saveActiveCampaign(user,await request.json() as ActiveCampaignSubmission),{headers:{"Cache-Control":"no-store"}});}
-  catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Campaign could not be saved."},{status:400});}
+  catch(error){
+    if(error instanceof ActiveCampaignConflictError)
+      return NextResponse.json(
+        {
+          error:error.message,
+          code:error.code,
+          conflict:error.conflict,
+          campaign:error.campaign,
+        },
+        {status:409,headers:{"Cache-Control":"no-store"}},
+      );
+    return NextResponse.json(
+      {error:error instanceof Error?error.message:"Campaign could not be saved."},
+      {status:400,headers:{"Cache-Control":"no-store"}},
+    );
+  }
 }
 
 export async function DELETE(){

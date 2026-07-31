@@ -3,6 +3,7 @@ import type {
   AvaDiscourseState,
   AvaEntity,
   AvaEvaluationCriterion,
+  AvaFailureCode,
   AvaInstruction,
   AvaScopeDomain,
   AvaSemanticOperation,
@@ -11,6 +12,34 @@ import type {
   AvaShellInstruction,
   AvaSourceSpan,
 } from "./schema";
+import {
+  compileAgencyBundle,
+  type CapabilityRegistry,
+  type DomainPack,
+  type GrammarAtom,
+  type GrammarSpec,
+  stableUtteranceHash,
+} from "./grammar-compiler";
+export {
+  compileAgencyBundle,
+  compileCompiledAgencyBundle,
+  compileGrammarSpec,
+  semanticQueriesEqual,
+  semanticQuerySignature,
+  stableUtteranceHash,
+} from "./grammar-compiler";
+export type {
+  AvaSemanticField,
+  CapabilityRegistry,
+  CompiledAgencyBundle,
+  CompiledSemanticRecipe,
+  CompileAgencyBundleInput,
+  DomainPack,
+  GrammarAtom,
+  GrammarCollision,
+  GrammarSlot,
+  GrammarSpec,
+} from "./grammar-compiler";
 
 const TYPO_VARIANTS: Record<string, string> = {
   adv: "advise",
@@ -286,23 +315,6 @@ export const normalizeSemanticInput = (raw: string) => {
   };
 };
 
-export const stableUtteranceHash = (value: string) => {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-};
-
-type IndexedRecipe = {
-  normalized: string;
-  scope: AvaSemanticQuery["scope"];
-  criteria: AvaEvaluationCriterion[];
-  provenance: string[];
-  classification: "generated" | "colloquial" | "misspelled" | "curated";
-};
-
 const adviceVerbs = [
   "advise me on",
   "give me advice on",
@@ -349,55 +361,170 @@ const criterionSuffixes: Array<{
   { text: " for the long term", criterion: "LONG_TERM" },
 ];
 
-const generatedIndex = new Map<string, IndexedRecipe[]>();
-const registerGenerated = (recipe: IndexedRecipe) => {
-  const hash = stableUtteranceHash(recipe.normalized);
-  generatedIndex.set(hash, [...(generatedIndex.get(hash) ?? []), recipe]);
+const atom = (
+  id: string,
+  surface: string,
+  owns: GrammarAtom["owns"],
+  semantic: GrammarAtom["semantic"],
+  provenance: string,
+  allowEmptySurface = false,
+): GrammarAtom => ({
+  id,
+  surfaces: [surface],
+  owns,
+  semantic,
+  provenance,
+  allowEmptySurface,
+});
+
+const fixedQueryAtom: GrammarAtom = {
+  id: "campaign-advice-query-contract",
+  surfaces: ["@fixed"],
+  owns: [
+    "timeframe",
+    "polarity",
+    "requestedDetail",
+    "perspective",
+    "outputForm",
+    "overlays",
+    "confidence",
+    "sourceSpans",
+  ],
+  semantic: {
+    timeframe: "CURRENT_DOCKET",
+    polarity: "AFFIRMATIVE",
+    requestedDetail: "JUDGMENT",
+    perspective: "PLAYER",
+    outputForm: "TERMINAL",
+    overlays: [],
+    confidence: 1,
+    sourceSpans: {},
+  },
 };
 
-for (const verb of adviceVerbs)
-  for (const scope of secondaryScopes)
-    for (const subject of campaignSubjects)
-      for (const suffix of criterionSuffixes) {
-        const normalized = normalizeSemanticInput(
-          `${verb} ${scope} ${subject}${suffix.text}`,
-        ).normalized;
-        registerGenerated({
-          normalized,
-          scope: {
-            group: "SECONDARY",
-            domains: ["DOMESTIC", "NETWORK"],
-            excludedDomains: ["MAIN"],
-          },
-          criteria: [suffix.criterion],
-          provenance: [
-            `REQUEST_ADVICE:${verb}`,
-            `SECONDARY_SCOPE:${scope}`,
-            `CAMPAIGN_SUBJECT:${subject}`,
-            `CRITERION:${suffix.criterion}`,
-          ],
-          classification: "generated",
-        });
-      }
-
-export const AVA_UTTERANCE_INDEX = generatedIndex;
-export const AVA_UTTERANCE_COLLISIONS = [...generatedIndex.entries()].flatMap(
-  ([hash, entries]) => {
-    const meanings = new Set(
-      entries.map(
-        (entry) =>
-          `${entry.scope.group}:${entry.criteria.join(",")}:${entry.normalized}`,
+export const AVA_CAMPAIGN_ADVICE_GRAMMAR: GrammarSpec = {
+  id: "ava-campaign-secondary-advice",
+  version: "2.0.0",
+  classification: "generated",
+  fixedAtoms: [fixedQueryAtom],
+  slots: [
+    {
+      id: "request",
+      atoms: adviceVerbs.map((verb, index) =>
+        atom(
+          `advice-${index}`,
+          verb,
+          ["operation"],
+          { operation: "ADVISE" },
+          `REQUEST_ADVICE:${verb}`,
+        ),
       ),
-    );
-    return meanings.size > 1 ? [{ hash, entries }] : [];
-  },
-);
+    },
+    {
+      id: "scope",
+      atoms: secondaryScopes.map((scope, index) =>
+        atom(
+          `secondary-${index}`,
+          scope,
+          ["scope"],
+          {
+            scope: {
+              group: "SECONDARY",
+              domains: ["DOMESTIC", "NETWORK"],
+              excludedDomains: ["MAIN"],
+            },
+          },
+          `SECONDARY_SCOPE:${scope}`,
+        ),
+      ),
+    },
+    {
+      id: "subject",
+      atoms: campaignSubjects.map((subject, index) =>
+        atom(
+          `campaign-choice-${index}`,
+          subject,
+          ["subject"],
+          {
+            subject: {
+              type: "CAMPAIGN_CHOICE",
+              entityIds: [],
+            },
+          },
+          `CAMPAIGN_SUBJECT:${subject}`,
+        ),
+      ),
+    },
+    {
+      id: "criterion",
+      atoms: criterionSuffixes.map((suffix, index) =>
+        atom(
+          `criterion-${index}`,
+          suffix.text,
+          ["criteria"],
+          { criteria: [suffix.criterion] },
+          `CRITERION:${suffix.criterion}`,
+          suffix.text.length === 0,
+        ),
+      ),
+    },
+  ],
+};
+
+export const AVA_DELENDA_DOMAIN_PACK: DomainPack = {
+  id: "delenda-quest",
+  version: "2.0.0",
+  requiredFields: [
+    "operation",
+    "subject",
+    "scope",
+    "timeframe",
+    "criteria",
+    "polarity",
+    "requestedDetail",
+    "perspective",
+    "outputForm",
+    "overlays",
+    "confidence",
+    "sourceSpans",
+  ],
+  validate: (query) =>
+    query.subject.type === "UNKNOWN"
+      ? "UNKNOWN is not an executable semantic subject"
+      : query.confidence < 0 || query.confidence > 1
+        ? "confidence must be between zero and one"
+        : true,
+};
+
+export const AVA_CLASSIC_CAPABILITY_REGISTRY: CapabilityRegistry = {
+  id: "ava-classic-campaign-advice",
+  version: "2.0.0",
+  validate: (query) =>
+    query.operation === "ADVISE" &&
+    query.subject.type === "CAMPAIGN_CHOICE" &&
+    query.scope.group === "SECONDARY"
+      ? true
+      : "generated secondary advice requires ADVISE/CAMPAIGN_CHOICE/SECONDARY",
+};
+
+export const AVA_COMPILED_AGENCY_BUNDLE = compileAgencyBundle({
+  grammarSpec: AVA_CAMPAIGN_ADVICE_GRAMMAR,
+  domainPack: AVA_DELENDA_DOMAIN_PACK,
+  capabilityRegistry: AVA_CLASSIC_CAPABILITY_REGISTRY,
+  normalizeSurface: (surface) =>
+    normalizeSemanticInput(surface).normalized,
+});
+
+export const AVA_UTTERANCE_INDEX =
+  AVA_COMPILED_AGENCY_BUNDLE.utteranceIndex;
+export const AVA_UTTERANCE_COLLISIONS =
+  AVA_COMPILED_AGENCY_BUNDLE.collisions.map((collision) => ({
+    hash: collision.hash,
+    entries: collision.recipes,
+  }));
 export const AVA_UTTERANCE_COVERAGE = {
-  recognizedUtterances: [...generatedIndex.values()].reduce(
-    (sum, entries) => sum + entries.length,
-    0,
-  ),
-  hashBuckets: generatedIndex.size,
+  recognizedUtterances: AVA_COMPILED_AGENCY_BUNDLE.recipes.length,
+  hashBuckets: AVA_UTTERANCE_INDEX.size,
   collisions: AVA_UTTERANCE_COLLISIONS.length,
   grammarComponents: {
     requestAdvice: adviceVerbs.length,
@@ -408,12 +535,8 @@ export const AVA_UTTERANCE_COVERAGE = {
 };
 
 export const AVA_AUTOCOMPLETE_UTTERANCES = [
-  ...new Set(
-    [...generatedIndex.values()].flatMap((entries) =>
-      entries.map((entry) => entry.normalized),
-    ),
-  ),
-].sort((left, right) => left.localeCompare(right));
+  ...AVA_COMPILED_AGENCY_BUNDLE.autocomplete,
+];
 
 export type AvaCorpusExpectation = {
   id: string;
@@ -743,6 +866,108 @@ const subjectFor = (input: string): AvaSemanticSubject => {
   return "UNKNOWN";
 };
 
+const metricOperandsFor = (input: string) => {
+  const metrics: Array<{ id: string; pattern: RegExp }> = [
+    { id: "production", pattern: /\bproduction\b/ },
+    { id: "readiness", pattern: /\breadiness\b/ },
+    { id: "materiel", pattern: /\bmateriel\b/ },
+    { id: "desertion", pattern: /\bdesertion\b/ },
+    { id: "net flight", pattern: /\bnet flight\b/ },
+    { id: "intelligence", pattern: /\bintelligence\b/ },
+    { id: "legitimacy", pattern: /\blegitimacy\b/ },
+    { id: "resistance", pattern: /\bresistance\b/ },
+  ];
+  return metrics
+    .filter(({ pattern }) => pattern.test(input))
+    .map(({ id }) => id);
+};
+
+const semanticContainsPhrase = (input: string, phrase: string) =>
+  input === phrase ||
+  input.startsWith(`${phrase} `) ||
+  input.endsWith(` ${phrase}`) ||
+  input.includes(` ${phrase} `);
+
+type DirectiveResolution = {
+  directive?: AvaSemanticQuery["directive"];
+  subjectEntityIds: string[];
+  clarification?: {
+    failure: AvaFailureCode;
+    prompt: string;
+    candidates?: AvaEntity[];
+  };
+};
+
+const directiveFor = (
+  input: string,
+  operation: AvaSemanticOperation,
+  baseSubject: AvaSemanticSubject,
+  context: AvaCompilerContext,
+): DirectiveResolution => {
+  if (
+    !["ADVISE", "RANK", "RECOMMEND", "COMPARE"].includes(operation) ||
+    baseSubject === "CAMPAIGN_CHOICE"
+  )
+    return { subjectEntityIds: [] };
+  const channels = [
+    /\bproduction\b/.test(input) ? "production" : null,
+    /\bmilitary\b/.test(input) ? "military" : null,
+    /\b(diplomacy|diplomatic)\b/.test(input) ? "diplomacy" : null,
+  ].filter(Boolean) as Array<
+    NonNullable<AvaSemanticQuery["directive"]>["channel"]
+  >;
+  const uniqueChannels = [...new Set(channels)];
+  if (!uniqueChannels.length) return { subjectEntityIds: [] };
+  if (uniqueChannels.length > 1)
+    return {
+      subjectEntityIds: [],
+      clarification: {
+        failure: "unsupported-combination",
+        prompt:
+          "Name one directive channel at a time: Production, Military, or Diplomacy with a visible actor.",
+      },
+    };
+  const channel = uniqueChannels[0];
+  if (channel !== "diplomacy")
+    return {
+      directive: { channel },
+      subjectEntityIds: [],
+    };
+
+  const actors = context.entities.filter(
+    (entity) =>
+      entity.kind === "foreign-actor" &&
+      [entity.id, entity.label, ...(entity.aliases ?? [])]
+        .map((value) => normalizeSemanticInput(value).normalized)
+        .filter(Boolean)
+        .some((value) => semanticContainsPhrase(input, value)),
+  );
+  if (actors.length !== 1)
+    return {
+      subjectEntityIds: [],
+      clarification: {
+        failure: actors.length > 1 ? "ambiguous-target" : "missing-target",
+        prompt:
+          actors.length > 1
+            ? "I found several diplomacy actors. Name exactly one visible actor."
+            : "Diplomacy advice requires one visible actor. Name the actor after DIPLOMACY.",
+        candidates:
+          actors.length > 1
+            ? actors
+            : context.entities.filter(
+                (entity) => entity.kind === "foreign-actor",
+              ),
+      },
+    };
+  return {
+    directive: {
+      channel,
+      actorId: actors[0].id,
+    },
+    subjectEntityIds: [actors[0].id],
+  };
+};
+
 const criteriaFor = (input: string): AvaEvaluationCriterion[] => {
   const criteria: AvaEvaluationCriterion[] = [];
   if (/\b(safest|safer|lowest risk|fucks me least|least destructive|least likely to fail)\b/.test(input))
@@ -852,6 +1077,11 @@ export type SemanticCompilation = {
   contextualResolutions: string[];
   grammarProvenance: string[];
   exactIndexHit: boolean;
+  clarification?: {
+    failure: AvaFailureCode;
+    prompt: string;
+    candidates?: AvaEntity[];
+  };
 };
 
 export const compileSemanticQuery = (
@@ -859,12 +1089,78 @@ export const compileSemanticQuery = (
   context: AvaCompilerContext,
 ): SemanticCompilation => {
   const { normalized: input } = normalizeSemanticInput(raw);
-  const bucket = generatedIndex.get(stableUtteranceHash(input)) ?? [];
+  const bucket =
+    AVA_UTTERANCE_INDEX.get(stableUtteranceHash(input)) ?? [];
   const indexed = bucket.find((entry) => entry.normalized === input);
+  if (indexed) {
+    const query = AVA_COMPILED_AGENCY_BUNDLE.parse(input);
+    if (!query)
+      throw new Error(
+        `${indexed.id}: indexed grammar recipe could not reproduce its IR`,
+      );
+    return {
+      query,
+      concepts: [
+        {
+          kind: "OPERATION",
+          canonical: query.operation,
+          source:
+            indexed.provenance
+              .find((entry) => entry.startsWith("REQUEST_ADVICE:"))
+              ?.slice("REQUEST_ADVICE:".length) ?? input,
+        },
+        {
+          kind: "SCOPE",
+          canonical: query.scope.group ?? "CONTEXT",
+          source:
+            indexed.provenance
+              .find((entry) => entry.startsWith("SECONDARY_SCOPE:"))
+              ?.slice("SECONDARY_SCOPE:".length) ?? input,
+        },
+        {
+          kind: "SUBJECT",
+          canonical: query.subject.type,
+          source:
+            indexed.provenance
+              .find((entry) => entry.startsWith("CAMPAIGN_SUBJECT:"))
+              ?.slice("CAMPAIGN_SUBJECT:".length) ?? input,
+        },
+      ],
+      contextualResolutions: [],
+      grammarProvenance: indexed.provenance,
+      exactIndexHit: true,
+    };
+  }
   const operation = operationFor(input, context.discourse);
-  let scope = indexed?.scope ?? scopeFor(input);
-  const subject = subjectFor(input);
-  const criteria = indexed?.criteria ?? criteriaFor(input);
+  let scope = scopeFor(input);
+  const baseSubject = subjectFor(input);
+  const directive = directiveFor(
+    input,
+    operation,
+    baseSubject,
+    context,
+  );
+  let subject: AvaSemanticSubject = directive.directive
+    ? "DIRECTIVE"
+    : baseSubject;
+  if (
+    subject === "UNKNOWN" &&
+    (operation === "ADVISE" ||
+      operation === "RECOMMEND" ||
+      operation === "RANK")
+  )
+    subject = "CAMPAIGN_CHOICE";
+  const entityIds = directive.directive
+    ? [...directive.subjectEntityIds]
+    : matchedEntityIds(input, context.entities);
+  if (
+    subject === "UNKNOWN" &&
+    entityIds.some(
+      (id) => context.entities.find((entity) => entity.id === id)?.action,
+    )
+  )
+    subject = "CAMPAIGN_CHOICE";
+  const criteria = criteriaFor(input);
   const sourceSpans: Record<string, AvaSourceSpan> = {};
   const concepts: SemanticCompilation["concepts"] = [];
   const contextualResolutions: string[] = [];
@@ -927,7 +1223,6 @@ export const compileSemanticQuery = (
     contextualResolutions.push("Campaign scope defaulted to the active docket.");
   }
 
-  const entityIds = matchedEntityIds(input, context.entities);
   if (
     reference?.type === "LAST_RECOMMENDATION" &&
     context.discourse?.lastRecommended &&
@@ -971,19 +1266,12 @@ export const compileSemanticQuery = (
   const query: AvaSemanticQuery = {
     operation,
     subject: { type: subject, entityIds },
+    directive: directive.directive,
     scope,
     metric:
-      subject === "METRIC"
-        ? [
-            "production",
-            "readiness",
-            "materiel",
-            "desertion",
-            "intelligence",
-            "legitimacy",
-            "resistance",
-          ].find((metric) => input.includes(metric))
-        : undefined,
+      subject === "METRIC" ? metricOperandsFor(input)[0] : undefined,
+    metricOperands:
+      subject === "METRIC" ? metricOperandsFor(input) : undefined,
     timeframe: /\b(yesterday|last|historical|previous)\b/.test(input)
       ? "HISTORICAL"
       : /\b(if|would|forecast|predict|project|without|assume)\b/.test(input)
@@ -998,7 +1286,11 @@ export const compileSemanticQuery = (
           ? "PAIR"
           : undefined,
     criteria,
-    polarity: negativeAdvice ? "NEGATED" : "AFFIRMATIVE",
+    polarity:
+      negativeAdvice ||
+      /\b(do not|dont|never|not|stop)\b/.test(input)
+        ? "NEGATED"
+        : "AFFIRMATIVE",
     quantity: ordinalValue
       ? { kind: "ORDINAL", value: ordinalValue }
       : undefined,
@@ -1018,30 +1310,26 @@ export const compileSemanticQuery = (
         ? "REPORT"
         : "TERMINAL",
     overlays: overlaysFor(input),
-    confidence:
-      indexed || concepts.length >= 2
-        ? 1
-        : concepts.length
-          ? 0.86
-          : 0.62,
+    confidence: concepts.length >= 2 ? 1 : concepts.length ? 0.86 : 0.62,
     sourceSpans,
   };
   return {
     query,
     concepts,
     contextualResolutions,
-    grammarProvenance: indexed?.provenance ?? [
+    grammarProvenance: [
       `COMPOSITIONAL:${operation}`,
       `SUBJECT:${subject}`,
       `SCOPE:${query.scope.group ?? "CONTEXT"}`,
     ],
-    exactIndexHit: !!indexed,
+    exactIndexHit: false,
+    clarification: directive.clarification,
   };
 };
 
 export const genericSemanticQuery = (
   instruction: AvaInstruction,
-  context: AvaCompilerContext,
+  _context: AvaCompilerContext,
 ): AvaSemanticQuery => {
   if (instruction.kind === "SEMANTIC") return instruction.query;
   const operation: AvaSemanticOperation =
@@ -1060,19 +1348,87 @@ export const genericSemanticQuery = (
                 : instruction.kind === "CONFIRM"
                   ? "CONFIRM"
                   : "INSPECT";
+  const descriptor = (kind: string, payload: unknown) =>
+    `${kind}:${JSON.stringify(payload)}`;
+  const entityIds =
+    instruction.kind === "REPORT"
+      ? [
+          descriptor("report", {
+            topic: instruction.topic,
+            days: instruction.days,
+            scope: instruction.scope,
+          }),
+        ]
+      : instruction.kind === "STATUS"
+        ? [descriptor("status", {})]
+        : instruction.kind === "LIST"
+          ? [descriptor("list", { scope: instruction.scope })]
+          : instruction.kind === "ORDERS"
+            ? [descriptor("list", { scope: "orders" })]
+            : instruction.kind === "OPEN"
+              ? [descriptor("module", { module: instruction.module })]
+              : instruction.kind === "HELP" && instruction.subject
+                ? [descriptor("help", { subject: instruction.subject })]
+                : instruction.kind === "SHELL"
+                  ? [descriptor("shell", instruction.shell)]
+                  : instruction.kind === "EXPLAIN"
+                    ? [
+                        instruction.entity.id,
+                        descriptor("explain", { facet: instruction.facet }),
+                      ]
+      : instruction.kind === "COMPARE"
+        ? instruction.entities.map((entity) => entity.id)
+        : instruction.kind === "SELECT"
+          ? [instruction.entity.id]
+          : instruction.kind === "STAGE" ||
+              instruction.kind === "UNSTAGE" ||
+              instruction.kind === "ISSUE"
+            ? instruction.entities.map((entity) => entity.id)
+            : instruction.kind === "FORECAST" && instruction.entity
+              ? [instruction.entity.id]
+              : instruction.kind === "FORECAST" && instruction.plan
+                ? [descriptor("forecast", { plan: true })]
+              : instruction.kind === "COMMIT" && instruction.entity
+                ? [instruction.entity.id]
+                : instruction.kind === "CONFIRM" && instruction.token
+                  ? [descriptor("confirmation", { token: instruction.token })]
+                : [];
+  const subject: AvaSemanticSubject =
+    instruction.kind === "REPORT" || instruction.kind === "STATUS"
+      ? "REPORT"
+      : instruction.kind === "ADVISE" ||
+          instruction.kind === "LIST" ||
+          instruction.kind === "ORDERS" ||
+          instruction.kind === "FORECAST" ||
+          instruction.kind === "COMPARE"
+        ? "CAMPAIGN_CHOICE"
+        : instruction.kind === "EXPLAIN"
+          ? instruction.entity.kind === "metric"
+            ? "METRIC"
+            : instruction.entity.kind === "mission"
+              ? "MISSION_OBJECTIVE"
+              : instruction.entity.action
+                ? "CAMPAIGN_CHOICE"
+                : "SYSTEM"
+          : instruction.kind === "SELECT" ||
+              instruction.kind === "STAGE" ||
+              instruction.kind === "UNSTAGE" ||
+              instruction.kind === "ISSUE" ||
+              instruction.kind === "ISSUE_PLAN" ||
+              instruction.kind === "COMMIT" ||
+              instruction.kind === "CONFIRM" ||
+              instruction.kind === "CANCEL" ||
+              instruction.kind === "CLEAR" ||
+              instruction.kind === "CLEAR_PLAN" ||
+              instruction.kind === "SHOW_PLAN" ||
+              instruction.kind === "RESOLVE_DAY"
+            ? "ACTION"
+            : "SYSTEM";
   return {
     operation,
     subject: {
-      type:
-        instruction.kind === "REPORT" ? "REPORT" : "SYSTEM",
-      entityIds:
-        instruction.kind === "EXPLAIN"
-          ? [instruction.entity.id]
-          : instruction.kind === "COMPARE"
-            ? instruction.entities.map((entity) => entity.id)
-            : context.selected
-              ? [context.selected.id]
-              : [],
+      type: subject,
+      entityIds,
     },
     scope: { domains: [], excludedDomains: [] },
     timeframe: "CURRENT_DOCKET",

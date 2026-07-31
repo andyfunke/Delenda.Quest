@@ -1,0 +1,59 @@
+name: Ava unification
+
+on:
+  pull_request:
+    paths:
+      - "app/ava/**"
+      - "app/substrate/**"
+      - "app/api/ssh/**"
+      - "app/ssh/**"
+      - "db/ssh.ts"
+      - "db/campaigns.ts"
+      - "packages/terminal-core/**"
+      - "packages/ssh-server/**"
+      - "packages/ssh-gateway/**"
+      - "tests/ava-*.test.mjs"
+      - "tests/substrate-*.test.mjs"
+      - "tests/fixtures/ssh-gateway-api.mjs"
+      - "scripts/test-ava.sh"
+      - "scripts/test-substrate.sh"
+      - "scripts/test-native-ssh-gateway.sh"
+      - "package.json"
+      - ".github/workflows/ava-unification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ava-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Use the project Node.js version
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm run install:ci
+
+      - name: Typecheck unified kernel and gateway APIs
+        run: npm run typecheck
+
+      - name: Bundle the public SSH gateway
+        run: npm run build:ssh-gateway
+
+      - name: Build the OpenSSH gateway image
+        run: docker build --file packages/ssh-gateway/Dockerfile --tag delenda-ssh-gateway:test .
+
+      - name: Open a native SSH session and execute Ava
+        run: bash scripts/test-native-ssh-gateway.sh delenda-ssh-gateway:test
+
+      - name: Run OG Ava compiler and terminal suites
+        run: bash scripts/test-ava.sh
+
+      - name: Run substrate, parity, terminal, and SSH suites
+        run: bash scripts/test-substrate.sh

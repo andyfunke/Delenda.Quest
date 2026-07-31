@@ -21,6 +21,10 @@ type ReplicationRow = Record<string, unknown> & { __rowid: number };
 const DEFAULT_PAGE_SIZE = 100;
 const MAX_PAGE_SIZE = 250;
 const SNAPSHOT_FORMAT = "delenda-d1-snapshot-v1";
+// Version the exported table contract, not the private migration count.
+// Migration 0014 adds one exported active_campaigns column; its authority
+// grant table is deliberately absent from REPLICATION_TABLES.
+const REPLICATION_SCHEMA_VERSION = 13;
 
 export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
@@ -32,7 +36,7 @@ export async function GET(request: Request) {
   if (!table) {
     return noStoreJson({
       format: SNAPSHOT_FORMAT,
-      schemaVersion: 12,
+      schemaVersion: REPLICATION_SCHEMA_VERSION,
       tables: REPLICATION_TABLES,
     });
   }

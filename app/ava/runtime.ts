@@ -456,6 +456,17 @@ export const executeAvaAction = (
   };
 };
 
+/**
+ * Pure projection for read-only UI calculus. The returned state is a forecast,
+ * not an authorized campaign write; every installable mutation must still pass
+ * through the Nexus.
+ */
+export const projectAvaAction = (
+  state: GameState,
+  action: AvaActionRef,
+  opportunityFraction = 0,
+): AvaRuntimeResult => executeAvaAction(state, action, opportunityFraction);
+
 export const buildAvaPlan = (
   state: GameState,
   actions: AvaActionRef[],
