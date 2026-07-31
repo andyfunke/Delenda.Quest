@@ -115,9 +115,7 @@ const coreIntrinsic = new Set<CognitiveOperator>([
   "SUM", "AVERAGE", "MINIMUM", "MAXIMUM", "NORMALIZE", "CLAMP", "RATIO",
   "DELTA",
 ]);
-const genericIntrinsic = new Set<CognitiveOperator>([
-  "BRANCH", "RESERVE", "TERMINATE",
-]);
+const genericIntrinsic = new Set<CognitiveOperator>();
 
 const categories: Record<CognitiveOperator, CognitiveOperatorSpec["category"]> = {
   IDENTITY:"RELATIONAL", CONSTANT:"RELATIONAL", SELECT:"RELATIONAL", PROJECT:"RELATIONAL",
@@ -181,22 +179,25 @@ const inputSpecs: Partial<Record<CognitiveOperator, readonly CognitiveInputSpec[
   PARETO: [{ id: "request", kind: "RECORD" }],
   FALSIFY: [{ id: "request", kind: "RECORD" }],
   SENSITIVITY: [{ id: "request", kind: "RECORD" }],
-  BRANCH: [{ id: "condition", kind: "BOOLEAN" }, { id: "whenTrue", kind: "ANY" }, { id: "whenFalse", kind: "ANY" }],
-  RESERVE: [{ id: "resource", kind: "STRING" }, { id: "amount", kind: "NUMBER" }],
-  TERMINATE: [{ id: "condition", kind: "BOOLEAN" }],
+  BUILD_PLAN: [{ id: "request", kind: "RECORD" }],
+  ALLOCATE: [{ id: "request", kind: "RECORD" }],
+  REPAIR: [{ id: "request", kind: "RECORD" }],
+  EXPAND_ACTION: [{ id: "request", kind: "RECORD" }],
+  BRANCH: [{ id: "request", kind: "RECORD" }],
+  RESERVE: [{ id: "request", kind: "RECORD" }],
+  TERMINATE: [{ id: "request", kind: "RECORD" }],
 };
 
 const defaultInputs: readonly CognitiveInputSpec[] = [{ id: "value", kind: "ANY" }];
 const outputKind = (operator: CognitiveOperator): CognitiveDatumKind => {
   if (["COUNT","SUM","AVERAGE","MINIMUM","MAXIMUM","NORMALIZE","CLAMP","RATIO","DELTA"].includes(operator)) return "NUMBER";
-  if (["TERMINATE"].includes(operator)) return "BOOLEAN";
   if (["SELECT","PROJECT","FILTER","MAP","REDUCE","GROUP","SORT","UNION","INTERSECTION","DIFFERENCE"].includes(operator)) return "LIST";
   if ([
     "JOIN","DELAY","SEQUENCE","COMPARE","BRANCH","RESERVE","FORECAST","INTERVENE",
     "COUNTERFACTUAL","PROPAGATE_EFFECT","FIND_CAUSE","CORROBORATE","DISPUTE",
     "ASSUME","BOUND","DOWNWEIGHT","MARGINALIZE","COMPARE","SCORE","RANK",
     "OPTIMIZE","DOMINANCE","PARETO","FALSIFY","SENSITIVITY",
-    "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","EXPLAIN","SATISFY",
+    "BUILD_PLAN","ALLOCATE","REPAIR","EXPAND_ACTION","BRANCH","RESERVE","TERMINATE","EXPLAIN","SATISFY",
     "CHECK_PRECONDITION",
   ].includes(operator)) return "RECORD";
   return "ANY";

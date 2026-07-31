@@ -153,6 +153,18 @@ export type CognitiveDecisionPolicySpec = {
   models: readonly CognitiveDecisionModelSpec[];
 };
 
+export type CognitivePlanningPolicySpec = {
+  maxActions: number;
+  actionIds: readonly string[];
+  branches: readonly {
+    id: string;
+    constraintId: string;
+    whenSatisfiedActionId: string;
+    whenViolatedActionId: string;
+  }[];
+  terminations: readonly { id: string; constraintId: string }[];
+};
+
 export type CognitiveDomainSpec = {
   id: string;
   version: string;
@@ -164,6 +176,7 @@ export type CognitiveDomainSpec = {
   causal: CognitiveCausalPolicySpec;
   epistemic: CognitiveEpistemicPolicySpec;
   decision: CognitiveDecisionPolicySpec;
+  planning: CognitivePlanningPolicySpec;
 };
 
 export type CompiledCognitiveDomain = {
@@ -184,6 +197,7 @@ export type CompiledCognitiveDomain = {
     metrics: ReadonlyMap<string, CognitiveDecisionMetricSpec>;
     models: ReadonlyMap<string, CognitiveDecisionModelSpec>;
   };
+  planning: CognitivePlanningPolicySpec;
   aliases: ReadonlyMap<string, readonly string[]>;
   manifest: {
     variableIds: readonly string[];
@@ -194,6 +208,7 @@ export type CompiledCognitiveDomain = {
     epistemicPolicyId: string;
     decisionMetricIds: readonly string[];
     decisionModelIds: readonly string[];
+    planningActionIds: readonly string[];
   };
 };
 
@@ -492,6 +507,25 @@ export const compileCognitiveDomain = (
     if (Math.abs(weight - 1) > 1e-9) throw new Error(`${model.id}: objective weights must sum to one`);
   }
 
+  if (!Number.isInteger(source.planning.maxActions) || source.planning.maxActions < 1)
+    throw new Error(`${source.id}: planning action limit is invalid`);
+  if (!uniqueStrings(source.planning.actionIds) ||
+      [...source.planning.actionIds].sort().join("|") !== [...actionIds].sort().join("|"))
+    throw new Error(`${source.id}: every compiled action requires exactly one planning policy`);
+  const branchIds = source.planning.branches.map((branch) => branch.id);
+  const terminationIds = source.planning.terminations.map((item) => item.id);
+  if (!uniqueStrings(branchIds) || !uniqueStrings(terminationIds))
+    throw new Error(`${source.id}: duplicate planning branch or termination`);
+  for (const branch of source.planning.branches) {
+    assertIdentifier(branch.id, "planning branch");
+    if (!constraintSet.has(branch.constraintId) || !actionSet.has(branch.whenSatisfiedActionId) || !actionSet.has(branch.whenViolatedActionId))
+      throw new Error(`${branch.id}: planning branch has an open reference`);
+  }
+  for (const termination of source.planning.terminations) {
+    assertIdentifier(termination.id, "planning termination");
+    if (!constraintSet.has(termination.constraintId)) throw new Error(`${termination.id}: planning termination has an open reference`);
+  }
+
   const snapshot = cloneCognitive({
     ...source,
     variables: [...source.variables].sort((a, b) => a.id.localeCompare(b.id)),
@@ -506,6 +540,7 @@ export const compileCognitiveDomain = (
       metrics: [...source.decision.metrics].sort((a, b) => a.id.localeCompare(b.id)),
       models: [...source.decision.models].sort((a, b) => a.id.localeCompare(b.id)),
     },
+    planning: source.planning,
   });
   return {
     id: source.id,
@@ -525,6 +560,7 @@ export const compileCognitiveDomain = (
       metrics: new Map(snapshot.decision.metrics.map((item) => [item.id, item])),
       models: new Map(snapshot.decision.models.map((item) => [item.id, item])),
     },
+    planning: snapshot.planning,
     aliases: new Map(
       [...aliasOwners].map(([alias, owners]) => [alias, [...owners].sort()]),
     ),
@@ -537,6 +573,7 @@ export const compileCognitiveDomain = (
       epistemicPolicyId: snapshot.epistemic.id,
       decisionMetricIds: [...decisionMetricIds].sort(),
       decisionModelIds: [...decisionModelIds].sort(),
+      planningActionIds: [...snapshot.planning.actionIds].sort(),
     },
   };
 };
@@ -754,6 +791,16 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
           { metricId: "treasury", weight: 0.1 },
         ],
       },
+    ],
+  },
+  planning: {
+    maxActions: 8,
+    actionIds: ["inspect", "issue-order"],
+    branches: [
+      { id: "orders-available", constraintId: "campaign-has-orders", whenSatisfiedActionId: "issue-order", whenViolatedActionId: "inspect" },
+    ],
+    terminations: [
+      { id: "front-loss-line", constraintId: "front-survivable" },
     ],
   },
 };

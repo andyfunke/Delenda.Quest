@@ -302,3 +302,27 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Savepoint 10 — planning and resource-allocation engine reconstructed
+
+- Date: 2026-07-31
+- Historical checkpoint represented: `d6179c8`
+- State: reconstructed and verified atop Savepoint 9
+- Scope:
+  - compiler-closed action, duration, resource, branch, termination, and plan
+    limits with exactly one planning policy per action
+  - action expansion and feasibility replay across dependency-ordered graphs
+  - temporal scheduling, cumulative reservations, and double-spend prevention
+  - deterministic, replayable feasibility and allocation repair proposals
+  - compiler-approved branches and termination conditions with stale/forged
+    request rejection
+  - all seven planning primitives emit `PLAN_ONLY_NO_MUTATION` artifacts and
+    cannot execute campaign mutations
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 146/146 substrate contracts passed
+  - TypeScript and production build passed
+  - lint passed with zero errors and no new warnings
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

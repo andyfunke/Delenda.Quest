@@ -35,8 +35,8 @@ test("operator registry contains exactly 55 unique typed routes with constraint 
   const manifest = cognition.cognitiveOperatorManifest();
   assert.equal(manifest.count, 55);
   assert.equal(new Set(cognition.COGNITIVE_OPERATORS).size, 55);
-  assert.equal(manifest.intrinsic.length, 25);
-  assert.equal(manifest.adapted.length, 30);
+  assert.equal(manifest.intrinsic.length, 22);
+  assert.equal(manifest.adapted.length, 33);
   for (const operator of cognition.COGNITIVE_OPERATORS)
     assert.equal(cognition.COGNITIVE_OPERATOR_REGISTRY.get(operator).id, operator);
 });
