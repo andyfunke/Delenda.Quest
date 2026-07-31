@@ -78,4 +78,3 @@ For every subsequent epoch:
 6. Verify the remote branch resolves to the committed object.
 7. Append the new savepoint below; never rewrite an older entry to make later
    work appear complete.
-
