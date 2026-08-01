@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   DailyResolutionConflictError,
+  DailyResolutionPreparationError,
   accountTurnSnapshot,
   claimDailyResolution,
   redeemDailyResolution,
@@ -40,6 +41,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {error:error.message,code:error.code},
         {status:409,headers:{"Cache-Control":"no-store"}},
+      );
+    if(error instanceof DailyResolutionPreparationError)
+      return NextResponse.json(
+        {
+          error:`Campaign turnover preparation failed // ${error.code}`,
+          code:error.code,
+        },
+        {status:400,headers:{"Cache-Control":"no-store"}},
       );
     return NextResponse.json(
       { error: "Campaign turnover could not be claimed." },

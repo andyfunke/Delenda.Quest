@@ -495,6 +495,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(turnStore,/lastResolutionGrantMarker:executionKey/);
   assert.match(turnStore,/resolutionAuthority:"persisted-redemption"/);
   assert.match(turnStore,/await ensureResolutionAuthorityMigration\(\)/);
+  assert.match(turnStore,/class DailyResolutionPreparationError/);
+  assert.match(turnStore,/DAILY_RESOLUTION_GRANT_CREATE_FAILED/);
+  assert.match(turnRoute,/error instanceof DailyResolutionPreparationError/);
   assert.match(resolutionMigrationBridge,/0014_campaign_resolution_grants\.sql/);
   assert.match(resolutionMigrationBridge,/CREATE TABLE IF NOT EXISTS campaign_resolution_grants/);
   assert.match(resolutionMigrationBridge,/ALTER TABLE active_campaigns ADD last_resolution_grant_marker text/);

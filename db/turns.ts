@@ -65,6 +65,29 @@ export class DailyResolutionConflictError extends Error{
   }
 }
 
+export class DailyResolutionPreparationError extends Error{
+  readonly code:string;
+  constructor(code:string,cause:unknown){
+    super("Campaign turnover preparation failed before a grant was issued.",{
+      cause,
+    });
+    this.name="DailyResolutionPreparationError";
+    this.code=code;
+  }
+}
+
+const resolutionPreparationStage=async<T>(
+  code:string,
+  operation:()=>Promise<T>,
+):Promise<T>=>{
+  try{
+    return await operation();
+  }catch(error){
+    if(error instanceof DailyResolutionConflictError)throw error;
+    throw new DailyResolutionPreparationError(code,error);
+  }
+};
+
 const resolutionTarget = (input: {
   campaignId?: unknown;
   campaignDay?: unknown;
@@ -206,8 +229,19 @@ export async function claimDailyResolution(
     expectedStateSeal?:unknown;
   },
 ) {
-  const target = resolutionTarget(input);
-  const state = await ensureTurnState(user);
+  let target:ReturnType<typeof resolutionTarget>;
+  try{
+    target=resolutionTarget(input);
+  }catch(error){
+    throw new DailyResolutionPreparationError(
+      "DAILY_RESOLUTION_TARGET_INVALID",
+      error,
+    );
+  }
+  const state = await resolutionPreparationStage(
+    "DAILY_RESOLUTION_TURN_STATE_UNAVAILABLE",
+    ()=>ensureTurnState(user),
+  );
   const now = Date.now();
   const currentDayKey = accountDayKey(new Date(now), state.timeZone);
   const nextBoundary = accountDayBounds(state.timeZone, now).end;
@@ -217,11 +251,14 @@ export async function claimDailyResolution(
       allowed: false,
       ...snapshot,
     };
-  const campaign=(await state.db
-    .select()
-    .from(activeCampaigns)
-    .where(eq(activeCampaigns.ownerEmail,state.ownerEmail))
-    .limit(1))[0];
+  const campaign=(await resolutionPreparationStage(
+    "DAILY_RESOLUTION_CAMPAIGN_READ_FAILED",
+    ()=>state.db
+      .select()
+      .from(activeCampaigns)
+      .where(eq(activeCampaigns.ownerEmail,state.ownerEmail))
+      .limit(1),
+  ))[0];
   if(
     !campaign||
     campaign.campaignId!==target.campaignId||
@@ -250,40 +287,46 @@ export async function claimDailyResolution(
       ),
     )*1_000_000,
   );
-  const reusable=(await state.db
-    .select()
-    .from(campaignResolutionGrants)
-    .where(
-      and(
-        eq(campaignResolutionGrants.ownerEmail,state.ownerEmail),
-        eq(campaignResolutionGrants.accountDayKey,currentDayKey),
-        eq(campaignResolutionGrants.campaignId,target.campaignId),
-        eq(campaignResolutionGrants.campaignDay,target.campaignDay),
-        eq(campaignResolutionGrants.campaignRevision,target.expectedRevision),
-        eq(campaignResolutionGrants.campaignStateSeal,storedSeal),
-        isNull(campaignResolutionGrants.consumedAt),
-        isNull(campaignResolutionGrants.invalidatedAt),
-        gt(campaignResolutionGrants.expiresAt,now),
-      ),
-    )
-    .limit(1))[0];
+  const reusable=(await resolutionPreparationStage(
+    "DAILY_RESOLUTION_GRANT_READ_FAILED",
+    ()=>state.db
+      .select()
+      .from(campaignResolutionGrants)
+      .where(
+        and(
+          eq(campaignResolutionGrants.ownerEmail,state.ownerEmail),
+          eq(campaignResolutionGrants.accountDayKey,currentDayKey),
+          eq(campaignResolutionGrants.campaignId,target.campaignId),
+          eq(campaignResolutionGrants.campaignDay,target.campaignDay),
+          eq(campaignResolutionGrants.campaignRevision,target.expectedRevision),
+          eq(campaignResolutionGrants.campaignStateSeal,storedSeal),
+          isNull(campaignResolutionGrants.consumedAt),
+          isNull(campaignResolutionGrants.invalidatedAt),
+          gt(campaignResolutionGrants.expiresAt,now),
+        ),
+      )
+      .limit(1),
+  ))[0];
   if(reusable)
     return{
       allowed:true,
       ...snapshot,
       resolutionGrant:grantFact(reusable),
     };
-  await state.db
-    .update(campaignResolutionGrants)
-    .set({invalidatedAt:now})
-    .where(
-      and(
-        eq(campaignResolutionGrants.ownerEmail,state.ownerEmail),
-        eq(campaignResolutionGrants.accountDayKey,currentDayKey),
-        isNull(campaignResolutionGrants.consumedAt),
-        isNull(campaignResolutionGrants.invalidatedAt),
+  await resolutionPreparationStage(
+    "DAILY_RESOLUTION_GRANT_INVALIDATION_FAILED",
+    ()=>state.db
+      .update(campaignResolutionGrants)
+      .set({invalidatedAt:now})
+      .where(
+        and(
+          eq(campaignResolutionGrants.ownerEmail,state.ownerEmail),
+          eq(campaignResolutionGrants.accountDayKey,currentDayKey),
+          isNull(campaignResolutionGrants.consumedAt),
+          isNull(campaignResolutionGrants.invalidatedAt),
+        ),
       ),
-    );
+  );
   const grant:typeof campaignResolutionGrants.$inferInsert={
     id:crypto.randomUUID(),
     ownerEmail:state.ownerEmail,
@@ -296,7 +339,10 @@ export async function claimDailyResolution(
     expiresAt:nextBoundary,
     createdAt:now,
   };
-  await state.db.insert(campaignResolutionGrants).values(grant);
+  await resolutionPreparationStage(
+    "DAILY_RESOLUTION_GRANT_CREATE_FAILED",
+    ()=>state.db.insert(campaignResolutionGrants).values(grant),
+  );
   return {
     allowed: true,
     ...snapshot,
