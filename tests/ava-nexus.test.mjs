@@ -102,6 +102,51 @@ test("chat export crosses the Nexus as a local read-only presentation request", 
   assert.match(exported.text, /CHAT LOG EXPORT[\s\S]*remains local/i);
 });
 
+test("godmode force-opportunity returns one canonical visible result", () => {
+  let state;
+  for(let seed=1;seed<1000;seed+=1){
+    const candidate=newState(seed);
+    if(!game.opportunityForState(candidate)){
+      state=candidate;
+      break;
+    }
+  }
+  assert.ok(state);
+  const request={
+    kind:"internal",
+    origin:"internal",
+    operation:"force-opportunity",
+    expectedStateSeal:nexus.avaNexusStateRevision(state),
+  };
+  const forced=nexus.runAvaNexusRequest(
+    request,
+    ctxFor(state,"command","internal"),
+    state,
+    nexus.createAvaNexusSession(),
+  );
+  assert.equal(forced.response.status,"OK",forced.text);
+  assert.equal(forced.response.fact.operation,"force-opportunity");
+  assert.equal(forced.response.fact.status,"opened");
+  assert.ok(forced.response.fact.packetId);
+  assert.ok(forced.response.fact.packetHeadline);
+  assert.match(forced.text,/^RANDOM EVENT FORCED\n\S[\s\S]*window is open/i);
+  assert.equal(
+    game.opportunityStatusForFraction(forced.state,.5).packet?.id,
+    forced.response.fact.packetId,
+  );
+
+  const repeated=nexus.runAvaNexusRequest(
+    {...request,expectedStateSeal:nexus.avaNexusStateRevision(forced.state)},
+    ctxFor(forced.state,"command","internal"),
+    forced.state,
+    forced.session,
+  );
+  assert.equal(repeated.response.status,"OK",repeated.text);
+  assert.equal(repeated.response.fact.status,"unchanged");
+  assert.match(repeated.text,/^RANDOM EVENT ALREADY OPEN[\s\S]*advance the day/i);
+  assert.deepEqual(repeated.state.forcedOpportunityDays,[state.day]);
+});
+
 test("strategic posture reaches the evaluator instead of collapsing to default", () => {
   const state = newState();
   const posture = {

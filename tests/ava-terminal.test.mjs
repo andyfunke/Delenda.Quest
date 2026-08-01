@@ -65,12 +65,18 @@ test("ordinary shittest player commands return useful orientation instead of gra
     ["what to do",/recommendation|priority|judgment/i],
     ["what do i do",/recommendation|priority|judgment/i],
     ["what now",/recommendation|priority|judgment/i],
+    ["what next",/recommendation|priority|judgment/i],
+    ["where do we go from here",/recommendation|priority|judgment/i],
+    ["how should we proceed",/recommendation|priority|judgment/i],
     ["how to play",/command grammar/i],
+    ["could you explain how this game actually works",/command grammar/i],
     ["help me",/command grammar/i],
     ["im lost",/command grammar/i],
     ["what did i do",/retrospective/i],
+    ["please recap what we did last turn",/retrospective/i],
     ["what have we done",/retrospective/i],
     ["catch me up",/command position|situation|overview/i],
+    ["ava can you catch me up on the situation",/command position|situation|overview/i],
   ];
   for(const [command,useful] of cases){
     const result=run(command,state);

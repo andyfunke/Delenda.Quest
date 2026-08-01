@@ -77,6 +77,279 @@ export const normalizeAvaInput = (raw: string) =>
     .trim()
     .replace(/\s+/g, " ");
 
+export type AvaPlayerNeed =
+  | "NEXT_ACTION"
+  | "HOW_TO_PLAY"
+  | "CURRENT_POSITION"
+  | "RECENT_ACTIONS";
+
+export type AvaPlayerNeedParse = {
+  need: AvaPlayerNeed;
+  normalizedInput: string;
+  match: "exact" | "composed";
+  rule: string;
+};
+
+const crossProduct = (...dimensions: readonly (readonly string[])[]) =>
+  dimensions.reduce<string[]>(
+    (phrases, dimension) =>
+      phrases.flatMap((phrase) =>
+        dimension.map((part) => `${phrase} ${part}`.trim()),
+      ),
+    [""],
+  );
+
+const playerNeedSurfaces: Record<AvaPlayerNeed, readonly string[]> = {
+  NEXT_ACTION: [
+    "what next",
+    "whats next",
+    "what now",
+    "what to do",
+    "what am i supposed to do",
+    "what are we supposed to do",
+    "tell me what to do",
+    "give me a next move",
+    "give me the next move",
+    "give me a next step",
+    "give me the next step",
+    "recommend a next move",
+    "recommend the next move",
+    "where do we go from here",
+    "where should we go from here",
+    "how do i proceed",
+    "how should i proceed",
+    "how do we proceed",
+    "how should we proceed",
+    "how do i continue",
+    "how do we continue",
+    ...crossProduct(
+      ["what do", "what should", "what can"],
+      ["i", "we"],
+      ["do"],
+      ["", "now", "next"],
+    ),
+    ...crossProduct(
+      ["where do", "where should", "where can"],
+      ["i", "we"],
+      ["start", "begin", "go"],
+      ["", "now", "next"],
+    ),
+  ],
+  HOW_TO_PLAY: [
+    "how to play",
+    "how does this work",
+    "how does the game work",
+    "how is this played",
+    "how is the game played",
+    "what are the rules",
+    "show me the rules",
+    "explain the rules",
+    "game rules",
+    "instructions",
+    "game instructions",
+    "tutorial",
+    "start tutorial",
+    "teach me",
+    "teach me the game",
+    "teach me how to play",
+    "show me how to play",
+    "tell me how to play",
+    "explain how to play",
+    "help me play",
+    "help me get started",
+    "i dont know how to play",
+    "i do not know how to play",
+    "i dont understand how to play",
+    "i do not understand how to play",
+    "im lost",
+    "i am lost",
+    ...crossProduct(
+      ["how do", "how can"],
+      ["i", "we"],
+      ["play", "start", "get started"],
+    ),
+  ],
+  CURRENT_POSITION: [
+    "status",
+    "status update",
+    "update",
+    "update me",
+    "give me an update",
+    "situation update",
+    "command status",
+    "command situation",
+    "catch me up",
+    "bring me up to speed",
+    "where are we",
+    "where do we stand",
+    "how are we doing",
+    "how is it going",
+    "whats going on",
+    "what is going on",
+    "what is happening",
+    "what is the situation",
+    "show me the situation",
+    "orient me",
+  ],
+  RECENT_ACTIONS: [
+    "what changed",
+    "what happened",
+    "what happened last day",
+    "what happened last turn",
+    "what did i do",
+    "what did we do",
+    "what have i done",
+    "what have we done",
+    "what was my last move",
+    "what was our last move",
+    "recap my last move",
+    "recap our last move",
+    "recap the last turn",
+    "recap the last day",
+    "show me what i did",
+    "show me what we did",
+    "yesterdays outcome",
+  ],
+};
+
+const playerNeedIndex = new Map<string, AvaPlayerNeed>();
+for (const [need, surfaces] of Object.entries(playerNeedSurfaces) as Array<
+  [AvaPlayerNeed, readonly string[]]
+>) {
+  for (const surface of surfaces) {
+    const normalized = normalizeAvaInput(surface);
+    const prior = playerNeedIndex.get(normalized);
+    if (prior && prior !== need)
+      throw new Error(
+        `Ava player-need grammar collision: ${normalized} (${prior}/${need})`,
+      );
+    playerNeedIndex.set(normalized, need);
+  }
+}
+
+export const AVA_PLAYER_NEED_UTTERANCES = Object.freeze(
+  [...playerNeedIndex.entries()].map(([utterance, need]) => ({
+    utterance,
+    need,
+  })),
+);
+
+/**
+ * Generously classify common read-only player needs. This grammar may recover
+ * natural orientation language, but it never emits a consequential command.
+ */
+export const compileAvaPlayerNeed = (
+  raw: string,
+): AvaPlayerNeedParse | null => {
+  const normalizedInput = normalizeAvaInput(raw);
+  if (!normalizedInput) return null;
+  const exact = playerNeedIndex.get(normalizedInput);
+  if (exact)
+    return {
+      need: exact,
+      normalizedInput,
+      match: "exact",
+      rule: `player-need-exact:${exact.toLowerCase()}`,
+    };
+
+  const tokens = new Set(normalizedInput.split(" "));
+  if (tokens.size > 14) return null;
+
+  const asksForRules =
+    tokens.has("rules") ||
+    tokens.has("tutorial") ||
+    tokens.has("instructions") ||
+    (tokens.has("how") &&
+      (tokens.has("play") ||
+        ((tokens.has("this") || tokens.has("game")) &&
+          (tokens.has("work") || tokens.has("works"))))) ||
+    (tokens.has("help") &&
+      (tokens.has("play") || tokens.has("started")));
+  if (asksForRules)
+    return {
+      need: "HOW_TO_PLAY",
+      normalizedInput,
+      match: "composed",
+      rule: "player-need-composed:how-to-play",
+    };
+
+  const forecastLanguage =
+    tokens.has("happen") ||
+    tokens.has("happens") ||
+    tokens.has("forecast") ||
+    tokens.has("predict");
+  const asksForNextAction =
+    !forecastLanguage &&
+    ((tokens.has("what") &&
+      (tokens.has("next") ||
+        tokens.has("now") ||
+        tokens.has("move") ||
+        tokens.has("step") ||
+        (tokens.has("do") &&
+          (tokens.has("i") || tokens.has("we"))))) ||
+      (tokens.has("where") &&
+        (tokens.has("start") ||
+          tokens.has("begin") ||
+          tokens.has("go"))) ||
+      (tokens.has("how") &&
+        (tokens.has("proceed") || tokens.has("continue"))));
+  if (asksForNextAction)
+    return {
+      need: "NEXT_ACTION",
+      normalizedInput,
+      match: "composed",
+      rule: "player-need-composed:next-action",
+    };
+
+  const asksForRecentActions =
+    (tokens.has("what") &&
+      (tokens.has("did") || tokens.has("done")) &&
+      (tokens.has("i") || tokens.has("we"))) ||
+    (tokens.has("recap") &&
+      (tokens.has("last") || tokens.has("move") || tokens.has("turn")));
+  if (asksForRecentActions)
+    return {
+      need: "RECENT_ACTIONS",
+      normalizedInput,
+      match: "composed",
+      rule: "player-need-composed:recent-actions",
+    };
+
+  const asksForPosition =
+    tokens.has("status") ||
+    tokens.has("situation") ||
+    (tokens.has("catch") && tokens.has("up")) ||
+    (tokens.has("where") && tokens.has("we")) ||
+    (tokens.has("going") && tokens.has("on"));
+  if (asksForPosition)
+    return {
+      need: "CURRENT_POSITION",
+      normalizedInput,
+      match: "composed",
+      rule: "player-need-composed:current-position",
+    };
+
+  return null;
+};
+
+const instructionForPlayerNeed = (need: AvaPlayerNeed): AvaInstruction => {
+  switch (need) {
+    case "NEXT_ACTION":
+      return { kind: "ADVISE" };
+    case "HOW_TO_PLAY":
+      return { kind: "HELP" };
+    case "CURRENT_POSITION":
+      return { kind: "STATUS" };
+    case "RECENT_ACTIONS":
+      return {
+        kind: "REPORT",
+        topic: "retrospective",
+        days: 1,
+        scope: "current",
+      };
+  }
+};
+
 export const isAvaConfirmationInput=(raw:string)=>{
   const input=normalizeAvaInput(raw);
   return(
@@ -761,6 +1034,13 @@ function compileLegacyCommand(
       topic: "daily-brief",
       scope: "current",
     });
+  const playerNeed = compileAvaPlayerNeed(input);
+  if (playerNeed)
+    return compiled(
+      input,
+      playerNeed.rule,
+      instructionForPlayerNeed(playerNeed.need),
+    );
   if (
     /\b(wtf do i do|what (the hell |the fuck )?do i do|what to do|what now|what am i supposed to do|what should i do|where (do i|should i) start|recommend|recommendation|advise|next move)\b/.test(
       input,

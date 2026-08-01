@@ -85,12 +85,40 @@ test("reports resolve module aliases",()=>{
 });
 
 test("advice language compiles to the deterministic advisory layer",()=>{
-  for(const phrase of ["what should I do","what to do","what do I do","what now","what am I supposed to do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){
+  for(const phrase of ["what should I do","what to do","what do I do","what next","whats next","what now","what am I supposed to do","wtf do I do","what the fuck do I do","where do I start","where do we go from here","how should we proceed","recommend a next move","advise me"]){
     const result=mod.compileAvaCommand(phrase,context);
     assert.equal(result.status,"compiled",phrase);
-    assert.equal(result.instruction.kind,"SEMANTIC",phrase);
+    assert.ok(
+      result.instruction.kind==="SEMANTIC"||result.instruction.kind==="ADVISE",
+      `${phrase}: ${result.instruction.kind}`,
+    );
     assert.equal(result.semantic.operation,"ADVISE",phrase);
   }
+});
+
+test("the enumerated player-needs rainbow table is collision-free and read-only",()=>{
+  assert.ok(mod.AVA_PLAYER_NEED_UTTERANCES.length>=120);
+  assert.equal(
+    new Set(mod.AVA_PLAYER_NEED_UTTERANCES.map(item=>item.utterance)).size,
+    mod.AVA_PLAYER_NEED_UTTERANCES.length,
+  );
+  for(const expected of mod.AVA_PLAYER_NEED_UTTERANCES){
+    const parsed=mod.compileAvaPlayerNeed(expected.utterance);
+    assert.equal(parsed?.need,expected.need,expected.utterance);
+    assert.equal(parsed?.match,"exact",expected.utterance);
+    const result=mod.compileAvaCommand(expected.utterance,context);
+    assert.equal(result.status,"compiled",expected.utterance);
+    assert.ok(
+      ["ADVISE","HELP","STATUS","REPORT","LIST","SEMANTIC"].includes(result.instruction.kind),
+      `${expected.utterance}: ${result.instruction.kind}`,
+    );
+  }
+  for(const [phrase,need] of [
+    ["okay ava where exactly should we begin next","NEXT_ACTION"],
+    ["could you explain how this game actually works","HOW_TO_PLAY"],
+    ["ava can you catch me up on the situation","CURRENT_POSITION"],
+    ["please recap what we did last turn","RECENT_ACTIONS"],
+  ])assert.equal(mod.compileAvaPlayerNeed(phrase)?.need,need,phrase);
 });
 
 test("ordinary player orientation language resolves before generic EXPLAIN",()=>{

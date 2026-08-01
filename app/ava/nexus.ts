@@ -2520,10 +2520,21 @@ const executeInternalRequest = (
   let next = state;
   let status: "opened" | "expired" | "unchanged" = "unchanged";
   let packetId: string | undefined;
+  let packetHeadline: string | undefined;
   if (request.operation === "force-opportunity") {
     next = forceOpportunityForCurrentDay(state);
     status = next === state ? "unchanged" : "opened";
-    packetId = opportunityStatusForFraction(next, 0).packet?.id;
+    const forcedWindow = opportunityStatusForFraction(next, 0);
+    packetId = forcedWindow.packet?.id;
+    packetHeadline = forcedWindow.packet?.headline;
+    if (!forcedWindow.packet)
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "OPPORTUNITY_OVERRIDE_UNAVAILABLE",
+        "No authored target of opportunity is available for this campaign day.",
+      );
   } else if (request.operation === "record-opportunity-opened") {
     next = recordOpportunityOpened(state, request.packet);
     status = next === state ? "unchanged" : "opened";
@@ -2571,13 +2582,17 @@ const executeInternalRequest = (
   }
   const response: SemanticResponse<unknown> = {
     status: "OK",
-    fact: { operation: request.operation, status, packetId },
+    fact: { operation: request.operation, status, packetId, packetHeadline },
     rendering: {
       compact: `OPPORTUNITY ${status.toUpperCase()}`,
       brief:
-        status === "unchanged"
-          ? "The opportunity ledger already matches the current window."
-          : `Opportunity ${packetId ?? ""} recorded as ${status}.`,
+        request.operation === "force-opportunity"
+          ? status === "unchanged"
+            ? `RANDOM EVENT ALREADY OPEN\n${packetHeadline}\nThis campaign day already has a target-of-opportunity window. Advance the day before forcing another.`
+            : `RANDOM EVENT FORCED\n${packetHeadline}\nThe target-of-opportunity window is open for the current campaign day.`
+          : status === "unchanged"
+            ? "The opportunity ledger already matches the current window."
+            : `Opportunity ${packetId ?? ""} recorded as ${status}.`,
     },
     campaignRevision: revisionOf(next),
   };

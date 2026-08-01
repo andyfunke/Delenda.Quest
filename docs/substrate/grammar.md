@@ -51,6 +51,29 @@ export ava log
 intent. The authenticated turn service persists the setting. It is deliberately
 not campaign state and does not create a second day-resolution implementation.
 
+## Good-faith player needs
+
+Common read-only remarks compile through a bounded player-needs grammar before
+generic clarification. The exact utterance index is the high-confidence
+rainbow table; a short compositional pass then recognizes the same semantic
+need when polite framing or filler changes the surface.
+
+| Need | Canonical operation | Examples |
+|---|---|---|
+| Next action | `ADVISE` | `what next`, `where do we go from here` |
+| How to play | `HELP` | `how to play`, `explain how this game works` |
+| Current position | `STATUS` | `catch me up`, `what is going on` |
+| Recent actions | retrospective `REPORT` | `what did I do`, `recap our last turn` |
+
+This recovery layer may be generous because every output is read-only. It may
+not infer `PREPARE`, `CONFIRM`, `COMMIT`, `ISSUE`, or `RESOLVE_DAY`; those
+operations retain exact targets and fail-closed parsing.
+
+Raw player remarks remain in the local Ava session and its explicit chat
+export. They are not added to telemetry. An exported miss can therefore become
+a reviewed regression fixture without silently creating a player-language
+archive.
+
 ## Aliases
 
 | Alias | Canonical |

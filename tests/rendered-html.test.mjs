@@ -534,9 +534,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   );
   assert.match(randomEventHandler,/!turnAccess\?\.godMode/);
   assert.match(randomEventHandler,/operation:"force-opportunity"/);
-  assert.match(randomEventHandler,/opportunityStatusForFraction\(next, fraction\)\.packet/);
+  assert.match(randomEventHandler,/text: forced\.text/);
+  assert.doesNotMatch(randomEventHandler,/RANDOM EVENT OVERRIDE FAILED/);
   assert.match(randomEventHandler,/setOpportunityInterruptAcknowledged\(false\)/);
-  assert.match(randomEventHandler,/RANDOM EVENT FORCED/);
   assert.match(page,/void advance\("automatic"\)/);
   assert.match(page,/DAILY TURN ALREADY USED/);
   assert.match(page,/serializeAvaChatLog\(/);

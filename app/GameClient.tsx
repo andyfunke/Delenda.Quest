@@ -5565,17 +5565,15 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       liveAvaSessionRef.current=forced.session;
       setAvaSession(forced.session);
       const next=forced.state;
-      const packet = opportunityStatusForFraction(next, fraction).packet;
       liveStateRef.current=next;
       setS(next);
-      setOpportunityInterruptAcknowledged(false);
+      if(forced.response.status==="OK")
+        setOpportunityInterruptAcknowledged(false);
       setMessages((current) => [
         ...current,
         {
           who: "AVA",
-          text: packet
-            ? `RANDOM EVENT FORCED\n${packet.headline}\nThe target-of-opportunity window is open for the current campaign day.`
-            : "RANDOM EVENT OVERRIDE FAILED\nNo eligible event could be compiled for the current day.",
+          text: forced.text,
         },
       ]);
       return;
