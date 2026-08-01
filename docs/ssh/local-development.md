@@ -30,14 +30,25 @@ const result = server.handleLine(opened.sessionId, "brief");
 console.log(result.text);
 ```
 
-## Tests
+## Native gateway test
 
 ```bash
 bash scripts/test-substrate.sh
+docker build --file packages/ssh-gateway/Dockerfile --tag delenda-ssh-gateway:test .
+bash scripts/test-native-ssh-gateway.sh delenda-ssh-gateway:test
 ```
 
-## Deferred
+The substrate suite validates internal structured cognitive evidence and
+failure redaction. The container test performs a real local OpenSSH handshake
+and asserts canonical Ava text through the gateway API fixture. The internal
+attestation object is not rendered to the SSH client.
 
-- Binding `ssh.delenda.quest` and production TCP listener
-- Account page UI for key fingerprints (data layer exists)
+## Production
+
+The checked-in Fly deployment and `ssh.delenda.quest` listener are documented
+in `docs/ssh/deployment.md`. Relevant `main` pushes run both contracts before
+deploying and then check the live port 22 listener.
+
+## Deferred distribution
+
 - Homebrew / store packaging

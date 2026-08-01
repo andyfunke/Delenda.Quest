@@ -20,6 +20,43 @@ const semantic = {
   sourceSpans: {},
 };
 
+test("cognitive digests use canonical UTF-8 SHA-256", () => {
+  assert.equal(
+    cognition.sha256Hex("abc"),
+    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  );
+  assert.match(cognition.cognitiveDigest({ message: "abc" }), /^[a-f0-9]{64}$/);
+  assert.equal(
+    cognition.cognitiveDigest({ second: 2, first: 1 }),
+    cognition.cognitiveDigest({ first: 1, second: 2 }),
+    "canonical object-key ordering changed",
+  );
+  assert.notEqual(
+    cognition.cognitiveDigest({ first: 1, second: 2 }),
+    cognition.cognitiveDigest({ first: 1, second: 3 }),
+    "a one-value tamper retained the original digest",
+  );
+});
+
+test("SHA-256 separates a known collision under the retired 32-bit digest", () => {
+  const left = "fnv-acuqi7-15tk";
+  const right = "fnv-1yx9vt9-1yfi";
+  const retiredDigest = (value) => {
+    const text = JSON.stringify(value);
+    let hash = 2166136261;
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0");
+  };
+
+  assert.equal(retiredDigest(left), retiredDigest(right));
+  assert.notEqual(cognition.cognitiveDigest(left), cognition.cognitiveDigest(right));
+  assert.match(cognition.cognitiveDigest(left), /^[a-f0-9]{64}$/);
+  assert.match(cognition.cognitiveDigest(right), /^[a-f0-9]{64}$/);
+});
+
 test("dependencies 1-3 compile one closed and deterministic cognitive domain", () => {
   const domain = cognition.DELENDA_COGNITIVE_DOMAIN;
   assert.equal(domain.id, "delenda-cognitive-domain");

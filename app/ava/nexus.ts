@@ -18,14 +18,8 @@ import {
   confirmOrder,
   getVisibleDocket,
   prepareOrder,
-  rankVisibleChoices,
 } from "../substrate/services";
 import { createCapabilityRegistry } from "../substrate/capability-registry";
-import {
-  DEFAULT_STRATEGIC_POSTURE,
-  mergePosture,
-  type StrategicPosture,
-} from "../substrate/posture";
 import {
   compileAvaCommand,
   isAvaConfirmationInput,
@@ -57,6 +51,7 @@ import {
   validateAvaRequestIR,
   validateAvaSemanticQuery,
   type AvaDirectiveBinding,
+  type AvaCognitiveActivationReceipt,
   type AvaRequestIR,
   type AvaResolutionGrant,
   type AvaResponseEnvelope,
@@ -64,13 +59,29 @@ import {
 import {
   actionKey,
   buildAvaPlan,
+  descriptorForAction,
   executeAvaAction,
   executeAvaPlan,
 } from "./runtime";
 import {
+  bindResponseProofToExecution,
   buildNexusProofGraph,
+  composeCanonicalProofGraphs,
   type CanonicalProofGraph,
 } from "./proof-graph";
+import {
+  cognitiveCausalGuidanceFor,
+  cognitiveConstraintGuidanceFor,
+  cognitiveDecisionGuidanceFor,
+  cognitiveEpistemicGuidanceFor,
+  cognitiveForecastGuidanceFor,
+  cognitivePlanningGuidanceFor,
+  cognitiveSemanticGuidanceFor,
+  runAvaCognitiveNexus,
+} from "./cognitive-nexus";
+import { canonicalJson, cognitiveDigest } from "./cognitive-types";
+import { avaVisibleWorldRevision } from "./world-model";
+import { projectAvaDisclosedState } from "./projection";
 
 type DirectiveChannel = Extract<
   Channel,
@@ -214,6 +225,11 @@ export type AvaNexusSession = {
   proposalToken?: string;
   proposalExpiresAt?: string;
   consumedResolutionGrantIds: string[];
+  typedPreparations?: Array<{
+    idempotencyKey: string;
+    payloadHash: string;
+    confirmationId: string;
+  }>;
 };
 
 export type AvaKernelSession = AvaNexusSession;
@@ -227,6 +243,7 @@ export type AvaNexusResult = {
   compile?: AvaCompileResult;
   terminalResult?: AvaTerminalResult;
   proofGraph: CanonicalProofGraph;
+  cognitiveActivation?: AvaCognitiveActivationReceipt;
 };
 
 export type AvaKernelResult = AvaNexusResult;
@@ -250,6 +267,7 @@ export const createAvaNexusSession = (
   commandsRead: 0,
   consequentialAttempts: 0,
   consumedResolutionGrantIds: [],
+  typedPreparations: [],
 });
 
 export const createAvaKernelSession = createAvaNexusSession;
@@ -297,7 +315,10 @@ const compileVisibleAvaContext = (
     next = docket.state;
     docket.response.fact.choiceIds.forEach((id) => visibleChoiceIds.add(id));
   }
-  const entities = avaEntitiesForState(next, opportunityFraction).filter(
+  const entities = avaEntitiesForState(
+    projectAvaDisclosedState(next),
+    opportunityFraction,
+  ).filter(
     (entity) =>
       entity.action?.kind !== "directive" ||
       visibleChoiceIds.has(entity.action.choiceId),
@@ -367,51 +388,6 @@ const docketText = (fact: DocketFact) => {
   ].join("\n\n");
 };
 
-const postureFor = (query?: AvaSemanticQuery): StrategicPosture => {
-  let posture = DEFAULT_STRATEGIC_POSTURE;
-  const criteria = new Set(query?.criteria ?? []);
-  if (criteria.has("PRODUCTION"))
-    posture = mergePosture(posture, {
-      objective: "preserve_industrial_capacity",
-      priorities: { production_integrity: "critical" },
-      confirmation: "inferred",
-    });
-  if (criteria.has("FRONT") || criteria.has("STRONGEST"))
-    posture = mergePosture(posture, {
-      objective: "stabilize_front",
-      priorities: { territorial_control: "high", initiative: "high" },
-      confirmation: "inferred",
-    });
-  if (criteria.has("LONG_TERM") || criteria.has("SUSTAINABILITY"))
-    posture = mergePosture(posture, {
-      objective: "build_long_term_capacity",
-      horizon: "long",
-      priorities: { long_term_capacity: "critical" },
-      confirmation: "inferred",
-    });
-  if (criteria.has("IMMEDIATE"))
-    posture = mergePosture(posture, {
-      horizon: "immediate",
-      confirmation: "inferred",
-    });
-  if (criteria.has("LOWEST_RISK"))
-    posture = mergePosture(posture, {
-      priorities: { force_preservation: "critical" },
-      tolerances: {
-        short_term_exposure: "low",
-        veteran_attrition: "low",
-      },
-      confirmation: "inferred",
-    });
-  if (criteria.has("CHEAPEST") || criteria.has("LOWEST_MATERIEL_COST"))
-    posture = mergePosture(posture, {
-      priorities: { treasury_preservation: "critical" },
-      tolerances: { treasury_expenditure: "low" },
-      confirmation: "inferred",
-    });
-  return posture;
-};
-
 const directiveEntityForInstruction = (
   instruction: AvaInstruction,
   session: AvaKernelSession,
@@ -474,7 +450,21 @@ const oldAvaResponse = (
   campaignRevision: revisionOf(result.state ?? state),
 });
 
-type AvaNexusExecutionResult = Omit<AvaNexusResult, "envelope" | "proofGraph">;
+type AvaNexusExecutionResult = Omit<
+  AvaNexusResult,
+  "envelope" | "proofGraph" | "cognitiveActivation"
+> & {
+  cognition?: {
+    cognitiveActivation: AvaCognitiveActivationReceipt;
+    proofGraph: CanonicalProofGraph;
+    cognitiveDecision?: {
+      executionDigest: string;
+      decisionDigest: string;
+      winnerId: string;
+      ranking: readonly string[];
+    };
+  };
+};
 
 const prepareDirective = (
   ctx: PlayerContext,
@@ -566,23 +556,72 @@ const withEnvelope = (
     terminalResult?: AvaTerminalResult;
   } = {},
 ): AvaNexusResult => {
+  const { cognition, ...publicResult } = result;
   const semantic =
     request.kind === "instruction" ? request.semantic : undefined;
   const trace = request.kind === "instruction" ? request.trace : undefined;
   const compile = options.compile ?? result.compile;
   const terminalResult = options.terminalResult ?? result.terminalResult;
-  const proofGraph =
+  const responseProofGraph =
     terminalResult?.proofGraph ??
     buildNexusProofGraph({
-      worldRevision: result.response.campaignRevision,
-      request,
+      worldRevision:
+        cognition?.proofGraph.worldRevision ??
+        avaVisibleWorldRevision(result.state),
+      request:
+        request.kind === "action"
+          ? {
+              ...request,
+              action:
+                request.action.kind === "sub-mission"
+                  ? {
+                      kind: request.action.kind,
+                      domain: request.action.domain,
+                      missionId: request.action.missionId,
+                      optionId: request.action.optionId,
+                    }
+                  : request.action,
+            }
+          : request.kind === "plan"
+            ? {
+                ...request,
+                actions: request.actions.map((action) =>
+                  action.kind === "sub-mission"
+                    ? {
+                        kind: action.kind,
+                        domain: action.domain,
+                        missionId: action.missionId,
+                        optionId: action.optionId,
+                      }
+                    : action,
+                ),
+              }
+            : request,
       response: result.response,
+      cognitiveDecision: cognition?.cognitiveDecision,
     });
+  const boundResponseProofGraph = cognition
+    ? bindResponseProofToExecution(
+        responseProofGraph,
+        cognition.proofGraph.executionDigest ?? "",
+      )
+    : responseProofGraph;
+  const proofGraph = cognition
+    ? composeCanonicalProofGraphs(
+        boundResponseProofGraph,
+        cognition.proofGraph,
+      )
+    : boundResponseProofGraph;
+  const retainedTerminalResult =
+    terminalResult && cognition
+      ? { ...terminalResult, proofGraph }
+      : terminalResult;
   return {
-    ...result,
+    ...publicResult,
     compile,
-    terminalResult,
+    terminalResult: retainedTerminalResult,
     proofGraph,
+    cognitiveActivation: cognition?.cognitiveActivation,
     envelope: {
       requestKind: request.kind,
       instructionKind:
@@ -594,9 +633,10 @@ const withEnvelope = (
       compile,
       response: result.response,
       proofGraph,
+      cognitiveActivation: cognition?.cognitiveActivation,
       presentation: terminalPresentation(
         result.text,
-        terminalResult,
+        retainedTerminalResult,
       ),
     },
   };
@@ -660,6 +700,8 @@ const isConsequentialInstruction = (instruction: AvaInstruction) =>
     "COMMIT",
     "CONFIRM",
     "CANCEL",
+    "CLEAR",
+    "CLEAR_PLAN",
     "RESOLVE_DAY",
   ].includes(instruction.kind);
 
@@ -674,8 +716,39 @@ const typedExecutionPayloadHash = (
 ) => {
   const actions =
     request.kind === "action" ? [request.action] : request.actions;
+  return `ava_${cognitiveDigest({
+    binding: "AVA_TYPED_EXECUTION_PAYLOAD_V2",
+    requestKind: request.kind,
+    mode: request.mode,
+    actions,
+  })}`;
+};
+
+const legacyTypedExecutionPayloadHash = (
+  request: Extract<AvaRequestIR, { kind: "action" | "plan" }>,
+) => {
+  const actions =
+    request.kind === "action" ? [request.action] : request.actions;
   const payload = `${request.kind}:${actions.map(actionKey).join("|")}`;
   return `ava_${hashInt(payload).toString(16).padStart(8, "0")}`;
+};
+
+const typedExecutionPayloadMatches = (
+  stored: string,
+  request: Extract<AvaRequestIR, { kind: "action" | "plan" }>,
+) => {
+  if (stored === typedExecutionPayloadHash(request)) return true;
+  const actions =
+    request.kind === "action" ? [request.action] : request.actions;
+  // The historical 32-bit format did not bind the opaque sub-mission ticket
+  // (or its domain), so accepting it for that action class would turn a stale
+  // or forged ticket into an idempotent replay. Other historical action keys
+  // were complete, and remain replay-compatible during migration.
+  return (
+    /^ava_[a-f0-9]{8}$/.test(stored) &&
+    actions.every((action) => action.kind !== "sub-mission") &&
+    stored === legacyTypedExecutionPayloadHash(request)
+  );
 };
 
 const priorTypedExecution = (
@@ -710,7 +783,24 @@ const instructionActions = (
       entity.action ? [entity.action] : [],
     );
   if (instruction.kind === "ISSUE_PLAN") return session.terminal.plan;
+  if (instruction.kind === "RESOLVE_DAY") return [{ kind: "resolve-day" }];
   return [];
+};
+
+const exactInstructionActionIds = (
+  instruction: AvaInstruction,
+  actions: readonly AvaActionRef[],
+  state: GameState,
+  opportunityFraction: number,
+): string[] => {
+  if (instruction.kind === "SELECT") return [instruction.entity.id];
+  if (instruction.kind === "STAGE" || instruction.kind === "ISSUE")
+    return instruction.entities.map((entity) => entity.id);
+  return actions.map(
+    (action) =>
+      descriptorForAction(state, action, opportunityFraction)?.id ??
+      actionKey(action),
+  );
 };
 
 const clearLegacyDirectiveAuthority = (
@@ -855,7 +945,9 @@ const directiveJudgment = (
   state: GameState,
   session: AvaNexusSession,
   query: AvaSemanticQuery,
-  entities: AvaEntity[],
+  cognitiveGuidance: NonNullable<
+    ReturnType<typeof cognitiveDecisionGuidanceFor>
+  >,
 ): AvaNexusExecutionResult => {
   const binding = directiveBindingFor(query);
   if (!binding)
@@ -879,29 +971,68 @@ const directiveJudgment = (
       "DIPLOMACY_ACTOR_REQUIRED",
       "Name exactly one current diplomacy actor.",
     );
-  const ranked = rankVisibleChoices(
+  const docket = getVisibleDocket(
     ctx,
     state,
     binding.channel,
     actorId,
-    postureFor(query),
   );
+  const artifact = cognitiveGuidance.directiveArtifact;
+  if (
+    !artifact ||
+    artifact.binding.channel !== binding.channel ||
+    artifact.binding.actorId !== actorId ||
+    artifact.worldRevision !== avaVisibleWorldRevision(docket.state) ||
+    canonicalJson([...cognitiveGuidance.decision.ranking].sort()) !==
+      canonicalJson([...docket.response.fact.choiceIds].sort())
+  )
+    return responseFailure(
+      docket.state,
+      session,
+      "REJECTED",
+      "COGNITIVE_DIRECTIVE_BINDING_REJECTED",
+      "The cognitive decision did not exactly cover the visible directive docket. No order was prepared or issued.",
+    );
+  const evaluationByChoice = new Map(
+    artifact.evaluations.map((evaluation) => [
+      evaluation.choiceId,
+      evaluation,
+    ]),
+  );
+  const rows = cognitiveGuidance.decision.ranking.map((choiceId) => {
+    const evaluation = evaluationByChoice.get(choiceId);
+    if (!evaluation)
+      throw new Error(`cognitive directive result omitted ${choiceId}`);
+    return evaluation;
+  });
   const labelByChoice = new Map<string, string>();
-  for (const entity of entities)
-    if (entity.action?.kind === "directive")
-      labelByChoice.set(entity.action.choiceId, entity.label);
-  const rows = ranked.response.fact.ranked;
-  const judgment = rows.length
+  for (const choice of docket.response.fact.choices)
+    labelByChoice.set(choice.choiceId, choice.title);
+  const legalRows = rows.filter((row) => row.legal);
+  const judgment = legalRows.length
     ? rows
         .map(
           (row, index) =>
-            `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}`,
+            `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}${row.legal ? "" : " · UNAVAILABLE"}`,
         )
         .join("\n")
     : "No legal choice is visible in this channel.";
+  const response: SemanticResponse<unknown> = {
+    ...docket.response,
+    fact: {
+      channel: binding.channel,
+      actorId,
+      ranked: rows,
+      posture: artifact.posture,
+    },
+    rendering: {
+      compact: `RANK ${binding.channel}`,
+      brief: rows.map((item) => item.choiceId).join(", "),
+    },
+  };
   const text = voiceAvaResponse(
-    ranked.state,
-    `JUDGMENT / ${binding.channel.toUpperCase()}\n${judgment}\n\nThe ranking is deterministic against the supplied strategic posture. No order was prepared or issued.`,
+    docket.state,
+    `JUDGMENT / ${binding.channel.toUpperCase()}\n${judgment}\n\nThe compiled ${cognitiveGuidance.decision.modelId} model owns this ranking against the supplied strategic posture. No order was prepared or issued.`,
     {
       topic: binding.channel,
       label: "JUDGMENT",
@@ -909,7 +1040,7 @@ const directiveJudgment = (
     },
   );
   return {
-    state: ranked.state,
+    state: docket.state,
     session: {
       ...session,
       currentModule: moduleForChannel(binding.channel),
@@ -919,7 +1050,7 @@ const directiveJudgment = (
         lastText: text,
       },
     },
-    response: ranked.response,
+    response,
     text,
   };
 };
@@ -969,6 +1100,28 @@ const executeConfirmation = (
       "Name the proposal token to confirm exactly one prepared effect.",
     );
   if (substrateToken) {
+    const priorConfirmation = request.idempotencyKey
+      ? (state.preparedOrders ?? []).find(
+          (record) =>
+            record.playerId === ctx.playerId &&
+            record.campaignId === ctx.campaignId &&
+            (record.confirmationIdempotencyKey ??
+              (record.consumedAt ? record.idempotencyKey : undefined)) ===
+              request.idempotencyKey &&
+            !!record.consumedAt,
+        )
+      : undefined;
+    if (
+      priorConfirmation &&
+      priorConfirmation.proposalToken !== substrateToken
+    )
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "IDEMPOTENCY_CONFLICT",
+        "That confirmation idempotency key is already bound to a different proposal.",
+      );
     const confirmed = confirmOrder(
       ctx,
       state,
@@ -1414,6 +1567,29 @@ const executeInstructionRequest = (
       "UNSUPPORTED_SEMANTIC_CAPABILITY",
       `${semantic.operation} does not have a handler for ${semantic.subject.type}.`,
     );
+  if (capability.handler === "directive-rank") {
+    const binding = directiveBindingFor(semantic);
+    if (!binding)
+      return responseFailure(
+        state,
+        session,
+        "AMBIGUOUS",
+        "DIRECTIVE_CONTEXT_REQUIRED",
+        "Name production, military, or diplomacy and its actor.",
+      );
+    if (
+      binding.channel === "diplomacy" &&
+      (!binding.actorId ||
+        !state.actors.some((actor) => actor.id === binding.actorId))
+    )
+      return responseFailure(
+        state,
+        session,
+        "AMBIGUOUS",
+        "DIPLOMACY_ACTOR_REQUIRED",
+        "Name exactly one current diplomacy actor.",
+      );
+  }
   if (
     isConsequentialInstruction(instruction) &&
     semantic.polarity === "NEGATED"
@@ -1466,38 +1642,207 @@ const executeInstructionRequest = (
       opportunityFraction,
     );
 
-  if (instruction.kind === "SEMANTIC") {
-    if (capability.handler === "directive-rank")
-      return directiveJudgment(
-        ctx,
+  if (
+    instruction.kind === "SEMANTIC" &&
+    capability.handler === "terminal-instruction"
+  ) {
+    const lowered = instructionForSemanticQuery(
+      semantic,
+      visible.entities,
+    );
+    if (!lowered)
+      return responseFailure(
         state,
         session,
-        semantic,
-        visible.entities,
+        "AMBIGUOUS",
+        "SEMANTIC_LOWERING_UNAVAILABLE",
+        "That semantic cell lacks the typed operands required by its handler.",
       );
-    if (capability.handler === "terminal-instruction") {
-      const lowered = instructionForSemanticQuery(
-        semantic,
-        visible.entities,
-      );
-      if (!lowered)
-        return responseFailure(
+    return executeInstructionRequest(
+      { ...request, instruction: lowered },
+      ctx,
+      state,
+      session,
+      opportunityFraction,
+      darkNetContext,
+      executionOptions,
+    );
+  }
+
+  const actions = instructionActions(instruction, session);
+  const directives = directiveActions(actions);
+  const preparesDirective =
+    actions.length === 1 &&
+    directives.length === 1 &&
+    (instruction.kind === "SELECT" || instruction.kind === "STAGE");
+  const planValidationActions =
+    actions.length > 0 &&
+    (instruction.kind === "ISSUE" ||
+      instruction.kind === "ISSUE_PLAN" ||
+      instruction.kind === "RESOLVE_DAY" ||
+      preparesDirective)
+      ? actions
+      : undefined;
+  const planningExpectedActionIds =
+    planValidationActions ??
+    (instruction.kind === "SHOW_PLAN" && session.terminal.plan.length
+      ? session.terminal.plan
+      : undefined);
+  const expectedPlanningBinding = planningExpectedActionIds
+    ? {
+        actionIds: exactInstructionActionIds(
+          instruction,
+          planningExpectedActionIds,
+          state,
+          opportunityFraction,
+        ),
+        worldRevision: avaVisibleWorldRevision(state),
+        actions: planningExpectedActionIds,
+      }
+    : undefined;
+  const cognitive =
+    !isConsequentialInstruction(instruction) || planValidationActions
+      ? runAvaCognitiveNexus({
+          request,
+          state,
+          visibleEntities: visible.entities,
+          discourse: session.terminal.discourse,
+          opportunityFraction,
+          stagedActions: planValidationActions ?? session.terminal.plan,
+        })
+      : null;
+  if (cognitive?.status === "REJECTED")
+    return responseFailure(
+      state,
+      session,
+      "REJECTED",
+      cognitive.code,
+      "The cognitive Nexus could not validate this read. Campaign state was not changed.",
+    );
+  const retainCognition = (
+    result: AvaNexusExecutionResult,
+    decisionGuidance?: NonNullable<
+      ReturnType<typeof cognitiveDecisionGuidanceFor>
+    >,
+  ): AvaNexusExecutionResult =>
+    cognitive
+      ? {
+          ...result,
+          cognition: {
+            cognitiveActivation: cognitive.cognitiveActivation,
+            proofGraph: cognitive.proofGraph,
+            ...(decisionGuidance
+              ? {
+                  cognitiveDecision: {
+                    executionDigest: decisionGuidance.executionDigest,
+                    decisionDigest: decisionGuidance.decision.digest,
+                    winnerId: decisionGuidance.decision.winnerId!,
+                    ranking: decisionGuidance.decision.ranking,
+                  },
+                }
+              : {}),
+          },
+        }
+      : result;
+  let cognitiveGuidance: ReturnType<typeof cognitiveDecisionGuidanceFor>;
+  let cognitiveCausal: ReturnType<typeof cognitiveCausalGuidanceFor>;
+  let cognitiveConstraint: ReturnType<typeof cognitiveConstraintGuidanceFor>;
+  let cognitiveEpistemic: ReturnType<typeof cognitiveEpistemicGuidanceFor>;
+  let cognitiveForecast: ReturnType<typeof cognitiveForecastGuidanceFor>;
+  let cognitivePlanning: ReturnType<typeof cognitivePlanningGuidanceFor>;
+  let cognitiveSemantic: ReturnType<typeof cognitiveSemanticGuidanceFor>;
+  try {
+    cognitiveGuidance = cognitive
+      ? cognitiveDecisionGuidanceFor(cognitive)
+      : undefined;
+    cognitiveCausal = cognitive
+      ? cognitiveCausalGuidanceFor(cognitive)
+      : undefined;
+    cognitiveConstraint = cognitive
+      ? cognitiveConstraintGuidanceFor(cognitive)
+      : undefined;
+    cognitiveEpistemic = cognitive
+      ? cognitiveEpistemicGuidanceFor(cognitive)
+      : undefined;
+    cognitiveForecast = cognitive
+      ? cognitiveForecastGuidanceFor(cognitive)
+      : undefined;
+    cognitivePlanning = cognitive
+      ? cognitivePlanningGuidanceFor(cognitive, expectedPlanningBinding)
+      : undefined;
+    cognitiveSemantic = cognitive
+      ? cognitiveSemanticGuidanceFor(cognitive)
+      : undefined;
+    if (
+      cognitiveSemantic &&
+      canonicalJson(cognitiveSemantic.semantic) !== canonicalJson(semantic)
+    )
+      throw new Error("cognitive realization changed the resolved semantic query");
+  } catch {
+    return retainCognition(
+      responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "COGNITIVE_GUIDANCE_REJECTED",
+        "The cognitive result could not be bound to Ava's answer. Campaign state was not changed.",
+      ),
+    );
+  }
+
+  if (planValidationActions) {
+    if (!cognitivePlanning)
+      return retainCognition(
+        responseFailure(
           state,
           session,
-          "AMBIGUOUS",
-          "SEMANTIC_LOWERING_UNAVAILABLE",
-          "That semantic cell lacks the typed operands required by its handler.",
-        );
-      return executeInstructionRequest(
-        { ...request, instruction: lowered },
+          "REJECTED",
+          "COGNITIVE_PLAN_BINDING_REJECTED",
+          "The prepared actions were not bound to an exact cognitive plan. No confirmation was created.",
+        ),
+      );
+    if (cognitivePlanning.planning.status !== "PLANNED")
+      return retainCognition(
+        responseFailure(
+          state,
+          session,
+          "REJECTED",
+          "COGNITIVE_PLAN_BLOCKED",
+          `The cognitive plan is blocked: ${cognitivePlanning.planning.blockers.join("; ")}. No confirmation was created and campaign state was not changed.`,
+        ),
+      );
+  }
+
+  if (
+    instruction.kind === "SEMANTIC" &&
+    capability.handler === "directive-rank"
+  ) {
+    if (!cognitiveGuidance?.directiveArtifact)
+      return retainCognition(
+        responseFailure(
+          state,
+          session,
+          "REJECTED",
+          "COGNITIVE_DIRECTIVE_DECISION_REQUIRED",
+          "The visible directive docket was not ranked by the cognitive decision engine. No order was prepared or issued.",
+        ),
+      );
+    const directiveWinner = cognitiveGuidance.decision.candidates.find(
+      (candidate) =>
+        candidate.candidateId === cognitiveGuidance.decision.winnerId,
+    );
+    return retainCognition(
+      directiveJudgment(
         ctx,
         state,
         session,
-        opportunityFraction,
-        darkNetContext,
-        executionOptions,
-      );
-    }
+        semantic,
+        cognitiveGuidance,
+      ),
+      directiveWinner?.feasible && directiveWinner.hardObjectivesSatisfied
+        ? cognitiveGuidance
+        : undefined,
+    );
   }
 
   if (instruction.kind === "LIST") {
@@ -1539,7 +1884,7 @@ const executeInstructionRequest = (
           variant: session.terminal.voiceCursor,
         },
       );
-      return {
+      return retainCognition({
         state: docket.state,
         session: {
           ...session,
@@ -1552,12 +1897,10 @@ const executeInstructionRequest = (
         },
         response: docket.response,
         text,
-      };
+      });
     }
   }
 
-  const actions = instructionActions(instruction, session);
-  const directives = directiveActions(actions);
   if (directives.length) {
     if (actions.length !== 1 || directives.length !== 1) {
       const cleared = clearLegacyDirectiveAuthority(session).session;
@@ -1593,25 +1936,48 @@ const executeInstructionRequest = (
     const entity =
       directiveEntityForInstruction(instruction, session) ??
       syntheticEntity(directives[0]);
-    return prepareDirective(
-      ctx,
-      state,
-      session,
-      entity,
-      session.terminal.voiceCursor,
-      `ava-instruction:${request.origin}:${ctx.playerId}:${request.expectedStateSeal}:${directives[0].choiceId}`,
+    return retainCognition(
+      prepareDirective(
+        ctx,
+        state,
+        session,
+        entity,
+        session.terminal.voiceCursor,
+        `ava-instruction:${request.origin}:${ctx.playerId}:${request.expectedStateSeal}:${directives[0].choiceId}`,
+      ),
     );
   }
 
-  const terminalResult = runAvaInstruction(
-    state,
-    session.terminal,
-    instruction,
-    opportunityFraction,
-    request.semantic,
-    request.trace,
-    darkNetContext,
-  );
+  let terminalResult: AvaTerminalResult;
+  try {
+    terminalResult = runAvaInstruction(
+      cognitive && !planValidationActions
+        ? projectAvaDisclosedState(state)
+        : state,
+      session.terminal,
+      instruction,
+      opportunityFraction,
+      request.semantic,
+      request.trace,
+      darkNetContext,
+      cognitiveGuidance,
+      cognitiveForecast,
+      cognitivePlanning,
+      cognitiveConstraint,
+      cognitiveCausal,
+      cognitiveEpistemic,
+    );
+    if (cognitive && !terminalResult.executed)
+      terminalResult = { ...terminalResult, state };
+  } catch {
+    return responseFailure(
+      state,
+      session,
+      "REJECTED",
+      "COGNITIVE_REALIZATION_REJECTED",
+      "Ava could not realize an answer from the validated cognitive decision. Campaign state was not changed.",
+    );
+  }
   if (terminalResult.executed) {
     const authorityIssue = requireExecutionAuthority(ctx, session);
     if (authorityIssue)
@@ -1623,12 +1989,112 @@ const executeInstructionRequest = (
         "The executed effect was rejected at the Nexus authority boundary.",
       );
   }
-  return resultFromTerminal(
-    state,
-    { ...session, terminal: terminalResult.session },
-    instruction,
-    terminalResult,
+  return retainCognition(
+    resultFromTerminal(
+      state,
+      { ...session, terminal: terminalResult.session },
+      instruction,
+      terminalResult,
+    ),
   );
+};
+
+const publicTypedActionIdentity = (action: AvaActionRef) =>
+  action.kind === "sub-mission"
+    ? {
+        kind: action.kind,
+        domain: action.domain,
+        missionId: action.missionId,
+        optionId: action.optionId,
+      }
+    : action;
+
+const runTypedPlanningGate = (
+  request: Extract<AvaRequestIR, { kind: "action" | "plan" }>,
+  state: GameState,
+  session: AvaNexusSession,
+  opportunityFraction: number,
+) => {
+  const actions =
+    request.kind === "action" ? [request.action] : request.actions;
+  const disclosedState = projectAvaDisclosedState(state);
+  const visibleEntities = avaEntitiesForState(
+    disclosedState,
+    opportunityFraction,
+  );
+  const plannedEntities = actions.map((action) => {
+    const descriptor = descriptorForAction(
+      disclosedState,
+      action,
+      opportunityFraction,
+    );
+    return (
+      visibleEntities.find((entity) => entity.id === descriptor?.id) ??
+      syntheticEntity(action)
+    );
+  });
+  const entities = [
+    ...visibleEntities,
+    ...plannedEntities.filter(
+      (entity) =>
+        !visibleEntities.some((candidate) => candidate.id === entity.id),
+    ),
+  ];
+  const instruction: AvaInstruction = {
+    kind: "ISSUE",
+    entities: plannedEntities,
+  };
+  const semantic = genericSemanticQuery(instruction, {
+    currentModule: session.currentModule,
+    entities,
+    discourse: session.terminal.discourse,
+  });
+  const cognitive = runAvaCognitiveNexus({
+    request: instructionAvaRequest({
+      origin: request.origin,
+      rawInput: "typed action planning validation",
+      instruction,
+      semantic,
+      expectedStateSeal: request.expectedStateSeal,
+    }),
+    state,
+    visibleEntities: entities,
+    discourse: session.terminal.discourse,
+    opportunityFraction,
+    stagedActions: actions,
+  });
+  if (cognitive.status === "REJECTED")
+    return {
+      status: "REJECTED" as const,
+      code: cognitive.code,
+      reason: cognitive.reason,
+    };
+  try {
+    const actionIds = actions.map(
+      (action) =>
+        descriptorForAction(state, action, opportunityFraction)?.id ??
+        actionKey(action),
+    );
+    const planning = cognitivePlanningGuidanceFor(cognitive, {
+      actionIds,
+      worldRevision: avaVisibleWorldRevision(state),
+      actions,
+    });
+    if (!planning)
+      throw new Error("typed request did not produce planning guidance");
+    return {
+      status: "VALIDATED" as const,
+      cognitive,
+      planning,
+    };
+  } catch (error) {
+    return {
+      status: "REJECTED" as const,
+      code: "COGNITIVE_PLAN_BINDING_REJECTED",
+      reason: error instanceof Error ? error.message : "planning binding failed",
+      cognitive,
+    };
+  }
 };
 
 const executeActionOrPlanRequest = (
@@ -1641,6 +2107,17 @@ const executeActionOrPlanRequest = (
 ): AvaNexusExecutionResult => {
   const actions =
     request.kind === "action" ? [request.action] : request.actions;
+  if (
+    request.kind === "plan" &&
+    new Set(actions.map(actionKey)).size !== actions.length
+  )
+    return responseFailure(
+      state,
+      session,
+      "REJECTED",
+      "DUPLICATE_PLAN_ACTION",
+      "A typed plan cannot contain the same canonical action more than once.",
+    );
   const directives = directiveActions(actions);
   if (directives.length && (actions.length !== 1 || directives.length !== 1))
     return responseFailure(
@@ -1658,15 +2135,208 @@ const executeActionOrPlanRequest = (
       "COMMAND_AUTHORITY_REQUIRED",
       "Observer and staff sessions cannot prepare or execute actions.",
     );
-  if (directives.length)
-    return prepareDirective(
-      ctx,
+  if (directives.length && request.idempotencyKey) {
+    const priorDirective = (state.preparedOrders ?? []).find(
+      (record) =>
+        record.playerId === ctx.playerId &&
+        record.campaignId === ctx.campaignId &&
+        (record.prepareIdempotencyKey ??
+          (!record.consumedAt ? record.idempotencyKey : undefined)) ===
+          request.idempotencyKey,
+    );
+    if (priorDirective) {
+      if (priorDirective.choiceId !== directives[0].choiceId)
+        return responseFailure(
+          state,
+          session,
+          "REJECTED",
+          "IDEMPOTENCY_CONFLICT",
+          "That idempotency key is already bound to a different directive.",
+        );
+      if (priorDirective.consumedAt) {
+        const replayResponse: SemanticResponse<unknown> = {
+          status: "ALREADY_EXECUTED",
+          fact: {
+            actions: actions.map(publicTypedActionIdentity),
+            receipt: [`${priorDirective.title} already executed.`],
+          },
+          rendering: {
+            compact: "ALREADY EXECUTED",
+            brief: `${priorDirective.title} already executed. Audit: ${priorDirective.auditId}`,
+          },
+          campaignRevision: revisionOf(state),
+          auditId: priorDirective.auditId,
+        };
+        return {
+          state,
+          session,
+          response: replayResponse,
+          text: responseText(
+            state,
+            replayResponse,
+            { mode: "receipt" },
+            session.terminal.voiceCursor,
+          ),
+        };
+      }
+    }
+  }
+  const preparationPayloadHash =
+    request.mode === "prepare" &&
+    !directives.length &&
+    request.idempotencyKey
+      ? typedExecutionPayloadHash(request)
+      : undefined;
+  const priorPreparation = request.idempotencyKey
+    ? (session.typedPreparations ?? []).find(
+        (record) => record.idempotencyKey === request.idempotencyKey,
+      )
+    : undefined;
+  if (priorPreparation && preparationPayloadHash) {
+    if (priorPreparation.payloadHash !== preparationPayloadHash)
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "IDEMPOTENCY_CONFLICT",
+        "That idempotency key is already bound to a different typed preparation payload.",
+      );
+    const confirmation = session.terminal.confirmation;
+    if (!confirmation || confirmation.id !== priorPreparation.confirmationId)
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "IDEMPOTENCY_REPLAY_UNAVAILABLE",
+        "That typed preparation is no longer pending. Use a new idempotency key.",
+      );
+    const replayResponse: SemanticResponse<unknown> = {
+      status: "OK",
+      fact: {
+        actions: actions.map(publicTypedActionIdentity),
+        confirmationId: confirmation.id,
+        replay: true,
+      },
+      rendering: {
+        compact: "ORDER AWAITING CONFIRMATION",
+        brief: `The same typed preparation still awaits confirmation as ${confirmation.id}.`,
+      },
+      campaignRevision: revisionOf(state),
+    };
+    return {
       state,
       session,
-      syntheticEntity(directives[0]),
-      session.terminal.voiceCursor,
-      request.idempotencyKey ??
-        `ava-request:${request.kind}:${request.origin}:${ctx.playerId}:${request.expectedStateSeal}:${directives[0].choiceId}`,
+      response: replayResponse,
+      text: responseText(
+        state,
+        replayResponse,
+        { mode: "confirmation" },
+        session.terminal.voiceCursor,
+      ),
+    };
+  }
+  let payloadHash: string | undefined;
+  if (request.mode === "execute" && !directives.length) {
+    const authorityIssue = requireExecutionAuthority(ctx, session);
+    if (authorityIssue)
+      return responseFailure(
+        state,
+        session,
+        "FORBIDDEN",
+        authorityIssue,
+        "One-shot and noninteractive sessions cannot execute actions.",
+      );
+    if (!request.idempotencyKey)
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "Typed action and plan execution requires an idempotency key.",
+      );
+    payloadHash = typedExecutionPayloadHash(request);
+    const priorExecution = priorTypedExecution(request, ctx, state);
+    if (priorExecution) {
+      if (!typedExecutionPayloadMatches(priorExecution.payloadHash, request))
+        return responseFailure(
+          state,
+          session,
+          "REJECTED",
+          "IDEMPOTENCY_CONFLICT",
+          "That idempotency key is already bound to a different action payload.",
+        );
+      const replayResponse: SemanticResponse<unknown> = {
+        status: "ALREADY_EXECUTED",
+        fact: {
+          actions: actions.map(publicTypedActionIdentity),
+          receipt: priorExecution.receipt,
+        },
+        rendering: {
+          compact: "ALREADY EXECUTED",
+          brief: priorExecution.receipt.join("\n"),
+        },
+        campaignRevision: revisionOf(state),
+        auditId: priorExecution.auditId,
+      };
+      return {
+        state,
+        session,
+        response: replayResponse,
+        text: responseText(
+          state,
+          replayResponse,
+          { mode: "receipt" },
+          session.terminal.voiceCursor,
+        ),
+      };
+    }
+  }
+
+  const gate = runTypedPlanningGate(
+    request,
+    state,
+    session,
+    opportunityFraction,
+  );
+  if (gate.status === "REJECTED")
+    return responseFailure(
+      state,
+      session,
+      "REJECTED",
+      gate.code,
+      "The typed action payload could not be bound to an exact cognitive plan. Campaign state was not changed.",
+    );
+  const retainPlanning = (
+    result: AvaNexusExecutionResult,
+  ): AvaNexusExecutionResult => ({
+    ...result,
+    cognition: {
+      cognitiveActivation: gate.cognitive.cognitiveActivation,
+      proofGraph: gate.cognitive.proofGraph,
+    },
+  });
+  if (gate.planning.planning.status !== "PLANNED")
+    return retainPlanning(
+      responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "COGNITIVE_PLAN_BLOCKED",
+        `The cognitive plan is blocked: ${gate.planning.planning.blockers.join("; ")}. Campaign state was not changed.`,
+      ),
+    );
+
+  if (directives.length)
+    return retainPlanning(
+      prepareDirective(
+        ctx,
+        state,
+        session,
+        syntheticEntity(directives[0]),
+        session.terminal.voiceCursor,
+        request.idempotencyKey ??
+          `ava-request:${request.kind}:${request.origin}:${ctx.playerId}:${request.expectedStateSeal}:${directives[0].choiceId}`,
+      ),
     );
   if (request.mode === "prepare") {
     const instruction: AvaInstruction = {
@@ -1679,66 +2349,48 @@ const executeActionOrPlanRequest = (
       instruction,
       opportunityFraction,
     );
-    return resultFromTerminal(
+    const stagedConfirmation = terminalResult.session.confirmation;
+    const result = resultFromTerminal(
       state,
       { ...session, terminal: terminalResult.session },
       instruction,
       terminalResult,
     );
+    const preparedSession =
+      request.idempotencyKey &&
+      preparationPayloadHash &&
+      !terminalResult.rejection &&
+      stagedConfirmation &&
+      canonicalJson(stagedConfirmation.plan.actions) === canonicalJson(actions)
+        ? {
+            ...result.session,
+            typedPreparations: [
+              ...(result.session.typedPreparations ?? []).filter(
+                (record) => record.idempotencyKey !== request.idempotencyKey,
+              ),
+              {
+                idempotencyKey: request.idempotencyKey,
+                payloadHash: preparationPayloadHash,
+                confirmationId: stagedConfirmation.id,
+              },
+            ],
+          }
+        : result.session;
+    return retainPlanning(
+      { ...result, session: preparedSession },
+    );
   }
-  const authorityIssue = requireExecutionAuthority(ctx, session);
-  if (authorityIssue)
-    return responseFailure(
-      state,
-      session,
-      "FORBIDDEN",
-      authorityIssue,
-      "One-shot and noninteractive sessions cannot execute actions.",
-    );
-  if (!request.idempotencyKey)
-    return responseFailure(
-      state,
-      session,
-      "REJECTED",
-      "IDEMPOTENCY_KEY_REQUIRED",
-      "Typed action and plan execution requires an idempotency key.",
-    );
-  const payloadHash = typedExecutionPayloadHash(request);
-  const priorExecution = priorTypedExecution(request, ctx, state);
-  if (priorExecution) {
-    if (priorExecution.payloadHash !== payloadHash)
-      return responseFailure(
+  const idempotencyKey = request.idempotencyKey;
+  if (!idempotencyKey || !payloadHash)
+    return retainPlanning(
+      responseFailure(
         state,
         session,
         "REJECTED",
-        "IDEMPOTENCY_CONFLICT",
-        "That idempotency key is already bound to a different action payload.",
-      );
-    const replayResponse: SemanticResponse<unknown> = {
-      status: "ALREADY_EXECUTED",
-      fact: {
-        actions,
-        receipt: priorExecution.receipt,
-      },
-      rendering: {
-        compact: "ALREADY EXECUTED",
-        brief: priorExecution.receipt.join("\n"),
-      },
-      campaignRevision: revisionOf(state),
-      auditId: priorExecution.auditId,
-    };
-    return {
-      state,
-      session,
-      response: replayResponse,
-      text: responseText(
-        state,
-        replayResponse,
-        { mode: "receipt" },
-        session.terminal.voiceCursor,
+        "IDEMPOTENCY_KEY_REQUIRED",
+        "Typed action and plan execution requires an idempotency key.",
       ),
-    };
-  }
+    );
   const resolvesDay = actions.some((action) => action.kind === "resolve-day");
   if (resolvesDay) {
     const grantIssue = validateResolutionGrant(
@@ -1774,7 +2426,7 @@ const executeActionOrPlanRequest = (
       executed.rejection ?? "The action could not be executed.",
     );
   const auditId = `ava_${hashInt(
-    `${ctx.campaignId}:${ctx.playerId}:${request.idempotencyKey}:${payloadHash}`,
+    `${ctx.campaignId}:${ctx.playerId}:${idempotencyKey}:${payloadHash}`,
   )
     .toString(16)
     .padStart(8, "0")}`;
@@ -1783,7 +2435,7 @@ const executeActionOrPlanRequest = (
     avaExecutions: [
       ...(executed.state.avaExecutions ?? []),
       {
-        idempotencyKey: request.idempotencyKey,
+        idempotencyKey,
         playerId: ctx.playerId,
         campaignId: ctx.campaignId,
         payloadHash,
@@ -1807,7 +2459,7 @@ const executeActionOrPlanRequest = (
   const response: SemanticResponse<unknown> = {
     status: "EXECUTED",
     fact: {
-      actions,
+      actions: actions.map(publicTypedActionIdentity),
       receipt: executed.receipt,
     },
     rendering: {
@@ -1817,7 +2469,7 @@ const executeActionOrPlanRequest = (
     campaignRevision: revisionOf(finalState),
     auditId,
   };
-  return {
+  return retainPlanning({
     state: finalState,
     session: nextSession,
     response,
@@ -1827,7 +2479,7 @@ const executeActionOrPlanRequest = (
       { mode: "receipt" },
       session.terminal.voiceCursor,
     ),
-  };
+  });
 };
 
 const executeInternalRequest = (

@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
+
+const flatCanonicalDigest = (value) =>
+  createHash("sha256")
+    .update(
+      JSON.stringify(
+        Object.fromEntries(
+          Object.entries(value).sort(([left], [right]) =>
+            left.localeCompare(right),
+          ),
+        ),
+      ),
+    )
+    .digest("hex");
 
 const sectionBetween = (source, startMarker, endMarker) => {
   const start = source.indexOf(startMarker);
@@ -101,6 +115,139 @@ test("the default route redirects directly to the game", async () => {
     },
   );
   assert.equal(signedOutCampaign.status, 401);
+});
+
+test("the built activation route traverses every active engine through web and terminal core", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("activation-test", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const activationUrl = "http://localhost/api/ava/activation";
+  const context = {
+    waitUntil() {},
+    passThroughOnException() {},
+  };
+
+  const unauthorized = await worker.fetch(
+    new Request(`${activationUrl}?adapter=web`),
+    {},
+    context,
+  );
+  assert.equal(unauthorized.status, 401);
+
+  const headers = {
+    accept: "application/json",
+    cookie: "delenda_guest_session=00000000-0000-4000-8000-000000000001",
+  };
+  const expectedActivation = {
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "89b6bae2d3c4699c7f991ad9118898b484f21f13c5834a340c9e13095181118b" },
+    directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "42572f3e81ee8bc24f6dc1f56d67db97ab7ed752da36441d601cea36690c29e4" },
+    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "0633a250306d7e356eb33af0289c897a4c74c585e4725b43d6dccb0e1c0f4285" },
+    constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "2cb5f76074f68761aa85a3ee07cc4aa09e19fa3cc339e16dace388d3d443d5eb" },
+    planning: { authority: "PLAN_ONLY", families: ["PLANNING", "REALIZATION"], signal: "PLAN_ONLY_CONFIRMATION_READY", textDigest: "37e1f550586f815005d34270244272e7244b6b4df18d40244fa7841721ff51b2" },
+    causal: { authority: "READ_ONLY", families: ["CAUSAL", "REALIZATION"], signal: "OBSERVATIONAL_CAUSAL_DIAGNOSIS", textDigest: "3e07acfeb8c657cc252a8b49449d994237b408cb60aab3fd9b18eca7f2ec6aac" },
+    epistemic: { authority: "READ_ONLY", families: ["EPISTEMIC", "REALIZATION"], signal: "SINGLE_RECORD_EVIDENCE_BOUND", textDigest: "ccd2ba2ee4fc1c3a4680d3a138307c3b3d6be273070d4b6e5a4cb109a31896c6" },
+  };
+  for (const [probe, expectation] of Object.entries(expectedActivation)) {
+    const payloads = [];
+    for (const [adapter, implementation] of [
+      ["web", "web-core"],
+      ["ssh", "terminal-core"],
+    ]) {
+      const response = await worker.fetch(
+        new Request(`${activationUrl}?adapter=${adapter}&probe=${probe}`, {
+          headers,
+        }),
+        {},
+        context,
+      );
+      assert.equal(response.status, 200, `${adapter}/${probe}`);
+      assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
+      assert.match(response.headers.get("vary") ?? "", /cookie/i);
+      const payload = await response.json();
+      payloads.push(payload);
+      assert.deepEqual(payload.contract, {
+        id: "delenda-ava-cognitive-activation",
+        version: "5",
+        buildMarker: "ava-cognitive-nexus-attestation-2026-07-31.4",
+        adapter: implementation,
+        probe,
+      });
+      assert.equal(payload.activation.authority, expectation.authority);
+      assert.deepEqual(
+        payload.activation.operatorFamilies,
+        expectation.families,
+      );
+      assert.equal(payload.activation.domainId, "delenda-cognitive-domain");
+      assert.equal(payload.activation.domainVersion, "1.2.0");
+      assert.match(payload.activation.domainDigest, /^[a-f0-9]{64}$/);
+      assert.match(payload.activation.digest, /^[a-f0-9]{64}$/);
+      assert.match(payload.proofIdentity, /^[a-f0-9]{64}$/);
+      assert.deepEqual(Object.keys(payload.resultMarker).sort(), [
+        "activationDigest",
+        "digest",
+        "probe",
+        "proofDigest",
+        "signal",
+        "textDigest",
+        "version",
+      ]);
+      assert.equal(payload.resultMarker.version, "1");
+      assert.equal(payload.resultMarker.probe, probe);
+      assert.equal(payload.resultMarker.signal, expectation.signal);
+      assert.equal(
+        payload.resultMarker.activationDigest,
+        payload.activation.digest,
+      );
+      assert.equal(payload.resultMarker.proofDigest, payload.proofIdentity);
+      assert.equal(payload.resultMarker.textDigest, expectation.textDigest);
+      const { digest: markerDigest, ...markerBody } = payload.resultMarker;
+      assert.equal(markerDigest, flatCanonicalDigest(markerBody));
+      for (const [field, replacement] of [
+        ["activationDigest", "0".repeat(64)],
+        ["proofDigest", "1".repeat(64)],
+        ["signal", `${expectation.signal}_FORGED`],
+        ["textDigest", "2".repeat(64)],
+      ])
+        assert.notEqual(
+          markerDigest,
+          flatCanonicalDigest({ ...markerBody, [field]: replacement }),
+          `${probe} accepted a tampered ${field} marker body`,
+        );
+      assert.doesNotMatch(
+        JSON.stringify(payload),
+        /campaignId|playerId|worldRevision|executionDigest|proofGraph|sourceIds|rawInput|fact:/i,
+      );
+    }
+    assert.equal(payloads[0].activation.digest, payloads[1].activation.digest);
+    assert.equal(payloads[0].proofIdentity, payloads[1].proofIdentity);
+    assert.deepEqual(payloads[0].resultMarker, payloads[1].resultMarker);
+
+    const repeated = await worker.fetch(
+      new Request(`${activationUrl}?adapter=web&probe=${probe}`, { headers }),
+      {},
+      context,
+    );
+    assert.equal(repeated.status, 200);
+    assert.deepEqual(
+      await repeated.json(),
+      payloads[0],
+      `${probe} did not reuse the exact immutable probe result`,
+    );
+  }
+
+  const unsupported = await worker.fetch(
+    new Request(`${activationUrl}?adapter=mcp`, { headers }),
+    {},
+    context,
+  );
+  assert.equal(unsupported.status, 400);
+
+  const unknownProbe = await worker.fetch(
+    new Request(`${activationUrl}?probe=registry-only`, { headers }),
+    {},
+    context,
+  );
+  assert.equal(unknownProbe.status, 400);
 });
 
 test("the removed landing page cannot own the default route", async () => {
@@ -658,6 +805,11 @@ test("the production artifact contains no executable or styled Stats surface",as
   assert.match(artifact,/daily-campaign/);
   assert.match(artifact,/data-command-storyboard/);
   assert.match(artifact,/Morning report \/\/ Day/);
+  for(const attribute of [
+    "data-ava-cognitive-runtime",
+    "data-ava-cognitive-status",
+    "data-ava-cognitive-families",
+  ])assert.match(artifact,new RegExp(attribute));
 });
 
 test("Theater Wire uses readable normal glyph bounds and no body-to-date gap",async()=>{
@@ -705,7 +857,11 @@ test("Ava archives, disclosed forecasts, and workbook calculus remain explicit i
   ])assert.match(workbook,new RegExp(sheet));
   assert.match(projection,/readiness:\s*65/);
   assert.match(projection,/equipment:\s*65/);
-  assert.match(projection,/adversaryLedger:\s*null/);
+  assert.match(projection,/adversaryLedger:\s*disclosedAdversaryLedger\(state\)/);
+  assert.match(projection,/orders:\s*observedOrders/);
+  assert.match(projection,/actualForce:\s*estimatedForce/);
+  assert.match(projection,/adaptation:\s*\{\}/);
+  assert.match(projection,/campaignSeed:\s*avaDisclosedProjectionSeed\(state\.campaignId\)/);
   assert.doesNotMatch(reports,/projectOperations|projectAdversary|estimateDay|projectDomestic/);
 });
 

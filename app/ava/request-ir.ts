@@ -24,6 +24,11 @@ import type {
 import { semanticQueriesEqual } from "./grammar-compiler";
 import { genericSemanticQuery } from "./grammar";
 import type { CanonicalProofGraph } from "./proof-graph";
+import type { CognitiveAuthority } from "./cognitive-types";
+import type {
+  CognitiveOperatorSpec,
+  CognitiveProgramResult,
+} from "./operator-algebra";
 
 export type AvaRequestOrigin =
   | "browser-text"
@@ -146,6 +151,25 @@ export type AvaEnvelopePresentation = {
   };
 };
 
+/**
+ * Public proof that a request crossed the active cognitive Nexus.
+ *
+ * The receipt intentionally excludes state, semantic, program, execution, and
+ * proof identities. Those values remain inside the trusted Nexus because a
+ * public digest over them would become a hidden-state comparison oracle.
+ */
+export type AvaCognitiveActivationReceipt = {
+  runtime: "AVA_COGNITIVE_NEXUS";
+  version: "1";
+  status: CognitiveProgramResult["status"];
+  authority: CognitiveAuthority;
+  operatorFamilies: readonly CognitiveOperatorSpec["category"][];
+  domainId: string;
+  domainVersion: string;
+  domainDigest: string;
+  digest: string;
+};
+
 export type AvaResponseEnvelope = {
   requestKind: AvaRequestIR["kind"];
   instructionKind?: AvaInstruction["kind"];
@@ -154,6 +178,7 @@ export type AvaResponseEnvelope = {
   compile?: AvaCompileResult;
   response: SemanticResponse<unknown>;
   proofGraph: CanonicalProofGraph;
+  cognitiveActivation?: AvaCognitiveActivationReceipt;
   presentation: AvaEnvelopePresentation;
 };
 

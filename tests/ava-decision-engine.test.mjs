@@ -20,7 +20,7 @@ const context = () => {
     ["c", "state.front", -13, { kind: "EXACT" }],
     ["c", "state.treasury", 100, { kind: "EXACT" }],
   ].map(([candidate, variableId, value, uncertainty]) => ({
-    id: `projection:${candidate}:${variableId}`, variableId, entityId: `candidate:${candidate}`,
+    id: `projection:${candidate}:${variableId}`, variableId, entityId: candidate,
     value, visibility: "AVA_VISIBLE", sourceIds: [sourceId], lineage: [],
     validFromDay: state.day, observedAtDay: state.day, uncertainty,
   }));
@@ -45,13 +45,99 @@ const analysis = (world, kind = "RANK", modelId = "strategic-balance") => ({
 
 test("decision compiler closes metrics, normalization, objectives, and weights", () => {
   const domain = cognition.DELENDA_COGNITIVE_DOMAIN;
-  assert.deepEqual(domain.manifest.decisionModelIds, ["front-priority", "strategic-balance"]);
+  assert.deepEqual(domain.manifest.decisionModelIds, [
+    "directive-strategic-posture",
+    "front-priority",
+    "strategic-balance",
+  ]);
+  assert.deepEqual(domain.decision.metrics.get("treasury").normalization, {
+    kind: "POSITIVE_SATURATION", minimum: 0, scale: 80,
+  });
+  const directiveModel = domain.decision.models.get(
+    "directive-strategic-posture",
+  );
+  assert.ok(directiveModel);
+  assert.equal(
+    directiveModel.objectives.reduce(
+      (sum, objective) => sum + objective.weight,
+      0,
+    ),
+    1,
+  );
+  assert.deepEqual(
+    directiveModel.objectives.find(
+      (objective) => objective.metricId === "directive-legal",
+    ),
+    { metricId: "directive-legal", weight: 0, hardMinimum: 1 },
+  );
+  assert.equal(
+    cognition.DIRECTIVE_DECISION_COMPONENTS.reduce(
+      (sum, component) =>
+        sum +
+        directiveModel.objectives.find(
+          (objective) => objective.metricId === component.metricId,
+        ).weight,
+      0,
+    ),
+    1,
+  );
+  const baseWorld = cognition.worldSnapshotFromGameState(
+    game.initialState({ seed: 41 }),
+    "directive-projection-only-r1",
+  );
+  assert.equal(
+    baseWorld.facts.some((fact) => fact.variableId.startsWith("directive.")),
+    false,
+    "candidate-only directive facts leaked into authoritative GameState projection",
+  );
   const weights = structuredClone(cognition.DELENDA_COGNITIVE_DOMAIN_SPEC);
   weights.decision.models[0].objectives[0].weight = 0.9;
   assert.throws(() => cognition.compileCognitiveDomain(weights), /weights must sum to one/i);
   const open = structuredClone(cognition.DELENDA_COGNITIVE_DOMAIN_SPEC);
   open.decision.models[0].objectives[0].metricId = "invented";
   assert.throws(() => cognition.compileCognitiveDomain(open), /unknown metric/i);
+  const invalidNormalization = structuredClone(cognition.DELENDA_COGNITIVE_DOMAIN_SPEC);
+  invalidNormalization.decision.metrics.find((metric) => metric.id === "treasury").normalization.scale = 0;
+  assert.throws(() => cognition.compileCognitiveDomain(invalidNormalization), /saturation normalization is invalid/i);
+  const inventedNormalization = structuredClone(cognition.DELENDA_COGNITIVE_DOMAIN_SPEC);
+  inventedNormalization.decision.metrics.find((metric) => metric.id === "treasury").normalization = { kind: "INVENTED", minimum: 0, scale: 80 };
+  assert.throws(() => cognition.compileCognitiveDomain(inventedNormalization), /normalization kind is unknown/i);
+});
+
+test("candidate costs remain decision-sensitive above the old treasury ceiling", () => {
+  const state = game.initialState({ seed: 9090, theater: "river" });
+  assert.equal(state.treasury, 238);
+  const base = cognition.worldSnapshotFromGameState(state, "decision-cost-r1");
+  const input = structuredClone(base); delete input.digest;
+  const sourceId = input.sources[0].id;
+  const facts = [
+    ["cheap", "state.readiness", 70], ["cheap", "state.front", 1], ["cheap", "state.treasury", state.treasury - 2],
+    ["costly", "state.readiness", 70], ["costly", "state.front", 1], ["costly", "state.treasury", state.treasury - 14],
+  ].map(([id, variableId, value]) => ({
+    id: `projection:${id}:${variableId}`, variableId, entityId: id,
+    value, visibility: "AVA_VISIBLE", sourceIds: [sourceId], lineage: [],
+    validFromDay: state.day, observedAtDay: state.day, uncertainty: { kind: "EXACT" },
+  }));
+  const world = cognition.compileWorldSnapshot({ ...input, facts: [...input.facts, ...facts] }, cognition.DELENDA_COGNITIVE_DOMAIN);
+  const projectedCandidate = (id) => ({
+    ...candidate(world, id),
+    feasibilityRequest: {
+      id: `feasible:${id}`, expectedWorldRevision: world.revision,
+      constraintIds: ["front-survivable", "atrocity-doctrine-limit"],
+    },
+  });
+  const result = cognition.executeDecisionRequest({
+    kind: "RANK", id: "rank-cost-sensitivity", expectedWorldRevision: world.revision,
+    scenarioId: "scenario:choice", modelId: "strategic-balance",
+    candidates: [projectedCandidate("costly"), projectedCandidate("cheap")],
+  }, world, cognition.DELENDA_COGNITIVE_DOMAIN);
+  const cheap = result.candidates.find((item) => item.candidateId === "cheap");
+  const costly = result.candidates.find((item) => item.candidateId === "costly");
+  const cheapTreasury = cheap.metrics.find((metric) => metric.metricId === "treasury");
+  const costlyTreasury = costly.metrics.find((metric) => metric.metricId === "treasury");
+  assert.equal(result.winnerId, "cheap");
+  assert.ok(cheapTreasury.normalized.low > costlyTreasury.normalized.high);
+  assert.ok(cheap.utility.low > costly.utility.high);
 });
 
 test("robust ranking carries uncertainty, hard objectives, regret, and tradeoffs", () => {
@@ -102,6 +188,13 @@ test("hidden lineage, stale revisions, cross-scenario facts, and ad hoc models f
   hidden.facts.find((fact) => fact.id === "projection:a:state.front").visibility = "HIDDEN";
   const hiddenWorld = cognition.compileWorldSnapshot(hidden, domain);
   assert.throws(() => cognition.executeDecisionRequest(analysis(hiddenWorld), hiddenWorld, domain), /hidden or absent metric fact/i);
+  const crossedProjection = analysis(world);
+  crossedProjection.candidates[0].metricFactIds.front =
+    crossedProjection.candidates[1].metricFactIds.front;
+  assert.throws(
+    () => cognition.executeDecisionRequest(crossedProjection, world, domain),
+    /projection belongs to b, not a/i,
+  );
 });
 
 test("equivalent candidate order canonicalizes to one decision digest", () => {

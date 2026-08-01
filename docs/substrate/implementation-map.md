@@ -13,7 +13,7 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 | Directive families / choices | `app/game.ts` (`FAMILIES`), `app/directive-expansion.ts` | Adapt into substrate nodes; `commit()` remains the authoritative mutation |
 | Diplomatic actors | `app/game.ts` initial actors, `app/circuits.ts` (`DiplomaticActor`) | Add explicit actor clade metadata; do not invent a second faction system |
 | Ava parser / compiler | `app/ava/compiler.ts`, `app/ava/grammar.ts`, `app/ava/grammar-compiler.ts`, `app/ava/schema.ts` | Lower declarative productions to complete typed semantic IR; no second Ava parser |
-| Decision calculus | `app/ava/decision-calculus.ts`, `app/ava/advisory.ts` | Preserve superior extant maneuver calculus; add choice-evaluation vectors for directives |
+| Decision calculus | `app/ava/decision-engine.ts`, `app/ava/cognitive-nexus.ts`, `app/substrate/choice-evaluation.ts` | Cognitive decision output owns production ranking; the directive evaluator supplies only its compiler-closed authored component projection |
 | Ava runtime / confirmation | `app/ava/nexus.ts`, `app/ava/request-ir.ts` | One capability, authority, idempotency, and response boundary for every surface |
 | Campaign persistence | `db/schema.ts`, `db/campaigns.ts`, `db/turns.ts`, campaign JSON state | Revision-CAS saves and one-use resolution grants; adapters never mutate DB |
 | Auth / opaque sessions | `app/auth.ts`, `app/api/session/route.ts` | SSH credentials are additional account material; never reintroduce hosting-provider identity |
@@ -36,6 +36,8 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 | Semantic index | `app/substrate/semantic-index.ts` | Generated grammar index |
 | Ava grammar compiler | `app/ava/grammar-compiler.ts` | Complete semantic recipes, print/parse proofs, autocomplete bundle |
 | Ava Nexus | `app/ava/nexus.ts` | Canonical request, authority, dispatch, discourse, and response runtime |
+| Cognitive Nexus | `app/ava/cognitive-nexus.ts` | Visible-world projection, semantic-to-program compilation, engine dispatch, result binding, and activation receipt inside the canonical Nexus |
+| Realization engine | `app/ava/realization-engine.ts` | Digest-sealed binding from an executed engine result to deterministic response realization |
 | Ava Classic differential reference | `app/substrate/ava-classic.ts` | Read-only response realization for independent differential tests |
 | LLM packets | `app/substrate/llm-packets.ts` | Realization / deliberation packets + validators |
 | MCP seam | `app/substrate/mcp-seam.ts` | Compile-time future tool → service mapping |

@@ -149,7 +149,9 @@ const resolveEntities = (
         ? { kind: "DISCOURSE", sourceId: `discourse:${id}` }
         : factIds.length
           ? { kind: "WORLD", sourceId: factIds[0] }
-          : { kind: "COMPILER", sourceId: `concept:${concept!.id}` },
+          : dynamic
+            ? { kind: "COMPILER", sourceId: `runtime:${dynamic.id}` }
+            : { kind: "COMPILER", sourceId: `concept:${concept!.id}` },
     };
   });
 };

@@ -348,3 +348,41 @@ For every subsequent epoch:
   - 146/146 substrate contracts passed
   - TypeScript, production build, and lint passed
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Integration epoch — cognitive Nexus installed in Ava's production request path
+
+- Date: 2026-07-31
+- State: verified atop the production repair epoch and ready for production
+  promotion
+- Scope:
+  - one internal cognitive Nexus compiles canonical Ava semantic requests into
+    closed cognitive programs and dispatches the constraint, temporal, causal,
+    epistemic, decision, planning, and realization engines
+  - advice, explicit comparison, forecasting, viability, observational causal
+    diagnosis, single-record evidence bounds, staged plans, and typed action or
+    plan requests are controlled or validated by their engine results
+  - Production, Military, and actor-scoped Diplomacy advice compiles the exact
+    visible directive docket and authored ten-component evaluation vector into
+    the closed `directive-strategic-posture` model; cognitive output now owns
+    ranking and prose while full runtime legality is a hard objective
+  - typed preparation and execution require exact `PLAN_ONLY_NO_MUTATION`
+    replay before the canonical Nexus may create a proposal or mutate state
+  - response proofs explicitly bind the exact cognitive program/result
+    topology and recursively exclude private authority, ticket, state-seal,
+    idempotency, and transport fields
+  - seven authenticated web and Terminal-core probes, including directive
+    advice, seal fixed engine-result text, activation, and proof identities;
+    native SSH seals the same activation and proof receipt as internal
+    structured gateway evidence while emitting only canonical Ava response
+    text to the SSH client
+  - the canonical Ava Nexus remains the only prepare, confirm, cancel,
+    idempotency, audit, persistence, and campaign-mutation authority
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 195/195 substrate contracts passed
+  - TypeScript, production build, and lint passed with zero errors and no new
+    warnings
+  - native SSH gateway typecheck, build, and in-process session contracts passed
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

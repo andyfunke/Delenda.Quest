@@ -13,10 +13,26 @@ import {
   operationsCircuit,
 } from "../circuits";
 import { campaignBalanceProfile } from "../campaign-balance";
+import { cognitiveDigest } from "./cognitive-types";
 
 const midpoint = (left: number, right: number) => (left + right) / 2;
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.max(minimum, Math.min(maximum, value));
+
+/**
+ * Projection circuits need deterministic seed material, but the campaign RNG
+ * seed is private discovery state. Ava derives a projection-only seed from the
+ * already disclosed campaign identifier so forecasts cannot become a raw-seed
+ * equality oracle.
+ */
+export const avaDisclosedProjectionSeed = (campaignId: string) =>
+  Number.parseInt(
+    cognitiveDigest({
+      policy: "AVA_DISCLOSED_PROJECTION_SEED_V1",
+      campaignId,
+    }).slice(0, 8),
+    16,
+  );
 const tempoProfile = {
   hold: { casualty: 0.55, supply: 0.65, pressure: -0.25 },
   methodical: { casualty: 1, supply: 1, pressure: 0.35 },
@@ -27,17 +43,95 @@ const tempoProfile = {
   { casualty: number; supply: number; pressure: number }
 >;
 
-const disclosedState = (state: GameState): GameState => ({
+const disclosedAdversaryLedger = (
+  state: GameState,
+): GameState["adversaryLedger"] => {
+  const ledger = state.adversaryLedger;
+  if (!ledger) return null;
+  const intelConfidence = clamp(state.intelligence, 10, 95);
+  const estimatedForce = Math.max(1, state.enemy);
+  const uncertainty = (100 - intelConfidence) / 160;
+  const estimateLow = Math.round(estimatedForce * (1 - uncertainty));
+  const estimateHigh = Math.round(estimatedForce * (1 + uncertainty));
+  const deploymentShare = 0.48;
+  const observedOrders = [...ledger.observedOrders];
+  const operation =
+    observedOrders.find((order) => order.startsWith("OPERATIONS")) ?? "";
+  const pressure = operation.includes("Concentrated Assault")
+    ? 1.05
+    : operation.includes("Exploit")
+      ? 0.85
+      : operation.includes("Counterstroke")
+        ? 0.7
+        : operation.includes("Reconstitute")
+          ? 0.05
+          : 0.35;
+  const networkInterference = observedOrders.some((order) =>
+    order.includes("Attack Relay Custody"),
+  )
+    ? 0.15
+    : 0;
+  return {
+    day: ledger.day,
+    objective: state.currentSituation?.sector ?? "Unclassified",
+    posture: "Disclosed estimate",
+    productionTarget: "Unclassified",
+    countermeasure: "Unclassified",
+    orders: observedOrders,
+    observedOrders,
+    hiddenOrders: ledger.hiddenOrders,
+    pressure,
+    powerFactor: 1,
+    networkInterference,
+    deceptionPenalty: 0,
+    friendlyLossFactor: 1,
+    reinforcement: 0,
+    munitionsOpening: 0,
+    munitionsOutput: 0,
+    munitionsUse: 0,
+    munitionsClosing: 0,
+    doctrineGain: 0,
+    actualForce: estimatedForce,
+    estimatedForce,
+    estimateLow,
+    estimateHigh,
+    deploymentShare,
+    deployedEstimate: Math.round(estimatedForce * deploymentShare),
+    deployedLow: Math.round(estimateLow * deploymentShare),
+    deployedHigh: Math.round(estimateHigh * deploymentShare),
+    intelConfidence,
+    adaptation: {},
+    signals: [...ledger.signals],
+  };
+};
+
+/**
+ * Removes adversary actuality before any read-only projection or cognitive
+ * evaluation. Cached visible docket artifacts remain available, but a missing
+ * cache can only be regenerated from disclosed assumptions.
+ */
+export const projectAvaDisclosedState = (state: GameState): GameState => ({
   ...state,
+  campaignSeed: avaDisclosedProjectionSeed(state.campaignId),
   adversary: {
-    ...state.adversary,
     force: Math.max(1, state.enemy),
     readiness: 65,
     equipment: 65,
+    munitions: 0,
+    munitionsOutput: 0,
+    munitionsUse: 0,
+    doctrine: 0,
+    objective: "Unclassified",
     posture: "Methodical Pressure",
+    productionTarget: "Unclassified",
+    countermeasure: "Unclassified",
+    maneuverCounts: {},
     adaptation: {},
+    lastOrders: [],
+    estimateBias: 1,
   },
-  adversaryLedger: null,
+  adversaryLedger: disclosedAdversaryLedger(state),
+  operationalFacts: state.operationalFacts.filter((fact) => fact.visible),
 });
 
 const disclosedOperation = (
@@ -45,7 +139,7 @@ const disclosedOperation = (
   maneuver: Maneuver | null,
   roll: number,
 ) => {
-  const projected = disclosedState(state);
+  const projected = projectAvaDisclosedState(state);
   const situation = situationForState(projected);
   const director = directorForState(projected);
   const balance = campaignBalanceProfile(projected.campaignSeed);
@@ -132,7 +226,7 @@ export const projectAvaEnvelope = (
     requestedManeuver === undefined
       ? maneuverById(state.maneuver)
       : requestedManeuver;
-  const disclosed = disclosedState(state);
+  const disclosed = projectAvaDisclosedState(state);
   const confidence = maneuver
     ? maneuverChance(disclosed, maneuver)
     : 1;
@@ -171,16 +265,16 @@ export const projectAvaEnvelope = (
   const groundMovement = midpoint(groundLow, groundHigh);
   const forceRatio = midpoint(low.forceRatio, high.forceRatio);
   const personnel = disclosedPersonnel(
-    state,
+    disclosed,
     maneuver ?? null,
     friendlyLoss,
   );
-  const production = projectProduction(state);
-  const director = directorForState(state);
-  const shortages = Object.values(state.production).filter(
+  const production = projectProduction(disclosed);
+  const director = directorForState(disclosed);
+  const shortages = Object.values(disclosed.production).filter(
     (line) => line.stock < line.use * 2,
   ).length;
-  const domestic = executeCircuit(domesticCircuit, state, {
+  const domestic = executeCircuit(domesticCircuit, disclosed, {
     friendlyLosses: friendlyLoss,
     shortages,
     directorLegitimacy: director.modifiers.legitimacy,

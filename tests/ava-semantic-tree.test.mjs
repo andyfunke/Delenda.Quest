@@ -67,6 +67,22 @@ test("runtime entities close dynamic campaign ontology without entering the doma
   assert.deepEqual(cognition.lowerResolvedSemanticTree(tree), semantic);
 });
 
+test("compiler-owned runtime descriptors can bind without fabricated world evidence", () => {
+  const semantic = query(["forecast:{\"plan\":true}"]);
+  const { world, surface } = fixture(semantic);
+  const tree = cognition.resolveSemanticTree({
+    surface,
+    world,
+    domain: cognition.DELENDA_COGNITIVE_DOMAIN,
+    runtimeEntities: [{ id: semantic.subject.entityIds[0], kind: "semantic-descriptor" }],
+  });
+  assert.deepEqual(tree.entities[0].factIds, []);
+  assert.deepEqual(tree.entities[0].provenance, {
+    kind: "COMPILER",
+    sourceId: `runtime:${semantic.subject.entityIds[0]}`,
+  });
+});
+
 test("unknown, duplicate, and open runtime entities fail closed", () => {
   const semantic = query(["invented-aura"]);
   const { world, surface } = fixture(semantic);

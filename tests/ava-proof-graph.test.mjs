@@ -53,6 +53,12 @@ const datum = (value) => ({
   authority: "READ_ONLY",
 });
 
+const resealProofGraph = (graph) => {
+  const clone = structuredClone(graph);
+  delete clone.digest;
+  return { ...clone, digest: cognition.cognitiveDigest(clone) };
+};
+
 const program = (ctx, nodes, outputNodeId) => ({
   id: "proof-program",
   version: "1",
@@ -93,6 +99,120 @@ test("completed operator programs produce a sealed, complete canonical proof gra
   assert.ok(graph.nodes.some((node) => node.operatorId === "RATIO"));
 });
 
+test("Nexus response and cognitive execution compose into one sealed proof", () => {
+  const ctx = context();
+  const compiled = program(ctx, [{
+    id: "count",
+    operator: "COUNT",
+    inputs: { values: { kind: "LITERAL", datum: datum([1, 2]) } },
+  }], "count");
+  const result = cognition.executeCognitiveProgram(compiled, ctx);
+  const cognitiveGraph = cognition.buildOperatorProofGraph({
+    program: compiled,
+    result,
+    world: ctx.world,
+  });
+  const responseGraph = cognition.buildNexusProofGraph({
+    worldRevision: ctx.world.revision,
+    request: { operation: "COUNT" },
+    response: {
+      status: "OK",
+      fact: { count: 2 },
+      rendering: { compact: "2", brief: "Two items." },
+      campaignRevision: ctx.world.revision,
+    },
+  });
+  assert.throws(
+    () => cognition.composeCanonicalProofGraphs(responseGraph, cognitiveGraph),
+    /not bound to the cognitive execution/i,
+  );
+  const boundResponse = cognition.bindResponseProofToExecution(
+    responseGraph,
+    result.digest,
+  );
+  assert.equal(
+    cognition.bindResponseProofToExecution(boundResponse, result.digest).digest,
+    boundResponse.digest,
+  );
+  assert.equal(boundResponse.executionDigest, result.digest);
+  assert.ok(
+    boundResponse.obligations.satisfied.includes(
+      "cognitive-execution-binding",
+    ),
+  );
+  const composed = cognition.composeCanonicalProofGraphs(
+    boundResponse,
+    cognitiveGraph,
+  );
+  assert.deepEqual(cognition.validateCanonicalProofGraph(composed), { ok: true });
+  assert.equal(composed.executionDigest, result.digest);
+  assert.equal(composed.rootClaimIds.length, 1);
+  assert.ok(composed.nodes.some((node) => node.id.startsWith("response:")));
+  assert.ok(composed.nodes.some((node) => node.id.startsWith("cognitive:")));
+  const otherRevisionResponse = cognition.buildNexusProofGraph({
+    worldRevision: "other-revision",
+    request: { operation: "COUNT" },
+    response: {
+      status: "OK",
+      fact: { count: 2 },
+      rendering: { compact: "2", brief: "Two items." },
+      campaignRevision: "other-revision",
+    },
+  });
+  assert.throws(
+    () => cognition.composeCanonicalProofGraphs(
+      cognition.bindResponseProofToExecution(
+        otherRevisionResponse,
+        result.digest,
+      ),
+      cognitiveGraph,
+    ),
+    /world revisions do not match/i,
+  );
+  const forgedBinding = cognition.buildNexusProofGraph({
+    worldRevision: ctx.world.revision,
+    request: { operation: "COUNT" },
+    response: {
+      status: "OK",
+      fact: { count: 2 },
+      rendering: { compact: "2", brief: "Two items." },
+      campaignRevision: ctx.world.revision,
+    },
+    executionDigest: "forged-execution",
+  });
+  assert.throws(
+    () =>
+      cognition.bindResponseProofToExecution(
+        forgedBinding,
+        result.digest,
+      ),
+    /different cognitive execution/i,
+  );
+
+  const obligationOnly = structuredClone(responseGraph);
+  obligationOnly.executionDigest = result.digest;
+  obligationOnly.obligations.required = [
+    ...obligationOnly.obligations.required,
+    "cognitive-execution-binding",
+  ].sort();
+  obligationOnly.obligations.satisfied = [
+    ...obligationOnly.obligations.satisfied,
+    "cognitive-execution-binding",
+  ].sort();
+  const resealedBypass = resealProofGraph(obligationOnly);
+  assert.deepEqual(cognition.validateCanonicalProofGraph(resealedBypass), {
+    ok: true,
+  });
+  assert.throws(
+    () =>
+      cognition.bindResponseProofToExecution(
+        resealedBypass,
+        result.digest,
+      ),
+    /cognitive execution binding/i,
+  );
+});
+
 test("blocked operator programs retain their adapter blocker and missing obligations", () => {
   const ctx = context();
   const compiled = program(ctx, [{
@@ -122,6 +242,231 @@ test("operator proof construction rejects a post-hoc altered execution result", 
     () => cognition.buildOperatorProofGraph({ program: compiled, result: forged, world: ctx.world }),
     /result digest mismatch/i,
   );
+});
+
+test("operator proof construction rejects results replayed across programs", () => {
+  const ctx = context();
+  const expectedProgram = program(ctx, [{
+    id: "count",
+    operator: "COUNT",
+    inputs: { values: { kind: "LITERAL", datum: datum([1, 2]) } },
+  }], "count");
+  const otherProgram = { ...expectedProgram, id: "other-proof-program" };
+  const otherResult = cognition.executeCognitiveProgram(otherProgram, ctx);
+  assert.equal(otherResult.status, "COMPLETED");
+  assert.throws(
+    () => cognition.buildOperatorProofGraph({
+      program: expectedProgram,
+      result: otherResult,
+      world: ctx.world,
+    }),
+    /different cognitive program/i,
+  );
+
+  const differentTopology = program(ctx, [{
+    id: "count",
+    operator: "SUM",
+    inputs: { values: { kind: "LITERAL", datum: datum([1, 2]) } },
+  }], "count");
+  const topologyResult = cognition.executeCognitiveProgram(differentTopology, ctx);
+  assert.equal(topologyResult.status, "COMPLETED");
+  assert.throws(
+    () => cognition.buildOperatorProofGraph({
+      program: expectedProgram,
+      result: topologyResult,
+      world: ctx.world,
+    }),
+    /does not match the program operator/i,
+  );
+});
+
+test("Nexus proof identity excludes nested authority secrets but retains public action IDs", () => {
+  const response = (overrides = {}) => ({
+    status: "OK",
+    fact: {
+      accepted: true,
+      action: {
+        id: "action-alpha",
+        optionId: "option-one",
+        resolutionTicket: "private-response-ticket-a",
+      },
+      ...overrides,
+    },
+    rendering: { compact: "Ready", brief: "The action is ready." },
+    campaignRevision: "proof-public-r1",
+  });
+  const request = {
+    kind: "EXECUTE",
+    origin: "web",
+    expectedStateSeal: "private-state-seal-a",
+    idempotencyKey: "private-idempotency-a",
+    action: {
+      id: "action-alpha",
+      optionId: "option-one",
+      details: {
+        resolutionTicket: "private-resolution-ticket-a",
+      },
+    },
+    authority: {
+      resolutionGrant: {
+        grantId: "private-grant-a",
+        accountDayKey: "private-day-a",
+      },
+      confirmation: { token: "private-confirmation-a" },
+      proposalToken: "private-proposal-a",
+    },
+  };
+  const changedSecrets = structuredClone(request);
+  changedSecrets.origin = "ssh";
+  changedSecrets.expectedStateSeal = "private-state-seal-b";
+  changedSecrets.idempotencyKey = "private-idempotency-b";
+  changedSecrets.action.details.resolutionTicket = "private-resolution-ticket-b";
+  changedSecrets.authority.resolutionGrant.grantId = "private-grant-b";
+  changedSecrets.authority.resolutionGrant.accountDayKey = "private-day-b";
+  changedSecrets.authority.confirmation.token = "private-confirmation-b";
+  changedSecrets.authority.proposalToken = "private-proposal-b";
+
+  const proof = (requestValue, responseValue = response()) => cognition.buildNexusProofGraph({
+    worldRevision: "proof-public-r1",
+    request: requestValue,
+    response: responseValue,
+  });
+  assert.equal(proof(request).digest, proof(changedSecrets).digest);
+  assert.equal(
+    proof(request, response()).digest,
+    proof(request, response({
+      action: {
+        id: "action-alpha",
+        optionId: "option-one",
+        resolutionTicket: "private-response-ticket-b",
+      },
+    })).digest,
+  );
+
+  const changedPublicAction = structuredClone(request);
+  changedPublicAction.action.id = "action-bravo";
+  assert.notEqual(proof(request).digest, proof(changedPublicAction).digest);
+  const changedPublicOption = structuredClone(request);
+  changedPublicOption.action.optionId = "option-two";
+  assert.notEqual(proof(request).digest, proof(changedPublicOption).digest);
+  assert.notEqual(
+    proof(request, response()).digest,
+    proof(request, response({
+      action: {
+        id: "action-bravo",
+        optionId: "option-one",
+        resolutionTicket: "private-response-ticket-a",
+      },
+    })).digest,
+  );
+
+  const preparedResponse = (proposalToken) => ({
+    status: "PREPARED",
+    fact: {
+      normalizedAction: {
+        choiceId: "choice-one",
+        mechanicId: "choice-one",
+        title: "Choice One",
+      },
+      campaignId: "campaign-public",
+      campaignRevision: "proof-public-r1",
+      orderCost: 1,
+      ordersBefore: 3,
+      ordersAfter: 2,
+      knownConsequences: [],
+      reversible: false,
+      expiresAt: "2026-07-31T12:10:00.000Z",
+      proposalToken,
+      confirmationPhrase: `confirm ${proposalToken}`,
+    },
+    rendering: {
+      compact: "ORDER PREPARED",
+      brief: `Choice One. Confirm with confirm ${proposalToken}`,
+    },
+    campaignRevision: "proof-public-r1",
+  });
+  const preparedA = proof(
+    request,
+    preparedResponse("private-proposal-a"),
+  );
+  const preparedB = proof(
+    changedSecrets,
+    preparedResponse("private-proposal-b"),
+  );
+  assert.equal(preparedA.digest, preparedB.digest);
+  for (const graph of [preparedA, preparedB]) {
+    const serialized = JSON.stringify(graph);
+    for (const secret of ["private-proposal-a", "private-proposal-b"])
+      assert.equal(serialized.includes(secret), false);
+  }
+});
+
+test("prepared orders compose with cognition without retaining proposal tokens", () => {
+  const state = game.initialState({ seed: 9393 });
+  const contextFor = () => ({
+    playerId: "proof-player",
+    campaignId: state.campaignId,
+    campaignRevision: nexus.avaNexusStateRevision(state),
+    surface: "web",
+    authority: "command",
+    nowMs: 1_700_010_000_000,
+  });
+  const docket = nexus.runAvaNexusLine(
+    "production",
+    contextFor(),
+    state,
+    nexus.createAvaNexusSession(),
+  );
+  const choice = docket.response.fact.choices[0];
+  const prepare = (idempotencyKey) =>
+    nexus.runAvaNexusRequest(
+      {
+        kind: "action",
+        origin: "browser-ui",
+        action: {
+          kind: "directive",
+          familyId: choice.familyId,
+          choiceId: choice.choiceId,
+        },
+        mode: "execute",
+        idempotencyKey,
+        expectedStateSeal: nexus.avaNexusStateRevision(docket.state),
+      },
+      contextFor(),
+      docket.state,
+      nexus.createAvaNexusSession(),
+    );
+  const preparedA = prepare("private-idempotency-a");
+  const preparedB = prepare("private-idempotency-b");
+  assert.equal(preparedA.response.status, "PREPARED", preparedA.text);
+  assert.equal(preparedB.response.status, "PREPARED", preparedB.text);
+  assert.notEqual(
+    preparedA.response.fact.proposalToken,
+    preparedB.response.fact.proposalToken,
+  );
+  assert.equal(preparedA.proofGraph.digest, preparedB.proofGraph.digest);
+  assert.ok(preparedA.cognitiveActivation);
+  assert.ok(preparedA.proofGraph.executionDigest);
+  assert.ok(
+    preparedA.proofGraph.nodes.some((node) => node.id.startsWith("response:")),
+  );
+  assert.ok(
+    preparedA.proofGraph.nodes.some((node) => node.id.startsWith("cognitive:")),
+  );
+  assert.deepEqual(cognition.validateCanonicalProofGraph(preparedA.proofGraph), {
+    ok: true,
+  });
+  assert.deepEqual(cognition.validateCanonicalProofGraph(preparedB.proofGraph), {
+    ok: true,
+  });
+  for (const prepared of [preparedA, preparedB]) {
+    const serialized = JSON.stringify(prepared.proofGraph);
+    for (const secret of [
+      preparedA.response.fact.proposalToken,
+      preparedB.response.fact.proposalToken,
+    ])
+      assert.equal(serialized.includes(secret), false);
+  }
 });
 
 test("explanation modes select different subsets of one immutable graph", () => {

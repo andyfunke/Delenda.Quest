@@ -90,7 +90,12 @@ const factRange = (fact: CognitiveWorldFact) => {
 };
 
 const normalize = (range: { low: number; high: number }, metric: CognitiveDecisionMetricSpec) => {
-  const point = (value: number) => Math.max(0, Math.min(1, (value - metric.minimum) / (metric.maximum - metric.minimum)));
+  const point = (value: number) => {
+    if (metric.normalization.kind === "BOUNDED_LINEAR")
+      return Math.max(0, Math.min(1, (value - metric.normalization.minimum) / (metric.normalization.maximum - metric.normalization.minimum)));
+    const aboveMinimum = Math.max(0, value - metric.normalization.minimum);
+    return aboveMinimum / (aboveMinimum + metric.normalization.scale);
+  };
   const low = point(range.low), high = point(range.high);
   return metric.direction === "MAXIMIZE" ? { low, high } : { low: 1 - high, high: 1 - low };
 };
@@ -151,6 +156,8 @@ const analyze = (
       const fact = facts.get(factId);
       if (!fact) throw new Error(`${candidate.id}: hidden or absent metric fact ${factId}`);
       if (fact.variableId !== metric.variableId) throw new Error(`${factId}: fact does not implement metric ${metric.id}`);
+      if (fact.entityId !== candidate.id)
+        throw new Error(`${factId}: projection belongs to ${fact.entityId}, not ${candidate.id}`);
       if (!fact.sourceIds.every((sourceId) => sourceIds.has(sourceId)))
         throw new Error(`${factId}: hidden projection lineage`);
       const raw = factRange(fact);

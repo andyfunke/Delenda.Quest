@@ -105,6 +105,11 @@ test("text and typed directive advice share channel, actor, posture, and ranking
   assert.equal(text.response.status, "OK", text.text);
   assert.equal(text.envelope.semantic?.subject.type, "DIRECTIVE");
   assert.equal(text.envelope.semantic?.directive?.channel, "production");
+  assert.deepEqual(text.cognitiveActivation?.operatorFamilies, [
+    "DECISION",
+    "REALIZATION",
+  ]);
+  assert.match(text.text, /compiled directive-strategic-posture model/i);
 
   const query = text.envelope.semantic;
   const typed = nexus.runAvaNexusRequest(
@@ -119,6 +124,14 @@ test("text and typed directive advice share channel, actor, posture, and ranking
     text.response.fact.ranked.map((row) => row.choiceId),
   );
   assert.deepEqual(typed.response.fact.posture, text.response.fact.posture);
+  assert.deepEqual(typed.cognitiveActivation, text.cognitiveActivation);
+  assert.ok(
+    typed.proofGraph.nodes.some(
+      (node) =>
+        node.claim ===
+        `Cognitive decision selected ${typed.response.fact.ranked[0].choiceId}`,
+    ),
+  );
 });
 
 test("core read commands publish executable semantic cells", () => {

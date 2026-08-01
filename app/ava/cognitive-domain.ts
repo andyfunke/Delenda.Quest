@@ -16,6 +16,12 @@ export type CognitiveVariableSpec = {
   kind: CognitiveValueKind;
   visibility: CognitiveVisibility;
   authority: CognitiveAuthority;
+  /**
+   * Projection-only variables have no authoritative scalar in GameState.
+   * They may exist only as compiler-validated facts emitted by a closed
+   * engine projection for one candidate or scenario.
+   */
+  projectionOnly?: boolean;
   unit?: string;
   minimum?: number;
   maximum?: number;
@@ -131,13 +137,25 @@ export type CognitiveEpistemicPolicySpec = {
   downweightFactors: Readonly<Record<"DEPENDENT" | "AGED", number>>;
 };
 
-export type CognitiveDecisionMetricSpec = {
+type CognitiveDecisionMetricBaseSpec = {
   id: string;
   variableId: string;
   direction: "MAXIMIZE" | "MINIMIZE";
-  minimum: number;
-  maximum: number;
 };
+
+export type CognitiveDecisionMetricSpec = CognitiveDecisionMetricBaseSpec & ({
+  normalization: {
+    kind: "BOUNDED_LINEAR";
+    minimum: number;
+    maximum: number;
+  };
+} | {
+  normalization: {
+    kind: "POSITIVE_SATURATION";
+    minimum: number;
+    scale: number;
+  };
+});
 
 export type CognitiveDecisionModelSpec = {
   id: string;
@@ -244,6 +262,85 @@ const validateVariable = (variable: CognitiveVariableSpec) => {
   )
     throw new Error(`${variable.id}: freshnessDays must be a nonnegative integer`);
 };
+
+export const DIRECTIVE_DECISION_COMPONENTS = [
+  {
+    key: "objectiveFit",
+    variableId: "directive.objective-fit",
+    metricId: "directive-objective-fit",
+    direction: "MAXIMIZE",
+    maximum: 200,
+  },
+  {
+    key: "priorityFit",
+    variableId: "directive.priority-fit",
+    metricId: "directive-priority-fit",
+    direction: "MAXIMIZE",
+    maximum: 200,
+  },
+  {
+    key: "toleranceFit",
+    variableId: "directive.tolerance-fit",
+    metricId: "directive-tolerance-fit",
+    direction: "MAXIMIZE",
+    maximum: 150,
+  },
+  {
+    key: "constraintRelief",
+    variableId: "directive.constraint-relief",
+    metricId: "directive-constraint-relief",
+    direction: "MAXIMIZE",
+    maximum: 200,
+  },
+  {
+    key: "continuity",
+    variableId: "directive.continuity",
+    metricId: "directive-continuity",
+    direction: "MAXIMIZE",
+    maximum: 100,
+  },
+  {
+    key: "opportunity",
+    variableId: "directive.opportunity",
+    metricId: "directive-opportunity",
+    direction: "MAXIMIZE",
+    maximum: 100,
+  },
+  {
+    key: "resourceEfficiency",
+    variableId: "directive.resource-efficiency",
+    metricId: "directive-resource-efficiency",
+    direction: "MAXIMIZE",
+    maximum: 150,
+  },
+  {
+    key: "horizonFit",
+    variableId: "directive.horizon-fit",
+    metricId: "directive-horizon-fit",
+    direction: "MAXIMIZE",
+    maximum: 100,
+  },
+  {
+    key: "riskPenalty",
+    variableId: "directive.risk-penalty",
+    metricId: "directive-risk-penalty",
+    direction: "MINIMIZE",
+    maximum: 200,
+  },
+  {
+    key: "contradictionPenalty",
+    variableId: "directive.contradiction-penalty",
+    metricId: "directive-contradiction-penalty",
+    direction: "MINIMIZE",
+    maximum: 200,
+  },
+] as const;
+
+export const DIRECTIVE_DECISION_MODEL_ID = "directive-strategic-posture";
+const DIRECTIVE_COMPONENT_RANGE_TOTAL = DIRECTIVE_DECISION_COMPONENTS.reduce(
+  (total, component) => total + component.maximum,
+  0,
+);
 
 export const compileCognitiveDomain = (
   source: CognitiveDomainSpec,
@@ -487,8 +584,19 @@ export const compileCognitiveDomain = (
     assertIdentifier(metric.id, "decision metric");
     if (source.variables.find((variable) => variable.id === metric.variableId)?.kind !== "NUMBER")
       throw new Error(`${metric.id}: decision metric requires a compiled numeric variable`);
-    if (!Number.isFinite(metric.minimum) || !Number.isFinite(metric.maximum) || metric.maximum <= metric.minimum)
-      throw new Error(`${metric.id}: decision normalization range is invalid`);
+    if (metric.normalization.kind === "BOUNDED_LINEAR") {
+      if (
+        !Number.isFinite(metric.normalization.minimum) ||
+        !Number.isFinite(metric.normalization.maximum) ||
+        metric.normalization.maximum <= metric.normalization.minimum
+      ) throw new Error(`${metric.id}: decision normalization range is invalid`);
+    } else if (metric.normalization.kind === "POSITIVE_SATURATION") {
+      if (
+        !Number.isFinite(metric.normalization.minimum) ||
+        !Number.isFinite(metric.normalization.scale) ||
+        metric.normalization.scale <= 0
+      ) throw new Error(`${metric.id}: decision saturation normalization is invalid`);
+    } else throw new Error(`${metric.id}: decision normalization kind is unknown`);
   }
   for (const model of source.decision.models) {
     assertIdentifier(model.id, "decision model");
@@ -622,6 +730,40 @@ for (const resource of ["munitions", "armor", "flight", "drones"] as const)
       ...(field === "allocation" ? { maximum: 100, unit: "percent" } : {}),
     });
 
+baseVariables.push({
+  id: "decision.projection-context",
+  kind: "RECORD",
+  visibility: "AVA_VISIBLE",
+  authority: "READ_ONLY",
+});
+
+baseVariables.push({
+  id: "directive.posture-context",
+  kind: "RECORD",
+  visibility: "AVA_VISIBLE",
+  authority: "READ_ONLY",
+  projectionOnly: true,
+});
+baseVariables.push({
+  id: "directive.legal",
+  kind: "NUMBER",
+  visibility: "AVA_VISIBLE",
+  authority: "READ_ONLY",
+  projectionOnly: true,
+  minimum: 0,
+  maximum: 1,
+});
+for (const component of DIRECTIVE_DECISION_COMPONENTS)
+  baseVariables.push({
+    id: component.variableId,
+    kind: "NUMBER",
+    visibility: "AVA_VISIBLE",
+    authority: "READ_ONLY",
+    projectionOnly: true,
+    minimum: 0,
+    maximum: component.maximum,
+  });
+
 const conceptEntries = Object.values(CONCEPTS);
 const knownConceptIds = new Set(conceptEntries.map((concept) => concept.id));
 const baseConcepts: CognitiveConceptSpec[] = conceptEntries.map((concept) => ({
@@ -634,7 +776,7 @@ const baseConcepts: CognitiveConceptSpec[] = conceptEntries.map((concept) => ({
 
 export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
   id: "delenda-cognitive-domain",
-  version: "1.0.0",
+  version: "1.2.0",
   variables: baseVariables,
   concepts: baseConcepts,
   actions: [
@@ -770,9 +912,20 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
   },
   decision: {
     metrics: [
-      { id: "readiness", variableId: "state.readiness", direction: "MAXIMIZE", minimum: 0, maximum: 100 },
-      { id: "front", variableId: "state.front", direction: "MAXIMIZE", minimum: -12, maximum: 12 },
-      { id: "treasury", variableId: "state.treasury", direction: "MAXIMIZE", minimum: 0, maximum: 100 },
+      { id: "readiness", variableId: "state.readiness", direction: "MAXIMIZE", normalization: { kind: "BOUNDED_LINEAR", minimum: 0, maximum: 100 } },
+      { id: "front", variableId: "state.front", direction: "MAXIMIZE", normalization: { kind: "BOUNDED_LINEAR", minimum: -12, maximum: 12 } },
+      { id: "treasury", variableId: "state.treasury", direction: "MAXIMIZE", normalization: { kind: "POSITIVE_SATURATION", minimum: 0, scale: 80 } },
+      { id: "directive-legal", variableId: "directive.legal", direction: "MAXIMIZE", normalization: { kind: "BOUNDED_LINEAR", minimum: 0, maximum: 1 } },
+      ...DIRECTIVE_DECISION_COMPONENTS.map((component) => ({
+        id: component.metricId,
+        variableId: component.variableId,
+        direction: component.direction,
+        normalization: {
+          kind: "BOUNDED_LINEAR" as const,
+          minimum: 0,
+          maximum: component.maximum,
+        },
+      })),
     ],
     models: [
       {
@@ -789,6 +942,20 @@ export const DELENDA_COGNITIVE_DOMAIN_SPEC: CognitiveDomainSpec = {
           { metricId: "readiness", weight: 0.2 },
           { metricId: "front", weight: 0.7, hardMinimum: -12 },
           { metricId: "treasury", weight: 0.1 },
+        ],
+      },
+      {
+        id: DIRECTIVE_DECISION_MODEL_ID,
+        objectives: [
+          {
+            metricId: "directive-legal",
+            weight: 0,
+            hardMinimum: 1,
+          },
+          ...DIRECTIVE_DECISION_COMPONENTS.map((component) => ({
+            metricId: component.metricId,
+            weight: component.maximum / DIRECTIVE_COMPONENT_RANGE_TOTAL,
+          })),
         ],
       },
     ],

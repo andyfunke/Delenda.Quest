@@ -48,7 +48,11 @@ fly deploy --config packages/ssh-gateway/fly.toml
 
 Raw SSH is a non-HTTP, non-TLS TCP protocol. Fly therefore requires a dedicated IPv4 address for IPv4 clients. Public IPv6 remains available as well. The dedicated IPv4 currently costs $2 per month.
 
-For GitHub deployment, create the protected `ssh-production` environment and add a least-privilege `FLY_API_TOKEN` secret. Then run the `Deploy SSH gateway` workflow manually.
+For GitHub deployment, create the protected `ssh-production` environment and
+add a least-privilege `FLY_API_TOKEN` secret. A relevant push to `main` runs the
+containerized native-handshake contract, deploys the Fly gateway, and verifies
+the live SSH listener. The same workflow remains manually dispatchable for an
+operator-controlled redeploy.
 
 The Fly service maps public TCP port 22 directly to OpenSSH on internal port 2222. No HTTP or TLS handler is placed in front of SSH.
 

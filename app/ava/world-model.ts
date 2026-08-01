@@ -1,4 +1,14 @@
-import type { GameState } from "../game";
+import {
+  directorForState,
+  situationForState,
+  type GameState,
+} from "../game";
+import { CAMPAIGN_EVENT_CALCULUS } from "../campaign-event-expansion";
+import { compileConvergence } from "../convergence";
+import {
+  disclosedAdversaryAssessment,
+  projectAvaDisclosedState,
+} from "./projection";
 import type { CompiledCognitiveDomain } from "./cognitive-domain";
 import { DELENDA_COGNITIVE_DOMAIN } from "./cognitive-domain";
 import {
@@ -121,7 +131,11 @@ export const projectAvaVisibleWorld = (
   );
   return compileWorldSnapshot(
     {
-      ...snapshot,
+      domainId: snapshot.domainId,
+      domainVersion: snapshot.domainVersion,
+      campaignId: snapshot.campaignId,
+      campaignDay: snapshot.campaignDay,
+      revision: snapshot.revision,
       sources: snapshot.sources.filter((source) => visibleSources.has(source.id)),
       facts: snapshot.facts.filter(
         (fact) =>
@@ -133,7 +147,11 @@ export const projectAvaVisibleWorld = (
   );
 };
 
-const gameValue = (state: GameState, variableId: string): CognitiveValue => {
+const gameValue = (
+  state: GameState,
+  variableId: string,
+  domain = DELENDA_COGNITIVE_DOMAIN,
+): CognitiveValue => {
   const [namespace, first, second] = variableId.split(".");
   if (namespace === "state")
     return state[first as keyof GameState] as CognitiveValue;
@@ -141,8 +159,181 @@ const gameValue = (state: GameState, variableId: string): CognitiveValue => {
     return state.production[first as keyof GameState["production"]][
       second as keyof GameState["production"]["munitions"]
     ];
+  if (namespace === "decision" && first === "projection-context")
+    return avaVisibleDecisionContext(state, domain);
   throw new Error(`no authoritative GameState projection for ${variableId}`);
 };
+
+/**
+ * Canonical input identity for every disclosed projection Ava may use.
+ *
+ * The cognitive domain's scalar facts are not the complete input to the game
+ * projection circuits. Tempo, current posture, doctrine, production lines,
+ * docket geometry, and active policies can all change a projected answer. We
+ * therefore retain the complete disclosed projection context, not the raw
+ * campaign object or its private tickets and hidden ledgers.
+ */
+const publicSituation = (state: GameState) => {
+  const situation = situationForState(state);
+  return {
+    id: situation.id,
+    day: situation.day,
+    blueprintId: situation.blueprintId,
+    calculusBlueprintId: situation.calculusBlueprintId,
+    problemClass: situation.problemClass,
+    sectorId: situation.sectorId,
+    sector: situation.sector,
+    headline: situation.headline,
+    briefing: situation.briefing,
+    question: situation.question,
+    theater: situation.theater,
+    terrain: situation.terrain,
+    ground: situation.ground,
+    network: situation.network,
+    supply: situation.supply,
+    intelligence: situation.intelligence,
+    windowHours: situation.windowHours,
+    maneuvers: [...situation.maneuvers],
+    bands: situation.bands,
+    standingOrder: situation.standingOrder,
+    maneuverPresentations: situation.maneuverPresentations,
+    contentPackVersion: situation.contentPackVersion,
+  };
+};
+
+const publicPrompt = (
+  prompt: ReturnType<typeof compileConvergence>["domestic"],
+) => ({
+  id: prompt.id,
+  archetypeId: prompt.archetypeId,
+  frameId: prompt.frameId,
+  realizationId: prompt.realizationId,
+  domain: prompt.domain,
+  category: prompt.category,
+  title: prompt.title,
+  brief: prompt.brief,
+  question: prompt.question,
+  authority: prompt.authority,
+  aliases: [...prompt.aliases],
+  pressureBand: prompt.pressureBand,
+  options: prompt.options.map((option) => ({
+    id: option.id,
+    familyId: option.family.id,
+    choiceId: option.choice.id,
+  })),
+  matrixVersion: prompt.matrixVersion,
+  evidence: [...prompt.evidence],
+  operationalAnchor: prompt.operationalAnchor,
+  convergence: prompt.convergence,
+});
+
+const publicDirectorHistory = (state: GameState) => {
+  const latest = state.eventHistory[0];
+  return {
+    lastCalculusId: latest
+      ? latest.calculusId ??
+        CAMPAIGN_EVENT_CALCULUS[latest.eventId] ??
+        latest.eventId
+      : null,
+    seenEventIds: [
+      ...new Set(state.eventHistory.map((record) => record.eventId)),
+    ].sort(),
+  };
+};
+
+export const avaVisibleDecisionContext = (
+  state: GameState,
+  domain = DELENDA_COGNITIVE_DOMAIN,
+): CognitiveValue => {
+  const safe = projectAvaDisclosedState(state);
+  const packet = compileConvergence(safe);
+  const director = directorForState(safe);
+  const adversaryObservation = disclosedAdversaryAssessment(safe);
+  return cloneCognitive({
+    domainId: domain.id,
+    domainVersion: domain.version,
+    campaignId: safe.campaignId,
+    contentPackVersion: safe.contentPackVersion,
+    projectionSeedPolicy: "AVA_DISCLOSED_PROJECTION_SEED_V1",
+    theater: safe.theater,
+    facts: domain.manifest.variableIds
+      .filter(
+        (variableId) => !domain.variables.get(variableId)?.projectionOnly,
+      )
+      .filter((variableId) => variableId !== "decision.projection-context")
+      .filter(
+        (variableId) =>
+          domain.variables.get(variableId)?.visibility !== "HIDDEN",
+      )
+      .map((variableId) => [variableId, gameValue(safe, variableId, domain)]),
+    policy: {
+      status: safe.status,
+      actions: safe.actions,
+      target: safe.target,
+      pendingTarget: safe.pendingTarget,
+      tempo: safe.tempo,
+      networkPosture: safe.networkPosture,
+      maneuver: safe.maneuver,
+      active: safe.active,
+      locks: safe.locks,
+      unlocked: [...safe.unlocked].sort(),
+      affinityProofs: safe.affinityProofs,
+      currentDayDecisions: safe.decisions
+        .filter((decision) => decision.day === safe.day)
+        .map((decision) => ({
+          day: decision.day,
+          family: decision.family,
+          choice: decision.choice,
+          familyId: decision.familyId ?? null,
+          choiceId: decision.choiceId ?? null,
+          domain: decision.domain ?? null,
+          missionId: decision.missionId ?? null,
+        })),
+    },
+    situation: publicSituation(safe),
+    convergence: {
+      activeDomains: [...packet.activeDomains].sort(),
+      domestic: publicPrompt(packet.domestic),
+      network: publicPrompt(packet.network),
+    },
+    director: {
+      phaseId: director.phase.id,
+      eventId: director.event.id,
+      calculusId: director.event.calculusId ?? director.event.id,
+      modifiers: director.modifiers,
+      history: publicDirectorHistory(safe),
+    },
+    opportunityPressure:
+      safe.opportunityHistory.find((record) => record.day === safe.day)
+        ?.friendlyPressure ?? 0,
+    theaterSectors: safe.theaterSectors
+      .filter((sector) => sector.theater === safe.theater)
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    operationalFacts: safe.operationalFacts
+      .filter(
+        (fact) =>
+          fact.visible &&
+          fact.createdDay <= safe.day &&
+          (fact.expiresDay === null || fact.expiresDay >= safe.day),
+      )
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    adversaryObservation,
+  } as unknown as CognitiveValue);
+};
+
+/**
+ * Public-safe identity for Ava-visible cognitive state. Hidden campaign fields
+ * must never influence proof identity or become a comparison oracle.
+ */
+export const avaVisibleWorldRevision = (
+  state: GameState,
+  domain = DELENDA_COGNITIVE_DOMAIN,
+) =>
+  `AVA-${cognitiveDigest({
+    domainId: domain.id,
+    domainVersion: domain.version,
+    state: avaVisibleDecisionContext(state, domain),
+  })}`;
 
 export const worldSnapshotFromGameState = (
   state: GameState,
@@ -165,11 +356,15 @@ export const worldSnapshotFromGameState = (
       campaignDay: state.day,
       revision,
       sources: [source],
-      facts: domain.manifest.variableIds.map((variableId) => ({
+      facts: domain.manifest.variableIds
+        .filter(
+          (variableId) => !domain.variables.get(variableId)?.projectionOnly,
+        )
+        .map((variableId) => ({
         id: `fact:${variableId}`,
         variableId,
         entityId: "campaign",
-        value: gameValue(state, variableId),
+        value: gameValue(state, variableId, domain),
         visibility: domain.variables.get(variableId)!.visibility,
         sourceIds: [source.id],
         lineage: [],

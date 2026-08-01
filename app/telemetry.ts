@@ -1,4 +1,5 @@
 import type { AvaCompileResult } from "./ava/schema";
+import type { AvaCognitiveActivationReceipt } from "./ava/request-ir";
 import { DOCTRINES, FAMILIES, MANEUVERS, initialState, type GameState, type Module } from "./game";
 import { campaignSeedId } from "./campaign-id";
 
@@ -27,10 +28,11 @@ export const recordElementInteraction=(subject:string,context:string)=>enqueue({
 export const recordModuleDwell=(module:string,seconds:number)=>enqueue({type:"counter",category:"module_dwell",subject:`module:${module}`,context:"seconds",count:Math.max(1,Math.round(seconds))});
 export const recordModuleSwitch=(from:string,to:string)=>enqueue({type:"counter",category:"module_switch",subject:`${from}-to-${to}`,context:"navigation"});
 
-export const recordAvaTelemetry=(result:AvaCompileResult,module:Module,outcome:"executed"|"clarification"|"rejected")=>{
+export const recordAvaTelemetry=(result:AvaCompileResult,module:Module,outcome:"executed"|"clarification"|"rejected",activation?:AvaCognitiveActivationReceipt)=>{
   const intent=result.status==="compiled"?result.instruction.kind:"uncompiled";
   const failure=result.status==="clarify"?result.failure:"none";
-  const shape=`${intent}:${outcome}:${failure}:${result.trace.rule}:t${Math.min(20,result.trace.tokenCount)}:u${Math.min(20,result.trace.unresolvedTokenCount)}`;
+  const cognitive=activation?`${activation.runtime}:${activation.status}:${activation.operatorFamilies.join("+")}`:"COGNITIVE_INACTIVE";
+  const shape=`${intent}:${outcome}:${failure}:${result.trace.rule}:t${Math.min(20,result.trace.tokenCount)}:u${Math.min(20,result.trace.unresolvedTokenCount)}:${cognitive}`;
   enqueue({type:"counter",category:"ava_command",subject:shape,context:module});
 };
 

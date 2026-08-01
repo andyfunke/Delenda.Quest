@@ -118,3 +118,59 @@ test("bound adapters must honor output type, authority, and evidence contracts",
   } });
   assert.match(hidden.blocker, /hidden or absent evidence/i);
 });
+
+test("realization seals the exact upstream result and rejects a forged binding", () => {
+  const ctx = context();
+  const nodes = [
+    {
+      id: "source",
+      operator: "IDENTITY",
+      inputs: {
+        value: {
+          kind: "LITERAL",
+          datum: datum({ answer: "hold the line", confidence: 0.7 }),
+        },
+      },
+    },
+    {
+      id: "realize",
+      operator: "EXPLAIN",
+      inputs: { value: { kind: "NODE", nodeId: "source" } },
+    },
+  ];
+  const result = cognition.executeCognitiveProgram(
+    program(ctx, nodes, "realize"),
+    { ...ctx, adapters: cognition.realizationEngineAdapters },
+  );
+
+  assert.equal(result.status, "COMPLETED", result.blocker);
+  assert.deepEqual(
+    result.executions.map((execution) => execution.operator),
+    ["IDENTITY", "EXPLAIN"],
+  );
+  assert.ok(result.output.proofIds.includes("realization-engine-proof"));
+  const binding = result.output.value;
+  const source = result.executions.find((execution) => execution.nodeId === "source").datum;
+  assert.equal(
+    cognition.validateCognitiveRealizationBinding({
+      binding,
+      source,
+      worldRevision: ctx.world.revision,
+      semanticTreeDigest: ctx.semanticTree.digest,
+    }),
+    binding,
+  );
+
+  const forged = structuredClone(binding);
+  forged.value.answer = "invented answer";
+  assert.throws(
+    () =>
+      cognition.validateCognitiveRealizationBinding({
+        binding: forged,
+        source,
+        worldRevision: ctx.world.revision,
+        semanticTreeDigest: ctx.semanticTree.digest,
+      }),
+    /digest is invalid|does not match its source/i,
+  );
+});

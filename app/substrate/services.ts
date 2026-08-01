@@ -216,8 +216,36 @@ export const prepareOrder = (
     };
   }
   const existing = (state.preparedOrders ?? []).find(
-    (item) => item.idempotencyKey === idempotencyKey && item.playerId === ctx.playerId,
+    (item) =>
+      (item.prepareIdempotencyKey ??
+        (!item.consumedAt ? item.idempotencyKey : undefined)) ===
+        idempotencyKey &&
+      item.playerId === ctx.playerId &&
+      item.campaignId === ctx.campaignId,
   );
+  if (
+    existing &&
+    !existing.consumedAt &&
+    existing.choiceId !== choiceId
+  ) {
+    return {
+      state,
+      response: {
+        status: "REJECTED",
+        fact: null as unknown as PreparedOrderFact,
+        rendering: {
+          compact: "IDEMPOTENCY CONFLICT",
+          brief:
+            "That preparation idempotency key is already bound to a different directive.",
+        },
+        recovery: {
+          code: "IDEMPOTENCY_CONFLICT",
+          instruction: "Use the original directive or a new idempotency key.",
+        },
+        campaignRevision: revisionOf(state),
+      },
+    };
+  }
   if (existing && !existing.consumedAt) {
     const found = choiceById(existing.choiceId);
     const fact = preparedFactFromRecord(state, existing, found?.choice.exact ?? []);
@@ -259,6 +287,7 @@ export const prepareOrder = (
     orderCost: 1,
     createdAt: new Date(ctx.nowMs).toISOString(),
     expiresAt: new Date(ctx.nowMs + 10 * 60 * 1000).toISOString(),
+    prepareIdempotencyKey: idempotencyKey,
     idempotencyKey,
     auditId: audit(`${proposalToken}:prep`),
   };
@@ -394,10 +423,32 @@ export const confirmOrder = (
   }
   const priorIdempotent = orders.find(
     (item) =>
-      item.idempotencyKey === idempotencyKey &&
+      (item.confirmationIdempotencyKey ??
+        (item.consumedAt ? item.idempotencyKey : undefined)) ===
+        idempotencyKey &&
       item.consumedAt &&
-      item.playerId === ctx.playerId,
+      item.playerId === ctx.playerId &&
+      item.campaignId === ctx.campaignId,
   );
+  if (priorIdempotent && priorIdempotent.proposalToken !== proposalToken) {
+    return {
+      state,
+      response: {
+        status: "REJECTED",
+        fact: { choiceId: record.choiceId, title: record.title },
+        rendering: {
+          compact: "IDEMPOTENCY CONFLICT",
+          brief:
+            "That confirmation idempotency key is already bound to a different proposal.",
+        },
+        recovery: {
+          code: "IDEMPOTENCY_CONFLICT",
+          instruction: "Use the original proposal token or a new idempotency key.",
+        },
+        campaignRevision: revisionOf(state),
+      },
+    };
+  }
   if (priorIdempotent) {
     return {
       state,
@@ -436,7 +487,7 @@ export const confirmOrder = (
       ? {
           ...item,
           consumedAt: new Date(ctx.nowMs).toISOString(),
-          idempotencyKey,
+          confirmationIdempotencyKey: idempotencyKey,
           auditId,
           resultStatus: "EXECUTED",
         }

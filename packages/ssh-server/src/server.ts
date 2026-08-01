@@ -192,6 +192,8 @@ export class DelendaSshServer {
       status: result.response.status,
       response: result.response,
       state: session.state,
+      proofGraph: result.proofGraph,
+      cognitiveActivation: result.cognitiveActivation,
     };
   }
 

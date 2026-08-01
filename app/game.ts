@@ -131,6 +131,9 @@ export type PreparedOrderRecord = {
   createdAt:string;
   expiresAt:string;
   consumedAt?:string;
+  prepareIdempotencyKey?:string;
+  confirmationIdempotencyKey?:string;
+  /** Legacy compatibility for records created before the keys were split. */
   idempotencyKey?:string;
   auditId?:string;
   resultStatus?:string;

@@ -43,8 +43,17 @@ import {
 import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
 import { answerSemanticQuery } from "./advisory";
 import { projectAvaEnvelope } from "./projection";
+import { avaVisibleWorldRevision } from "./world-model";
 import type { AvaDarkNetContext } from "./darknet";
 import type { CanonicalProofGraph } from "./proof-graph";
+import type {
+  AvaCognitiveCausalGuidance,
+  AvaCognitiveConstraintGuidance,
+  AvaCognitiveDecisionGuidance,
+  AvaCognitiveEpistemicGuidance,
+  AvaCognitiveForecastGuidance,
+  AvaCognitivePlanningGuidance,
+} from "./cognitive-nexus";
 import type {
   AvaAnswerPlan,
   AvaCompilerTrace,
@@ -233,6 +242,7 @@ const planText = (
   state: GameState,
   session: AvaTerminalSession,
   fraction: number,
+  cognitivePlanning?: AvaCognitivePlanningGuidance,
 ) => {
   if (!session.plan.length)
     return "PLAN: EMPTY\nUse MISSIONS, then STAGE one or more handles.";
@@ -243,8 +253,143 @@ const planText = (
   return [
     `PLAN: ${plan.id} · SEALED TO CURRENT COMMAND LEDGER`,
     `COST: ${plan.orderCost} ORDERS · ${plan.insightCost} INSIGHT`,
+    ...(cognitivePlanning
+      ? [
+          `COGNITIVE PLAN VALIDATION: ${cognitivePlanning.planning.status} · PLAN ONLY / NO MUTATION${
+            cognitivePlanning.planning.blockers.length
+              ? `\nBLOCKERS\n${cognitivePlanning.planning.blockers.join("\n")}`
+              : ""
+          }`,
+        ]
+      : []),
     ...descriptors.map(renderAvaAction),
     "COMMANDS\n> forecast plan\n> issue plan\n> clear plan",
+  ].join("\n\n");
+};
+
+const constraintText = (
+  guidance: AvaCognitiveConstraintGuidance,
+) => {
+  const result = guidance.feasibility;
+  const viable = guidance.artifact.available && result.outcome === "FEASIBLE";
+  const constraintLines = result.constraints.map(
+    (constraint) =>
+      `${constraint.status}: ${constraint.constraintId}${
+        constraint.missingBindings.length
+          ? ` · MISSING ${constraint.missingBindings.join(", ")}`
+          : ""
+      }`,
+  );
+  return [
+    "COMPILED PRECONDITION CHECK",
+    `TARGET: ${guidance.artifact.targetId}`,
+    `VIABLE: ${viable ? "YES" : "NO"}`,
+    `OUTCOME: ${result.outcome}`,
+    `DOCKET: ${
+      guidance.artifact.available
+        ? "AVAILABLE"
+        : `UNAVAILABLE${
+            guidance.artifact.rejection
+              ? ` · ${guidance.artifact.rejection}`
+              : ""
+          }`
+    }`,
+    `CONSTRAINTS\n${constraintLines.join("\n") || "No compiled constraint result was returned."}`,
+    result.prerequisites.length
+      ? `PREREQUISITES\n${result.prerequisites.join("\n")}`
+      : null,
+    result.smallestRepair
+      ? `SMALLEST REPAIR\n${result.smallestRepair.id}`
+      : null,
+    "AUTHORITY\nREAD ONLY · NO STAGE · NO PREPARE · NO MUTATION",
+  ]
+    .filter((section): section is string => !!section)
+    .join("\n\n");
+};
+
+const cognitiveVariableLabel = (variableId: string) =>
+  variableId
+    .replace(/^state\./, "")
+    .replaceAll(/[-_.]+/g, " ")
+    .toUpperCase();
+
+const causalDiagnosisText = (guidance: AvaCognitiveCausalGuidance) => {
+  const result = guidance.causal;
+  const candidates = result.candidateVariableIds.map(cognitiveVariableLabel);
+  return [
+    "CAUSAL DIAGNOSIS / OBSERVATIONAL ONLY",
+    `TARGET: ${cognitiveVariableLabel(guidance.artifact.variableId)}`,
+    `RESULT: ${result.status.replaceAll("_", " ")}`,
+    `CANDIDATES: ${candidates.join(", ") || "NONE IN THE COMPILED STRUCTURAL MODEL"}`,
+    "IDENTIFICATION: NOT ESTABLISHED",
+    "The visible observations can nominate compiled causal ancestors, but no intervention was supplied. Ava is not claiming that an observational candidate caused the current value.",
+    `EVIDENCE SCOPE: ${guidance.artifact.observationFactIds.length} AVA-VISIBLE RECORDS`,
+    "AUTHORITY\nREAD ONLY · NO STAGE · NO PREPARE · NO MUTATION",
+  ].join("\n\n");
+};
+
+const evidenceBoundText = (guidance: AvaCognitiveEpistemicGuidance) => {
+  const result = guidance.epistemic;
+  if (typeof result.value !== "number" || !result.interval)
+    throw new Error("cognitive evidence bound omitted its numeric result");
+  return [
+    "EVIDENCE BOUND / SINGLE AUTHORITATIVE RECORD",
+    `TARGET: ${cognitiveVariableLabel(guidance.artifact.variableId)}`,
+    `ESTIMATE: ${result.value.toFixed(1)}`,
+    `BOUND: ${result.interval.low.toFixed(1)} TO ${result.interval.high.toFixed(1)}`,
+    `SOURCE RELIABILITY WEIGHT: ${((result.confidence ?? 0) * 100).toFixed(1)}%`,
+    "INTERPRETATION: This is a one-record evidence bound from the current authoritative campaign ledger. It is not corroboration and does not establish independent agreement.",
+    "AUTHORITY\nREAD ONLY · NO STAGE · NO PREPARE · NO MUTATION",
+  ].join("\n\n");
+};
+
+const cognitiveComparisonText = (
+  state: GameState,
+  descriptors: readonly [AvaActionDescriptor, AvaActionDescriptor],
+  guidance: AvaCognitiveDecisionGuidance,
+) => {
+  const decision = guidance.decision;
+  const descriptorIds = descriptors.map((descriptor) => descriptor.id).sort();
+  const rankingIds = [...decision.ranking].sort();
+  if (
+    decision.kind !== "COMPARE" ||
+    decision.worldRevision !== avaVisibleWorldRevision(state) ||
+    descriptorIds.join("\u0000") !== rankingIds.join("\u0000") ||
+    !decision.winnerId ||
+    decision.ranking[0] !== decision.winnerId
+  )
+    throw new Error(
+      "cognitive comparison does not cover the rendered action pair",
+    );
+  const labels = new Map(
+    descriptors.map((descriptor) => [descriptor.id, descriptor]),
+  );
+  const ranked = decision.ranking.map((id, index) => {
+    const descriptor = labels.get(id);
+    const candidate = decision.candidates.find(
+      (item) => item.candidateId === id,
+    );
+    if (!descriptor || !candidate)
+      throw new Error("cognitive comparison omitted a ranked candidate");
+    const metrics = candidate.metrics
+      .map((metric) => {
+        const value =
+          metric.raw.low === metric.raw.high
+            ? metric.raw.low.toFixed(1)
+            : `${metric.raw.low.toFixed(1)} TO ${metric.raw.high.toFixed(1)}`;
+        return `${metric.metricId.toUpperCase()} ${value}`;
+      })
+      .join(" · ");
+    return `${index + 1}. [${descriptor.handle}] ${descriptor.label} · ROBUST UTILITY ${candidate.utility.low.toFixed(3)} TO ${candidate.utility.high.toFixed(3)} · ${metrics}`;
+  });
+  const winner = labels.get(decision.winnerId)!;
+  return [
+    "COMPARISON / COGNITIVE NEXUS",
+    `MODEL: ${decision.modelId.toUpperCase()}`,
+    `RANKING\n${ranked.join("\n")}`,
+    `JUDGMENT\n[${winner.handle}] ${winner.label} ranks first under the compiled robust decision model.`,
+    `TRADEOFFS\n${decision.tradeoffs.join("\n") || "No compiled tradeoff was returned."}`,
+    "AUTHORITY\nREAD ONLY · NO ORDER WAS STAGED, PREPARED, OR ISSUED",
   ].join("\n\n");
 };
 
@@ -277,6 +422,79 @@ const diffText = (before: GameState, after: GameState) =>
     })
     .join("\n") ||
   "No immediate ledger total changes. The order changes posture, timing, access, or an active policy instead.";
+
+const cognitiveChangeText = (
+  guidance: AvaCognitiveForecastGuidance,
+) =>
+  guidance.artifact.changes.length
+    ? guidance.artifact.changes
+        .map(({ metric, before, after }) => {
+          const delta = after - before;
+          return `${metric.toUpperCase()}: ${before.toFixed(1)} → ${after.toFixed(1)} · CHANGE: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`;
+        })
+        .join("\n")
+    : "No immediate ledger total changes. The order changes posture, timing, access, or an active policy instead.";
+
+const cognitiveProjectionLines = (
+  guidance: AvaCognitiveForecastGuidance,
+) => {
+  const projection = guidance.artifact.projection;
+  if (!projection)
+    throw new Error("cognitive forecast omitted its disclosed projection");
+  return [
+    `Projected friendly loss: ${fmt(projection.friendlyLoss, true)} (${fmt(projection.friendlyLossLow, true)}–${fmt(projection.friendlyLossHigh, true)})`,
+    `Projected Net Flight: ${fmt(projection.netDesertion, true)}`,
+    `Projected ground movement: ${projection.groundMovement >= 0 ? "+" : ""}${projection.groundMovement.toFixed(1)} km (${projection.groundLow.toFixed(1)} to ${projection.groundHigh.toFixed(1)})`,
+    `Industrial shortages: ${projection.shortages}`,
+    `Domestic collapse risk: ${(projection.collapseRisk * 100).toFixed(1)}%`,
+    `Disclosure: ${projection.disclosure}`,
+  ];
+};
+
+const cognitiveForecastText = (
+  state: GameState,
+  action: AvaActionRef | undefined,
+  fraction: number,
+  guidance: AvaCognitiveForecastGuidance,
+) => {
+  const expectedTarget = action ? actionKey(action) : "standing";
+  if (guidance.artifact.targetId !== expectedTarget)
+    throw new Error("cognitive forecast target does not match the realized request");
+  const descriptor = action
+    ? descriptorForAction(state, action, fraction)
+    : undefined;
+  if (guidance.artifact.status === "UNAVAILABLE")
+    return `${descriptor ? `${renderAvaAction(descriptor)}\n\n` : ""}PROJECTION UNAVAILABLE: ${guidance.artifact.reason ?? "No disclosed projection is available."}`;
+  if (guidance.artifact.status === "SEALED")
+    return `${descriptor ? `${renderAvaAction(descriptor)}\n\n` : ""}SEALED BOUNDARY\n${guidance.artifact.reason ?? "The unresolved branch remains sealed."}`;
+  if (!action) {
+    const projection = guidance.artifact.projection;
+    if (!projection)
+      throw new Error("standing cognitive forecast omitted its projection");
+    return `STANDING PROJECTION [PROJECTED CURRENT DAY]\nFriendly loss ${fmt(projection.friendlyLoss, true)} · Net Flight ${fmt(projection.netDesertion, true)} · ground ${projection.groundMovement >= 0 ? "+" : ""}${projection.groundMovement.toFixed(1)} km.`;
+  }
+  if (!descriptor)
+    throw new Error("cognitive forecast descriptor left the current docket");
+  if (action.kind === "maneuver") {
+    const confidence = guidance.artifact.confidence;
+    if (!confidence)
+      throw new Error("maneuver forecast omitted its confidence calculation");
+    return [
+      "FIELD NOTE / PROJECTION\nA projection is the battlefield confessing under controlled pressure. It tells the truth only about the orders already on the table.",
+      renderAvaAction(descriptor),
+      `PROJECTED DAY CONSEQUENCE\n${cognitiveProjectionLines(guidance).join("\n")}`,
+      `CALCULATION\nExecution confidence = base chance + readiness + equipment + intelligence + doctrine + operational fit − enemy adaptation\n${confidence.terms
+        .map(
+          (term) =>
+            `${term.label}: ${term.points >= 0 ? "+" : ""}${term.points.toFixed(1)} points`,
+        )
+        .join("\n")}\nResult: ${(confidence.result * 100).toFixed(1)}%`,
+      "PRINCIPAL UNCERTAINTY\nThe confidence estimate does not disclose or pre-resolve the sealed day outcome.",
+      `DECLARED CHANGE [PROJECTED]\n${cognitiveChangeText(guidance)}`,
+    ].join("\n\n");
+  }
+  return `${renderAvaAction(descriptor)}\n\nDECLARED CHANGE [PROJECTED]\n${cognitiveChangeText(guidance)}`;
+};
 
 const actionProjection = (
   state: GameState,
@@ -316,7 +534,10 @@ const forecastText = (
   state: GameState,
   action: AvaActionRef | undefined,
   fraction: number,
+  cognitiveForecast?: AvaCognitiveForecastGuidance,
 ) => {
+  if (cognitiveForecast)
+    return cognitiveForecastText(state, action, fraction, cognitiveForecast);
   if (!action) {
     const projection = projectAvaEnvelope(state);
     return `STANDING PROJECTION [PROJECTED D+0]\nFriendly loss ${fmt(projection.friendlyLoss, true)} · Net Flight ${fmt(projection.personnel.netDesertion, true)} · ground ${projection.groundMovement >= 0 ? "+" : ""}${projection.groundMovement.toFixed(1)} km.`;
@@ -361,7 +582,23 @@ const forecastPlanText = (
   state: GameState,
   session: AvaTerminalSession,
   fraction: number,
+  cognitiveForecast?: AvaCognitiveForecastGuidance,
 ) => {
+  if (cognitiveForecast) {
+    const targetId = `plan:${session.plan.map(actionKey).join("|") || "empty"}`;
+    if (cognitiveForecast.artifact.targetId !== targetId)
+      throw new Error("cognitive plan forecast target is stale");
+    const descriptors = session.plan
+      .map((action) => descriptorForAction(state, action, fraction))
+      .filter((item): item is AvaActionDescriptor => !!item);
+    const contract = [
+      `PLAN FORECAST: ${session.plan.length} ACTIONS · ${descriptors.reduce((sum, item) => sum + item.orderCost, 0)} ORDERS`,
+      ...descriptors.map(renderAvaAction),
+    ].join("\n\n");
+    if (cognitiveForecast.artifact.status !== "PROJECTED")
+      return `${contract}\n\n${cognitiveForecast.artifact.status === "SEALED" ? "SEALED BOUNDARY" : "PLAN FORECAST REJECTED"}\n${cognitiveForecast.artifact.reason ?? "No disclosed projection is available."}`;
+    return `${contract}\n\nDECLARED PACKET CHANGE [PROJECTED]\n${cognitiveChangeText(cognitiveForecast)}`;
+  }
   if (!session.plan.length)
     return "PLAN FORECAST REJECTED: no actions are staged.";
   const descriptors = session.plan
@@ -528,6 +765,12 @@ function executeAvaInstruction(
   instruction: AvaInstruction,
   opportunityFraction = 0,
   darkNetContext: AvaDarkNetContext = {},
+  cognitiveGuidance?: AvaCognitiveDecisionGuidance,
+  cognitiveForecast?: AvaCognitiveForecastGuidance,
+  cognitivePlanning?: AvaCognitivePlanningGuidance,
+  cognitiveConstraint?: AvaCognitiveConstraintGuidance,
+  cognitiveCausal?: AvaCognitiveCausalGuidance,
+  cognitiveEpistemic?: AvaCognitiveEpistemicGuidance,
 ): AvaTerminalResult {
   if (instruction.kind === "SHELL") {
     const shellResult = executeAvaShell(
@@ -565,11 +808,53 @@ function executeAvaInstruction(
     });
   }
   if (instruction.kind === "SEMANTIC") {
+    if (cognitiveCausal)
+      return finalize(
+        state,
+        session,
+        withHeader(state, causalDiagnosisText(cognitiveCausal)),
+        {
+          trace: {
+            semantic: instruction.query,
+            retrievedFacts: [...cognitiveCausal.causal.responsibleFactIds],
+            renderedResponse: "",
+          },
+        },
+      );
+    if (cognitiveEpistemic)
+      return finalize(
+        state,
+        session,
+        withHeader(state, evidenceBoundText(cognitiveEpistemic)),
+        {
+          trace: {
+            semantic: instruction.query,
+            retrievedFacts: [cognitiveEpistemic.artifact.factId],
+            renderedResponse: "",
+          },
+        },
+      );
+    if (cognitiveConstraint)
+      return finalize(
+        state,
+        session,
+        withHeader(state, constraintText(cognitiveConstraint)),
+        {
+          trace: {
+            semantic: instruction.query,
+            retrievedFacts: [
+              ...cognitiveConstraint.feasibility.responsibleFactIds,
+            ],
+            renderedResponse: "",
+          },
+        },
+      );
     const answer = answerSemanticQuery(
       state,
       instruction.query,
       session.discourse,
       opportunityFraction,
+      cognitiveGuidance,
     );
     const next = { ...session, discourse: answer.discourse };
     return finalize(state, next, withHeader(state, answer.text), {
@@ -733,6 +1018,7 @@ function executeAvaInstruction(
       },
       session.discourse,
       opportunityFraction,
+      cognitiveGuidance,
     );
     return finalize(
       state,
@@ -791,6 +1077,30 @@ function executeAvaInstruction(
       { navigate: instruction.module },
     );
   if (instruction.kind === "EXPLAIN") {
+    if (cognitiveCausal)
+      return finalize(
+        state,
+        session,
+        withHeader(state, causalDiagnosisText(cognitiveCausal)),
+        {
+          trace: {
+            retrievedFacts: [...cognitiveCausal.causal.responsibleFactIds],
+            renderedResponse: "",
+          },
+        },
+      );
+    if (cognitiveEpistemic)
+      return finalize(
+        state,
+        session,
+        withHeader(state, evidenceBoundText(cognitiveEpistemic)),
+        {
+          trace: {
+            retrievedFacts: [cognitiveEpistemic.artifact.factId],
+            renderedResponse: "",
+          },
+        },
+      );
     if (instruction.entity.action) {
       const descriptor = descriptorForAction(
         state,
@@ -885,7 +1195,10 @@ function executeAvaInstruction(
     return finalize(
       state,
       session,
-      withHeader(state, planText(state, session, opportunityFraction)),
+      withHeader(
+        state,
+        planText(state, session, opportunityFraction, cognitivePlanning),
+      ),
     );
   if (instruction.kind === "FORECAST")
     return finalize(
@@ -894,11 +1207,17 @@ function executeAvaInstruction(
       withHeader(
         state,
         instruction.plan
-          ? forecastPlanText(state, session, opportunityFraction)
+          ? forecastPlanText(
+              state,
+              session,
+              opportunityFraction,
+              cognitiveForecast,
+            )
           : forecastText(
               state,
               instruction.entity?.action ?? session.plan[0],
               opportunityFraction,
+              cognitiveForecast,
             ),
       ),
     );
@@ -917,6 +1236,19 @@ function executeAvaInstruction(
           "COMPARE REJECTED: one or both references are stale.",
         ),
         { rejection: "stale-reference" },
+      );
+    if (cognitiveGuidance)
+      return finalize(
+        state,
+        session,
+        withHeader(
+          state,
+          cognitiveComparisonText(
+            state,
+            [descriptors[0], descriptors[1]],
+            cognitiveGuidance,
+          ),
+        ),
       );
     const actions = instruction.entities.map((entity) => entity.action);
     const leftAction = actions[0],
@@ -1255,6 +1587,12 @@ export function runAvaInstruction(
   semantic?: AvaSemanticQuery,
   compilerTrace?: AvaCompilerTrace,
   darkNetContext: AvaDarkNetContext = {},
+  cognitiveGuidance?: AvaCognitiveDecisionGuidance,
+  cognitiveForecast?: AvaCognitiveForecastGuidance,
+  cognitivePlanning?: AvaCognitivePlanningGuidance,
+  cognitiveConstraint?: AvaCognitiveConstraintGuidance,
+  cognitiveCausal?: AvaCognitiveCausalGuidance,
+  cognitiveEpistemic?: AvaCognitiveEpistemicGuidance,
 ): AvaTerminalResult {
   const result = executeAvaInstruction(
       state,
@@ -1262,6 +1600,12 @@ export function runAvaInstruction(
       instruction,
       opportunityFraction,
       darkNetContext,
+      cognitiveGuidance,
+      cognitiveForecast,
+      cognitivePlanning,
+      cognitiveConstraint,
+      cognitiveCausal,
+      cognitiveEpistemic,
     );
   if (result.outputKind === "shell")
     return {

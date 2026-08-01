@@ -4,7 +4,6 @@ import {
   type GameState,
 } from "../game";
 import {
-  avaStateRevision,
   enumerateAvaActions,
   executeAvaAction,
 } from "./runtime";
@@ -20,6 +19,9 @@ import {
   buildAdvisoryProofGraph,
   type CanonicalProofGraph,
 } from "./proof-graph";
+import type { AvaCognitiveDecisionGuidance } from "./cognitive-nexus";
+import { canonicalJson } from "./cognitive-types";
+import { avaVisibleWorldRevision } from "./world-model";
 
 export type AvaEvaluatedAction = {
   descriptor: AvaActionDescriptor;
@@ -129,6 +131,13 @@ const criterionLabel = (criterion: AvaEvaluationCriterion) =>
       CHEAPEST: "disclosed cost",
     } satisfies Record<AvaEvaluationCriterion, string>
   )[criterion];
+
+const naturalList = (values: readonly string[]) =>
+  values.length < 2
+    ? (values[0] ?? "")
+    : values.length === 2
+      ? `${values[0]} and ${values[1]}`
+      : `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 
 const scoreFor = (
   criterion: AvaEvaluationCriterion,
@@ -398,7 +407,7 @@ const planBase = (
   assumptions: [],
   alternatives: [],
   calculationDisclosure: "NONE",
-  stateRevision: avaStateRevision(state),
+  stateRevision: avaVisibleWorldRevision(state),
   structureId,
   clauseIds: [],
 });
@@ -408,6 +417,7 @@ const answerSemanticQueryUnproven = (
   query: AvaSemanticQuery,
   discourse: AvaDiscourseState,
   opportunityFraction = 0,
+  cognitiveGuidance?: AvaCognitiveDecisionGuidance,
 ): Omit<AvaSemanticAnswer, "proofGraph"> => {
   const situation = situationForState(state);
   if (query.polarity === "NEGATED" && query.operation === "CORRECT") {
@@ -627,8 +637,7 @@ const answerSemanticQueryUnproven = (
   }
 
   const criterion = query.criteria[0] ?? "OVERALL_VALUE";
-  const evaluated = candidates
-    .map((candidate) =>
+  const calculated = candidates.map((candidate) =>
       evaluate(
         hypotheticalState,
         candidate,
@@ -636,15 +645,61 @@ const answerSemanticQueryUnproven = (
         query,
         opportunityFraction,
       ),
-    )
-    .sort(
-      (left, right) =>
-        right.score - left.score ||
-        left.descriptor.handle.localeCompare(right.descriptor.handle),
     );
+  let evaluated = [...calculated].sort(
+    (left, right) =>
+      right.score - left.score ||
+      left.descriptor.handle.localeCompare(right.descriptor.handle),
+  );
+  if (cognitiveGuidance) {
+    const decision = cognitiveGuidance.decision;
+    const expectedKind =
+      query.operation === "COMPARE"
+        ? "COMPARE"
+        : query.operation === "RANK"
+          ? "RANK"
+          : "OPTIMIZE";
+    const candidateIds = calculated.map((entry) => entry.descriptor.id).sort();
+    if (
+      decision.kind !== expectedKind ||
+      decision.worldRevision !== avaVisibleWorldRevision(state) ||
+      decision.ranking.length !== candidateIds.length ||
+      canonicalJson([...decision.ranking].sort()) !== canonicalJson(candidateIds)
+    )
+      throw new Error("cognitive decision does not cover the realized advisory docket");
+    const byId = new Map(
+      calculated.map((entry) => [entry.descriptor.id, entry]),
+    );
+    evaluated = decision.ranking.map((id) => byId.get(id)!);
+  }
   const best = evaluated[0];
   const second = evaluated[1];
-  const reason = reasonFor(criterion, best, second);
+  const cognitiveWinner = cognitiveGuidance?.decision.candidates.find(
+    (candidate) => candidate.candidateId === best.descriptor.id,
+  );
+  const cognitiveRunnerUp = second
+    ? cognitiveGuidance?.decision.candidates.find(
+        (candidate) => candidate.candidateId === second.descriptor.id,
+      )
+    : undefined;
+  const cognitiveStrengths =
+    cognitiveWinner && cognitiveRunnerUp
+      ? cognitiveWinner.metrics
+          .filter((metric) => {
+            const other = cognitiveRunnerUp.metrics.find(
+              (candidate) => candidate.metricId === metric.metricId,
+            );
+            return !!other && metric.normalized.low >= other.normalized.low;
+          })
+          .map((metric) => metric.metricId)
+      : [];
+  const reason = cognitiveGuidance
+    ? `The compiled ${cognitiveGuidance.decision.modelId} model gives it the strongest robust balance${
+        cognitiveStrengths.length
+          ? ` in ${naturalList(cognitiveStrengths)}`
+          : " across the retained objectives"
+      }.`
+    : reasonFor(criterion, best, second);
   const narrative = chooseNarrative(
     query.operation === "CORRECT" ? "correction" : "choice",
     discourse,
@@ -667,7 +722,23 @@ const answerSemanticQueryUnproven = (
   plan.directAnswer = formatOption(best.descriptor);
   plan.rankedOptions = evaluated.map((entry) => entry.descriptor.id);
   plan.decisiveReasons = [reason];
-  plan.tradeoffs = best.descriptor.contingent.slice(0, 2);
+  const cognitiveConcessions =
+    cognitiveWinner && cognitiveRunnerUp
+      ? cognitiveWinner.metrics
+          .filter((metric) => {
+            const other = cognitiveRunnerUp.metrics.find(
+              (candidate) => candidate.metricId === metric.metricId,
+            );
+            return !!other && metric.normalized.high < other.normalized.high;
+          })
+          .map(
+            (metric) =>
+              `It concedes ${metric.metricId} to ${second?.descriptor.label ?? "the next course"}.`,
+          )
+      : [];
+  plan.tradeoffs = cognitiveGuidance
+    ? cognitiveConcessions.slice(0, 2)
+    : best.descriptor.contingent.slice(0, 2);
   plan.cautions = best.descriptor.contingent.slice(0, 1);
   plan.assumptions = query.overlays.map(
     (overlay) => `Assumption applied: ${overlay.sourceText}.`,
@@ -747,20 +818,32 @@ export const answerSemanticQuery = (
   query: AvaSemanticQuery,
   discourse: AvaDiscourseState,
   opportunityFraction = 0,
+  cognitiveGuidance?: AvaCognitiveDecisionGuidance,
 ): AvaSemanticAnswer => {
   const answer = answerSemanticQueryUnproven(
     state,
     query,
     discourse,
     opportunityFraction,
+    cognitiveGuidance,
   );
   return {
     ...answer,
     proofGraph: buildAdvisoryProofGraph({
-      worldRevision: avaStateRevision(state),
+      worldRevision: avaVisibleWorldRevision(state),
       semantic: query,
       answerPlan: answer.answerPlan,
       retrievedFacts: answer.retrievedFacts,
+      ...(cognitiveGuidance
+        ? {
+            cognitiveDecision: {
+              executionDigest: cognitiveGuidance.executionDigest,
+              decisionDigest: cognitiveGuidance.decision.digest,
+              winnerId: cognitiveGuidance.decision.winnerId!,
+              ranking: cognitiveGuidance.decision.ranking,
+            },
+          }
+        : {}),
     }),
   };
 };

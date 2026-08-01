@@ -16,9 +16,19 @@ Surface-neutral services live in `app/substrate/services.ts`:
 - `prepareOrder`, `confirmOrder`, `cancelPreparedOrder`
 - `dispatchCanonicalCommand`
 
-The Ava Nexus calls these services after typed capability and authority
-validation. Surfaces may call read-only visibility helpers directly, but all
-agent semantics and mutations enter the Nexus.
+The legacy directive evaluators remain deterministic compatibility/reference
+services. Production Ava compiles their authored component vector into the
+cognitive decision model and takes ranking authority only from that engine
+result. Surfaces may call read-only visibility helpers directly, but all agent
+semantics and mutations enter the Nexus.
+
+The cognitive engine bay is `app/ava/cognitive-nexus.ts`. It compiles validated
+read and plan-validation requests into closed cognitive programs, executes only
+registered adapters, seals the upstream result through the realization engine,
+and returns its proof to the canonical Nexus. It cannot mutate or persist
+campaign state. Plan-only validation must pass before Nexus can create a
+confirmation; only Nexus can confirm or mutate. The active route and
+trust-boundary contract is documented in `docs/ava-cognitive-nexus.md`.
 
 ## Semantic contracts
 
@@ -38,7 +48,7 @@ No Zod dependency is present; validation is explicit TypeScript validators.
 | Adapter | Path | May do | Must not do |
 |---|---|---|---|
 | Web | `GameClient.tsx`, `BriefingInterface.tsx` | Submit text or typed IR to the Nexus; render the canonical response | Execute actions directly, filter full catalogs as authority |
-| Ava Nexus | `app/ava/nexus.ts` | Compile, validate, dispatch, authorize, and return one response envelope | Invent mechanics or bypass prepared effects |
+| Ava Nexus | `app/ava/nexus.ts`, `app/ava/cognitive-nexus.ts` | Compile, validate, dispatch cognitive reads, authorize effects, and return one proof-bearing response envelope | Invent mechanics, create a second coordinator, or bypass prepared effects |
 | Ava Classic differential reference | `app/substrate/ava-classic.ts` | Independently realize read-only semantic plans for differential tests | Dispatch mutations or serve as a production adapter |
 | Terminal core | `packages/terminal-core` | Submit text to the Nexus and render its canonical response | Shell out, rank choices, mutate DB |
 | SSH server | `packages/ssh-server`, `packages/ssh-gateway` | Authenticate, enforce session limits, call the Nexus | Host shell, SCP/SFTP, forwarding |

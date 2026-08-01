@@ -42,8 +42,12 @@ test("production deploys the custom domain and production Worker URL", async () 
   assert.match(workflow,/name: Production contract/);
   assert.match(workflow,/github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow,/live-production-acceptance/);
-  assert.match(workflow,/Prove delenda\.quest serves the deployed contract/);
+  assert.match(workflow,/Prove delenda\.quest serves the compatible production contract/);
   assert.match(workflow,/npm run test:live/);
+  assert.match(workflow,/Run cognitive Nexus and adapter contracts/);
+  assert.match(workflow,/bash scripts\/test-substrate\.sh/);
+  assert.match(workflow,/group: production-contract-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/);
+  assert.match(workflow,/cancel-in-progress: true/);
   assert.doesNotMatch(
     workflow,
     /workflow_dispatch|wrangler-action|CLOUDFLARE_API_TOKEN|workers\/domains|deploy --config/,
@@ -127,4 +131,24 @@ test("browser and SSH campaign persistence use one revision contract", async () 
   assert.match(remoteStore, /GatewayRequestError/);
   assert.match(sshSession, /CONCURRENT CAMPAIGN REVISION WON/);
   assert.match(sshSession, /winner=restoreCampaignState/);
+});
+
+test("relevant main pushes validate and deploy the native SSH gateway", async () => {
+  const workflow = await readFile(
+    new URL("../.github/workflows/deploy-ssh-gateway.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /push:[\s\S]*?branches:[\s\S]*?- main/);
+  assert.match(workflow, /environment: ssh-production/);
+  assert.match(workflow, /npm run typecheck && npm run build:ssh-gateway/);
+  assert.match(workflow, /Run cognitive Nexus and SSH attestation contracts/);
+  assert.match(workflow, /bash scripts\/test-substrate\.sh/);
+  assert.match(workflow, /scripts\/test-native-ssh-gateway\.sh/);
+  assert.match(
+    workflow,
+    /superfly\/flyctl-actions\/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1/,
+  );
+  assert.doesNotMatch(workflow, /setup-flyctl@master/);
+  assert.match(workflow, /flyctl deploy --remote-only/);
+  assert.match(workflow, /ssh-keyscan -p 22 ssh\.delenda\.quest/);
 });

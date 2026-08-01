@@ -60,9 +60,10 @@ const filler = new Set([
   "currently",
   "some",
   "about",
+  "its",
 ]);
 const commandWords = new Set(
-  "hello hi hey there online update orders order available actions missions list help grammar capabilities command commands status condition situation report reports produce brief briefing explain inspect what does mean affect affects underpin underpinnings improve raise change control calculus calculate open show take go navigate select choose prepare stage unstage remove plan maneuver manoeuvre forecast project projection predict compare versus vs with and clear cancel unselect commit issue execute do it that yes confirm never mind internalize learn respond exploit answer resolve end close day days to for from of over last past how is are give loss losses casualties attrition retrospective recap after action production domestic network intelligence intel adversary enemy effects resources personnel opportunities opportunity doctrine diplomatic military directives service record outlook next happens recommend recommendation advise start move more less repeat who you thanks thank fuck fucking shit sense".split(
+  "hello hi hey there online update orders order available actions missions list help grammar capabilities command commands status condition situation report reports produce brief briefing explain inspect what does meet mean affect affects underpin underpinnings improve raise change control calculus calculate open show take go navigate select choose prepare stage unstage remove plan maneuver manoeuvre forecast project projection predict compare versus vs with and clear cancel unselect commit issue execute do it that yes confirm never mind internalize learn respond exploit answer resolve end close day days to for from of over last past how is are give loss losses casualties attrition retrospective recap after action production domestic network intelligence intel adversary enemy effects resources personnel opportunities opportunity doctrine diplomatic military directives service record outlook next happens recommend recommendation advise viable viability feasible feasibility precondition preconditions prerequisite prerequisites start move more less repeat who you thanks thank fuck fucking shit sense".split(
     " ",
   ),
 );
@@ -915,9 +916,17 @@ function compileLegacyCommand(
   }
   if (
     /^(explain|inspect|what|how|where|why)\b/.test(input) ||
+    /^(?:estimate|bound|diagnose)\b/.test(input) ||
+    /^(?:causal diagnosis|confidence (?:in|of|for)|confidence bound (?:for|of))\b/.test(
+      input,
+    ) ||
     /\b(mean|affect|affects|underpinnings|calculus|influence)\b/.test(input)
   ) {
-    const { hit, hits } = uniqueEntity(input, context);
+    const entityInput = input.replace(
+      /^(?:confidence (?:in|of|for)|confidence bound (?:for|of))\s+/,
+      "",
+    );
+    const { hit, hits } = uniqueEntity(entityInput, context);
     if (hits.length > 1)
       return clarification(
         input,
@@ -986,6 +995,10 @@ const shouldUseSemanticInstruction = (
   semantic: SemanticCompilation,
 ) => {
   const query = semantic.query;
+  const explicitConstraintQuestion =
+    /\b(?:viable|viability|feasible|feasibility|preconditions?|prerequisites?)\b/.test(
+      input,
+    );
   if (/^(?:missions?|orders?)$/.test(input)) return false;
   const explicitHandleComparison =
     query.operation === "COMPARE" &&
@@ -1000,6 +1013,8 @@ const shouldUseSemanticInstruction = (
     query.operation === "CHALLENGE" ||
     query.overlays.length > 0 ||
     query.reference !== undefined ||
+    (explicitConstraintQuestion &&
+      query.subject.type === "CAMPAIGN_CHOICE") ||
     (query.subject.type === "CAMPAIGN_CHOICE" &&
       /mission|operation|maneuver|option|choice/.test(input)) ||
     query.subject.type === "MISSION_OBJECTIVE"

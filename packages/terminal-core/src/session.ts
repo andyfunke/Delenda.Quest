@@ -4,6 +4,8 @@ import type {
   SemanticResponse,
 } from "../../../app/substrate/contracts";
 import type { ParserDiscourse } from "../../../app/substrate/command-parser";
+import type { CanonicalProofGraph } from "../../../app/ava/proof-graph";
+import type { AvaCognitiveActivationReceipt } from "../../../app/ava/request-ir";
 import {
   createAvaNexusSession,
   runAvaNexusLine,
@@ -37,6 +39,8 @@ export const runTerminalLine = (
   session: TerminalSessionState;
   response: SemanticResponse<unknown>;
   text: string;
+  proofGraph: CanonicalProofGraph;
+  cognitiveActivation?: AvaCognitiveActivationReceipt;
 } => {
   const canonicalLine = line.trim().toLowerCase() === "brief" ? "daily brief" : line;
   const result = runAvaNexusLine(canonicalLine, ctx, state, session);
@@ -50,6 +54,8 @@ export const runTerminalLine = (
     },
     response: result.response,
     text: result.text,
+    proofGraph: result.proofGraph,
+    cognitiveActivation: result.cognitiveActivation,
   };
 };
 

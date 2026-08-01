@@ -2,8 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { initialState, restoreCampaignState, type GameState } from "../../../app/game";
-import { createAvaNexusSession, runAvaNexusLine } from "../../../app/ava/nexus";
-import type { PlayerContext } from "../../../app/substrate/contracts";
+import { createAvaNexusSession } from "../../../app/ava/nexus";
 import {
   closeRemoteAudit,
   GatewayRequestError,
@@ -13,6 +12,11 @@ import {
   saveRemoteCampaign,
   type RemoteCampaignEnvelope,
 } from "./remote-store";
+import {
+  executeNativeSshGatewayLine,
+  publicNativeSshGatewayFailure,
+  type NativeSshGatewayFailurePhase,
+} from "./session-core";
 
 const args=new Map<string,string>();
 for(let index=2;index<process.argv.length-1;index+=2)if(process.argv[index]?.startsWith("--"))args.set(process.argv[index]!,process.argv[index+1]!);
@@ -24,11 +28,18 @@ if(!/^[^\s@]+@[^\s@]+$/.test(playerId)||!credentialId){
   process.exit(1);
 }
 
-const config=await readGatewayConfig();
+const abortSession=(error:unknown,phase:NativeSshGatewayFailurePhase):never=>{
+  const failure=publicNativeSshGatewayFailure(error,phase);
+  process.stderr.write(`AVA REMOTE COMMAND REJECTED // ${failure.code}\n${failure.message}\n`);
+  process.exit(1);
+};
+
+const config=await readGatewayConfig().catch(error=>abortSession(error,"CONFIGURATION"));
 const sessionId=randomUUID();
 const connection=process.env.SSH_CONNECTION??"unknown";
 const remoteRiskHash=createHash("sha256").update(connection).digest("hex").slice(0,32);
-await openRemoteAudit(config,{id:sessionId,playerId,credentialId,remoteRiskHash,clientVersion:process.env.SSH_CLIENT?.slice(0,120)});
+await openRemoteAudit(config,{id:sessionId,playerId,credentialId,remoteRiskHash,clientVersion:process.env.SSH_CLIENT?.slice(0,120)})
+  .catch(error=>abortSession(error,"AUDIT"));
 
 const seedFor=(value:string)=>{
   const digest=createHash("sha256").update(value).digest();
@@ -46,50 +57,54 @@ const freshEnvelope=():RemoteCampaignEnvelope=>{
   };
 };
 
-let remote=await loadRemoteCampaign(config,playerId);
+let remote=await loadRemoteCampaign(config,playerId)
+  .catch(error=>abortSession(error,"CAMPAIGN_LOAD"));
 let envelope=remote.campaign??freshEnvelope();
 let state:GameState|null=restoreCampaignState(envelope.state);
 if(!state){
   envelope=freshEnvelope();
   state=restoreCampaignState(envelope.state);
 }
-if(!state)throw new Error("Ava could not initialize the campaign state.");
+if(!state)abortSession(null,"CAMPAIGN_INITIALIZATION");
 if(!remote.campaign){
   try{
     const saved=await saveRemoteCampaign(config,playerId,envelope);
     envelope=saved.campaign??envelope;
   }catch(error){
-    if(!(error instanceof GatewayRequestError)||error.status!==409)throw error;
-    remote=await loadRemoteCampaign(config,playerId);
-    if(!remote.campaign)
-      throw new Error("The concurrent campaign winner could not be reloaded.");
-    envelope=remote.campaign;
+    if(!(error instanceof GatewayRequestError)||error.status!==409)
+      abortSession(error,"CAMPAIGN_INITIALIZATION");
+    remote=await loadRemoteCampaign(config,playerId)
+      .catch(loadError=>abortSession(loadError,"CAMPAIGN_LOAD"));
+    const winnerEnvelope:RemoteCampaignEnvelope=remote.campaign??
+      abortSession(null,"CAMPAIGN_INITIALIZATION");
+    envelope=winnerEnvelope;
     const winner=restoreCampaignState(envelope.state);
     if(!winner)
-      throw new Error("The concurrent campaign winner is invalid.");
+      abortSession(null,"CAMPAIGN_INITIALIZATION");
     state=winner;
   }
 }
+const openedState:GameState=state??
+  abortSession(null,"CAMPAIGN_INITIALIZATION");
 
 const interactive=!(process.env.SSH_ORIGINAL_COMMAND??"").trim();
 let nexusSession=createAvaNexusSession(interactive,"campaign");
 const write=(text:string)=>output.write(text.replace(/\r?\n/g,"\r\n"));
-write(`DELENDA QUEST // AVA REMOTE COMMAND\nCOMMAND IDENTITY: ${playerId}\nDAY ${state.day} // ORDERS ${state.actions}/3\nNo host shell is present. Type HELP, BRIEF, MISSIONS, or WHAT SHOULD I DO.\n\n`);
+write(`DELENDA QUEST // AVA REMOTE COMMAND\nCOMMAND IDENTITY: ${playerId}\nDAY ${openedState.day} // ORDERS ${openedState.actions}/3\nNo host shell is present. Type HELP, BRIEF, MISSIONS, or WHAT SHOULD I DO.\n\n`);
 
 const runLine=async(raw:string)=>{
   const line=raw.trim();
   if(!line)return true;
   if(/^(exit|quit|logout)$/i.test(line))return false;
   const beforeState=state!;
-  const beforeSerialized=JSON.stringify(beforeState);
-  const ctx:PlayerContext={
-    playerId,campaignId:beforeState.campaignId,
-    campaignRevision:`${beforeState.day}:${beforeState.actions}:${beforeState.contentPackVersion}`,
-    surface:"ssh",authority:"command",nowMs:Date.now(),
-  };
-  const result=runAvaNexusLine(line,ctx,beforeState,nexusSession);
-  const changed=JSON.stringify(result.state)!==beforeSerialized;
-  if(changed){
+  const result=executeNativeSshGatewayLine({
+    raw:line,
+    state:beforeState,
+    session:nexusSession,
+    playerId,
+    nowMs:Date.now(),
+  });
+  if(result.changed){
     try{
       const nextEnvelope:RemoteCampaignEnvelope={
         state:result.state,
@@ -116,11 +131,15 @@ const runLine=async(raw:string)=>{
           return true;
         }
       }
-      write(`FIELD NOTE / REJECTION\nREMOTE LEDGER UNAVAILABLE\n${error instanceof Error?error.message:"The command could not be persisted."}\nNo campaign state was changed.\n\n`);
+      const failure=publicNativeSshGatewayFailure(
+        error,
+        "CAMPAIGN_PERSISTENCE",
+      );
+      write(`FIELD NOTE / REJECTION\n${failure.code}\n${failure.message}\nNo campaign state was changed.\n\n`);
       return true;
     }
   }else nexusSession=result.session;
-  write(`${result.text}\n\n`);
+  write(`${result.publicResult.text}\n\n`);
   return true;
 };
 
@@ -138,7 +157,8 @@ try{
   }
 }catch(error){
   exitCode=1;
-  write(`AVA REMOTE COMMAND FAILED\n${error instanceof Error?error.message:"The session terminated unexpectedly."}\n`);
+  const failure=publicNativeSshGatewayFailure(error,"SESSION");
+  write(`AVA REMOTE COMMAND FAILED // ${failure.code}\n${failure.message}\n`);
 }finally{
   await closeRemoteAudit(config,{id:sessionId,commandsRead:nexusSession.commandsRead,consequentialAttempts:nexusSession.consequentialAttempts}).catch(()=>undefined);
 }

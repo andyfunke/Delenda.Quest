@@ -124,6 +124,42 @@ test("OG Ava language compiles through the substrate authority", () => {
   );
 });
 
+test("in-process SSH propagates the cognitive receipt and proof without printing internals", () => {
+  const server = makeServer();
+  const credential = server.store.addKey({
+    id: "k-cognitive",
+    playerId: "cognitive-ava@example.com",
+    label: "cognitive terminal",
+    algorithm: "ssh-ed25519",
+    publicKey: "ssh-ed25519 AAAA cognitive-ava-key",
+  });
+  const opened = server.openSession({
+    playerId: credential.playerId,
+    credentialId: credential.id,
+    interactive: true,
+  });
+  const result = server.handleLine(opened.sessionId, "what should I do");
+
+  assert.equal(result.ok, true);
+  assert.equal(result.cognitiveActivation.runtime, "AVA_COGNITIVE_NEXUS");
+  assert.equal(result.cognitiveActivation.status, "COMPLETED");
+  assert.deepEqual(result.cognitiveActivation.operatorFamilies, [
+    "DECISION",
+    "REALIZATION",
+  ]);
+  assert.match(result.cognitiveActivation.digest, /^[a-f0-9]{64}$/);
+  assert.match(result.proofGraph.digest, /^[a-f0-9]{64}$/);
+  assert.match(result.proofGraph.executionDigest, /^[a-f0-9]{64}$/);
+  assert.ok(
+    result.proofGraph.nodes.some((node) => node.kind === "OPERATOR"),
+    "the SSH adapter discarded the cognitive operator proof",
+  );
+  assert.doesNotMatch(
+    result.text,
+    /AVA_COGNITIVE_NEXUS|executionDigest|proofGraph|domainDigest|fact:/i,
+  );
+});
+
 test("forwarding and sftp denied; mutation kill switch", () => {
   const server = makeServer({ globalMutationsEnabled: false });
   assert.equal(server.requestForwarding("port-forwarding").ok, false);

@@ -69,6 +69,7 @@ import {
 } from "./ava/compiler";
 import { avaEntitiesForState } from "./ava/game-context";
 import { type AvaActionRef } from "./ava/schema";
+import type { AvaCognitiveActivationReceipt } from "./ava/request-ir";
 import type {
   AvaDarkNetContext,
   AvaGlobalProductTelemetry,
@@ -251,6 +252,7 @@ type Message = {
   who: "AVA" | "YOU";
   text: string;
   kind?: "ava" | "shell";
+  cognitiveActivation?: AvaCognitiveActivationReceipt;
 };
 type Page = CommandPage | "admin";
 type Live = ReturnType<typeof liveProjection>;
@@ -5921,6 +5923,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               terminal.response.status==="FORBIDDEN"
             ?"rejected"
             :"executed",
+        terminal.cognitiveActivation,
       );
     setMessages((m) => [
       ...(presentation.clearScreen ? [] : m),
@@ -5930,6 +5933,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               who: "AVA" as const,
               text: terminalText,
               kind: presentation.outputKind ?? "ava",
+              cognitiveActivation: terminal.cognitiveActivation,
             },
           ]
         : []),
@@ -6380,6 +6384,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               <div
                 aria-live={m.who === "AVA" ? "polite" : undefined}
                 className={m.who === "YOU" ? "you" : ""}
+                data-ava-cognitive-runtime={m.cognitiveActivation?.runtime}
+                data-ava-cognitive-status={m.cognitiveActivation?.status}
+                data-ava-cognitive-families={m.cognitiveActivation?.operatorFamilies.join(",")}
                 key={i}
                 role={m.who === "AVA" ? "status" : undefined}
               >

@@ -11,3 +11,5 @@ export * from "./causal-engine";
 export * from "./epistemic-engine";
 export * from "./decision-engine";
 export * from "./planning-engine";
+export * from "./realization-engine";
+export * from "./cognitive-nexus";

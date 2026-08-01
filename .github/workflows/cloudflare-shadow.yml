@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: production-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -35,6 +39,9 @@ jobs:
       - name: Run Ava tests
         run: bash scripts/test-ava.sh
 
+      - name: Run cognitive Nexus and adapter contracts
+        run: bash scripts/test-substrate.sh
+
       - name: Run rendered and plumbing tests
         run: node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs
 
@@ -55,7 +62,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Prove delenda.quest serves the deployed contract
+      - name: Prove delenda.quest serves the compatible production contract
         run: |
           set -euo pipefail
           for attempt in {1..12}; do

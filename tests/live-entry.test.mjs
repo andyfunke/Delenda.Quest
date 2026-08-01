@@ -1,5 +1,19 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
+
+const flatCanonicalDigest = (value) =>
+  createHash("sha256")
+    .update(
+      JSON.stringify(
+        Object.fromEntries(
+          Object.entries(value).sort(([left], [right]) =>
+            left.localeCompare(right),
+          ),
+        ),
+      ),
+    )
+    .digest("hex");
 
 const base = new URL(
   process.env.DELENDA_LIVE_BASE_URL ?? "https://delenda.quest",
@@ -121,4 +135,169 @@ test("live production assets expose 00 Dashboard and contain no Stats implementa
     /storyboard.{0,100}Dashboard.{0,100}00|00.{0,100}Dashboard.{0,100}storyboard/i,
     "00 Dashboard is not exposed in Command Windows navigation",
   );
+  for (const attribute of [
+    "data-ava-cognitive-runtime",
+    "data-ava-cognitive-status",
+    "data-ava-cognitive-families",
+  ])
+    assert.match(
+      artifact,
+      new RegExp(attribute),
+      `${attribute} is absent from the deployed client artifact`,
+    );
+});
+
+test("live OG Ava attests every active engine on real web and terminal-core paths", async () => {
+  const unauthorizedUrl = new URL("/api/ava/activation", base);
+  unauthorizedUrl.searchParams.set("acceptance", cacheBust());
+  const unauthorized = await fetch(unauthorizedUrl, {
+    cache: "no-store",
+    headers: { accept: "application/json" },
+  });
+  assert.equal(
+    unauthorized.status,
+    401,
+    "the activation probe must require a session",
+  );
+
+  const expectedActivation = {
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "89b6bae2d3c4699c7f991ad9118898b484f21f13c5834a340c9e13095181118b" },
+    directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "42572f3e81ee8bc24f6dc1f56d67db97ab7ed752da36441d601cea36690c29e4" },
+    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "0633a250306d7e356eb33af0289c897a4c74c585e4725b43d6dccb0e1c0f4285" },
+    constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "2cb5f76074f68761aa85a3ee07cc4aa09e19fa3cc339e16dace388d3d443d5eb" },
+    planning: { authority: "PLAN_ONLY", families: ["PLANNING", "REALIZATION"], signal: "PLAN_ONLY_CONFIRMATION_READY", textDigest: "37e1f550586f815005d34270244272e7244b6b4df18d40244fa7841721ff51b2" },
+    causal: { authority: "READ_ONLY", families: ["CAUSAL", "REALIZATION"], signal: "OBSERVATIONAL_CAUSAL_DIAGNOSIS", textDigest: "3e07acfeb8c657cc252a8b49449d994237b408cb60aab3fd9b18eca7f2ec6aac" },
+    epistemic: { authority: "READ_ONLY", families: ["EPISTEMIC", "REALIZATION"], signal: "SINGLE_RECORD_EVIDENCE_BOUND", textDigest: "ccd2ba2ee4fc1c3a4680d3a138307c3b3d6be273070d4b6e5a4cb109a31896c6" },
+  };
+  const adapters = ["web", "ssh"];
+  const cases = Object.keys(expectedActivation).flatMap((probe) =>
+    adapters.map((adapter) => ({ adapter, probe })),
+  );
+  const payloads = await Promise.all(
+    cases.map(async ({ adapter, probe }) => {
+      const url = new URL("/api/ava/activation", base);
+      url.searchParams.set("adapter", adapter);
+      url.searchParams.set("probe", probe);
+      url.searchParams.set("acceptance", cacheBust());
+      const response = await fetchNoStore(url);
+      assert.equal(
+        response.status,
+        200,
+        `${adapter}/${probe} activation returned ${response.status}`,
+      );
+      assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
+      return response.json();
+    }),
+  );
+
+  for (const [index, payload] of payloads.entries()) {
+    assert.deepEqual(Object.keys(payload).sort(), [
+      "activation",
+      "contract",
+      "proofIdentity",
+      "resultMarker",
+    ]);
+    assert.deepEqual(Object.keys(payload.contract).sort(), [
+      "adapter",
+      "buildMarker",
+      "id",
+      "probe",
+      "version",
+    ]);
+    assert.equal(payload.contract.id, "delenda-ava-cognitive-activation");
+    assert.equal(payload.contract.version, "5");
+    assert.equal(
+      payload.contract.buildMarker,
+      "ava-cognitive-nexus-attestation-2026-07-31.4",
+      "production is serving a stale activation contract",
+    );
+    assert.equal(
+      payload.contract.adapter,
+      cases[index].adapter === "web" ? "web-core" : "terminal-core",
+    );
+    assert.equal(payload.contract.probe, cases[index].probe);
+    assert.deepEqual(Object.keys(payload.activation).sort(), [
+      "authority",
+      "digest",
+      "domainDigest",
+      "domainId",
+      "domainVersion",
+      "operatorFamilies",
+      "runtime",
+      "status",
+      "version",
+    ]);
+    assert.equal(payload.activation.version, "1");
+    assert.equal(payload.activation.runtime, "AVA_COGNITIVE_NEXUS");
+    assert.equal(payload.activation.status, "COMPLETED");
+    assert.equal(
+      payload.activation.authority,
+      expectedActivation[cases[index].probe].authority,
+    );
+    assert.deepEqual(
+      payload.activation.operatorFamilies,
+      expectedActivation[cases[index].probe].families,
+    );
+    assert.equal(payload.activation.domainId, "delenda-cognitive-domain");
+    assert.equal(payload.activation.domainVersion, "1.2.0");
+    assert.match(payload.activation.domainDigest, /^[a-f0-9]{64}$/);
+    assert.match(payload.activation.digest, /^[a-f0-9]{64}$/);
+    assert.match(payload.proofIdentity, /^[a-f0-9]{64}$/);
+    assert.deepEqual(Object.keys(payload.resultMarker).sort(), [
+      "activationDigest",
+      "digest",
+      "probe",
+      "proofDigest",
+      "signal",
+      "textDigest",
+      "version",
+    ]);
+    assert.equal(payload.resultMarker.version, "1");
+    assert.equal(payload.resultMarker.probe, cases[index].probe);
+    assert.equal(
+      payload.resultMarker.signal,
+      expectedActivation[cases[index].probe].signal,
+    );
+    assert.equal(
+      payload.resultMarker.activationDigest,
+      payload.activation.digest,
+    );
+    assert.equal(payload.resultMarker.proofDigest, payload.proofIdentity);
+    assert.equal(
+      payload.resultMarker.textDigest,
+      expectedActivation[cases[index].probe].textDigest,
+    );
+    const { digest: markerDigest, ...markerBody } = payload.resultMarker;
+    assert.equal(markerDigest, flatCanonicalDigest(markerBody));
+    assert.doesNotMatch(
+      JSON.stringify(payload.resultMarker),
+      /campaignId|playerId|worldRevision|executionDigest|proofGraph|sourceIds|rawInput|fact:/i,
+    );
+  }
+  for (const probe of Object.keys(expectedActivation)) {
+    const paired = payloads.filter(
+      (payload) => payload.contract.probe === probe,
+    );
+    assert.equal(paired.length, 2);
+    assert.equal(
+      new Set(paired.map((payload) => payload.activation.digest)).size,
+      1,
+      `${probe} changed activation identity across web and terminal`,
+    );
+    assert.equal(
+      new Set(paired.map((payload) => payload.proofIdentity)).size,
+      1,
+      `${probe} changed proof identity across web and terminal`,
+    );
+    assert.equal(
+      new Set(paired.map((payload) => payload.resultMarker.digest)).size,
+      1,
+      `${probe} changed result identity across web and terminal`,
+    );
+    assert.equal(
+      new Set(paired.map((payload) => payload.resultMarker.textDigest)).size,
+      1,
+      `${probe} changed rendered engine result across web and terminal`,
+    );
+  }
 });

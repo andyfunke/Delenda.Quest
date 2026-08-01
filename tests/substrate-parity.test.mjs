@@ -5,6 +5,7 @@ const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
 const services = await import(process.env.DELENDA_SUBSTRATE_SERVICES_BUNDLE);
 const terminal = await import(process.env.DELENDA_TERMINAL_CORE_BUNDLE);
 const ava = await import(process.env.DELENDA_SUBSTRATE_AVA_BUNDLE);
+const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
 
 const ctxFor = (state, surface) => ({
   playerId: "parity-player",
@@ -55,4 +56,38 @@ test("prepare through each adapter yields same mechanic and cost semantics", () 
   assert.equal(web.response.fact.orderCost, term.response.fact.orderCost);
   assert.equal(web.state.actions, base.actions);
   assert.equal(term.state.actions, base.actions);
+});
+
+test("terminal core preserves the web cognitive receipt and proof without rendering internals", () => {
+  const state = game.initialState({ seed: 9_191, theater: "lowland" });
+  const webContext = {
+    ...ctxFor(state, "web"),
+    campaignRevision: nexus.avaNexusStateRevision(state),
+    authority: "observer",
+  };
+  const sshContext = { ...webContext, surface: "ssh" };
+  const web = nexus.runAvaNexusLine(
+    "what should I do",
+    webContext,
+    state,
+    nexus.createAvaNexusSession(true, "campaign"),
+  );
+  const ssh = terminal.runTerminalLine(
+    "what should I do",
+    sshContext,
+    state,
+    terminal.createTerminalSession(true),
+  );
+
+  assert.deepEqual(ssh.cognitiveActivation, web.cognitiveActivation);
+  assert.equal(ssh.proofGraph.digest, web.proofGraph.digest);
+  assert.equal(ssh.proofGraph.executionDigest, web.proofGraph.executionDigest);
+  assert.ok(
+    ssh.proofGraph.nodes.some((node) => node.kind === "OPERATOR"),
+    "terminal core discarded the cognitive operator proof",
+  );
+  assert.doesNotMatch(
+    ssh.text,
+    /AVA_COGNITIVE_NEXUS|executionDigest|proofGraph|domainDigest|fact:/i,
+  );
 });
