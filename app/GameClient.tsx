@@ -5424,7 +5424,11 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   ) => {
     if(campaignMutationsHeld.current)return false;
     const claim = await claimTurn();
-    if (!claim?.allowed) {
+    if (!claim) {
+      setDayModal(false);
+      return false;
+    }
+    if (!claim.allowed) {
       const zone = claim?.timeZone ?? accountTimeZone;
       setClock(accountDayBounds(zone, Date.now()));
       setDayModal(false);

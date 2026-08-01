@@ -511,6 +511,7 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(page,/liveStateRef\.current/);
   assert.match(page,/await persistCampaignSnapshotNow\(\)/);
   assert.match(page,/await redeemTurnGrant\(claim\.resolutionGrant!\)/);
+  assert.match(page,/if\s*\(!claim\)\s*\{\s*setDayModal\(false\);\s*return false;\s*\}/);
   assert.match(accountStore,/materializeLegacyTurnGate/);
   assert.match(accountStore,/legacyTurnGateBeforeTimeZoneChange/);
   assert.match(accountStore,/legacyTurnGateForPendingTimeZone/);
