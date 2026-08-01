@@ -763,12 +763,12 @@ export const situationForState = (state:GameState):CompiledSituation => {
 export const OPPORTUNITY_FREQUENCY=1/3;
 /*
  * Random assignments use one sealed three-sided roll per player day. One face
- * opens the assignment, including the opening campaign day.
+ * opens the assignment after the opening campaign day.
  */
 const opportunityRoll=(seed:number,day:number)=>
   1+Math.floor(hash(`${seed}:target-of-opportunity:roll:${day}`)*3);
 export const opportunityOccurs=(seed:number,day:number)=>
-  day>=1&&opportunityRoll(seed,day)===1;
+  day>1&&opportunityRoll(seed,day)===1;
 const opportunitySchedule=(seed:number,throughDay:number)=>{
   const days:number[]=[];
   for(let day=1;day<=throughDay;day+=1)

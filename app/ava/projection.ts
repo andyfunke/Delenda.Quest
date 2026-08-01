@@ -2,6 +2,7 @@ import {
   directorForState,
   maneuverById,
   maneuverChance,
+  opportunityForState,
   projectProduction,
   situationForState,
   type GameState,
@@ -110,29 +111,53 @@ const disclosedAdversaryLedger = (
  * evaluation. Cached visible docket artifacts remain available, but a missing
  * cache can only be regenerated from disclosed assumptions.
  */
-export const projectAvaDisclosedState = (state: GameState): GameState => ({
-  ...state,
-  campaignSeed: avaDisclosedProjectionSeed(state.campaignId),
-  adversary: {
-    force: Math.max(1, state.enemy),
-    readiness: 65,
-    equipment: 65,
-    munitions: 0,
-    munitionsOutput: 0,
-    munitionsUse: 0,
-    doctrine: 0,
-    objective: "Unclassified",
-    posture: "Methodical Pressure",
-    productionTarget: "Unclassified",
-    countermeasure: "Unclassified",
-    maneuverCounts: {},
-    adaptation: {},
-    lastOrders: [],
-    estimateBias: 1,
-  },
-  adversaryLedger: disclosedAdversaryLedger(state),
-  operationalFacts: state.operationalFacts.filter((fact) => fact.visible),
-});
+export const projectAvaDisclosedState = (state: GameState): GameState => {
+  const visibleOpportunity = opportunityForState(state);
+  const opportunityAssignments =
+    visibleOpportunity &&
+    !state.opportunityAssignments.some(
+      (assignment) =>
+        assignment.campaignId === state.campaignId &&
+        assignment.day === state.day,
+    )
+      ? [
+          {
+            campaignId: state.campaignId,
+            day: state.day,
+            opportunityId: visibleOpportunity.id,
+            occurrence: visibleOpportunity.occurrence,
+            status: "opened" as const,
+            openedAt: 0,
+            updatedAt: 0,
+          },
+          ...state.opportunityAssignments,
+        ]
+      : state.opportunityAssignments;
+  return {
+    ...state,
+    opportunityAssignments,
+    campaignSeed: avaDisclosedProjectionSeed(state.campaignId),
+    adversary: {
+      force: Math.max(1, state.enemy),
+      readiness: 65,
+      equipment: 65,
+      munitions: 0,
+      munitionsOutput: 0,
+      munitionsUse: 0,
+      doctrine: 0,
+      objective: "Unclassified",
+      posture: "Methodical Pressure",
+      productionTarget: "Unclassified",
+      countermeasure: "Unclassified",
+      maneuverCounts: {},
+      adaptation: {},
+      lastOrders: [],
+      estimateBias: 1,
+    },
+    adversaryLedger: disclosedAdversaryLedger(state),
+    operationalFacts: state.operationalFacts.filter((fact) => fact.visible),
+  };
+};
 
 const disclosedOperation = (
   state: GameState,

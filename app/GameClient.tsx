@@ -4981,20 +4981,31 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   };
   const issueOpportunity = (responseId: string) => {
     if(rejectMutationDuringTurnClaim())return;
-    const packet =
-      opportunityWindow.status === "active" ? opportunityWindow.packet : null;
-    if (!packet) return;
+    const state=liveStateRef.current;
+    const liveWindow=opportunityStatusForFraction(state,fraction);
+    const packet=liveWindow.status==="active"?liveWindow.packet:null;
+    if(
+      !packet||
+      packet.id!==opportunityWindow.packet?.id
+    ){
+      setSystemNotice(
+        "OPPORTUNITY RESPONSE NOT EXECUTED // THE ACTIVE WINDOW CHANGED // REOPEN THE CURRENT ALERT",
+      );
+      setOpportunityOpen(false);
+      return;
+    }
     const action:AvaActionRef={
       kind:"opportunity-response",
       opportunityId:packet.id,
       responseId,
     };
     const result=runBrowserNexusRequest(
-      executeAvaActionRequest(s,action,{
+      executeAvaActionRequest(state,action,{
         origin:"browser-ui",
-        idempotencyKey:`web:${s.campaignId}:${s.day}:opportunity:${packet.id}:${responseId}`,
+        idempotencyKey:`web:${state.campaignId}:${state.day}:opportunity:${packet.id}:${responseId}`,
       }),
-      s,
+      state,
+      fraction,
     );
     if(result.response.status!=="EXECUTED"){
       setSystemNotice(
@@ -5003,7 +5014,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       return;
     }
     const record = result.state.opportunityHistory.find(
-      (item) => item.day === s.day && item.opportunityId === packet.id,
+      (item) => item.day === state.day && item.opportunityId === packet.id,
     );
     liveStateRef.current=result.state;
     setS(result.state);
@@ -5019,8 +5030,8 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       body: JSON.stringify({
         itemId: packet.id,
         status: record?.outcome ?? "acted",
-        campaignId: s.campaignId,
-        day: s.day,
+        campaignId: state.campaignId,
+        day: state.day,
       }),
       keepalive: true,
     }).catch(() => undefined);

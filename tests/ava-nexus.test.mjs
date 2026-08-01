@@ -182,6 +182,40 @@ test("godmode force-opportunity returns one canonical visible result", () => {
   assert.deepEqual(repeated.state.forcedOpportunityDays,[state.day]);
 });
 
+test("browser-origin opportunity responses execute through the typed Nexus", () => {
+  const opening=game.forceOpportunityForCurrentDay(newState(1731));
+  const packet=game.opportunityStatusForFraction(opening,.5).packet;
+  assert.ok(packet);
+  const response=packet.responses.find((candidate)=>
+    !game.opportunityResponseRejection(opening,candidate)
+  );
+  assert.ok(response,"the forced opportunity needs an executable response");
+  const request={
+    kind:"action",
+    origin:"browser-ui",
+    action:{
+      kind:"opportunity-response",
+      opportunityId:packet.id,
+      responseId:response.id,
+    },
+    mode:"execute",
+    expectedStateSeal:nexus.avaNexusStateRevision(opening),
+    idempotencyKey:`web:${opening.campaignId}:${opening.day}:opportunity:${packet.id}:${response.id}`,
+  };
+  const executed=nexus.runAvaNexusRequest(
+    request,
+    ctxFor(opening),
+    opening,
+    nexus.createAvaNexusSession(),
+    .5,
+  );
+  assert.equal(executed.response.status,"EXECUTED",executed.text);
+  assert.equal(executed.state.actions,opening.actions);
+  assert.equal(executed.state.opportunityHistory.length,1);
+  assert.equal(executed.state.opportunityHistory[0].opportunityId,packet.id);
+  assert.equal(executed.state.opportunityHistory[0].responseId,response.id);
+});
+
 test("strategic posture reaches the evaluator instead of collapsing to default", () => {
   const state = newState();
   const posture = {

@@ -70,6 +70,19 @@ The daily briefing has two read-only realizations:
 Canonical briefing text is never decorated or paraphrased, even while
 storyteller mode is active.
 
+## Target-of-opportunity lifecycle
+
+Organic targets of opportunity use one deterministic face of a three-sided
+daily roll on eligible campaign days. Day 1 is never eligible. A debug override
+may still force the current day, including Day 1, without changing the organic
+schedule.
+
+Once an opportunity is visible, the disclosure projection pins that exact
+packet before replacing the private campaign seed. Browser, Ava, and SSH
+therefore plan and execute against one visible action identity. Responses pass
+through the typed Nexus planning gate, resolve immediately, and spend no
+strategic order.
+
 ## Authenticated debug turnover
 
 `daily unlock on` and `daily unlock off` compile to one typed account-turn

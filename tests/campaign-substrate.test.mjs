@@ -396,18 +396,18 @@ test("the opportunity corpus is unique, full-day, and uses a one-in-three daily 
   for(let day=1;day<=30;day++)if(opportunityForState({...state,day,currentSituation:null}))occurrenceDays.push(day);
   assert.equal(OPPORTUNITY_FREQUENCY,1/3);
 
-  let organic=0,samples=0,openingDayOrganic=0;
+  let organic=0,samples=0;
   for(let seed=1;seed<=4000;seed++){
-    for(let day=1;day<=30;day++){
+    assert.equal(opportunityOccurs(seed,1),false,`seed ${seed} opened on Day 1`);
+    for(let day=2;day<=30;day++){
       const occurs=opportunityOccurs(seed,day);
       organic+=Number(occurs);
       samples+=1;
-      if(day===1)openingDayOrganic+=Number(occurs);
     }
   }
   const observed=organic/samples;
   assert.ok(observed>.325&&observed<.342,`observed organic rate ${observed}`);
-  assert.ok(openingDayOrganic>1200&&openingDayOrganic<1470,`opening-day events ${openingDayOrganic}`);
+  assert.equal(opportunityForState(state),null,"a new campaign cannot open with an organic opportunity");
 });
 
 test("the godmode override opens a visible current-day opportunity without duplicating it",()=>{
