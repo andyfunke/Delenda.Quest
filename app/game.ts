@@ -18,7 +18,11 @@ import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-
 import { compileAllDailyDockets } from "./substrate/docket";
 import type { DocketRecord } from "./substrate/contracts";
 
-export { CAMPAIGN_SEED_NAME_COUNT, campaignSeedId } from "./campaign-id";
+export {
+  CAMPAIGN_SEED_NAME_COUNT,
+  campaignSeedId,
+  isCampaignIdentifier,
+} from "./campaign-id";
 
 export type Module = "campaign" | "national" | "military" | "diplomacy" | "doctrine" | "account" | "wiki";
 export type Resource = "munitions" | "armor" | "flight" | "drones";

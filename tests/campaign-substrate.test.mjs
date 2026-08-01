@@ -6,7 +6,7 @@ const {
   ADVANTAGE_PATH_SURFACE, BLUEPRINT_RULES, CAMPAIGN_EVENTS, CAMPAIGN_FINISH_DISTRIBUTION, CAMPAIGN_SEED_NAME_COUNT, CONTENT_PACK_VERSION, DOCTRINES, FACT_CATALOG, LOSS_PATH_SURFACE, MANEUVERS, NO_ACTION_DAILY_FRONT_LOSS, OPPORTUNITY_FREQUENCY, OPPORTUNITY_TEMPLATES, SITUATIONS, TERMINAL_RESOLUTION_DAY,
   THEATERS, activeDiplomacyForState, auditCampaignSubstrate, commit, commitManeuver,
   commitOpportunity, describeGroundMovement, initialState, opportunityForState, opportunityOccurs, opportunityStatusForFraction,
-  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, forceOpportunityForCurrentDay, maneuverChance, maneuversForState, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
+  calculateCampaignScore, campaignBalanceProfile, campaignSeedId, directiveRejection, earlyVictoryAcceleration, estimateDay, eventForState, finishByDayProbability, forceOpportunityForCurrentDay, isCampaignIdentifier, maneuverChance, maneuversForState, outcomeBandForMargin, phaseForDay, projectAdversary, projectDiplomacy, projectOperationRange, projectOperations, projectProduction, recordOpportunityExpired, recordOpportunityOpened, regulatedPathwayForState, resolve, restoreCampaignState, situationForState, FAMILIES,
 }=rules;
 
 test("content pack is complete and internally referential",()=>{
@@ -23,6 +23,8 @@ test("campaign seeds use a broad proper-name register instead of alias grammar",
   assert.equal(ids.size,80);
   for(const id of ids)assert.match(id,/^#WAR-[A-Z]+-[0-9]{4}$/);
   assert.match(campaignSeedId(6682),/^#WAR-(?:POSEIDON|HERMES|HERMAPHRODITUS|[A-Z]+)-[0-9]{4}$/);
+  assert.equal(isCampaignIdentifier(campaignSeedId(6682)),true);
+  assert.equal(isCampaignIdentifier("campaign id with spaces"),false);
 });
 
 test("Main campaign exposes hundreds of eligible situation-sector bindings",()=>{

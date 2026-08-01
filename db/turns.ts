@@ -10,6 +10,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { AuthenticatedUser } from "../app/auth";
+import { isCampaignIdentifier } from "../app/campaign-id";
 import {
   accountDayBounds,
   accountDayKey,
@@ -95,8 +96,7 @@ const resolutionTarget = (input: {
   expectedStateSeal?:unknown;
 }) => {
   const campaignId =
-    typeof input.campaignId === "string" &&
-    /^[a-zA-Z0-9._:-]{1,100}$/.test(input.campaignId)
+    isCampaignIdentifier(input.campaignId)
       ? input.campaignId
       : "";
   const campaignDay = Number(input.campaignDay);

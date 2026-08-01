@@ -122,4 +122,7 @@ export const campaignSeedId = (seed: number) => {
   return `#WAR-${name}-${String(checksum).padStart(4, "0")}`;
 };
 
+export const isCampaignIdentifier = (value: unknown): value is string =>
+  typeof value === "string" && /^[#a-zA-Z0-9._:-]{1,100}$/.test(value);
+
 export const CAMPAIGN_SEED_NAME_COUNT = CAMPAIGN_NAMES.length;
