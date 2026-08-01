@@ -455,6 +455,11 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
   assert.doesNotMatch(briefing,/COMMAND CHANNEL/);
   assert.match(css,/@keyframes ava-alt-attention/);
   assert.match(css,/@keyframes ava-main-attention/);
+  assert.match(page,/className={`ava ava-\$\{interfaceMode\}/);
+  assert.match(css,/\.ava\.ava-briefing\s*\{[^}]*border-color:\s*var\(--b-cyan\)/s);
+  assert.match(css,/\.ava\.ava-command\s*\{[^}]*border-color:\s*var\(--acid\)/s);
+  assert.match(page,/className="classic-resolve-day"[\s\S]{0,160}disabled=\{!canResolveDay\}[\s\S]{0,160}onClick=\{\(\) => setDayModal\(true\)\}/);
+  assert.match(css,/\.day > \.classic-resolve-day\s*\{[^}]*background:\s*var\(--acid\)/s);
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{

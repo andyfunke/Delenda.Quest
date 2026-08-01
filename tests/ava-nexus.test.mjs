@@ -112,9 +112,13 @@ test("open-ended Ava requests narrate one module while concise commands remain u
 test("daily briefing can return canonical authored text or Ava's deterministic paraphrase",()=>{
   const state=newState(1729);
   const exact=run("daily briefing",state);
+  const authoredParagraphs=state.reports[0].body.split(/\n{2,}/).map(item=>item.trim()).filter(Boolean);
+  assert.ok(authoredParagraphs.length>=2,"the test campaign must expose the complete authored daily brief");
   assert.equal(exact.envelope.instructionKind,"REPORT");
   assert.match(exact.text,new RegExp(state.currentSituation.headline.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   assert.match(exact.text,new RegExp(state.currentSituation.briefing.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.match(exact.text,new RegExp(authoredParagraphs[1].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.ok(exact.text.indexOf(authoredParagraphs[0])<exact.text.indexOf(authoredParagraphs[1]));
   assert.match(exact.text,/DECLARANT OPTIONS[\s\S]*\[M1\][\s\S]*\[M2\][\s\S]*\[M3\]/);
   assert.doesNotMatch(exact.text,/THEATER\n|COMMANDER'S VIEW/);
 
@@ -709,6 +713,44 @@ test("unknown diplomacy actors clarify instead of defaulting to another actor", 
   );
 });
 
+test("displayed directive dockets own conversational and ordinal follow-ups", () => {
+  const state = newState(704);
+  const opened = run("production", state);
+  assert.equal(opened.response.status, "OK", opened.text);
+  const first = opened.response.fact.choices[0];
+  assert.deepEqual(
+    opened.session.terminal.discourse.directiveContext.entityIds,
+    opened.response.fact.choices.map(
+      (choice) => `directive:${choice.familyId}:${choice.choiceId}`,
+    ),
+  );
+
+  const details = run("more on production 1", opened.state, opened.session);
+  assert.equal(details.response.status, "OK", details.text);
+  assert.match(details.text, new RegExp(first.title, "i"));
+
+  const advice = run("advise 1", details.state, details.session);
+  assert.equal(advice.response.status, "OK", advice.text);
+  assert.equal(advice.response.fact.targetChoiceId, first.choiceId);
+  assert.match(advice.text, new RegExp(first.title, "i"));
+  assert.match(advice.text, /ranks? \d+ of \d+|strongest current production choice/i);
+  assert.equal(advice.session.currentModule, "national");
+});
+
+test("good-faith diplomacy wrappers bind later advice to the displayed actor", () => {
+  const state = newState(705);
+  const opened = run("anything useful in diplomacy", state);
+  assert.equal(opened.response.status, "OK", opened.text);
+  assert.equal(opened.session.currentModule, "diplomacy");
+  assert.equal(
+    opened.session.terminal.discourse.directiveContext.actorId,
+    state.actors[0].id,
+  );
+  const advice = run("advise diplomacy", opened.state, opened.session);
+  assert.equal(advice.response.status, "OK", advice.text);
+  assert.equal(advice.envelope.semantic.directive.actorId, state.actors[0].id);
+});
+
 test("typed action idempotency replays the original receipt and rejects key conflicts", () => {
   const state = newState(700);
   const maneuvers = state.currentSituation.maneuvers;
@@ -915,6 +957,40 @@ test("day resolution requires persisted server redemption and consumes its ident
     replay.response.recovery?.code,
     "DAY_RESOLUTION_GRANT_CONSUMED",
   );
+});
+
+test("distinct persisted godmode grants can advance two campaign days", () => {
+  let state = newState(944);
+  const openingDay = state.day;
+  for (let index = 0; index < 2; index += 1) {
+    const grant = {
+      grantId: `godmode-grant-${index + 1}`,
+      campaignId: state.campaignId,
+      campaignDay: state.day,
+      accountDayKey: "2026-08-01",
+    };
+    const result = nexus.runAvaNexusRequest(
+      {
+        kind: "action",
+        origin: "internal",
+        action: { kind: "resolve-day" },
+        mode: "execute",
+        idempotencyKey: `godmode-resolution-${index + 1}`,
+        expectedStateSeal: nexus.avaNexusStateRevision(state),
+        resolutionGrant: grant,
+      },
+      ctxFor(state, "command", "internal"),
+      state,
+      nexus.createAvaNexusSession(),
+      0,
+      {},
+      { resolutionAuthority: "persisted-redemption" },
+    );
+    assert.equal(result.response.status, "EXECUTED", result.text);
+    assert.equal(result.state.day, openingDay + index + 1);
+    state = result.state;
+  }
+  assert.equal(state.day, openingDay + 2);
 });
 
 test("SSH mutation kill switch is Nexus authority, not a lexical alias list", () => {

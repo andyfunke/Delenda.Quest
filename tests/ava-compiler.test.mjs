@@ -47,6 +47,71 @@ test("daily unlock aliases compile to the existing account turn gate",()=>{
     normalizedInput:"daily unlock off",
   });
   assert.equal(mod.compileAvaTurnModeIntent("daily unlock maybe"),null);
+  for(const phrase of [
+    "godmode on",
+    "god mode on",
+    "enable god mode",
+    "turn godmode on",
+  ])assert.equal(mod.compileAvaTurnModeIntent(phrase)?.enabled,true,phrase);
+  for(const phrase of [
+    "godmode off",
+    "god mode off",
+    "disable god mode",
+    "turn godmode off",
+  ])assert.equal(mod.compileAvaTurnModeIntent(phrase)?.enabled,false,phrase);
+});
+
+test("module wrappers bind ordinal follow-ups to the last visible docket",()=>{
+  const productionChoices=[
+    {id:"directive:air:contest",kind:"directive",label:"Contest the Air",action:{kind:"directive",familyId:"air",choiceId:"contest"}},
+    {id:"directive:salvage:organize",kind:"directive",label:"Organize Battlefield Salvage",action:{kind:"directive",familyId:"salvage",choiceId:"organize"}},
+    {id:"directive:horizon:automate",kind:"directive",label:"Automate the Horizon",action:{kind:"directive",familyId:"horizon",choiceId:"automate"}},
+  ];
+  const docketContext={
+    ...context,
+    currentModule:"national",
+    entities:[...entities,...productionChoices],
+    discourse:{
+      lastEntities:productionChoices.map(item=>item.id),
+      lastScope:[],
+      suppressedAdviceScopes:[],
+      realizationHistory:[],
+      directiveContext:{
+        channel:"production",
+        entityIds:productionChoices.map(item=>item.id),
+      },
+    },
+  };
+  for(const phrase of ["production 1","more on production 1"]){
+    const result=mod.compileAvaCommand(phrase,docketContext);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.instruction.kind,"EXPLAIN",phrase);
+    assert.equal(result.instruction.entity.id,productionChoices[0].id,phrase);
+  }
+  const advice=mod.compileAvaCommand("advise 1",docketContext);
+  assert.equal(advice.status,"compiled");
+  assert.equal(advice.instruction.kind,"SEMANTIC");
+  assert.equal(advice.semantic.subject.type,"DIRECTIVE");
+  assert.equal(advice.semantic.directive.channel,"production");
+  assert.ok(advice.semantic.subject.entityIds.includes(productionChoices[0].id));
+
+  const inherited=mod.compileAvaCommand("advise",docketContext);
+  assert.equal(inherited.status,"compiled");
+  assert.equal(inherited.semantic.subject.type,"DIRECTIVE");
+  assert.equal(inherited.semantic.directive.channel,"production");
+
+  for(const phrase of [
+    "anything useful in diplomacy",
+    "anything in production",
+    "anything in campaign",
+    "anything in domestic",
+    "anything in network",
+    "anything in doctrine",
+  ]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.instruction.kind,"LIST",phrase);
+  }
 });
 
 test("Ava chat export phrases compile to one enumerated instruction",()=>{

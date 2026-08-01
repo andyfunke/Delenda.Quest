@@ -395,6 +395,11 @@ const docketText = (fact: DocketFact) => {
   ].join("\n\n");
 };
 
+const directiveEntityIdsForDocket = (fact: DocketFact) =>
+  fact.choices.map(
+    (choice) => `directive:${choice.familyId}:${choice.choiceId}`,
+  );
+
 const directiveEntityForInstruction = (
   instruction: AvaInstruction,
   session: AvaKernelSession,
@@ -1041,20 +1046,48 @@ const directiveJudgment = (
   for (const choice of docket.response.fact.choices)
     labelByChoice.set(choice.choiceId, choice.title);
   const legalRows = rows.filter((row) => row.legal);
-  const judgment = legalRows.length
-    ? rows
-        .map(
-          (row, index) =>
-            `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}${row.legal ? "" : " · UNAVAILABLE"}`,
-        )
-        .join("\n")
-    : "No legal choice is visible in this channel.";
+  const targetedChoice = docket.response.fact.choices.find((choice) =>
+    query.subject.entityIds.includes(
+      `directive:${choice.familyId}:${choice.choiceId}`,
+    ),
+  );
+  const targetedRow = targetedChoice
+    ? rows.find((row) => row.choiceId === targetedChoice.choiceId)
+    : undefined;
+  const targetedRank = targetedRow
+    ? rows.findIndex((row) => row.choiceId === targetedRow.choiceId) + 1
+    : 0;
+  const strongest = legalRows[0];
+  const judgment = targetedChoice && targetedRow
+    ? [
+        `[${docket.response.fact.choices.findIndex((choice) => choice.choiceId === targetedChoice.choiceId) + 1}] ${targetedChoice.title.toUpperCase()} · ${targetedRow.legal ? "AVAILABLE" : "UNAVAILABLE"}`,
+        targetedChoice.brief,
+        `ASSESSMENT\n${targetedRow.legal
+          ? targetedRank === 1
+            ? `This is the strongest current ${binding.channel} choice under the compiled ${cognitiveGuidance.decision.modelId} model. Score ${targetedRow.score}.`
+            : `This ranks ${targetedRank} of ${rows.length} under the compiled ${cognitiveGuidance.decision.modelId} model. ${(labelByChoice.get(strongest?.choiceId ?? "") ?? strongest?.choiceId ?? "No legal alternative").toUpperCase()} ranks first.`
+          : `This choice is not currently executable: ${targetedRow.disqualifiers.join(", ") || "the visible gate is closed"}.`}`,
+        `KNOWN EFFECTS\n${[
+          ...targetedRow.knownBenefits,
+          ...targetedRow.knownCosts,
+        ].map((fact) => fact.claim).join("\n") || "No additional exact effect is disclosed."}`,
+        `RISK\n${targetedRow.knownRisks.map((fact) => fact.claim).join("\n") || "No authored contingent risk is attached."}`,
+      ].join("\n\n")
+    : legalRows.length
+      ? rows
+          .map(
+            (row, index) =>
+              `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}${row.legal ? "" : " · UNAVAILABLE"}`,
+          )
+          .join("\n")
+      : "No legal choice is visible in this channel.";
   const response: SemanticResponse<unknown> = {
     ...docket.response,
     fact: {
       channel: binding.channel,
       actorId,
       ranked: rows,
+      targetChoiceId: targetedChoice?.choiceId,
       posture: artifact.posture,
     },
     rendering: {
@@ -1064,7 +1097,7 @@ const directiveJudgment = (
   };
   const text = voiceAvaResponse(
     docket.state,
-    `JUDGMENT / ${binding.channel.toUpperCase()}\n${judgment}\n\nThe compiled ${cognitiveGuidance.decision.modelId} model owns this ranking against the supplied strategic posture. No order was prepared or issued.`,
+    `JUDGMENT / ${binding.channel.toUpperCase()}\n${judgment}\n\nThe compiled ${cognitiveGuidance.decision.modelId} model owns this ${targetedChoice ? "judgment" : "ranking"} against the supplied strategic posture. No order was prepared or issued.`,
     {
       topic: binding.channel,
       label: "JUDGMENT",
@@ -1893,7 +1926,7 @@ const executeInstructionRequest = (
           : undefined;
       if (
         channel === "diplomacy" &&
-        request.rawInput.trim().split(/\s+/).length > 1 &&
+        /^(?:diplomacy|diplo)\s+\S+/i.test(request.rawInput.trim()) &&
         !explicitActor
       )
         return responseFailure(
@@ -1923,6 +1956,22 @@ const executeInstructionRequest = (
           currentModule: moduleForChannel(channel),
           terminal: {
             ...session.terminal,
+            discourse: {
+              ...session.terminal.discourse,
+              currentScreen: moduleForChannel(channel),
+              lastSubject: "DIRECTIVE",
+              lastEntities: directiveEntityIdsForDocket(
+                docket.response.fact,
+              ),
+              lastScope: [],
+              directiveContext: {
+                channel,
+                actorId,
+                entityIds: directiveEntityIdsForDocket(
+                  docket.response.fact,
+                ),
+              },
+            },
             lastText: text,
             voiceCursor: session.terminal.voiceCursor + 1,
           },

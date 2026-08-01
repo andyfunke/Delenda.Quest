@@ -127,13 +127,29 @@ export const initialAvaTerminalSession = (): AvaTerminalSession => ({
   voiceCursor: 0,
 });
 
+export const resetAvaDiscourseForNewDay = (
+  discourse: AvaDiscourseState,
+): AvaDiscourseState => ({
+  ...discourse,
+  lastSubject: undefined,
+  lastEntities: [],
+  lastRecommended: undefined,
+  lastScope: [],
+  selectedObject: undefined,
+  unresolvedAmbiguity: undefined,
+  directiveContext: undefined,
+});
+
 const resetIssuedPlan = (
   session: AvaTerminalSession,
+  newCampaignDay = false,
 ): AvaTerminalSession => ({
   ...initialAvaTerminalSession(),
   detail: session.detail,
   shell: session.shell,
-  discourse: session.discourse,
+  discourse: newCampaignDay
+    ? resetAvaDiscourseForNewDay(session.discourse)
+    : session.discourse,
   voiceCursor: session.voiceCursor,
 });
 
@@ -213,6 +229,10 @@ const scopeActions = (actions: AvaActionDescriptor[], scope?: string) => {
     );
   if (scope === "doctrine")
     return actions.filter((item) => item.kind === "doctrine-stage");
+  if (scope === "campaign")
+    return actions.filter((item) => item.kind === "maneuver");
+  if (scope === "domestic" || scope === "network")
+    return actions.filter((item) => item.domain === scope);
   if (scope === "opportunities")
     return actions.filter((item) => item.kind === "opportunity-response");
   if (scope === "directives")
@@ -1015,9 +1035,28 @@ function executeAvaInstruction(
       enumerateAvaActions(state, opportunityFraction),
       instruction.scope,
     );
+    const currentScreen =
+      instruction.scope === "production"
+        ? "national"
+        : instruction.scope === "military" ||
+            instruction.scope === "diplomacy" ||
+            instruction.scope === "doctrine" ||
+            instruction.scope === "campaign"
+          ? instruction.scope
+          : session.discourse.currentScreen;
     return finalize(
       state,
-      session,
+      {
+        ...session,
+        discourse: {
+          ...session.discourse,
+          currentScreen,
+          lastSubject: "CAMPAIGN_CHOICE",
+          lastEntities: actions.map((action) => action.id),
+          lastScope: [],
+          directiveContext: undefined,
+        },
+      },
       withHeader(
         state,
         `${instruction.scope.toUpperCase()}: ${actions.length} CURRENT ACTIONS\n\n${listed(actions) || "No action in this scope is present in the current docket."}\n\nGRAMMAR\n> forecast <handle>\n> stage <handle>\n> explain <handle>`,
@@ -1509,7 +1548,10 @@ function executeAvaInstruction(
         withHeader(state, `CONFIRM REJECTED: ${result.rejection}`),
         { rejection: result.rejection },
       );
-    const next = resetIssuedPlan(session);
+    const next = resetIssuedPlan(
+      session,
+      confirmation.purpose === "resolve-day",
+    );
     return finalize(
       result.state,
       next,

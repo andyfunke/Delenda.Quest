@@ -54,10 +54,27 @@ export const summarizeCampaignSituation = (state: GameState, variant = 0) => {
 export const canonicalDailyBriefing = (state: GameState) => {
   const situation = situationForState(state);
   const maneuvers = maneuversForState(state);
+  const morningReport = state.reports.find((report) => report.day === state.day);
+  const morningParagraphs = (morningReport?.body ?? "")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  const reportOpensWithCurrentSituation =
+    morningParagraphs[0] === situation.briefing.trim();
+  const authoredBrief = reportOpensWithCurrentSituation
+    ? morningParagraphs.join("\n\n")
+    : [
+        situation.briefing,
+        ...(morningReport && morningParagraphs.length
+          ? [
+              `MORNING REPORT / ${morningReport.title}\n${morningParagraphs.join("\n\n")}`,
+            ]
+          : []),
+      ].join("\n\n");
   return [
     `DAILY BRIEFING / DAY ${state.day}`,
     situation.headline,
-    situation.briefing,
+    authoredBrief,
     `COMMAND QUESTION\n${situation.question}`,
     `DECLARANT OPTIONS\n${maneuvers
       .map(

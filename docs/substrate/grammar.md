@@ -64,7 +64,7 @@ The daily briefing has two read-only realizations:
 
 | Surface | Realization |
 |---|---|
-| `daily briefing` | Exact authored headline, briefing, command question, and maneuver flavor |
+| `daily briefing` | Exact authored headline, complete multi-paragraph morning dispatch, command question, and maneuver flavor |
 | `brief me` / `summarize the daily briefing` | Deterministic Ava paraphrase with a route back to the exact text |
 
 Canonical briefing text is never decorated or paraphrased, even while
@@ -88,6 +88,17 @@ strategic order.
 `daily unlock on` and `daily unlock off` compile to one typed account-turn
 intent. The authenticated turn service persists the setting. It is deliberately
 not campaign state and does not create a second day-resolution implementation.
+`godmode on/off`, `god mode on/off`, and `enable/disable god mode` are exact
+aliases over that same account-turn intent.
+
+## Module discourse and ordinal wrappers
+
+When Ava displays a Production, Military, or actor-bound Diplomacy docket, she
+stores the visible ordered entity identities in session discourse. Conversational
+module wrappers such as `anything useful in production` reopen the canonical
+docket. Follow-ups such as `production 1`, `more on production 1`, and `advise
+1` resolve against the last displayed docket, never against catalog order.
+Daily rotation replaces the binding when the next docket is displayed.
 
 ## Good-faith player needs
 

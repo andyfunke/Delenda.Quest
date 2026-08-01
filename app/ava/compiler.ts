@@ -13,6 +13,7 @@ import {
   genericSemanticQuery,
   normalizeSemanticInput,
   parseAvaShellInput,
+  resolveOrdinalDocketReference,
   type SemanticCompilation,
 } from "./grammar";
 export {
@@ -436,10 +437,14 @@ export const compileAvaTurnModeIntent = (
       vocabulary: "daily-unlock",
       normalizedInput: input,
     };
-  if (input === "enable godmode" || input === "disable godmode")
+  if (
+    /^(?:enable|disable) god ?mode$/.test(input) ||
+    /^god ?mode (?:on|off)$/.test(input) ||
+    /^turn god ?mode (?:on|off)$/.test(input)
+  )
     return {
       kind: "set-daily-unlock",
-      enabled: input === "enable godmode",
+      enabled: /(?:enable god ?mode|god ?mode on|turn god ?mode on)$/.test(input),
       vocabulary: "godmode",
       normalizedInput: input,
     };
@@ -977,6 +982,15 @@ function compileLegacyCommand(
   if (/^(repeat|say that again)$/.test(input))
     return compiled(input, "repeat", { kind: "REPEAT" });
 
+  const docketReference = resolveOrdinalDocketReference(input, context);
+  if (docketReference && docketReference.request !== "advise" && docketReference.request !== "recommend")
+    return compiled(
+      input,
+      "inspect-docket-ordinal",
+      { kind: "EXPLAIN", entity: docketReference.entity, facet: "meaning" },
+      [docketReference.entity],
+    );
+
   if (
     /^(orders?|orders available|available orders|what are (my|the) orders|what orders (do i have|remain))$/.test(
       input,
@@ -1001,6 +1015,14 @@ function compileLegacyCommand(
           : listScope === "opportunity"
             ? "opportunities"
             : listScope,
+    });
+  const conversationalListScope = input.match(
+    /^(?:is there )?anything(?: useful)? (?:in|on|under|for) (campaign|main|domestic|network|production|military|diplomacy|doctrine)$/,
+  )?.[1];
+  if (conversationalListScope)
+    return compiled(input, "list-scope-conversational", {
+      kind: "LIST",
+      scope: conversationalListScope === "main" ? "campaign" : conversationalListScope,
     });
   if (
     /^(status update|update|update me|situation update|give me an update|catch me up|status|command status|how are we doing|where do we stand|command situation)$/.test(

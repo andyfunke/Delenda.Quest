@@ -1364,7 +1364,7 @@ main {
   }
   .day {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr repeat(2, auto);
     order: 2;
     width: 100%;
   }
@@ -4614,15 +4614,15 @@ body {
 .day > .command-ux-toggle:hover {
   color: var(--acid) !important;
 }
-.strip .strip-tools .strip-resolve {
-  color: #24251f;
-  font-weight: 900;
-  text-decoration: none;
+.day > .classic-resolve-day {
+  background: var(--acid);
+  color: var(--ink) !important;
+  min-width: 142px;
 }
-.strip .strip-tools .strip-resolve:disabled {
-  color: #777970;
+.day > .classic-resolve-day:disabled {
+  background: #494b44;
+  color: #888 !important;
   cursor: not-allowed;
-  text-decoration: line-through;
 }
 .command-account-menu {
   position: relative;
@@ -13180,6 +13180,24 @@ small,
   margin: 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+/* Ava inherits the active interface's identity color without changing the
+   semantic colors used for warnings, gains, or recommendation blocks. */
+.ava.ava-briefing {
+  border-color: var(--b-cyan);
+}
+.ava.ava-briefing header > div > span,
+.ava.ava-briefing form button {
+  background: var(--b-cyan);
+}
+.ava.ava-briefing .messages > div:not(.you) > span,
+.ava.ava-briefing form label,
+.ava.ava-briefing form > div > span {
+  color: var(--b-cyan);
+}
+.ava.ava-command {
+  border-color: var(--acid);
 }
 
 @media (max-width: 700px) {

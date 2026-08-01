@@ -179,6 +179,11 @@ export type AvaDiscourseState = {
   previousCorrection?: string;
   suppressedAdviceScopes: AvaScopeDomain[];
   realizationHistory: string[];
+  directiveContext?: {
+    channel: "production" | "military" | "diplomacy";
+    actorId?: string;
+    entityIds: string[];
+  };
 };
 
 export type AvaAnswerPlan = {

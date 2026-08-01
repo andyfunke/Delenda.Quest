@@ -82,6 +82,7 @@ import {
 } from "./ava/runtime";
 import {
   initialAvaTerminalSession,
+  resetAvaDiscourseForNewDay,
 } from "./ava/terminal";
 import {
   avaNexusStateRevision,
@@ -5447,7 +5448,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         terminal:{
           ...initialAvaTerminalSession(),
           shell:liveAvaSessionRef.current.terminal.shell,
-          discourse:liveAvaSessionRef.current.terminal.discourse,
+          discourse:resetAvaDiscourseForNewDay(
+            liveAvaSessionRef.current.terminal.discourse,
+          ),
           voiceCursor:liveAvaSessionRef.current.terminal.voiceCursor,
         },
       };
@@ -5748,7 +5751,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           terminal:{
             ...initialAvaTerminalSession(),
             shell:currentNexusSession.terminal.shell,
-            discourse:currentNexusSession.terminal.discourse,
+            discourse:resetAvaDiscourseForNewDay(
+              currentNexusSession.terminal.discourse,
+            ),
             voiceCursor:currentNexusSession.terminal.voiceCursor,
           },
         };
@@ -6128,6 +6133,14 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                 </b>
               </div>
               <button
+                aria-label={`Resolve Day ${s.day}`}
+                className="classic-resolve-day"
+                disabled={!canResolveDay}
+                onClick={() => setDayModal(true)}
+              >
+                RESOLVE DAY {s.day} →
+              </button>
+              <button
                 aria-label="Switch to Alt UX"
                 className="command-ux-toggle"
                 onClick={() => switchInterface("briefing")}
@@ -6154,13 +6167,6 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               </button>
             )}
             <div className="strip-tools">
-              <button
-                className="strip-resolve"
-                disabled={!canResolveDay}
-                onClick={() => setDayModal(true)}
-              >
-                RESOLVE DAY {s.day} →
-              </button>
               <button
                 onClick={() => {
                   setAva(true);
@@ -6364,7 +6370,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       )}
       {ava && (
         <aside
-          className={`ava ${avaFullscreen ? "terminal-full" : ""}`}
+          className={`ava ava-${interfaceMode} ${avaFullscreen ? "terminal-full" : ""}`}
           data-telemetry-surface="ava"
         >
           <header>

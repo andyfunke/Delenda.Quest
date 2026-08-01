@@ -315,6 +315,73 @@ export const normalizeSemanticInput = (raw: string) => {
   };
 };
 
+const ordinalValueForToken = (token: string) => {
+  if (/^\d+$/.test(token)) return Number(token);
+  if (token === "first" || token === "1st") return 1;
+  if (token === "second" || token === "2nd") return 2;
+  if (token === "third" || token === "3rd") return 3;
+  return null;
+};
+
+export const resolveOrdinalDocketReference = (
+  input: string,
+  context: AvaCompilerContext,
+) => {
+  const match = input.match(
+    /^(?:(advise|recommend|more on|tell me about|show me|explain|inspect|what about)\s+)?(?:(campaign|main|domestic|network|production|prod|military|mil|diplomacy|diplo|doctrine)\s+)?(?:option |choice |item )?(\d+|first|1st|second|2nd|third|3rd)$/,
+  );
+  if (!match) return null;
+  const ordinal = ordinalValueForToken(match[3]);
+  if (!ordinal || ordinal < 1) return null;
+  const explicitScope = match[2];
+  const explicitChannel = explicitScope
+    ? match[2].startsWith("prod")
+      ? "production"
+      : match[2].startsWith("mil")
+        ? "military"
+        : match[2].startsWith("diplo")
+          ? "diplomacy"
+          : undefined
+    : undefined;
+  const directiveContext = context.discourse?.directiveContext;
+  if (
+    explicitChannel &&
+    (!directiveContext || directiveContext.channel !== explicitChannel)
+  )
+    return null;
+  const inExplicitScope = (entity: AvaEntity) => {
+    if (!explicitScope) return true;
+    if (explicitChannel)
+      return entity.kind === "directive";
+    if (explicitScope === "campaign" || explicitScope === "main")
+      return entity.kind === "maneuver";
+    if (explicitScope === "domestic" || explicitScope === "network")
+      return (
+        entity.action?.kind === "sub-mission" &&
+        entity.action.domain === explicitScope
+      );
+    if (explicitScope === "doctrine")
+      return entity.kind === "doctrine-stage";
+    return true;
+  };
+  const sourceIds = directiveContext?.entityIds.length && explicitChannel
+    ? directiveContext.entityIds
+    : context.discourse?.lastEntities ?? [];
+  const ids = sourceIds.filter((id) => {
+    const entity = context.entities.find((candidate) => candidate.id === id);
+    return !!entity && inExplicitScope(entity);
+  });
+  const entityId = ids[ordinal - 1];
+  const entity = context.entities.find((candidate) => candidate.id === entityId);
+  if (!entity?.action) return null;
+  return {
+    entity,
+    ordinal,
+    request: match[1] ?? "inspect",
+    directive: entity.kind === "directive" ? directiveContext : undefined,
+  };
+};
+
 const adviceVerbs = [
   "advise me on",
   "give me advice on",
@@ -917,7 +984,18 @@ const directiveFor = (
     NonNullable<AvaSemanticQuery["directive"]>["channel"]
   >;
   const uniqueChannels = [...new Set(channels)];
-  if (!uniqueChannels.length) return { subjectEntityIds: [] };
+  const inherited = context.discourse?.directiveContext;
+  if (!uniqueChannels.length) {
+    if (inherited)
+      return {
+        directive: {
+          channel: inherited.channel,
+          actorId: inherited.actorId,
+        },
+        subjectEntityIds: [],
+      };
+    return { subjectEntityIds: [] };
+  }
   if (uniqueChannels.length > 1)
     return {
       subjectEntityIds: [],
@@ -942,6 +1020,18 @@ const directiveFor = (
         .filter(Boolean)
         .some((value) => semanticContainsPhrase(input, value)),
   );
+  if (
+    actors.length === 0 &&
+    inherited?.channel === "diplomacy" &&
+    inherited.actorId
+  )
+    return {
+      directive: {
+        channel,
+        actorId: inherited.actorId,
+      },
+      subjectEntityIds: [inherited.actorId],
+    };
   if (actors.length !== 1)
     return {
       subjectEntityIds: [],
@@ -1132,6 +1222,7 @@ export const compileSemanticQuery = (
     };
   }
   const operation = operationFor(input, context.discourse);
+  const docketReference = resolveOrdinalDocketReference(input, context);
   let scope = scopeFor(input);
   const baseSubject = subjectFor(input);
   const directive = directiveFor(
@@ -1151,7 +1242,10 @@ export const compileSemanticQuery = (
   )
     subject = "CAMPAIGN_CHOICE";
   const entityIds = directive.directive
-    ? [...directive.subjectEntityIds]
+    ? [
+        ...directive.subjectEntityIds,
+        ...(docketReference ? [docketReference.entity.id] : []),
+      ]
     : matchedEntityIds(input, context.entities);
   if (
     subject === "UNKNOWN" &&
@@ -1263,14 +1357,14 @@ export const compileSemanticQuery = (
   const negativeAdvice =
     operation === "CORRECT" &&
     /\b(do not|dont|never|stop)\b.*\b(advise|recommend)\b/.test(input);
-  const ordinal = input.match(/\b(second|2nd|third|3rd|first|1st)\b/);
+  const ordinal = input.match(/\b(second|2nd|third|3rd|first|1st|\d+)\b/);
   const ordinalValue =
     ordinal?.[1] === "second" || ordinal?.[1] === "2nd"
       ? 2
       : ordinal?.[1] === "third" || ordinal?.[1] === "3rd"
         ? 3
         : ordinal
-          ? 1
+          ? ordinalValueForToken(ordinal[1]) ?? 1
           : undefined;
   const query: AvaSemanticQuery = {
     operation,
