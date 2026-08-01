@@ -326,3 +326,25 @@ For every subsequent epoch:
   - TypeScript and production build passed
   - lint passed with zero errors and no new warnings
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Production repair epoch — turnover schema and bounded notices
+
+- Date: 2026-07-31
+- State: verified atop Savepoint 10 and ready for production promotion
+- Scope:
+  - idempotent compatibility application and D1 migration-ledger recording for
+    checked-in resolution-authority migration `0014`
+  - public campaign and turnover routes no longer return raw database or query
+    exceptions
+  - browser campaign errors reject D1, SQLite, Drizzle, query, parameter, and
+    oversized payloads before rendering
+  - system notices are viewport-bounded and wrap unbroken content
+  - browser and SSH campaign persistence retain the same public-safe error
+    boundary
+- Acceptance:
+  - complete production suite passed
+  - all 4,800 whole-IR language equality proofs passed
+  - complete Ava text-only campaign passed
+  - 146/146 substrate contracts passed
+  - TypeScript, production build, and lint passed
+  - Cloudflare types and Wrangler dry run passed with production D1 preserved

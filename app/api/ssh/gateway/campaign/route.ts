@@ -13,7 +13,7 @@ export async function GET(request:Request){
   try{
     return Response.json(await activeCampaignForOwner(playerFromUrl(request)),{headers:{"Cache-Control":"no-store"}});
   }catch(error){
-    return Response.json({error:error instanceof Error?error.message:"Campaign could not be loaded."},{status:400,headers:{"Cache-Control":"no-store"}});
+    return Response.json({error:"Campaign could not be loaded."},{status:400,headers:{"Cache-Control":"no-store"}});
   }
 }
 
@@ -36,6 +36,6 @@ export async function PUT(request:Request){
         },
         {status:409,headers:{"Cache-Control":"no-store"}},
       );
-    return Response.json({error:error instanceof Error?error.message:"Campaign could not be saved."},{status:400,headers:{"Cache-Control":"no-store"}});
+    return Response.json({error:"Campaign could not be saved."},{status:400,headers:{"Cache-Control":"no-store"}});
   }
 }

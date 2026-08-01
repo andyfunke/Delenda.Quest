@@ -33,6 +33,7 @@ import {
 import { ensureAccount, settleTimeZoneForAccount } from "./accounts";
 import { restoreActiveCampaignRow } from "./campaigns";
 import { getDb } from "./index";
+import { ensureResolutionAuthorityMigration } from "./resolution-migration";
 import {
   accountTurnState,
   activeCampaigns,
@@ -103,6 +104,7 @@ const grantFact = (
 });
 
 const ensureTurnState = async (user: AuthenticatedUser) => {
+  await ensureResolutionAuthorityMigration();
   const db = await getDb();
   const ownerEmail = await ensureAccount(user);
   await settleTimeZoneForAccount(db, ownerEmail);

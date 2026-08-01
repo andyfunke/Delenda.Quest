@@ -42,12 +42,7 @@ export async function POST(request: Request) {
         {status:409,headers:{"Cache-Control":"no-store"}},
       );
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Campaign turnover could not be claimed.",
-      },
+      { error: "Campaign turnover could not be claimed." },
       { status: 400 },
     );
   }
@@ -86,11 +81,7 @@ export async function PUT(request:Request){
       );
     }
     return NextResponse.json(
-      {
-        error:error instanceof Error
-          ?error.message
-          :"Campaign turnover could not be redeemed.",
-      },
+      {error:"Campaign turnover could not be redeemed."},
       {status:400,headers:{"Cache-Control":"no-store"}},
     );
   }

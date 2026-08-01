@@ -128,6 +128,7 @@ import {
 } from "./aphorisms";
 import { campaignScoreForState } from "./campaign-score-state";
 import { scoreBreakdownLines } from "./campaign-balance";
+import { publicErrorMessage } from "./public-error";
 import {
   accountDayBounds,
   browserTimeZone,
@@ -4356,7 +4357,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
             return;
           }
           if(!response.ok)
-            throw new Error(payload.error??"Campaign save was not accepted.");
+            throw new Error(
+              publicErrorMessage(
+                payload.error,
+                "Campaign save was not accepted.",
+              ),
+            );
           if(!campaignSaveWasAccepted(submission,payload.campaign))
             throw new Error("Campaign save acknowledgment did not match the submitted state.");
           campaignRevisionRef.current=campaignRevision(payload.campaign?.revision);
@@ -5147,7 +5153,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       );
     }
     if(!response.ok)
-      throw new Error(payload.error??"Campaign preflight save was not accepted.");
+      throw new Error(
+        publicErrorMessage(
+          payload.error,
+          "Campaign preflight save was not accepted.",
+        ),
+      );
     if(!campaignSaveWasAccepted(submission,payload.campaign))
       throw new Error(
         "Campaign preflight acknowledgment did not match the submitted state.",
@@ -5201,7 +5212,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         setAccountTimeZone(payload.timeZone);
       }
       if (!response.ok && payload.allowed !== false)
-        throw new Error(payload.error ?? "Campaign turnover is unavailable.");
+        throw new Error(
+          publicErrorMessage(
+            payload.error,
+            "Campaign turnover is unavailable.",
+          ),
+        );
       const claimed={
         ...payload,
         allowed: response.ok && payload.allowed !== false,
@@ -5322,7 +5338,12 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       }
     }
     if(!response.ok)
-      throw new Error(payload.error??"Campaign turnover was not redeemed.");
+      throw new Error(
+        publicErrorMessage(
+          payload.error,
+          "Campaign turnover was not redeemed.",
+        ),
+      );
     const accepted=payload.campaign;
     const next=restoreCampaignState(accepted?.state);
     if(
@@ -5573,7 +5594,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           error?: string;
         };
         if (!response.ok)
-          throw new Error(payload.error ?? "Turn mode did not change.");
+          throw new Error(
+            publicErrorMessage(payload.error, "Turn mode did not change."),
+          );
         setTurnAccess(payload);
         setAccountTimeZone(payload.timeZone);
         setClock(accountDayBounds(payload.timeZone, Date.now()));
@@ -6242,8 +6265,8 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           role="status"
           onClick={() => setSystemNotice(null)}
         >
-          {systemNotice}
-          <span>DISMISS ×</span>
+          <span className="system-notice-message">{systemNotice}</span>
+          <span className="system-notice-dismiss">DISMISS ×</span>
         </button>
       )}
       {interfaceMode === "command" && !ava && (

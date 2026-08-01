@@ -311,7 +311,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
-  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration,resolutionMigration]=await Promise.all([
+  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration,resolutionMigration,resolutionMigrationBridge,publicError,styles,campaignRoute]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
@@ -320,6 +320,10 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../drizzle/0012_simple_hercules.sql",import.meta.url),"utf8"),
     readFile(new URL("../drizzle/0014_campaign_resolution_grants.sql",import.meta.url),"utf8"),
+    readFile(new URL("../db/resolution-migration.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/public-error.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/campaign/route.ts",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireAuthenticatedUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
@@ -338,6 +342,19 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(turnStore,/id:crypto\.randomUUID\(\)/);
   assert.match(turnStore,/lastResolutionGrantMarker:executionKey/);
   assert.match(turnStore,/resolutionAuthority:"persisted-redemption"/);
+  assert.match(turnStore,/await ensureResolutionAuthorityMigration\(\)/);
+  assert.match(resolutionMigrationBridge,/0014_campaign_resolution_grants\.sql/);
+  assert.match(resolutionMigrationBridge,/CREATE TABLE IF NOT EXISTS campaign_resolution_grants/);
+  assert.match(resolutionMigrationBridge,/ALTER TABLE active_campaigns ADD last_resolution_grant_marker text/);
+  assert.match(resolutionMigrationBridge,/INSERT OR IGNORE INTO d1_migrations/);
+  assert.match(publicError,/MAX_PUBLIC_ERROR_LENGTH = 280/);
+  assert.match(publicError,/failed query/);
+  assert.match(publicError,/D1\(\?:_ERROR\)\?/);
+  assert.doesNotMatch(turnRoute,/error instanceof Error\s*\?\s*error\.message/);
+  assert.doesNotMatch(campaignRoute,/error instanceof Error\s*\?\s*error\.message/);
+  assert.match(page,/publicErrorMessage\(/);
+  assert.match(page,/className="system-notice-message"/);
+  assert.match(styles,/\.system-notice\s*\{[^}]*max-height:\s*min\(180px,[^}]*overflow:\s*auto;[^}]*overflow-wrap:\s*anywhere;/s);
   assert.match(page,/campaignMutationsHeld/);
   assert.match(page,/liveStateRef\.current/);
   assert.match(page,/await persistCampaignSnapshotNow\(\)/);

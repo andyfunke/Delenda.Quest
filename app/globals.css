@@ -11608,12 +11608,19 @@ small,
   font: 10px/1.4 var(--mono);
   left: 18px;
   max-width: min(620px, calc(100vw - 36px));
+  max-height: min(180px, calc(100vh - 36px));
+  overflow: auto;
+  overflow-wrap: anywhere;
   padding: 11px 13px;
   position: fixed;
   text-align: left;
   z-index: 66;
 }
-.system-notice span {
+.system-notice-message {
+  display: block;
+  white-space: normal;
+}
+.system-notice-dismiss {
   color: #888;
   display: block;
   font-size: 8px;
@@ -11890,7 +11897,7 @@ small,
   color: var(--ava-text);
   font: 500 15px/1.5 var(--mono);
 }
-.system-notice span {
+.system-notice-dismiss {
   color: var(--ava-muted);
   font: var(--type-label);
 }

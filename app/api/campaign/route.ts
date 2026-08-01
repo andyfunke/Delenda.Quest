@@ -32,7 +32,7 @@ export async function PUT(request:Request){
         {status:409,headers:{"Cache-Control":"no-store"}},
       );
     return NextResponse.json(
-      {error:error instanceof Error?error.message:"Campaign could not be saved."},
+      {error:"Campaign could not be saved."},
       {status:400,headers:{"Cache-Control":"no-store"}},
     );
   }
