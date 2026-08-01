@@ -1,4 +1,18 @@
 const MIGRATION_NAME = "0014_campaign_resolution_grants.sql";
+const REQUIRED_GRANT_COLUMNS = new Set([
+  "id",
+  "owner_email",
+  "account_day_key",
+  "campaign_id",
+  "campaign_day",
+  "campaign_revision",
+  "campaign_state_seal",
+  "opportunity_fraction_ppm",
+  "expires_at",
+  "created_at",
+  "consumed_at",
+  "invalidated_at",
+]);
 
 const migrationWasApplied = async (database: D1Database) =>
   !!(await database
@@ -14,6 +28,18 @@ const resolutionMarkerExists = async (database: D1Database) => {
     (column) => column.name === "last_resolution_grant_marker",
   );
 };
+
+const resolutionGrantSchemaExists = async (database: D1Database) => {
+  const columns = await database
+    .prepare("PRAGMA table_info(campaign_resolution_grants)")
+    .all<{ name: string }>();
+  const present = new Set(columns.results.map((column) => column.name));
+  return [...REQUIRED_GRANT_COLUMNS].every((column) => present.has(column));
+};
+
+const resolutionSchemaIsReady = async (database: D1Database) =>
+  (await resolutionMarkerExists(database)) &&
+  (await resolutionGrantSchemaExists(database));
 
 /**
  * Emergency compatibility bridge for the production database created before
@@ -36,9 +62,13 @@ export async function ensureResolutionAuthorityMigration() {
       )`,
     )
     .run();
-  if (await migrationWasApplied(database)) return;
-
-  const markerExists = await resolutionMarkerExists(database);
+  const [migrationRecorded, markerExists, grantSchemaExists] =
+    await Promise.all([
+      migrationWasApplied(database),
+      resolutionMarkerExists(database),
+      resolutionGrantSchemaExists(database),
+    ]);
+  if (migrationRecorded && markerExists && grantSchemaExists) return;
   const statements = [
     database.prepare(`CREATE TABLE IF NOT EXISTS campaign_resolution_grants (
       id text PRIMARY KEY NOT NULL,
@@ -80,7 +110,11 @@ export async function ensureResolutionAuthorityMigration() {
     await database.batch(statements);
   } catch (error) {
     // A concurrent request may have completed the same idempotent migration.
-    if (await migrationWasApplied(database)) return;
+    if (
+      (await migrationWasApplied(database)) &&
+      (await resolutionSchemaIsReady(database))
+    )
+      return;
     throw new Error("Resolution authority storage migration failed.", {
       cause: error,
     });
@@ -88,7 +122,7 @@ export async function ensureResolutionAuthorityMigration() {
 
   if (
     !(await migrationWasApplied(database)) ||
-    !(await resolutionMarkerExists(database))
+    !(await resolutionSchemaIsReady(database))
   )
     throw new Error("Resolution authority storage migration was incomplete.");
 }

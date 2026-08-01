@@ -499,6 +499,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(resolutionMigrationBridge,/CREATE TABLE IF NOT EXISTS campaign_resolution_grants/);
   assert.match(resolutionMigrationBridge,/ALTER TABLE active_campaigns ADD last_resolution_grant_marker text/);
   assert.match(resolutionMigrationBridge,/INSERT OR IGNORE INTO d1_migrations/);
+  assert.match(resolutionMigrationBridge,/resolutionGrantSchemaExists/);
+  assert.match(resolutionMigrationBridge,/migrationRecorded && markerExists && grantSchemaExists/);
+  assert.doesNotMatch(resolutionMigrationBridge,/if \(await migrationWasApplied\(database\)\) return/);
   assert.match(publicError,/MAX_PUBLIC_ERROR_LENGTH = 280/);
   assert.match(publicError,/failed query/);
   assert.match(publicError,/D1\(\?:_ERROR\)\?/);
