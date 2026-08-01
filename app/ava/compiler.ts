@@ -605,8 +605,9 @@ function compileLegacyCommand(
       trace: trace("empty", input),
     };
   if (
-    /^(hello|hi|hey)( there)?( ava)?$/.test(input) ||
-    /^(ava )?(are you there|are you online)$/.test(input)
+    /^(hello|hi|hey|yo)( there)?( ava)?$/.test(input) ||
+    /^(ava|test|testing|ping)$/.test(input) ||
+    /^(ava )?(are you there|are you online|can you hear me|you there)$/.test(input)
   )
     return compiled(input, "greeting", { kind: "GREETING" });
   if (/^(who are you|what are you|ava who are you)$/.test(input))
@@ -652,7 +653,7 @@ function compileLegacyCommand(
             : listScope,
     });
   if (
-    /^(status update|update|update me|situation update|give me an update|status|command status|how are we doing|where do we stand|command situation)$/.test(
+    /^(status update|update|update me|situation update|give me an update|catch me up|status|command status|how are we doing|where do we stand|command situation)$/.test(
       input,
     )
   )
@@ -668,7 +669,7 @@ function compileLegacyCommand(
       scope: "current",
     });
   if (
-    /^(what changed|what happened|what happened last day|yesterdays outcome)$/.test(
+    /^(what changed|what happened|what happened last day|yesterdays outcome|what did i do|what have i done|what have we done|what did we do)$/.test(
       input,
     )
   )
@@ -710,19 +711,19 @@ function compileLegacyCommand(
       scope: "current",
     });
   if (
-    /\b(wtf do i do|what (the hell |the fuck )?do i do|what should i do|where (do i|should i) start|recommend|recommendation|advise|next move)\b/.test(
+    /\b(wtf do i do|what (the hell |the fuck )?do i do|what to do|what now|what am i supposed to do|what should i do|where (do i|should i) start|recommend|recommendation|advise|next move)\b/.test(
       input,
     )
   )
     return compiled(input, "advise", { kind: "ADVISE" });
   if (
-    /^(help|grammar|capabilities|command list|commands|command|what can (you|i) do)/.test(
+    /^(help(?: me)?|how (?:do i|to) play|how does (?:this|the game) work|i am lost|im lost|grammar|capabilities|command list|commands|command|what can (you|i) do)/.test(
       input,
     )
   ) {
     const subject =
       input.replace(
-        /^(help|grammar|capabilities|command list|commands|command|what can (you|i) do)\s*/,
+        /^(help(?: me)?|how (?:do i|to) play|how does (?:this|the game) work|i am lost|im lost|grammar|capabilities|command list|commands|command|what can (you|i) do)\s*/,
         "",
       ) || undefined;
     return compiled(input, "help", { kind: "HELP", subject });

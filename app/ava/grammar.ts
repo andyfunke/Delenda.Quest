@@ -781,7 +781,7 @@ const operationFor = (
   )
     return "RANK";
   if (
-    /\b(advise|recommend|what should|what would you choose|worth|viable|should i|where do i start|what (?:the )?(?:fuck|hell) do i do|wtf do i do|next move)\b/.test(
+    /\b(advise|recommend|what should|what would you choose|worth|viable|should i|where (?:do|should) i start|wtf do i do|what (?:the )?(?:(?:fuck|hell) )?do i do|what am i supposed to do|what to do|what now|next move)\b/.test(
       input,
     )
   )

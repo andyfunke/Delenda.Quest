@@ -57,6 +57,28 @@ test("every Ava response opens with ruthless state-bound and instruction-bounded
   assert.notEqual(run("report production",state).text.split("\n")[1],run("report losses over the last 5 days",state).text.split("\n")[1]);
 });
 
+test("ordinary shittest player commands return useful orientation instead of grammar accidents",()=>{
+  const state=newState();
+  const cases=[
+    ["test",/command channel open/i],
+    ["hello",/recommend the next move/i],
+    ["what to do",/recommendation|priority|judgment/i],
+    ["what do i do",/recommendation|priority|judgment/i],
+    ["what now",/recommendation|priority|judgment/i],
+    ["how to play",/command grammar/i],
+    ["help me",/command grammar/i],
+    ["im lost",/command grammar/i],
+    ["what did i do",/retrospective/i],
+    ["what have we done",/retrospective/i],
+    ["catch me up",/command position|situation|overview/i],
+  ];
+  for(const [command,useful] of cases){
+    const result=run(command,state);
+    assert.match(result.text,useful,command);
+    assert.doesNotMatch(result.text,/recognized EXPLAIN|could not map|no legal option exists in the requested scope/i,command);
+  }
+});
+
 const firstAvailable=(state,kind,fraction=0,domain)=>{
   const descriptor=runtime.enumerateAvaActions(state,fraction).find(item=>
     item.kind===kind&&item.available&&(domain===undefined||item.domain===domain)

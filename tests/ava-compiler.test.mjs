@@ -60,12 +60,36 @@ test("reports resolve module aliases",()=>{
 });
 
 test("advice language compiles to the deterministic advisory layer",()=>{
-  for(const phrase of ["what should I do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){
+  for(const phrase of ["what should I do","what to do","what do I do","what now","what am I supposed to do","wtf do I do","what the fuck do I do","where do I start","recommend a next move","advise me"]){
     const result=mod.compileAvaCommand(phrase,context);
-    assert.equal(result.status,"compiled");
-    assert.equal(result.instruction.kind,"SEMANTIC");
-    assert.equal(result.semantic.operation,"ADVISE");
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.instruction.kind,"SEMANTIC",phrase);
+    assert.equal(result.semantic.operation,"ADVISE",phrase);
   }
+});
+
+test("ordinary player orientation language resolves before generic EXPLAIN",()=>{
+  const expected=new Map([
+    ["test","GREETING"],
+    ["yo","GREETING"],
+    ["ava","GREETING"],
+    ["can you hear me","GREETING"],
+    ["how to play","HELP"],
+    ["how does this work","HELP"],
+    ["help me","HELP"],
+    ["im lost","HELP"],
+    ["what did i do","REPORT"],
+    ["what have we done","REPORT"],
+    ["catch me up","STATUS"],
+  ]);
+  for(const [phrase,kind] of expected){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.instruction.kind,kind,phrase);
+    assert.notEqual(result.instruction.kind,"EXPLAIN",phrase);
+  }
+  assert.equal(instruction("what did i do").topic,"retrospective");
+  assert.equal(instruction("what did i do").days,1);
 });
 
 test("a bare report stays bounded to the command surface",()=>{

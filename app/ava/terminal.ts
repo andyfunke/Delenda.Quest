@@ -875,7 +875,7 @@ function executeAvaInstruction(
       session,
       withHeader(
         state,
-        `FIELD CONTEXT\n${situationForState(state).headline}\n\nANSWER\nCommand channel open. I have said nothing before you addressed me.\n\nGRAMMAR\nwhat should I do\nmissions\nreport`,
+        `FIELD CONTEXT\n${situationForState(state).headline}\n\nANSWER\nCommand channel open. I can orient you, read the current position, recommend the next move, or prepare an order for confirmation.\n\nTRY\nwhat should I do\nhow to play\nwhat did I do\nmissions`,
       ),
     );
   if (instruction.kind === "IDENTITY")
