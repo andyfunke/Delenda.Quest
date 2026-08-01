@@ -91,3 +91,36 @@ test("terminal core preserves the web cognitive receipt and proof without render
     /AVA_COGNITIVE_NEXUS|executionDigest|proofGraph|domainDigest|fact:/i,
   );
 });
+
+test("brief semantics are identical in web and native terminal adapters", () => {
+  const state = game.initialState({ seed: 9_192 });
+  const webContext = {
+    ...ctxFor(state, "web"),
+    campaignRevision: nexus.avaNexusStateRevision(state),
+  };
+  const sshContext = { ...webContext, surface: "ssh" };
+  const webBrief = nexus.runAvaNexusLine(
+    "brief",
+    webContext,
+    state,
+    nexus.createAvaNexusSession(),
+  );
+  const sshBrief = terminal.runTerminalLine(
+    "brief",
+    sshContext,
+    state,
+    terminal.createTerminalSession(),
+  );
+  const exact = terminal.runTerminalLine(
+    "daily brief",
+    sshContext,
+    state,
+    terminal.createTerminalSession(),
+  );
+
+  assert.equal(sshBrief.text, webBrief.text);
+  assert.match(sshBrief.text, /AVA \/ BRIEF \/ DAY 1/);
+  assert.doesNotMatch(sshBrief.text, new RegExp(state.currentSituation.briefing));
+  assert.match(exact.text, /DAILY BRIEFING \/ DAY 1/);
+  assert.match(exact.text, new RegExp(state.currentSituation.briefing));
+});

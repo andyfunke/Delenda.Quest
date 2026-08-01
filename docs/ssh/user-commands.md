@@ -9,7 +9,8 @@ DELENDA>
 ## Read
 
 - `help`
-- `brief`
+- `brief` (Ava's paraphrase)
+- `daily brief` (authored report)
 - `status`
 - `production` / `military` / `diplomacy [actor]`
 - `show <choice-id>`

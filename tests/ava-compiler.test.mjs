@@ -127,6 +127,8 @@ test("natural status phrases compile to STATUS",()=>{
   assert.equal(instruction("How are we doing?").kind,"STATUS");
   assert.equal(instruction("where do we stand").kind,"STATUS");
   assert.equal(instruction("update").kind,"STATUS");
+  for(const phrase of ["query","info","summary"])
+    assert.equal(instruction(phrase).kind,"STATUS",phrase);
 });
 
 test("the conversational substrate handles channel opening and order orientation",()=>{
@@ -150,7 +152,13 @@ test("reports resolve module aliases",()=>{
 });
 
 test("daily briefing preserves a canonical source-text command beside paraphrased briefing language",()=>{
+  assert.deepEqual(instruction("brief"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",
+  });
   assert.deepEqual(instruction("daily briefing"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",canonical:true,
+  });
+  assert.deepEqual(instruction("daily"),{
     kind:"REPORT",topic:"daily-brief",scope:"current",canonical:true,
   });
   assert.deepEqual(instruction("read the daily brief"),{
@@ -161,6 +169,15 @@ test("daily briefing preserves a canonical source-text command beside paraphrase
   });
   assert.deepEqual(instruction("summarize the daily briefing"),{
     kind:"REPORT",topic:"daily-brief",scope:"current",
+  });
+});
+
+test("terse read-only shortcuts never become campaign mutations",()=>{
+  assert.deepEqual(instruction("attack"),{
+    kind:"REPORT",topic:"operations",scope:"campaign",
+  });
+  assert.deepEqual(instruction("enemyt"),{
+    kind:"REPORT",topic:"adversary",days:undefined,scope:"current",
   });
 });
 

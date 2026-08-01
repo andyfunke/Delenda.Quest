@@ -557,6 +557,10 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(page,/serializeAvaChatLog\(/);
   assert.match(page,/presentation\.chatExport/);
   assert.match(page,/EXPORT CHAT/);
+  assert.match(page,/data-ava-turn-anchor/);
+  assert.match(page,/ava-transcript-tail/);
+  assert.match(page,/runAvaNexusLine\(\s*"brief"/);
+  assert.doesNotMatch(page,/scrollTop\s*=\s*element\.scrollHeight/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{

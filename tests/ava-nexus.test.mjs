@@ -123,7 +123,7 @@ test("daily briefing can return canonical authored text or Ava's deterministic p
   assert.doesNotMatch(exact.text,/THEATER\n|COMMANDER'S VIEW/);
 
   const summary=run("brief me",state);
-  assert.match(summary.text,/AVA \/ DAILY BRIEFING \/ DAY 1/);
+  assert.match(summary.text,/AVA \/ BRIEF \/ DAY 1/);
   assert.doesNotMatch(summary.text,new RegExp(state.currentSituation.briefing.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   assert.match(summary.text,/daily briefing.*authored text verbatim/i);
 });
@@ -735,6 +735,33 @@ test("displayed directive dockets own conversational and ordinal follow-ups", ()
   assert.match(advice.text, new RegExp(first.title, "i"));
   assert.match(advice.text, /ranks? \d+ of \d+|strongest current production choice/i);
   assert.equal(advice.session.currentModule, "national");
+});
+
+test("an explicit Campaign handle outranks stale directive discourse", () => {
+  const state = newState(706);
+  const opened = run("production", state);
+  const advised = run("advise M2", opened.state, opened.session);
+  assert.equal(advised.response.status, "OK", advised.text);
+  assert.equal(advised.envelope.semantic.subject.type, "CAMPAIGN_CHOICE");
+  assert.equal(advised.envelope.semantic.directive, undefined);
+  assert.deepEqual(advised.envelope.semantic.subject.entityIds, [
+    `maneuver:${state.currentSituation.maneuvers[1]}`,
+  ]);
+  assert.match(advised.text, /\[M2\]/);
+  assert.doesNotMatch(advised.text, /JUDGMENT \/ PRODUCTION/);
+});
+
+test("all conversational campaign-module wrappers reach functioning Nexus handlers", () => {
+  const state = newState(707);
+  for (const phrase of [
+    "anything in campaign",
+    "anything in domestic",
+    "anything in network",
+  ]) {
+    const result = run(phrase, state);
+    assert.equal(result.response.status, "OK", `${phrase}: ${result.text}`);
+    assert.doesNotMatch(result.text, /MALFORMED AVA REQUEST/);
+  }
 });
 
 test("good-faith diplomacy wrappers bind later advice to the displayed actor", () => {

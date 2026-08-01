@@ -46,6 +46,7 @@ const TYPO_VARIANTS: Record<string, string> = {
   advis: "advise",
   compar: "compare",
   domesticc: "domestic",
+  enemyt: "enemy",
   misson: "mission",
   missons: "missions",
   misison: "mission",
@@ -986,6 +987,14 @@ const directiveFor = (
   const uniqueChannels = [...new Set(channels)];
   const inherited = context.discourse?.directiveContext;
   if (!uniqueChannels.length) {
+    const explicitNonDirectiveAction = matchedEntityIds(
+      input,
+      context.entities,
+    ).some((id) => {
+      const action = context.entities.find((entity) => entity.id === id)?.action;
+      return !!action && action.kind !== "directive";
+    });
+    if (explicitNonDirectiveAction) return { subjectEntityIds: [] };
     if (inherited)
       return {
         directive: {

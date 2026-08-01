@@ -5,6 +5,7 @@ import {
   FormEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -254,6 +255,7 @@ type Metric =
 type Message = {
   who: "AVA" | "YOU";
   text: string;
+  anchorId?: string;
   kind?: "ava" | "shell";
   cognitiveActivation?: AvaCognitiveActivationReceipt;
 };
@@ -3805,6 +3807,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       ? dailyAphorismAssignment.aphorism
       : null;
   const avaMessagesRef = useRef<HTMLDivElement>(null);
+  const avaActiveAnchorRef = useRef("");
+  const avaAnchorSequenceRef = useRef(0);
+  const avaDailyOpeningKeys = useRef(new Set<string>());
   const avaCompletionRef = useRef<{
     candidates: string[];
     index: number;
@@ -3846,11 +3851,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     setCampaignInspectorSelection(null);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [s.day]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ava) return;
     const frame = window.requestAnimationFrame(() => {
       const element = avaMessagesRef.current;
-      if (element) element.scrollTop = element.scrollHeight;
+      if (!element) return;
+      const anchorId = avaActiveAnchorRef.current;
+      const anchor = anchorId
+        ? element.querySelector<HTMLElement>(
+            `[data-ava-turn-anchor="${anchorId}"]`,
+          )
+        : null;
+      if (!anchor) {
+        element.scrollTop = 0;
+        return;
+      }
+      const elementTop = element.getBoundingClientRect().top;
+      const anchorTop = anchor.getBoundingClientRect().top;
+      element.scrollTop += anchorTop - elementTop;
     });
     return () => window.cancelAnimationFrame(frame);
   }, [ava, messages.length]);
@@ -5517,6 +5535,47 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     () => avaEntitiesForState(s, fraction),
     [s, fraction],
   );
+  useEffect(() => {
+    if (
+      !hydrated ||
+      !avaArchiveHydrated ||
+      !runToken ||
+      s.status !== "active"
+    )
+      return;
+    const openingKey = `${runToken}:${s.campaignId}:${s.day}`;
+    if (avaDailyOpeningKeys.current.has(openingKey)) return;
+    avaDailyOpeningKeys.current.add(openingKey);
+    const opening = runAvaNexusLine(
+      "brief",
+      {
+        playerId: "web",
+        campaignId: s.campaignId,
+        campaignRevision: avaNexusStateRevision(s),
+        surface: "web",
+        authority: "command",
+        nowMs: Date.now(),
+      },
+      s,
+      liveAvaSessionRef.current,
+      fraction,
+    );
+    const anchorId = `ava-opening-${++avaAnchorSequenceRef.current}`;
+    avaActiveAnchorRef.current = anchorId;
+    liveAvaSessionRef.current = opening.session;
+    setAvaSession(opening.session);
+    setMessages((current) => [
+      ...current,
+      {
+        who: "AVA",
+        text: opening.text,
+        anchorId,
+        kind: opening.envelope.presentation.outputKind ?? "ava",
+        cognitiveActivation: opening.cognitiveActivation,
+      },
+    ]);
+    setAva(true);
+  }, [avaArchiveHydrated, fraction, hydrated, runToken, s]);
   const selectedAvaEntity = useMemo(() => {
     const action =
       avaSession.terminal.plan.at(-1) ??
@@ -5544,7 +5603,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       ]);
       return;
     }
-    setMessages((m) => [...m, { who: "YOU", text: raw }]);
+    const anchorId = `ava-turn-${++avaAnchorSequenceRef.current}`;
+    avaActiveAnchorRef.current = anchorId;
+    setMessages((m) => [...m, { who: "YOU", text: raw, anchorId }]);
     const turnModeIntent = compileAvaTurnModeIntent(raw);
     const godModeIntent = compileAvaGodModeIntent(raw);
     if (godModeIntent?.kind === "force-random-event") {
@@ -6429,6 +6490,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                 data-ava-cognitive-runtime={m.cognitiveActivation?.runtime}
                 data-ava-cognitive-status={m.cognitiveActivation?.status}
                 data-ava-cognitive-families={m.cognitiveActivation?.operatorFamilies.join(",")}
+                data-ava-turn-anchor={m.anchorId}
                 key={i}
                 role={m.who === "AVA" ? "status" : undefined}
               >
@@ -6444,6 +6506,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                 </div>
               </div>
             ))}
+            <div className="ava-transcript-tail" aria-hidden="true" />
           </div>
           <form onSubmit={run} data-no-telemetry>
             <label htmlFor="ava-command-input">

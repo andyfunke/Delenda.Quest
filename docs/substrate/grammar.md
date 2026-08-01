@@ -64,11 +64,19 @@ The daily briefing has two read-only realizations:
 
 | Surface | Realization |
 |---|---|
-| `daily briefing` | Exact authored headline, complete multi-paragraph morning dispatch, command question, and maneuver flavor |
-| `brief me` / `summarize the daily briefing` | Deterministic Ava paraphrase with a route back to the exact text |
+| `daily` / `daily brief` / `daily briefing` | Exact authored headline, complete multi-paragraph morning dispatch, command question, and maneuver flavor |
+| `brief` / `brief me` / `summarize the daily briefing` | Deterministic Ava paraphrase with a route back to the exact text |
 
 Canonical briefing text is never decorated or paraphrased, even while
 storyteller mode is active.
+
+On the first active game view for each campaign day in a browser session, the
+web adapter invokes the same Nexus `brief` read automatically and opens Ava on
+that paraphrase. This is a presentation trigger only; the text and discourse
+transition remain canonical Nexus output.
+
+The reviewed hard-coded utterance corpus, permutations, and assimilation rules
+are recorded append-only in `docs/substrate/assimilation-ledger.md`.
 
 ## Target-of-opportunity lifecycle
 
@@ -127,7 +135,8 @@ archive.
 
 | Alias | Canonical |
 |---|---|
-| daily brief / campaign brief | brief |
+| daily | daily brief (canonical authored text) |
+| campaign brief | brief (Ava paraphrase) |
 | situation / campaign status | status |
 | prod | production |
 | mil | military |

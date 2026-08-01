@@ -400,6 +400,9 @@ const SHELL_COMMANDS = new Set<AvaShellCommandName>([
 ]);
 const LIST_SCOPES = new Set([
   "missions",
+  "campaign",
+  "domestic",
+  "network",
   "production",
   "military",
   "diplomacy",

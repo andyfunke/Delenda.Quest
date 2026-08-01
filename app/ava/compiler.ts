@@ -911,7 +911,7 @@ const reportTopic = (
   if (/\b(network|communications|authentication|signal)\b/.test(input))
     return "network";
   if (/\b(intelligence|intel)\b/.test(input)) return "intelligence";
-  if (/\b(adversary|enemy)\b/.test(input)) return "adversary";
+  if (/\b(adversary|enemy|enemyt)\b/.test(input)) return "adversary";
   if (/\b(personnel|replacement|training)\b/.test(input)) return "personnel";
   if (
     /\b(resources|munitions|ammunition|ammo|armor|drones|flight|stockpile|supply coverage)\b/.test(
@@ -1025,7 +1025,7 @@ function compileLegacyCommand(
       scope: conversationalListScope === "main" ? "campaign" : conversationalListScope,
     });
   if (
-    /^(status update|update|update me|situation update|give me an update|catch me up|status|command status|how are we doing|where do we stand|command situation)$/.test(
+    /^(status update|update|update me|situation update|give me an update|catch me up|status|command status|how are we doing|where do we stand|command situation|query|info|summary)$/.test(
       input,
     )
   )
@@ -1073,7 +1073,7 @@ function compileLegacyCommand(
       scope: "current",
     });
   if (
-    /^(?:daily brief(?:ing)?|todays daily brief(?:ing)?|give me the daily brief(?:ing)?|read (?:me )?(?:the )?daily brief(?:ing)?|(?:exact|verbatim) daily brief(?:ing)?|daily brief(?:ing)? (?:exact text|verbatim))$/.test(
+    /^(?:daily|daily brief(?:ing)?|todays daily brief(?:ing)?|give me the daily brief(?:ing)?|read (?:me )?(?:the )?daily brief(?:ing)?|(?:exact|verbatim) daily brief(?:ing)?|daily brief(?:ing)? (?:exact text|verbatim))$/.test(
       input,
     )
   )
@@ -1084,7 +1084,7 @@ function compileLegacyCommand(
       canonical: true,
     });
   if (
-    /^(?:brief me|todays brief|alt ux brief|summarize (?:the )?daily brief(?:ing)?|give me (?:a |the )?summary of (?:the )?daily brief(?:ing)?)$/.test(
+    /^(?:brief|brief me|todays brief|alt ux brief|summarize (?:the )?daily brief(?:ing)?|give me (?:a |the )?summary of (?:the )?daily brief(?:ing)?)$/.test(
       input,
     )
   )
@@ -1092,6 +1092,12 @@ function compileLegacyCommand(
       kind: "REPORT",
       topic: "daily-brief",
       scope: "current",
+    });
+  if (/^(?:attack|attacks|offense|offensive)$/.test(input))
+    return compiled(input, "operations-shortcut", {
+      kind: "REPORT",
+      topic: "operations",
+      scope: "campaign",
     });
   const playerNeed = compileAvaPlayerNeed(input);
   if (playerNeed)
@@ -1276,7 +1282,7 @@ function compileLegacyCommand(
     /\b(report|reports|brief|briefing|retrospective|recap|after action|losses|casualties|attrition|projection|outlook)\b/.test(
       input,
     ) ||
-    /^(production|domestic|network|intelligence|personnel|resources|military|diplomacy|doctrine|adversary|enemy|effects|opportunities|decision ledger|service record|daily brief|what happens next)$/.test(
+    /^(production|domestic|network|intelligence|personnel|resources|military|diplomacy|doctrine|adversary|enemy|enemyt|effects|opportunities|decision ledger|service record|daily brief|what happens next)$/.test(
       input,
     ) ||
     /\b(how are (the )?factories|do we have enough (ammunition|ammo|munitions)|where are we losing (people|men|soldiers))\b/.test(

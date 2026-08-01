@@ -42,8 +42,7 @@ export const runTerminalLine = (
   proofGraph: CanonicalProofGraph;
   cognitiveActivation?: AvaCognitiveActivationReceipt;
 } => {
-  const canonicalLine = line.trim().toLowerCase() === "brief" ? "daily brief" : line;
-  const result = runAvaNexusLine(canonicalLine, ctx, state, session);
+  const result = runAvaNexusLine(line, ctx, state, session);
   return {
     state: result.state,
     session: {

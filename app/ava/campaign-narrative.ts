@@ -88,7 +88,7 @@ export const canonicalDailyBriefing = (state: GameState) => {
 export const summarizedDailyBriefing = (state: GameState, variant = 0) => {
   const maneuvers = maneuversForState(state);
   return [
-    `AVA / DAILY BRIEFING / DAY ${state.day}`,
+    `AVA / BRIEF / DAY ${state.day}`,
     summarizeCampaignSituation(state, variant),
     `Three courses are declared for this module. ${maneuvers
       .map(

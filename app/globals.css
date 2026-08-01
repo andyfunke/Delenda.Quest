@@ -10893,6 +10893,12 @@ small,
 .messages {
   gap: 14px;
 }
+.messages > .ava-transcript-tail {
+  display: block;
+  flex: 0 0 calc(100% - 52px);
+  min-height: 160px;
+  pointer-events: none;
+}
 .ava form {
   background: #11120f;
   position: relative;
