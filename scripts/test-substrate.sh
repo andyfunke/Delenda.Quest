@@ -22,7 +22,8 @@ COGNITIVE_NEXUS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-cognitive-nexus.XXXXX
 AVA_RUNTIME_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-runtime.XXXXXX.mjs")"
 AVA_PROJECTION_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-projection.XXXXXX.mjs")"
 EMAIL_NEXUS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-email-nexus.XXXXXX.mjs")"
-trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$EMAIL_NEXUS_BUNDLE"' EXIT
+CREDENTIAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-credential.XXXXXX.mjs")"
+trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$EMAIL_NEXUS_BUNDLE" "$CREDENTIAL_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/substrate/gates.ts --bundle --platform=node --format=esm --outfile="$GATE_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/substrate/docket.ts --bundle --platform=node --format=esm --outfile="$DOCKET_BUNDLE" >/dev/null
@@ -43,6 +44,7 @@ node_modules/.bin/esbuild app/ava/cognitive-nexus.ts --bundle --platform=node --
 node_modules/.bin/esbuild app/ava/runtime.ts --bundle --platform=node --format=esm --outfile="$AVA_RUNTIME_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/projection.ts --bundle --platform=node --format=esm --outfile="$AVA_PROJECTION_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/email/nexus.ts --bundle --platform=node --format=esm --outfile="$EMAIL_NEXUS_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/credential.ts --bundle --platform=node --format=esm --outfile="$CREDENTIAL_BUNDLE" >/dev/null
 
 DELENDA_SUBSTRATE_GATES_BUNDLE="file://$GATE_BUNDLE" \
 DELENDA_SUBSTRATE_DOCKET_BUNDLE="file://$DOCKET_BUNDLE" \
@@ -63,4 +65,5 @@ DELENDA_AVA_COGNITIVE_NEXUS_BUNDLE="file://$COGNITIVE_NEXUS_BUNDLE" \
 DELENDA_AVA_RUNTIME_BUNDLE="file://$AVA_RUNTIME_BUNDLE" \
 DELENDA_AVA_PROJECTION_BUNDLE="file://$AVA_PROJECTION_BUNDLE" \
 DELENDA_EMAIL_NEXUS_BUNDLE="file://$EMAIL_NEXUS_BUNDLE" \
-node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs
+DELENDA_CREDENTIAL_BUNDLE="file://$CREDENTIAL_BUNDLE" \
+node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/credential.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs

@@ -1,4 +1,4 @@
-app = "delenda-quest"
+app = "delenda-quest-ssh"
 primary_region = "sea"
 
 [build]

@@ -261,7 +261,26 @@ export type AvaShellCommandName =
   | "BAT"
   | "BC"
   | "UNITS"
-  | "CAL";
+  | "CAL"
+  | "DATE"
+  | "ID"
+  | "UNAME"
+  | "ENV"
+  | "DF"
+  | "DU"
+  | "TOP"
+  | "SS"
+  | "NL"
+  | "TR"
+  | "SED"
+  | "AWK"
+  | "DIFF"
+  | "SHA256SUM"
+  | "CSVLOOK"
+  | "CSVCUT"
+  | "CSVSTAT"
+  | "NMAP"
+  | "HACK";
 export type AvaShellInstruction = {
   command: AvaShellCommandName;
   args: string[];
@@ -282,12 +301,27 @@ export type AvaVirtualFile = {
   workbookBytes?: number[];
   mime?: string;
 };
+export type AvaHackSession = {
+  caseId: string;
+  familyId: string;
+  contentVersion: string;
+  incidentSchemaVersion: "intrusion-incident/v1";
+  campaignId: string;
+  startedDay: number;
+  status: "open" | "solved";
+  hints: number;
+  attempts: number;
+  stateRevision: string;
+  report?: string;
+  proof?: string;
+};
 export type AvaShellSession = {
   cwd: string;
   history: string[];
   files: AvaVirtualFile[];
   darkNetUnlocked: boolean;
   installedPackages: string[];
+  hack?: AvaHackSession;
   editor?: {
     program: "vim" | "nano";
     path: string;

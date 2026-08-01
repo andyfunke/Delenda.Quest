@@ -106,9 +106,10 @@ export const narratedCampaignRecommendation = (input: {
   winner: AvaActionDescriptor;
   reason: string;
   tradeoff: string;
+  ratings: Record<string, string>;
   variant?: number;
 }) => {
-  const { state, candidates, winner, reason, tradeoff, variant = 0 } = input;
+  const { state, candidates, winner, reason, tradeoff, ratings, variant = 0 } = input;
   const choices = [...candidates]
     .sort((left, right) =>
       left.handle.localeCompare(right.handle, undefined, { numeric: true }),
@@ -116,15 +117,16 @@ export const narratedCampaignRecommendation = (input: {
     .slice(0, 3)
     .map((candidate) => {
       const marker = candidate.id === winner.id ? " My preference." : "";
-      return `${candidate.handle} declares ${candidate.label}. ${sentence(candidate.summary)}${marker}`;
+      return `${candidate.handle} declares ${candidate.label}. Rating ${ratings[candidate.id] ?? "UNRATED"}. ${sentence(candidate.summary)}${marker}`;
     })
     .join("\n\n");
   return [
     "FIELD NOTE / JUDGMENT\nI am keeping the other dockets outside this answer. One module is enough for one decision.",
     `AVA / CAMPAIGN / DAY ${state.day}`,
     summarizeCampaignSituation(state, variant),
-    `My recommendation is ${winner.handle}, ${winner.label}. ${sentence(reason)} ${sentence(tradeoff)}`,
+    `My recommendation is ${winner.handle}, ${winner.label}, rated ${ratings[winner.id] ?? "UNRATED"}. ${sentence(reason)} ${sentence(tradeoff)}`,
     `The three declarant options are these:\n\n${choices}`,
+    "Campaign orders own the largest direct battlefield conversion. Their collapse branch can still be worse than accepting the standing loss for the day.",
     `Nothing has been issued. Say "daily briefing" for the original authored brief, or "forecast ${winner.handle}" to inspect this recommendation without spending an order.`,
   ].join("\n\n");
 };

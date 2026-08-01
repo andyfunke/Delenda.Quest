@@ -62,6 +62,7 @@ deleted.
 | `PL-EMAIL-004` | [Play Delenda Quest by email](./PL-EMAIL-004-play-by-email.md) | `PARKED` | Inbound routing, signed webhooks, outbound reply service |
 | `PL-EMAIL-005` | [Campaign certificate and LinkedIn delivery](./PL-EMAIL-005-certification-delivery.md) | `PARKED` | Outbound provider; DELENDA.QUEST LinkedIn Page/provider setup |
 | `PL-EMAIL-006` | [Deliverability, consent, and mail operations](./PL-EMAIL-006-mail-operations.md) | `PARKED` | Bounce/complaint webhooks, DNS policy, provider operational access |
+| `PL-HACK-001` | [Diegetic intrusion operations](./PL-HACK-001-diegetic-intrusion.md) | `PARKED` | Additional incident families, graphical parity, Nexus action authority |
 
 ## Dependency order
 
@@ -74,6 +75,11 @@ PL-EMAIL-001 mail foundation
 
 PL-EMAIL-006 mail operations begins with PL-EMAIL-001 and gates every send.
 ```
+
+`PL-HACK-001` is independent of the email sequence. Its informational tutorial
+may ship without activation; any campaign-changing intrusion effect remains
+parked until the broader incident catalogue, graphical parity, and Nexus gates
+pass.
 
 Account identity precedes consequential email play because inbound commands
 must bind to a verified account address. Friend invitations and certificate
@@ -101,3 +107,10 @@ Do not recycle an ID. Do not mark an epoch `ACTIVE` based only on source tests.
 - 2026-08-01: Parking Lot established. All known email work requiring external
   account integration or configuration was separated into `PL-EMAIL-001`
   through `PL-EMAIL-006`. No external or production action was authorized.
+- 2026-08-01: Added `PL-HACK-001` for the mechanical diegetic-intrusion
+  expansion. The implemented tutorial remains informational; no costed effect
+  or production activation was authorized.
+- 2026-08-01: Extracted the implemented tutorial into
+  `packages/intrusion-library`. The package boundary is active internal
+  architecture; additional incident families, graphical parity, and every
+  campaign-changing effect remain parked under `PL-HACK-001`.

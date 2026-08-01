@@ -1605,7 +1605,8 @@ const executeInstructionRequest = (
     unresolvedEntityIds.length ||
     (semantic.operation === "COMPARE" &&
       semantic.subject.type === "CAMPAIGN_CHOICE" &&
-      semantic.subject.entityIds.length !== 2)
+      (semantic.subject.entityIds.length < 2 ||
+        semantic.subject.entityIds.length > 20))
   )
     return responseFailure(
       state,
@@ -1614,7 +1615,7 @@ const executeInstructionRequest = (
       "UNRESOLVED_SEMANTIC_TARGET",
       unresolvedEntityIds.length
         ? `These semantic targets are not in the current visible ontology: ${unresolvedEntityIds.join(", ")}.`
-        : "COMPARE requires exactly two current visible targets.",
+        : "COMPARE requires 2 to 20 current visible targets.",
     );
   const overlayIssue = overlayTargetIssue(semantic, visible.entities);
   if (overlayIssue)
@@ -2594,14 +2595,23 @@ const executeInternalRequest = (
   let packetId: string | undefined;
   let packetHeadline: string | undefined;
   if (request.operation === "force-opportunity") {
-    if (state.day <= 1)
-      return responseFailure(
-        state,
-        session,
-        "REJECTED",
-        "OPPORTUNITY_DAY_ONE_SEALED",
-        "Random Daily missions never open on Day 1.",
-      );
+    if (state.day <= 1) {
+      const response: SemanticResponse<unknown> = {
+        status: "OK",
+        fact: {
+          operation: request.operation,
+          status: "unchanged",
+          eligibility: "sealed-day-one",
+        },
+        rendering: {
+          compact: "RANDOM EVENT SEALED",
+          brief:
+            "RANDOM EVENT SEALED / DAY 1\nThe opening day never receives a random Daily mission. No activation was attempted; campaign state is unchanged.",
+        },
+        campaignRevision: revisionOf(state),
+      };
+      return { state, session, response, text: response.rendering.brief };
+    }
     next = forceOpportunityForCurrentDay(state);
     status = next === state ? "unchanged" : "opened";
     const forcedWindow = opportunityStatusForFraction(next, 0);
@@ -2615,6 +2625,17 @@ const executeInternalRequest = (
         "OPPORTUNITY_OVERRIDE_UNAVAILABLE",
         "No authored target of opportunity is available for this campaign day.",
       );
+    if (
+      !next.opportunityAssignments.some(
+        (item) =>
+          item.campaignId === next.campaignId &&
+          item.day === next.day &&
+          item.opportunityId === forcedWindow.packet?.id,
+      )
+    ) {
+      next = recordOpportunityOpened(next, forcedWindow.packet);
+      status = "opened";
+    }
   } else if (request.operation === "record-opportunity-opened") {
     next = recordOpportunityOpened(state, request.packet);
     status = next === state ? "unchanged" : "opened";
@@ -2637,27 +2658,29 @@ const executeInternalRequest = (
     const packet = opportunity.packet;
     packetId = packet?.id;
     if (packet && opportunity.status === "active") {
-      const assignment = state.opportunityAssignments.find(
+      const assignment = next.opportunityAssignments.find(
         (item) =>
-          item.campaignId === state.campaignId &&
-          item.day === state.day &&
+          item.campaignId === next.campaignId &&
+          item.day === next.day &&
           item.opportunityId === packet.id,
       );
       if (!assignment) {
-        next = recordOpportunityOpened(state, packet);
-        status = next === state ? "unchanged" : "opened";
+        const opened = recordOpportunityOpened(next, packet);
+        status = opened === next ? "unchanged" : "opened";
+        next = opened;
       }
     } else if (
       packet &&
       opportunity.status === "expired" &&
-      !state.opportunityHistory.some(
+      !next.opportunityHistory.some(
         (record) =>
-          record.day === state.day &&
+          record.day === next.day &&
           record.opportunityId === packet.id,
       )
     ) {
-      next = recordOpportunityExpired(state, packet);
-      status = next === state ? "unchanged" : "expired";
+      const expired = recordOpportunityExpired(next, packet);
+      status = expired === next ? "unchanged" : "expired";
+      next = expired;
     }
   }
   const response: SemanticResponse<unknown> = {

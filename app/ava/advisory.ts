@@ -23,7 +23,11 @@ import type { AvaCognitiveDecisionGuidance } from "./cognitive-nexus";
 import { canonicalJson } from "./cognitive-types";
 import { avaVisibleWorldRevision } from "./world-model";
 import { narratedCampaignRecommendation } from "./campaign-narrative";
-import { formatPublicRating, publicOpportunityRating } from "./public-rating";
+import {
+  formatPublicRating,
+  publicCognitiveRating,
+  publicOpportunityRating,
+} from "./public-rating";
 
 export type AvaEvaluatedAction = {
   descriptor: AvaActionDescriptor;
@@ -765,9 +769,19 @@ const answerSemanticQueryUnproven = (
   ];
 
   const direct = `Take ${formatOption(best.descriptor)}.`;
-  const publicRating = formatPublicRating(publicOpportunityRating(best.score));
+  const ratingFor = (entry: AvaEvaluatedAction) => {
+    const candidate = cognitiveGuidance?.decision.candidates.find(
+      (item) => item.candidateId === entry.descriptor.id,
+    );
+    return formatPublicRating(
+      candidate
+        ? publicCognitiveRating(candidate.utility.low, candidate.utility.low)
+        : publicOpportunityRating(entry.score),
+    );
+  };
+  const publicRating = ratingFor(best);
   const alternativeRating = second
-    ? formatPublicRating(publicOpportunityRating(second.score))
+    ? ratingFor(second)
     : null;
   const tradeoff =
     plan.tradeoffs[0] ??
@@ -796,6 +810,22 @@ const answerSemanticQueryUnproven = (
             `WHY\n${reason}`,
             `TRADEOFF\n${tradeoff}`,
           ];
+  if (query.operation === "COMPARE")
+    parts.unshift(
+      "COMPARISON / COGNITIVE NEXUS",
+      `FULL RANKING\n${evaluated
+        .map(
+          (entry, index) =>
+            `${index + 1}. ${formatOption(entry.descriptor)} · ${ratingFor(entry)}`,
+        )
+        .join("\n")}`,
+      `OPPORTUNITY COSTS\n${evaluated
+        .map(
+          (entry) =>
+            `${formatOption(entry.descriptor)} · ${entry.descriptor.contingent[0] ?? "Consumes the opportunity to issue a different order."}`,
+        )
+        .join("\n")}`,
+    );
   if (plan.assumptions.length)
     parts.push(`ASSUMPTION\n${plan.assumptions.join("\n")}`);
   if (plan.calculationDisclosure === "FULL")
@@ -823,6 +853,12 @@ const answerSemanticQueryUnproven = (
           winner: best.descriptor,
           reason,
           tradeoff,
+          ratings: Object.fromEntries(
+            evaluated.map((entry) => [
+              entry.descriptor.id,
+              ratingFor(entry),
+            ]),
+          ),
           variant: discourse.realizationHistory.length,
         })
       : `FIELD NOTE / ${query.operation === "JUSTIFY" ? "JUSTIFICATION" : query.operation === "CORRECT" ? "CORRECTION" : "JUDGMENT"}\n${narrative.line}\n\n${parts.join("\n\n")}`,

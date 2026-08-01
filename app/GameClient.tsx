@@ -3803,6 +3803,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       darkNetUnlocked: avaSession.terminal.shell.darkNetUnlocked,
       installedPackages: avaSession.terminal.shell.installedPackages,
       editor: avaSession.terminal.shell.editor,
+      hack: avaSession.terminal.shell.hack,
     }),
     [
       avaSession.terminal.shell.cwd,
@@ -3810,6 +3811,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       avaSession.terminal.shell.files,
       avaSession.terminal.shell.installedPackages,
       avaSession.terminal.shell.editor,
+      avaSession.terminal.shell.hack,
     ],
   );
   const [messages, setMessages] = useState<Message[]>([]);
@@ -3822,6 +3824,17 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     dailyAphorismAssignment?.dayKey === activeAphorismDay
       ? dailyAphorismAssignment.aphorism
       : null;
+  useEffect(() => {
+    if (!systemNotice) return;
+    const timeout = window.setTimeout(
+      () =>
+        setSystemNotice((current) =>
+          current === systemNotice ? null : current,
+        ),
+      5200,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [systemNotice]);
   const avaMessagesRef = useRef<HTMLDivElement>(null);
   const avaActiveAnchorRef = useRef("");
   const avaAnchorSequenceRef = useRef(0);
@@ -4040,6 +4053,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
                     ...archived.installedPackages,
                     ...current.terminal.shell.installedPackages,
                   ])],
+                  hack:current.terminal.shell.hack??archived.hack,
                 },
               },
             };
@@ -6466,6 +6480,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         <button
           className="system-notice"
           role="status"
+          aria-live="polite"
           onClick={() => setSystemNotice(null)}
         >
           <span className="system-notice-message">{systemNotice}</span>

@@ -12428,6 +12428,7 @@ small,
 .ava-alert-cluster {
   align-self:stretch;
   display:flex;
+  margin-right:10px;
   position:relative;
 }
 .ava-urgent-icon {

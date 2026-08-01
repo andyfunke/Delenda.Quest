@@ -884,7 +884,7 @@ export const restoreCampaignState=(value:unknown):GameState|null=>{
     decisions:Array.isArray(candidate.decisions)?candidate.decisions:base.decisions,eventHistory:Array.isArray(candidate.eventHistory)?candidate.eventHistory:base.eventHistory,reports:Array.isArray(candidate.reports)&&candidate.reports.length?candidate.reports:base.reports,scheduled:Array.isArray(candidate.scheduled)?candidate.scheduled:base.scheduled,
     opportunityCommitment:candidate.opportunityCommitment??null,opportunityHistory:Array.isArray(candidate.opportunityHistory)?candidate.opportunityHistory:base.opportunityHistory,
     opportunityAssignments:Array.isArray(candidate.opportunityAssignments)?candidate.opportunityAssignments:base.opportunityAssignments,
-    forcedOpportunityDays:Array.isArray(candidate.forcedOpportunityDays)?candidate.forcedOpportunityDays.filter((day):day is number=>Number.isInteger(day)&&day>0):base.forcedOpportunityDays,
+    forcedOpportunityDays:Array.isArray(candidate.forcedOpportunityDays)?candidate.forcedOpportunityDays.filter((day):day is number=>Number.isInteger(day)&&day>1):base.forcedOpportunityDays,
     accountOpportunityIds:Array.isArray(candidate.accountOpportunityIds)?candidate.accountOpportunityIds.filter(item=>typeof item==="string"):base.accountOpportunityIds,
     unlocked:Array.isArray(candidate.unlocked)?[...new Set(candidate.unlocked.map(id=>id==="deny-quarter"?"total-war":id))]:base.unlocked,doctrineWinAwards:Array.isArray(candidate.doctrineWinAwards)?candidate.doctrineWinAwards:base.doctrineWinAwards,
     theaterSectors:Array.isArray(candidate.theaterSectors)&&candidate.theaterSectors.length?candidate.theaterSectors:base.theaterSectors,

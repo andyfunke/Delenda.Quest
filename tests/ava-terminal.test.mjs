@@ -472,6 +472,87 @@ test("typed pipelines and the daily quote stay read-only and deterministic",()=>
   assert.doesNotMatch(manual.text,/aux|process id|host process/i);
 });
 
+test("cat, grep, text filters, and CSV tools compose actual campaign reports",()=>{
+  const state=newState(441);
+  let session=newSession();
+  const execute=(command)=>{
+    const result=run(command,state,session);
+    session=result.session;
+    assert.equal(result.outputKind,"shell",command);
+    assert.deepEqual(result.state,state,command);
+    return result;
+  };
+
+  const production=execute("cat reports/current/production-data.csv | csvlook");
+  assert.match(production.text,/resource\s+opening\s+output/);
+  assert.match(production.text,/munitions|armor|flight|drones/);
+
+  const available=execute("cat reports/current/action-docket.csv | grep AVAILABLE | awk -F , '{print $1}' | head -n 3");
+  assert.match(available.text,/^[A-Z]+\d+/m);
+  assert.ok(available.text.split("\n").length<=3);
+
+  const metrics=execute("cat reports/current/campaign-metrics.csv | csvcut -c metric,value | csvstat");
+  assert.match(metrics.text,/CSV STATISTICS/);
+  assert.match(metrics.text,/metric:/);
+
+  const digest=execute("cat reports/current/campaign-metrics.csv | sha256sum");
+  assert.match(digest.text,/^[a-f0-9]{64}  -$/);
+});
+
+test("Ava coaches a lay player through a sealed signals intrusion with ordinary commands",()=>{
+  const state=newState(9917);
+  let session=newSession();
+  const execute=(command)=>{
+    const result=run(command,state,session);
+    session=result.session;
+    assert.equal(result.outputKind,"shell",command);
+    assert.deepEqual(result.state,state,"hacking remains informational in its first epoch");
+    return result;
+  };
+
+  const started=execute("hack start");
+  assert.match(started.text,/SIGNALS WORKBENCH/);
+  assert.match(started.text,/No socket, host process, real credential, or external network/i);
+  assert.equal(session.shell.cwd,"/home/commander/home/signals/current");
+
+  const mission=execute("cat mission.txt");
+  assert.match(mission.text,/PROOF RULE/);
+  assert.match(mission.text,/hack submit NODE/);
+
+  const scan=execute("nmap relay-grid");
+  assert.match(scan.text,/SIMULATED RELAY INVENTORY/);
+  assert.match(scan.text,/No packets or sockets left Delenda Quest/);
+
+  const counts=execute("cat auth.log | grep AUTH=FAIL | cut -d ' ' -f 3 | sort | uniq -c");
+  const compromised=counts.text.match(/\b4\s+NODE=(relay-[a-z]+)/)?.[1];
+  assert.ok(compromised,counts.text);
+
+  const keyDiff=execute("diff authorized-keys.csv observed-keys.csv");
+  assert.match(keyDiff.text,new RegExp(compromised));
+
+  const hint=execute("hack hint");
+  assert.match(hint.text,/grep keeps|COMMAND SHAPE/);
+  assert.equal(session.shell.hack.hints,1);
+
+  const solved=execute(`hack submit ${compromised}`);
+  assert.match(solved.text,/INTRUSION PROOF ACCEPTED/);
+  assert.equal(session.shell.hack.status,"solved");
+  assert.match(session.shell.hack.proof,/^[a-f0-9]{64}$/);
+
+  const report=execute("cat intrusion-report.txt");
+  assert.match(report.text,/RECOVERED ENEMY SIGNAL SNAPSHOT/);
+  assert.match(report.text,/one-time captured signal snapshot/i);
+  const proof=execute("sha256sum intrusion-report.txt");
+  assert.match(proof.text,/^[a-f0-9]{64}\s+intrusion-report\.txt$/);
+
+  const nextDay={...state,day:state.day+1};
+  const stale=run("hack status",nextDay,session);
+  assert.match(stale.text,/no active incident/i);
+  const staleReport=run("cat intrusion-report.txt",nextDay,stale.session);
+  assert.match(staleReport.text,/No such file/i);
+  assert.deepEqual(staleReport.state,nextDay);
+});
+
 test("Dark Net mounts the complete campaign corpus and preserves the current docket separately",()=>{
   const state=newState(1);
   const telemetry={

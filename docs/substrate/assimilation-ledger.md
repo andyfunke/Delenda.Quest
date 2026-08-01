@@ -101,3 +101,79 @@ Permutation policy for this epoch:
 - No grammar rule may reinterpret bare `M1` as a directive merely because the
   player most recently viewed Military; explicit Campaign identities retain
   precedence until distinct directive handles exist.
+
+## Epoch 2026-08-01-D: visible-menu ordinals and cross-ledger comparison
+
+Supersedes the unresolved comparison entries in Epoch 2026-08-01-C after the
+displayed docket, discourse binding, semantic compiler, cognitive decision
+route, and proof graph acquired one shared action identity.
+
+| Observed surface | Class | Canonical result | Assimilation rule |
+|---|---|---|---|
+| `production 1` | contextual ordinal | first visible Production choice | The ordinal is resolved only from the state-bound docket most recently rendered by Ava. |
+| `compare M2 production 1` | mixed action comparison | Campaign M2 against the first visible Production choice | An explicit Campaign handle and a contextual directive ordinal enter one read-only cognitive ledger. |
+| bare `advise` on Production or Military | screen-context repair | advice on the visible module | The visual module supplies scope only when the player declares no explicit action or module. |
+| `HIGH 78/100` | public score projection | bell-curve percentile and band | Raw utilities remain in Ava workbooks; terminal prose receives a monotonic public presentation rating. |
+
+Permutation policy for this epoch:
+
+- `production`, `military`, and `diplomacy` ordinals require a matching visible
+  directive context; they never index the global directive catalog.
+- Mixed comparison accepts either two complete visible action identities or a
+  declared Campaign-plus-Production ledger of up to twenty visible actions.
+  It remains read-only.
+- Explicit identities outrank screen context and stale discourse.
+- The public rating changes presentation only. It cannot alter ordering,
+  feasibility, proof identity, or campaign mechanics.
+
+## Epoch 2026-08-01-E: Daily sealing and evidence-driven intrusion grammar
+
+Preserves the single-authority rule while admitting a terminal-shaped
+investigation whose facts are generated from the sealed campaign identity.
+
+| Observed surface | Class | Canonical result | Assimilation rule |
+|---|---|---|---|
+| forced Daily activation on Day 1 | structurally ineligible | `RANDOM EVENT SEALED / DAY 1` with unchanged state | Day 1 is not a failed roll and must never produce an error-shaped result. |
+| forced Daily activation after Day 1 | internal Nexus mutation | active packet with forced-day marker and assignment | The marker and assignment commit together so the rendered alert cannot announce an event that disappears on re-read. |
+| `cat reports/current/action-docket.csv` | live virtual report | visible day/revision-sealed action rows | The report is reconstructed from authoritative state and cannot enumerate hidden actions. |
+| `grep`, `awk`, `sed`, `csvcut`, `csvstat` in a pipeline | bounded text transform | derived report text | Every stage consumes and emits text inside the sealed interpreter; no stage invokes the host shell. |
+| `nmap relay-grid` | simulated inventory | campaign-bound synthetic relay nodes | The target name is closed-world; arbitrary hosts, addresses, flags, and sockets remain rejected. |
+| `hack start` | read-only procedure creation | deterministic evidence workspace | Starting an incident creates Ava-session evidence only and changes no game state. |
+| `hack hint` / `hack coach` | progressive coaching | concept, command skeleton, then exact evidence path | Coaching teaches the procedure before revealing its application to the current incident. |
+| `hack submit relay-…` | evidence evaluation | rejected candidate or unlocked intelligence snapshot | Evaluation is deterministic and session-bound; success cannot mutate campaign state in this epoch. |
+
+Permutation policy for this epoch:
+
+- Pipelines may combine only declared producers and filters. Redirection,
+  command substitution, background execution, shell expansion, and arbitrary
+  executables remain rejected before evaluation.
+- Virtual report files expose only facts already disclosed to the commander.
+  The unlocked intrusion report is a one-time observed intelligence snapshot,
+  not a live read through hidden state.
+- A future campaign effect must consume a typed `IntrusionProof`, declare its
+  cost and consequences, pass through prepare/confirm, and produce the same
+  proof identity on browser and native SSH. `PL-HACK-001` records that parked
+  design but grants no authority to implement or activate it.
+
+## Epoch 2026-08-01-F: intrusion grammar/content boundary correction
+
+The prior epoch admitted the player language for a signals investigation. It
+did not make authored incident content part of Ava's linguistic grammar.
+
+| Concern | Canonical owner | Assimilation rule |
+|---|---|---|
+| `hack start`, `hack status`, `hack hint`, `hack submit CLAIM` | Ava grammar and shell instruction schema | Syntax lowers into a bounded workbench operation; it does not contain puzzle truth. |
+| Incident family, evidence realization, verifier predicates, coaching text, disclosure report | `packages/intrusion-library` | Content compiles into one typed, versioned semantic incident before any client renders it. |
+| Campaign binding, session persistence, virtual mount, response rendering | `app/ava/hacking.ts` | The adapter supplies declared visible facts and consumes the compiled incident; it cannot reconstruct or override the verifier. |
+| Future costed intrusion effect | Nexus action descriptor, parked in `PL-HACK-001` | No compiled proof mutates campaign state until graphical parity and prepare/confirm authority exist. |
+
+Permutation policy for this epoch:
+
+- New incident families enter the package catalogue, never the command grammar
+  or recovery ledger.
+- The package cannot import GameState, Ava session state, a client, a
+  filesystem, or a network adapter.
+- A persisted incident records schema and content versions so catalogue drift
+  fails closed instead of changing an open puzzle.
+- Recovery documents may record that content shipped and point to the package;
+  they are not canonical specifications for the content itself.

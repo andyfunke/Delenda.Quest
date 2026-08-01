@@ -327,6 +327,30 @@ test("targets of opportunity are deterministic and do not spend a strategic orde
   assert.notDeepEqual(committed,state);
 });
 
+test("a failed random Daily mission is a recorded outcome, never an activation error",()=>{
+  let missed=null;
+  for(let seed=1;seed<=3000&&!missed;seed++){
+    const opening=initialState({seed,theater:"river"});
+    for(let day=2;day<=30&&!missed;day++){
+      const state={...opening,day,currentSituation:null};
+      const packet=opportunityForState(state);
+      if(!packet)continue;
+      for(const response of packet.responses.filter(item=>item.chance<1)){
+        const resolved=commitOpportunity(state,response);
+        if(resolved.opportunityHistory[0]?.outcome==="missed")
+          missed={state,packet,response,resolved};
+      }
+    }
+  }
+  assert.ok(missed,"the deterministic corpus must contain a reachable missed branch");
+  assert.equal(missed.resolved.actions,missed.state.actions);
+  assert.equal(missed.resolved.opportunityHistory.length,1);
+  assert.equal(missed.resolved.opportunityHistory[0].opportunityId,missed.packet.id);
+  assert.equal(missed.resolved.opportunityHistory[0].responseId,missed.response.id);
+  assert.equal(missed.resolved.opportunityHistory[0].outcome,"missed");
+  assert.match(missed.resolved.opportunityHistory[0].report,/attempted|opening closed/i);
+});
+
 test("opened and expired opportunities remain pinned in the permanent no-repeat ledger",()=>{
   let state=null,packet=null;
   for(let seed=1;seed<500&&!packet;seed++){
@@ -425,6 +449,11 @@ test("the godmode override keeps Day 1 sealed and opens later opportunities with
   const dayOneForced=forceOpportunityForCurrentDay(state);
   assert.strictEqual(dayOneForced,state,"godmode cannot force a Day 1 opportunity");
   assert.equal(opportunityStatusForFraction(dayOneForced,.5).status,"none");
+  assert.deepEqual(
+    restoreCampaignState({...state,forcedOpportunityDays:[1,2]}).forcedOpportunityDays,
+    [2],
+    "legacy Day 1 overrides are discarded during restore",
+  );
   state={...state,day:2,currentSituation:null};
   const forced=forceOpportunityForCurrentDay(state);
   const window=opportunityStatusForFraction(forced,.5);

@@ -33,6 +33,21 @@ test("ssh server does not import GameClient or BriefingInterface", () => {
   assert.equal(source.includes("BriefingInterface"), false);
 });
 
+test("intrusion content is package-owned and Ava remains an adapter", () => {
+  for (const path of [
+    "packages/intrusion-library/src/schema.ts",
+    "packages/intrusion-library/src/compiler.ts",
+    "packages/intrusion-library/src/catalog/index.ts",
+    "packages/intrusion-library/src/catalog/authentication-drift.ts",
+  ]) {
+    const source = readFileSync(resolve(path), "utf8");
+    assert.doesNotMatch(source, /(?:from|import)\s+["'][^"']*(?:app\/|GameState|ava\/)/, path);
+  }
+  const adapter = readFileSync(resolve("app/ava/hacking.ts"), "utf8");
+  assert.match(adapter, /compileIntrusionIncident/);
+  assert.doesNotMatch(adapter, /const RELAY_NODES|authorizedKeysCsv\s*=|observedKeysCsv\s*=/);
+});
+
 test("production adapters cannot import alternate mutation authorities", () => {
   const forbidden = [
     "runAvaClassic",

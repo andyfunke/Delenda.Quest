@@ -479,3 +479,94 @@ For every subsequent epoch:
     secret, recipient import, outbound message, inbound route, schema migration,
     deployment, or production configuration was created or changed
   - parked epochs are not implementation or activation authority
+
+## Daily recovery and sealed signals-workbench epoch
+
+- Date: 2026-08-01
+- State: implemented locally; not deployed
+- Scope:
+  - changed Day 1's forced-opportunity response from an error-shaped rejection
+    into an explicit, non-mutating `SEALED / DAY 1` result; the opening day
+    remains structurally ineligible for a random Daily mission
+  - retained deterministic Day 2+ opportunity activation and added a contract
+    proving that forced activation retains both its forced-day marker and
+    assignment in one Nexus transaction; a legitimately missed response is
+    reported without losing its Daily report
+  - made transient system notices dismiss themselves after 5.2 seconds while
+    preserving manual dismissal and accessible live-region announcement
+  - moved the Daily alert rail ten pixels left of Ava's dock button so the two
+    controls no longer overlap
+  - expanded the sealed shell with deterministic system snapshots, text
+    transforms, CSV inspection, checksums, and simulated network inventory;
+    none of these commands execute a host binary, open a socket, or receive a
+    path outside Ava's virtual filesystem
+  - added live, pipeable CSV reports for the displayed action docket,
+    production, campaign metrics, and resolution history
+  - established the first diegetic signals-workbench procedure: the player
+    inventories a synthetic relay grid, counts authentication failures,
+    compares authorized and observed fingerprints, and submits the compromised
+    relay through `hack submit`
+  - made Ava's coaching progressive (`hack hint` / `hack coach`) and
+    evidence-based; the final answer is not exposed until the third request
+  - rewards a correct proof with one campaign-bound intelligence snapshot and
+    a SHA-256 receipt, not a state mutation, prediction oracle, real network
+    action, or host-system capability
+  - persisted and validated the signals session through the same sealed Ava
+    archive as the rest of the terminal
+  - documented a later campaign-mutating intrusion layer as
+    `PL-HACK-001`; it remains parked behind typed Nexus actions, action costs,
+    confirmation, web/SSH parity, and rollback gates
+- Explicit exclusions:
+  - no real scanning, sockets, SSH forwarding, subprocesses, arbitrary file
+    access, package downloads, credentials, or internet access were introduced
+  - no hacking proof can currently spend an order or modify the campaign
+  - the parked mechanical layer is planning material, not implementation or
+    deployment authorization
+- Acceptance:
+  - complete repository test gate, including all campaign sweeps, 4,800 grammar
+    proofs, the Ava compiler/terminal suite, and the complete coached procedure
+    and report pipelines
+  - 214 Nexus/Substrate contracts, including Day 1 sealing and a deterministic
+    missed Daily outcome
+  - 30 rendered/Cloudflare contracts, including notice timing and alert
+    geometry
+  - TypeScript typecheck, native SSH bundles, current Cloudflare generated
+    types, and Worker dry-run with D1, Images, Assets, and maintenance binding
+    intact
+  - lint at the established 22-warning baseline with zero errors
+
+## Intrusion-library architecture correction epoch
+
+- Date: 2026-08-01
+- State: implemented locally; not deployed
+- Scope:
+  - corrected the ownership error in the first signals-workbench slice: the
+    recovery ledger remains a historical receipt and Ava grammar remains a
+    command-language compiler, while incident content now lives in the
+    dedicated internal `packages/intrusion-library` package
+  - extracted the authentication-drift family, relay vocabulary, evidence
+    realization, proof predicates, coaching ladder, disclosure boundary, and
+    deterministic compilation from `app/ava/hacking.ts`
+  - reduced `app/ava/hacking.ts` to a campaign binding, Ava session, virtual
+    mount, claim submission, and rendering adapter over one compiled semantic
+    incident
+  - added explicit family-schema, content, and compiled-incident versions to
+    the persisted workbench contract so content drift fails closed
+  - documented the boundary in `AGENTS.md`, the substrate implementation map,
+    Ava command substrate, grammar assimilation ledger, and `PL-HACK-001`
+- Explicit exclusions:
+  - no new incident family, campaign effect, Nexus action, graphical surface,
+    external integration, production configuration, push, or deployment was
+    introduced
+  - the Parking Lot still governs additional families and all mechanical
+    intrusion effects
+- Acceptance:
+  - package contracts validate catalogue structure, deterministic compilation,
+    unique evidence convergence, safe artifact names, and the network/host
+    boundary
+  - existing Ava terminal procedure remains the end-to-end adapter contract
+  - complete repository test gate, including campaign sweeps, 4,800 grammar
+    proofs, 32 Ava terminal contracts, and 215 Nexus/Substrate contracts
+  - TypeScript typecheck, native SSH build, Cloudflare binding-type check, and
+    Worker dry-run with D1, Images, Assets, and maintenance binding intact
+  - lint retained the established 22-warning baseline with zero errors

@@ -4,7 +4,7 @@ The credential must describe what Delenda Quest actually verifies: completion of
 
 ## LinkedIn fields
 
-- Name: `Delenda Quest Campaign Command Simulation — <outcome>`
+- Name: `Delenda Quest Campaign Command Simulation: <outcome>`
 - Issuing organization: `DELENDA.QUEST`
 - Issue date: the immutable campaign completion month and year
 - Expiration: none

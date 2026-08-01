@@ -58,3 +58,14 @@ before proposing or activating deferred work. A `PARKED` plan is durable memory,
 not authorization to create accounts, change DNS, add secrets, contact users,
 send mail, or deploy. Append dated amendments; never silently overwrite an
 earlier epoch decision.
+
+## Intrusion content boundary
+
+Authored hacking incidents and their deterministic evidence compiler live in
+`packages/intrusion-library`. Ava grammar owns only the stable command surface;
+`app/ava/hacking.ts` is only a campaign-binding, session, and presentation
+adapter. Never append incident catalogues, evidence generators, verifier truth,
+or coaching libraries to an Ava recovery ledger or natural-language grammar
+file. `docs/ava-cognitive-runtime-recovery.md` records historical receipts;
+`docs/parking-lot/PL-HACK-001-diegetic-intrusion.md` retains only future work
+that has not been authorized.

@@ -36,7 +36,7 @@ workbook files download as genuine Excel packages.
 
 Dark Net is an unlockable read-only mount at `/darknet`. Its campaign archive
 contains the complete authored registry rather than only the current docket:
-15 Main situation records, 288 Domestic/Network scene variants, and 100 targets
+50 Main situation records, 288 Domestic/Network scene variants, and 100 targets
 of opportunity. The state-bound daily docket remains separately available as
 `/darknet/campaign/current.txt`. Once mounted, ordinary `ls`, `cd`, `cat`,
 `open`, `find`, and literal `grep` operate over the archive. A one-argument
@@ -44,3 +44,40 @@ of opportunity. The state-bound daily docket remains separately available as
 Reading quotation content through `cat`, `open`, direct Tor access, or matching
 content with `grep` records the same account-persistent view event as a
 quotation encountered in the ordinary interface.
+
+## Pipeable command data
+
+The current report mount includes human-readable reports, workbooks, an
+interoperability bundle, and bounded CSV projections:
+
+- `reports/current/action-docket.csv`
+- `reports/current/production-data.csv`
+- `reports/current/campaign-metrics.csv`
+- `reports/current/resolution-history.csv`
+
+`cat` and `grep` can therefore operate on actual live report data. The
+declared filters also include `awk`, `sed`, `tr`, `nl`, `sha256sum`,
+`csvlook`, `csvcut`, and `csvstat`. Each consumes an in-memory text stream;
+none invokes a host binary.
+
+## Coached signals workbench
+
+The canonical incident subsystem is the internal
+`packages/intrusion-library` package. It owns the typed family catalogue,
+authored vocabulary, deterministic evidence compiler, verifier predicates,
+coaching ladder, disclosure report, and content versions. Ava's grammar owns
+only the stable command protocol, and `app/ava/hacking.ts` binds one compiled
+incident to campaign-visible facts and the sealed shell session.
+
+`hack start` opens a campaign-bound signals incident at
+`~/home/signals/current`. Ava teaches the player to identify a compromised
+relay by correlating authentication failures and a substituted key with
+ordinary commands. `hack hint` progresses from concept, to command shape, to
+the complete procedure. A correct `hack submit NODE` unlocks an immutable
+one-time intelligence snapshot and SHA-256 receipt inside the virtual mount.
+
+The workbench is informational in this epoch. It cannot spend an order,
+change a resource, alter success probability, open a socket, accept an IP or
+domain, or touch the host. A later mechanical intrusion system must enter the
+Nexus as a typed, costed, confirmed action and achieve graphical parity before
+it can change campaign state.

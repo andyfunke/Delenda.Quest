@@ -1412,12 +1412,20 @@ const shouldUseSemanticInstruction = (
   const explicitHandleComparison =
     query.operation === "COMPARE" &&
     /\b[mdnxp]\d+\b/i.test(input);
+  const mixedActionComparison =
+    query.operation === "COMPARE" &&
+    new Set(
+      query.subject.entityIds.map((id) =>
+        id.includes(":") ? id.slice(0, id.indexOf(":")) : "campaign",
+      ),
+    ).size > 1;
   return (
     query.operation === "ADVISE" ||
     query.operation === "RANK" ||
     query.operation === "RECOMMEND" ||
     query.operation === "JUSTIFY" ||
-    (query.operation === "COMPARE" && !explicitHandleComparison) ||
+    (query.operation === "COMPARE" &&
+      (!explicitHandleComparison || mixedActionComparison)) ||
     query.operation === "CORRECT" ||
     query.operation === "CHALLENGE" ||
     query.overlays.length > 0 ||
@@ -1616,6 +1624,9 @@ export function compileAvaCommand(
     );
     const exactTargets =
       semantic.query.subject.entityIds.length === 2 ||
+      (semantic.query.subject.entityIds.length > 2 &&
+        /\bcampaign\b/.test(normalized) &&
+        /\bproduction\b/.test(normalized)) ||
       (semantic.query.subject.entityIds.length === 0 &&
         semantic.query.scope.domains.length === 2);
     if (!exactTargets || unresolved.length)

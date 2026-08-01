@@ -41,6 +41,7 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 | Ava Classic differential reference | `app/substrate/ava-classic.ts` | Read-only response realization for independent differential tests |
 | LLM packets | `app/substrate/llm-packets.ts` | Realization / deliberation packets + validators |
 | MCP seam | `app/substrate/mcp-seam.ts` | Compile-time future tool → service mapping |
+| Intrusion library | `packages/intrusion-library` | Runtime-neutral incident-family schemas, authored catalogue, deterministic evidence compiler, verifier, coaching, and disclosure objects |
 | Terminal core | `packages/terminal-core` | Nexus adapter + canonical response renderer (runtime-neutral) |
 | SSH server | `packages/ssh-server` | Auth, session, disabled subsystems, limits |
 
@@ -49,4 +50,5 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 - SSH / terminal → web components or HTML scraping
 - Adapters → database mutation or duplicated simulation
 - Content copy → mechanic lookup by displayed string
+- Intrusion catalogue / verifier truth → Ava grammar, shell adapter, or recovery ledger
 - Second campaign engine, second Ava parser, SSH-only game logic

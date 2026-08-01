@@ -109,6 +109,25 @@ const shellNames = new Set([
   "bc",
   "units",
   "cal",
+  "date",
+  "id",
+  "uname",
+  "env",
+  "df",
+  "du",
+  "top",
+  "ss",
+  "nl",
+  "tr",
+  "sed",
+  "awk",
+  "diff",
+  "sha256sum",
+  "csvlook",
+  "csvcut",
+  "csvstat",
+  "nmap",
+  "hack",
 ]);
 
 const pipelineFilters = new Set([
@@ -122,11 +141,21 @@ const pipelineFilters = new Set([
   "column",
   "less",
   "jq",
+  "nl",
+  "tr",
+  "sed",
+  "awk",
+  "sha256sum",
+  "csvlook",
+  "csvcut",
+  "csvstat",
 ]);
 
 const pipelineShellProducers = new Set([
   "cat", "grep", "find", "history", "ls", "tree", "ps", "crontab",
   "fortune", "systemctl", "stat", "file",
+  "date", "id", "uname", "env", "df", "du", "top", "ss",
+  "diff", "sha256sum", "nmap",
 ]);
 
 const pipelineProducers = new Set([
@@ -245,7 +274,7 @@ const shellArgumentError = (
   command: string,
   args: string[],
 ): string | null => {
-  if (["pwd", "whoami", "history", "clear", "ps", "hostname", "uptime", "fortune"].includes(command))
+  if (["pwd", "whoami", "history", "clear", "ps", "hostname", "uptime", "fortune", "date", "id", "uname", "env", "df", "top", "ss"].includes(command))
     return args.length ? `${command}: unexpected operand` : null;
   if (command === "cd")
     return args.length > 1 || args.some((arg) => arg.startsWith("-"))
@@ -326,6 +355,40 @@ const shellArgumentError = (
     return args.length === 0 || (args.length === 1 && args[0] === "-t")
       ? null
       : "column: expected only -t";
+  if (command === "du")
+    return args.length <= 1 ? null : "du: expected at most one path";
+  if (command === "nl")
+    return args.length === 0 || (args.length === 1 && args[0] === "-ba")
+      ? null
+      : "nl: expected only -ba";
+  if (command === "tr")
+    return args.length === 2 ? null : "tr: expected SET1 SET2";
+  if (command === "sed")
+    return args.length === 1 ? null : "sed: expected one bounded expression";
+  if (command === "awk")
+    return args.length >= 1 && args.length <= 6
+      ? null
+      : "awk: expected one bounded field program";
+  if (command === "diff")
+    return args.length === 2 ? null : "diff: expected two text files";
+  if (command === "sha256sum")
+    return args.length <= 1 ? null : "sha256sum: expected at most one text file";
+  if (command === "csvlook" || command === "csvstat")
+    return args.length <= 1 ? null : `${command}: expected at most one CSV file`;
+  if (command === "csvcut")
+    return args.length >= 2 && args.length <= 3 && args[0] === "-c"
+      ? null
+      : "csvcut: expected -c COLUMN[,COLUMN] [FILE]";
+  if (command === "nmap")
+    return args.length === 1 ? null : "nmap: expected one declared virtual target";
+  if (command === "hack") {
+    if (!args.length) return null;
+    if (["start", "status", "hint", "coach"].includes(args[0]))
+      return args.length === 1 ? null : `hack: ${args[0]} takes no operand`;
+    if (args[0] === "submit")
+      return args.length === 2 ? null : "hack: submit expects one NODE value";
+    return "hack: use start, status, hint, coach, or submit NODE";
+  }
   if (command === "crontab")
     return args.length === 1 && args[0] === "-l" ? null : "crontab: only -l is available";
   if (command === "systemctl")
@@ -385,7 +448,7 @@ export const parseAvaShellInput = (
         (stage) => !pipelineFilters.has(stage!.command.toLowerCase()),
       )
     )
-      return rejectedShell(trimmed, "only grep, head, tail, sort, uniq, wc, cut, column, jq, and less may follow |");
+      return rejectedShell(trimmed, "only declared text, hash, and CSV filters may follow |");
     if(stages[0]!.command!=="STREAM"&&!pipelineShellProducers.has(stages[0]!.command.toLowerCase()))
       return rejectedShell(trimmed,"the first pipeline stage must be a read-only text producer");
     return {
@@ -1489,10 +1552,38 @@ export const compileSemanticQuery = (
         ]),
       ];
   if (
+    operation === "COMPARE" &&
+    /\bcampaign\b/.test(input) &&
+    /\bproduction\b/.test(input) &&
+    context.discourse?.directiveContext?.channel === "production"
+  ) {
+    for (const id of [
+      ...context.entities
+        .filter((entity) => entity.kind === "maneuver" && entity.action)
+        .map((entity) => entity.id),
+      ...context.discourse.directiveContext.entityIds,
+    ])
+      if (!entityIds.includes(id)) entityIds.push(id);
+  }
+  if (
     subject === "UNKNOWN" &&
     entityIds.some(
       (id) => context.entities.find((entity) => entity.id === id)?.action,
     )
+  )
+    subject = "CAMPAIGN_CHOICE";
+  if (
+    operation === "COMPARE" &&
+    entityIds.filter(
+      (id) => context.entities.find((entity) => entity.id === id)?.action,
+    ).length === 2
+  )
+    subject = "CAMPAIGN_CHOICE";
+  if (
+    operation === "COMPARE" &&
+    /\bcampaign\b/.test(input) &&
+    /\bproduction\b/.test(input) &&
+    entityIds.length >= 2
   )
     subject = "CAMPAIGN_CHOICE";
   const criteria = criteriaFor(input);
@@ -1610,7 +1701,7 @@ export const compileSemanticQuery = (
   const query: AvaSemanticQuery = {
     operation,
     subject: { type: subject, entityIds },
-    directive: directive.directive,
+    directive: subject === "DIRECTIVE" ? directive.directive : undefined,
     scope,
     metric:
       subject === "METRIC" ? metricOperandsFor(input)[0] : undefined,
@@ -1635,7 +1726,7 @@ export const compileSemanticQuery = (
       /\b(do not|dont|never|not|stop)\b/.test(input)
         ? "NEGATED"
         : "AFFIRMATIVE",
-    quantity: ordinalValue
+    quantity: ordinalValue && operation !== "COMPARE"
       ? { kind: "ORDINAL", value: ordinalValue }
       : undefined,
     certainty: /\b(maybe|likely|probably|uncertain)\b/.test(input)

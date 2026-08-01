@@ -15,6 +15,8 @@ type StoredArchive = {
   cwd: string;
   files: StoredVirtualFile[];
   darkNetUnlocked?: boolean;
+  installedPackages?: string[];
+  hack?: AvaShellSession["hack"];
 };
 let archiveWriteQueue: Promise<void> = Promise.resolve();
 
@@ -83,6 +85,8 @@ const writeAvaShellArchive = async (
     campaignId,
     cwd: shell.cwd,
     darkNetUnlocked: shell.darkNetUnlocked,
+    installedPackages: shell.installedPackages,
+    hack: shell.hack,
     files: shell.files.map((file) => ({
       ...file,
       workbookBytes: file.workbookBytes

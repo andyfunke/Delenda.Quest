@@ -25,6 +25,14 @@ import type {
 } from "./schema";
 import { APHORISMS } from "../aphorisms";
 import { AVA_MAN_PAGES, avaManPage, renderAvaManPage } from "./man-pages";
+import { sha256Hex } from "./cognitive-types";
+import {
+  avaHackDirectories,
+  avaHackFiles,
+  executeAvaHack,
+  renderAvaHackScan,
+  validAvaHackSession,
+} from "./hacking";
 
 export const AVA_HOME = "/home/commander";
 export const AVA_INITIAL_CWD = `${AVA_HOME}/home`;
@@ -258,6 +266,77 @@ const currentTextReport = (
   };
 };
 
+const csvCell = (value: string | number) => {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
+const currentDataFiles = (
+  state: GameState,
+  fraction: number,
+): AvaVirtualFile[] => {
+  const revision = avaReportRevision(state, fraction);
+  const projected = projectProduction(state);
+  const textFile = (name: string, rows: Array<Array<string | number>>): AvaVirtualFile => ({
+    path: `${AVA_INITIAL_CWD}/reports/current/${name}.csv`,
+    kind: "text",
+    mode: "0640",
+    owner: "commander",
+    createdDay: state.day,
+    content: rows.map((row) => row.map(csvCell).join(",")).join("\n"),
+    stateRevision: revision,
+    asOfFraction: boundedFraction(fraction),
+  });
+  return [
+    textFile("production-data", [
+      ["resource", "opening", "output", "requested_use", "fulfilled_use", "closing", "coverage_days"],
+      ...projected.lines.map((line) => [
+        line.resource,
+        line.opening,
+        line.output,
+        line.requestedUse,
+        line.fulfilledUse,
+        line.closing,
+        line.coverage.toFixed(2),
+      ]),
+    ]),
+    textFile("action-docket", [
+      ["handle", "module", "status", "order_cost", "label", "summary"],
+      ...enumerateAvaActions(state, fraction).map((action) => [
+        action.handle,
+        action.parentLabel.split(" / ")[0],
+        action.available ? "AVAILABLE" : "LOCKED",
+        action.orderCost,
+        action.label,
+        action.summary,
+      ]),
+    ]),
+    textFile("campaign-metrics", [
+      ["metric", "value"],
+      ["campaign_day", state.day],
+      ["orders_remaining", state.actions],
+      ["front_km", state.front.toFixed(1)],
+      ["readiness_percent", state.readiness.toFixed(1)],
+      ["equipment_percent", state.equipment.toFixed(1)],
+      ["intelligence", state.intelligence.toFixed(1)],
+      ["treasury_billions", state.treasury.toFixed(2)],
+      ["legitimacy", state.legitimacy.toFixed(1)],
+      ["resistance", state.resistance.toFixed(1)],
+    ]),
+    textFile("resolution-history", [
+      ["day", "sector", "ground_km", "friendly_losses", "enemy_losses", "net_flight"],
+      ...state.resolutionHistory.map((record) => [
+        record.resolvedDay,
+        record.sector,
+        record.outcome.groundMovement.toFixed(1),
+        record.personnel.combatLosses,
+        record.operations.enemyLosses,
+        record.personnel.netDesertion,
+      ]),
+    ]),
+  ];
+};
+
 const staticFiles = (
   state: GameState,
   fraction: number,
@@ -326,6 +405,7 @@ const staticFiles = (
     },
     ...reportTopics.map((topic) => currentReportFile(topic, state, fraction)),
     currentCsvBundleFile(state, fraction),
+    ...currentDataFiles(state, fraction),
     ...(
       [
         "daily-brief",
@@ -360,21 +440,30 @@ const staticFiles = (
   ];
 };
 
-const dynamicDirectories = (state: GameState): VirtualDirectory[] =>
-  state.resolutionHistory.map((record) => ({
+const dynamicDirectories = (
+  state: GameState,
+  shell?: Pick<AvaShellSession, "hack">,
+): VirtualDirectory[] => [
+  ...state.resolutionHistory.map((record) => ({
     path: `${AVA_INITIAL_CWD}/reports/history/day-${String(
       record.resolvedDay,
     ).padStart(3, "0")}`,
     mode: "0550",
     owner: "commander",
-  }));
+  }) satisfies VirtualDirectory),
+  ...avaHackDirectories(shell ?? {}).map((path) => ({
+    path,
+    mode: "0550",
+    owner: "ava" as const,
+  })),
+];
 
 const allDirectories = (
   state: GameState,
-  shell?: Pick<AvaShellSession, "darkNetUnlocked">,
+  shell?: Pick<AvaShellSession, "darkNetUnlocked" | "hack">,
 ) => [
   ...staticDirectories,
-  ...dynamicDirectories(state),
+  ...dynamicDirectories(state, shell),
   ...(shell?.darkNetUnlocked
     ? avaDarkNetDirectories.map<VirtualDirectory>((path) => ({
         path,
@@ -406,6 +495,7 @@ const allFiles = (
   for (const file of [
     ...staticFiles(state, fraction),
     ...darkNetFiles,
+    ...avaHackFiles(state, shell),
     ...shell.files,
   ])
     byPath.set(file.path, file);
@@ -417,7 +507,17 @@ export const initialAvaShellSession = (): AvaShellSession => ({
   history: [],
   files: [],
   darkNetUnlocked: false,
-  installedPackages: ["bat", "less", "milhist", "nano", "tree", "vim"],
+  installedPackages: [
+    "bat",
+    "csvkit",
+    "less",
+    "milhist",
+    "nano",
+    "net-tools",
+    "textutils",
+    "tree",
+    "vim",
+  ],
 });
 
 export const serializeAvaShellSession = (shell: AvaShellSession) => ({
@@ -425,6 +525,7 @@ export const serializeAvaShellSession = (shell: AvaShellSession) => ({
   files: shell.files,
   darkNetUnlocked: shell.darkNetUnlocked,
   installedPackages: shell.installedPackages,
+  hack: shell.hack,
 });
 
 export const restoreAvaShellSession = (
@@ -438,13 +539,17 @@ export const restoreAvaShellSession = (
     files?: unknown;
     darkNetUnlocked?: unknown;
     installedPackages?: unknown;
+    hack?: unknown;
   };
   const darkNetUnlocked = candidate.darkNetUnlocked === true;
+  const hack = validAvaHackSession(candidate.hack, state)
+    ? candidate.hack
+    : undefined;
   const requestedCwd =
     typeof candidate.cwd === "string" ? cleanPath(candidate.cwd) : initial.cwd;
   const cwd =
     !deniedDirectory(requestedCwd) &&
-    allDirectories(state, { darkNetUnlocked }).some(
+    allDirectories(state, { darkNetUnlocked, hack }).some(
       (directory) => directory.path === requestedCwd,
     )
       ? requestedCwd
@@ -527,6 +632,7 @@ export const restoreAvaShellSession = (
     files,
     darkNetUnlocked,
     installedPackages: [...new Set(installedPackages)],
+    hack,
   };
 };
 
@@ -721,6 +827,37 @@ const fileReferenceError = (
         .map((file) => file.path)
         .join("\n")}`;
 
+const textFileContent = (
+  command: string,
+  requested: string,
+  state: GameState,
+  shell: AvaShellSession,
+  fraction: number,
+  darkNetContext: AvaDarkNetContext,
+) => {
+  const target = resolveAvaPath(shell.cwd, requested);
+  if (
+    traversesDeniedDirectory(shell.cwd, requested) ||
+    deniedDirectory(target)
+  )
+    return { ok: false as const, error: `${command}: ${requested}: Permission denied` };
+  const resolution = resolveFileReference(
+    requested,
+    state,
+    shell,
+    fraction,
+    darkNetContext,
+  );
+  if (resolution.status !== "resolved")
+    return {
+      ok: false as const,
+      error: fileReferenceError(command, requested, resolution),
+    };
+  if (resolution.file.kind !== "text")
+    return { ok: false as const, error: `${command}: ${requested}: binary artifact` };
+  return { ok: true as const, text: resolution.file.content ?? "", path: resolution.file.path };
+};
+
 const darkNetAphorismIdForPath = (path: string) =>
   path.match(/^\/darknet\/quotes\/(Q\d{3})\.txt$/i)?.[1].toUpperCase();
 
@@ -755,6 +892,15 @@ export const avaShellCompletionCandidates = (
     "open ",
     "grep ",
     "find ",
+    "diff ",
+    "sha256sum ",
+    "csvlook ",
+    "csvcut -c ",
+    "csvstat ",
+    "nmap relay-grid",
+    "hack start",
+    "hack status",
+    "hack hint",
     "whoami",
     "history",
     "clear",
@@ -820,6 +966,53 @@ const literalSearchExpression = (pattern: string, insensitive: boolean) =>
     insensitive ? "i" : "",
   );
 
+const parseCsvLine = (line: string) => {
+  const cells: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else quoted = !quoted;
+    } else if (character === "," && !quoted) {
+      cells.push(cell);
+      cell = "";
+    } else cell += character;
+  }
+  cells.push(cell);
+  return cells;
+};
+
+const parseCsv = (input: string) =>
+  input
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map(parseCsvLine);
+
+const renderCsvTable = (rows: string[][]) => {
+  const bounded = rows.slice(0, MAX_OUTPUT_LINES);
+  const widths = bounded.reduce<number[]>((current, row) => {
+    row.forEach((cell, index) => {
+      current[index] = Math.min(42, Math.max(current[index] ?? 0, cell.length));
+    });
+    return current;
+  }, []);
+  return bounded
+    .map((row, rowIndex) => {
+      const rendered = row
+        .map((cell, index) => cell.slice(0, widths[index]).padEnd(widths[index]))
+        .join("  ")
+        .trimEnd();
+      return rowIndex === 0
+        ? `${rendered}\n${widths.map((width) => "-".repeat(width)).join("  ")}`
+        : rendered;
+    })
+    .join("\n");
+};
+
 export type AvaShellExecution = {
   shell: AvaShellSession;
   text: string;
@@ -847,6 +1040,8 @@ const BREW_PACKAGES: Record<string, { description: string; commands: string[] }>
   less: { description: "Bounded pipeline pager.", commands: ["less"] },
   milhist: { description: "Library of Congress military-history archive broker.", commands: ["archive", "milhist"] },
   nano: { description: "Bounded commander-note editor.", commands: ["nano"] },
+  "net-tools": { description: "Declared relay inventory and virtual socket inspection.", commands: ["nmap", "ss"] },
+  textutils: { description: "Bounded text transformation and proof tools.", commands: ["awk", "sed", "tr", "nl", "diff", "sha256sum"] },
   tree: { description: "Visible filesystem hierarchy.", commands: ["tree"] },
   units: { description: "Declared distance and mass conversion.", commands: ["units"] },
   vim: { description: "Bounded modal commander-note editor.", commands: ["vim"] },
@@ -1122,6 +1317,56 @@ export const executeAvaShell = (
     return groups?{shell:nextShell,text:`${(Number(match[1])*rates[match[2].toLowerCase()]/rates[match[3].toLowerCase()]).toFixed(4)} ${match[3].toLowerCase()}`}:fail(nextShell,"units","incompatible dimensions");
   }
   if(command==="CAL")return{shell:nextShell,text:`DELENDA CAMPAIGN\nCURRENT DAY: ${state.day}\nRESOLVED: ${state.resolutionHistory.length}\nORDERS REMAINING: ${state.actions}`};
+  if(command==="DATE")return{shell:nextShell,text:`CAMPAIGN DAY ${state.day} // ${Math.round(boundedFraction(fraction)*100)}% OF THE CURRENT COMMAND WINDOW ELAPSED`};
+  if(command==="ID")return{shell:nextShell,text:"uid=1000(commander) gid=1000(command) groups=1000(command),27(ava-readers)"};
+  if(command==="UNAME")return{shell:nextShell,text:"Delenda sealed-command 1.0 Ava-Nexus virtual"};
+  if(command==="ENV")return{shell:nextShell,text:[`CAMPAIGN_ID=${state.campaignId}`,`CAMPAIGN_DAY=${state.day}`,`ORDERS_REMAINING=${state.actions}`,`STATE_REVISION=${avaStateRevision(state)}`,`SHELL_AUTHORITY=read-mostly`,"HOST_ACCESS=denied","NETWORK_ACCESS=declared-simulation-only"].join("\n")};
+  if(command==="DF"){
+    const visible=allFiles(state,nextShell,fraction,darkNetContext),used=visible.reduce((sum,file)=>sum+(file.content?.length??file.workbookBytes?.length??0),0);
+    return{shell:nextShell,text:["Filesystem       1K-blocks  Used  Available  Use%  Mounted on",`avafs                  4096  ${Math.ceil(used/1024)}  ${Math.max(0,4096-Math.ceil(used/1024))}  ${Math.min(100,Math.ceil(used/41943))}%  /`].join("\n")};
+  }
+  if(command==="DU"){
+    const root=resolveAvaPath(shell.cwd,args[0]??".");
+    if(deniedDirectory(root))return fail(nextShell,"du",`${args[0]??"."}: Permission denied`);
+    const files=allFiles(state,nextShell,fraction,darkNetContext).filter(file=>isInside(file.path,root));
+    return{shell:nextShell,text:`${Math.ceil(files.reduce((sum,file)=>sum+(file.content?.length??file.workbookBytes?.length??0),0)/1024)}\t${root}`};
+  }
+  if(command==="TOP")return{shell:nextShell,text:["AVA TOP // VIRTUAL CAMPAIGN PROCESSES // SNAPSHOT",`PID  STATE     UNIT                         AGE`,`101  active    campaign-day.service         day-${state.day}`,`202  active    nexus-command.service        ${state.actions}-orders`,`303  active    production-projection.service ${Object.keys(state.production).length}-lines`,`404  ${state.scheduled.length?"waiting":"idle".padEnd(8)} scheduled-effects.timer      ${state.scheduled.length}-queued`].join("\n")};
+  if(command==="SS")return{shell:nextShell,text:["Netid State  Local Address        Peer Address       Process","virt  LISTEN nexus://campaign      surface://all       ava-nexus","virt  ESTAB  ssh://forced-command surface://commander forced-command","No host socket table or external address is exposed."].join("\n")};
+  if(command==="HACK")return executeAvaHack(state,nextShell,args,avaStateRevision(state));
+  if(command==="NMAP")return{shell:nextShell,text:renderAvaHackScan(state,args[0]??"")};
+  if(command==="DIFF"){
+    const left=textFileContent("diff",args[0],state,nextShell,fraction,darkNetContext),right=textFileContent("diff",args[1],state,nextShell,fraction,darkNetContext);
+    if(!left.ok)return{shell:nextShell,text:left.error};
+    if(!right.ok)return{shell:nextShell,text:right.error};
+    const leftLines=left.text.split("\n"),rightLines=right.text.split("\n"),limit=Math.max(leftLines.length,rightLines.length),output:string[]=[];
+    for(let index=0;index<limit;index+=1)if(leftLines[index]!==rightLines[index]){if(leftLines[index]!==undefined)output.push(`< ${leftLines[index]}`);if(rightLines[index]!==undefined)output.push(`> ${rightLines[index]}`);}
+    return{shell:nextShell,text:output.slice(0,MAX_OUTPUT_LINES).join("\n")};
+  }
+  if(command==="SHA256SUM"){
+    if(stdin!==undefined&&!args.length)return{shell:nextShell,text:`${sha256Hex(stdin)}  -`};
+    if(!args[0])return fail(nextShell,"sha256sum","expected a text file or pipeline input");
+    const input=textFileContent("sha256sum",args[0],state,nextShell,fraction,darkNetContext);
+    return input.ok?{shell:nextShell,text:`${sha256Hex(input.text)}  ${args[0]}`}:{shell:nextShell,text:input.error};
+  }
+  if(command==="CSVLOOK"||command==="CSVCUT"||command==="CSVSTAT"){
+    if(!nextShell.installedPackages.includes("csvkit"))return fail(nextShell,command,"csvkit adapter is not installed; use brew install csvkit");
+    const fileArg=command==="CSVCUT"?args[2]:args[0];
+    let input=stdin;
+    if(input===undefined&&fileArg){const result=textFileContent(command.toLowerCase(),fileArg,state,nextShell,fraction,darkNetContext);if(!result.ok)return{shell:nextShell,text:result.error};input=result.text;}
+    if(input===undefined)return fail(nextShell,command,"expected a CSV file or pipeline input");
+    const rows=parseCsv(input);
+    if(!rows.length)return{shell:nextShell,text:""};
+    if(command==="CSVLOOK")return{shell:nextShell,text:renderCsvTable(rows)};
+    if(command==="CSVSTAT"){
+      const header=rows[0],body=rows.slice(1);
+      const summaries=header.map((name,index)=>{const values=body.map(row=>row[index]??""),numeric=values.map(Number).filter(Number.isFinite);return numeric.length===values.length&&numeric.length?`${name}: ${values.length} values // min ${Math.min(...numeric)} // max ${Math.max(...numeric)}`:`${name}: ${new Set(values).size} distinct // ${values.length} values`;});
+      return{shell:nextShell,text:[`CSV STATISTICS // ${body.length} ROWS // ${header.length} COLUMNS`,...summaries].join("\n")};
+    }
+    const selectors=(args[1]??"").split(",").filter(Boolean),indices=selectors.map(selector=>/^\d+$/.test(selector)?Number(selector)-1:rows[0].indexOf(selector));
+    if(indices.some(index=>index<0||index>=rows[0].length))return fail(nextShell,"csvcut","unknown column selector");
+    return{shell:nextShell,text:rows.map(row=>indices.map(index=>csvCell(row[index]??"")).join(",")).join("\n")};
+  }
   if (command === "HELP")
     return {
       shell: nextShell,
@@ -1131,6 +1376,8 @@ export const executeAvaShell = (
         "grep [-inr] literal [path] · find [path] [-maxdepth n] [-type f|d] [-name glob]",
         "whoami · history · clear · download file",
         "man · which · tree · stat · file · head · tail · sort · uniq · wc · cut · column · less",
+        "nl · tr · sed · awk · diff · sha256sum · csvlook · csvcut · csvstat",
+        "date · id · uname · env · df · du · top · ss · nmap · hack",
         "brew · vim · nano · archive · git · sqlite3 · ps · systemctl · crontab",
         "Pipelines: status | grep -i readiness · history | tail -10",
         "",
@@ -1297,6 +1544,30 @@ export const executeAvaShell = (
       shell: nextShell,
       text: (stdin ?? "").split("\n").slice(0, MAX_OUTPUT_LINES).join("\n"),
     };
+  if(command==="NL"){
+    if(stdin===undefined)return fail(nextShell,"nl","pipeline input required");
+    return{shell:nextShell,text:stdin.split("\n").flatMap((line,index)=>line||args[0]==="-ba"?[`${String(index+1).padStart(6," ")}\t${line}`]:[]).join("\n")};
+  }
+  if(command==="TR"){
+    if(stdin===undefined)return fail(nextShell,"tr","pipeline input required");
+    const from=args[0],to=args[1];
+    if(from.length!==to.length)return fail(nextShell,"tr","SET1 and SET2 must have equal length in the bounded adapter");
+    const map=new Map([...from].map((character,index)=>[character,[...to][index]]));
+    return{shell:nextShell,text:[...stdin].map(character=>map.get(character)??character).join("")};
+  }
+  if(command==="SED"){
+    if(stdin===undefined)return fail(nextShell,"sed","pipeline input required");
+    const match=args[0]?.match(/^s(.)(.*?)\1(.*?)\1(g?)$/);
+    if(!match)return fail(nextShell,"sed","only s/OLD/NEW/ and s/OLD/NEW/g are available");
+    if(!match[2])return fail(nextShell,"sed","OLD may not be empty");
+    return{shell:nextShell,text:stdin.split("\n").map(line=>match[4]==="g"?line.split(match[2]).join(match[3]):line.replace(match[2],match[3])).join("\n")};
+  }
+  if(command==="AWK"){
+    if(stdin===undefined)return fail(nextShell,"awk","pipeline input required");
+    const hasSeparator=args[0]==="-F",delimiter=hasSeparator?(args[1]??","):" ",program=args.slice(hasSeparator?2:0).join(" "),field=Number(program.match(/^\{print\s+\$(\d+)\}$/)?.[1]);
+    if(!Number.isInteger(field)||field<1)return fail(nextShell,"awk","only {print $N} with optional -F DELIMITER is available");
+    return{shell:nextShell,text:stdin.split("\n").map(line=>(delimiter===" "?line.trim().split(/\s+/):line.split(delimiter))[field-1]??"").join("\n")};
+  }
   if (command === "TREE") {
     const requested = args[0] ?? ".";
     const root = resolveAvaPath(shell.cwd, requested);

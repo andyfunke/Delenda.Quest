@@ -441,6 +441,25 @@ const SHELL_COMMANDS = new Set<AvaShellCommandName>([
   "BC",
   "UNITS",
   "CAL",
+  "DATE",
+  "ID",
+  "UNAME",
+  "ENV",
+  "DF",
+  "DU",
+  "TOP",
+  "SS",
+  "NL",
+  "TR",
+  "SED",
+  "AWK",
+  "DIFF",
+  "SHA256SUM",
+  "CSVLOOK",
+  "CSVCUT",
+  "CSVSTAT",
+  "NMAP",
+  "HACK",
 ]);
 const LIST_SCOPES = new Set([
   "missions",
@@ -741,9 +760,9 @@ export const validateAvaSemanticQuery = (
     const ids = subject.entityIds;
     if (
       subject.type === "CAMPAIGN_CHOICE" &&
-      (!isStringArray(ids) || ids.length !== 2)
+      (!isStringArray(ids) || ids.length < 2 || ids.length > 20)
     )
-      issues.push("campaign comparison requires exactly two exact targets");
+      issues.push("campaign comparison requires 2 to 20 exact visible targets");
   }
   if (
     operation === "CHALLENGE" &&

@@ -145,7 +145,8 @@ test("godmode keeps Day 1 sealed and returns one canonical later result", () => 
   let state;
   for(let seed=1;seed<1000;seed+=1){
     const candidate=newState(seed);
-    if(!game.opportunityForState(candidate)){
+    const dayTwo={...candidate,day:2,currentSituation:null};
+    if(!game.opportunityForState(dayTwo)){
       state=candidate;
       break;
     }
@@ -163,8 +164,11 @@ test("godmode keeps Day 1 sealed and returns one canonical later result", () => 
     state,
     nexus.createAvaNexusSession(),
   );
-  assert.equal(dayOne.response.status,"REJECTED",dayOne.text);
-  assert.equal(dayOne.response.recovery.code,"OPPORTUNITY_DAY_ONE_SEALED");
+  assert.equal(dayOne.response.status,"OK",dayOne.text);
+  assert.equal(dayOne.response.fact.status,"unchanged");
+  assert.equal(dayOne.response.fact.eligibility,"sealed-day-one");
+  assert.match(dayOne.text,/RANDOM EVENT SEALED \/ DAY 1/);
+  assert.doesNotMatch(dayOne.text,/error|failed|rejected/i);
   assert.strictEqual(dayOne.state,state);
   state={...state,day:2,currentSituation:null};
   request.expectedStateSeal=nexus.avaNexusStateRevision(state);
@@ -180,6 +184,8 @@ test("godmode keeps Day 1 sealed and returns one canonical later result", () => 
   assert.ok(forced.response.fact.packetId);
   assert.ok(forced.response.fact.packetHeadline);
   assert.match(forced.text,/^RANDOM EVENT FORCED\n\S[\s\S]*window is open/i);
+  assert.ok(forced.state.forcedOpportunityDays.includes(2));
+  assert.equal(forced.state.opportunityAssignments[0]?.day,2);
   assert.equal(
     game.opportunityStatusForFraction(forced.state,.5).packet?.id,
     forced.response.fact.packetId,
@@ -229,6 +235,35 @@ test("browser-origin opportunity responses execute through the typed Nexus", () 
   assert.equal(executed.state.opportunityHistory.length,1);
   assert.equal(executed.state.opportunityHistory[0].opportunityId,packet.id);
   assert.equal(executed.state.opportunityHistory[0].responseId,response.id);
+});
+
+test("a missed Daily mission roll remains an executed Nexus outcome",()=>{
+  let missed;
+  for(let seed=1;seed<=3000&&!missed;seed+=1){
+    const opening=newState(seed);
+    for(let day=2;day<=30&&!missed;day+=1){
+      const state={...opening,day,currentSituation:null};
+      const packet=game.opportunityStatusForFraction(state,.5).packet;
+      if(!packet)continue;
+      for(const response of packet.responses.filter(item=>item.chance<1)){
+        const projected=game.commitOpportunity(state,response);
+        if(projected.opportunityHistory[0]?.outcome==="missed")missed={state,packet,response};
+      }
+    }
+  }
+  assert.ok(missed);
+  const request={
+    kind:"action",
+    origin:"browser-ui",
+    action:{kind:"opportunity-response",opportunityId:missed.packet.id,responseId:missed.response.id},
+    mode:"execute",
+    expectedStateSeal:nexus.avaNexusStateRevision(missed.state),
+    idempotencyKey:`missed:${missed.state.campaignId}:${missed.state.day}:${missed.response.id}`,
+  };
+  const result=nexus.runAvaNexusRequest(request,ctxFor(missed.state),missed.state,nexus.createAvaNexusSession(),.5);
+  assert.equal(result.response.status,"EXECUTED",result.text);
+  assert.equal(result.state.opportunityHistory[0].outcome,"missed");
+  assert.match(result.state.opportunityHistory[0].report,/attempted|opening closed/i);
 });
 
 test("strategic posture reaches the evaluator instead of collapsing to default", () => {
@@ -781,6 +816,29 @@ test("bare advice follows the current visual module", () => {
   );
   assert.equal(military.response.status, "OK", military.text);
   assert.equal(military.envelope.semantic.directive.channel, "military");
+});
+
+test("compare crosses the visible Campaign and Production opportunity ledger", () => {
+  const state = newState(708);
+  const opened = run("production", state);
+  const compared = run("compare M2 production 1", opened.state, opened.session);
+  assert.equal(compared.response.status, "OK", compared.text);
+  assert.match(compared.text, /COMPARISON \/ COGNITIVE NEXUS/);
+  assert.match(compared.text, /\[M2\]/);
+  assert.match(compared.text, /(?:HIGH|MEDIUM|LOW) \d{1,3}\/100/);
+  assert.doesNotMatch(compared.text, /ROBUST UTILITY|SCORE \d/i);
+  assert.deepEqual(compared.state, state);
+
+  const fullLedger = run(
+    "compare campaign production",
+    compared.state,
+    compared.session,
+  );
+  assert.equal(fullLedger.response.status, "OK", fullLedger.text);
+  assert.match(fullLedger.text, /FULL RANKING[\s\S]*OPPORTUNITY COSTS/);
+  assert.match(fullLedger.text, /\[M1\][\s\S]*\[M2\][\s\S]*\[M3\]/);
+  assert.match(fullLedger.text, /\[P\d+\]/);
+  assert.doesNotMatch(fullLedger.text, /ROBUST UTILITY|SCORE \d/i);
 });
 
 test("all conversational campaign-module wrappers reach functioning Nexus handlers", () => {

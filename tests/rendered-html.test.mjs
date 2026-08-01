@@ -139,7 +139,7 @@ test("the built activation route traverses every active engine through web and t
     cookie: "delenda_guest_session=00000000-0000-4000-8000-000000000001",
   };
   const expectedActivation = {
-    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "39ab61800f0f10e5e7db56c7e193f22486daef65b8aeb78d449c0ba87d0525fa" },
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "174544ae4550df8867192e491376a283b12c72f41cf5cdd5b81875f9d581d481" },
     directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "8b84b49b6d0aff37f36835c8307c6d3a18c965bdc92a7209477cff95c7e99b19" },
     forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "b529d66bba623bbc5d7e0249661bb17d98cfd035b29052809dd9e523d71f0cbf" },
     constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "60b13ace278e96aac9946f8b74a28fef466c6f8579d7683392b3574535e7aa37" },
@@ -552,6 +552,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(randomEventHandler,/text: forced\.text/);
   assert.doesNotMatch(randomEventHandler,/RANDOM EVENT OVERRIDE FAILED/);
   assert.match(randomEventHandler,/setOpportunityInterruptAcknowledged\(false\)/);
+  assert.match(page,/current === systemNotice \? null : current/);
+  assert.match(page,/5200/);
+  assert.match(page,/aria-live="polite"/);
   assert.match(page,/void advance\("automatic"\)/);
   assert.match(page,/DAILY TURN ALREADY USED/);
   assert.match(page,/serializeAvaChatLog\(/);
@@ -586,6 +589,11 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
   assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
   assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);
+});
+
+test("the Daily alert is separated from the Ava button instead of overlapping it",async()=>{
+  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
+  assert.match(css,/\.ava-alert-cluster\s*\{[\s\S]*?margin-right:\s*10px/);
 });
 
 test("campaign's one-time introduction uses the dashboard card grammar and cannot be reselected",async()=>{

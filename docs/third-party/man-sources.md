@@ -20,5 +20,13 @@ Behavior and conventional syntax were checked against these open-source manuals:
 - util-linux (`column`): https://man7.org/linux/man-pages/man1/column.1.html
 - bc: https://www.gnu.org/software/bc/manual/html_mono/bc.html
 - GNU Units: https://www.gnu.org/software/units/manual/units.html
+- GNU Awk: https://www.gnu.org/software/gawk/manual/gawk.html
+- GNU Sed: https://www.gnu.org/software/sed/manual/sed.html
+- GNU Diffutils: https://www.gnu.org/software/diffutils/manual/diffutils.html
+- Nmap: https://nmap.org/book/man.html
+- csvkit: https://csvkit.readthedocs.io/en/latest/
+- iproute2 (`ss`): https://man7.org/linux/man-pages/man8/ss.8.html
 
-`open`, `download`, `archive`, `ava doctor`, and the campaign metaphors are Delenda-specific adapters. Their man pages identify the sealed behavior directly and do not imply host access.
+`open`, `download`, `archive`, `ava doctor`, `hack`, and the campaign
+metaphors are Delenda-specific adapters. Their man pages identify the sealed
+behavior directly and do not imply host access.

@@ -160,7 +160,7 @@ test("Fly deploys only the native SSH gateway", async () => {
   ]);
 
   for (const manifest of manifests) {
-    assert.match(manifest, /^app = "delenda-quest"$/m);
+    assert.match(manifest, /^app = "delenda-quest-ssh"$/m);
     assert.match(manifest, /dockerfile = "packages\/ssh-gateway\/Dockerfile"/);
     assert.match(manifest, /internal_port = 2222/);
     assert.match(manifest, /port = 22/);
