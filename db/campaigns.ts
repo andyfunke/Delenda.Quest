@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { AuthenticatedUser } from "../app/auth";
+import { isCampaignIdentifier } from "../app/campaign-id";
 import { ensureAccount } from "./accounts";
 import { getDb } from "./index";
 import { activeCampaigns, users } from "./schema";
@@ -29,7 +30,9 @@ const stateMeta=(value:unknown)=>{
     status?:unknown;
     resolutionHistory?:unknown;
   };
-  const campaignId=clean(state.campaignId,100);
+  const campaignId=isCampaignIdentifier(state.campaignId)
+    ?state.campaignId
+    :"";
   const day=Number(state.day);
   const status=String(state.status);
   const resolutionCount=Array.isArray(state.resolutionHistory)

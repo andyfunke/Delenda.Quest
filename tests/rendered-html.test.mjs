@@ -463,7 +463,7 @@ test("Alt UX is a second renderer over the same convergence substrate",async()=>
 });
 
 test("signed-in account turnover is daily by default and Ava can explicitly toggle godmode",async()=>{
-  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration,resolutionMigration,resolutionMigrationBridge,publicError,styles,campaignRoute]=await Promise.all([
+  const[page,gameRoute,turnRoute,turnStore,accountStore,schema,migration,resolutionMigration,resolutionMigrationBridge,publicError,styles,campaignRoute,campaignStore]=await Promise.all([
     readFile(new URL("../app/GameClient.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/game/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/turn/route.ts",import.meta.url),"utf8"),
@@ -476,6 +476,7 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     readFile(new URL("../app/public-error.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../app/api/campaign/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/campaigns.ts",import.meta.url),"utf8"),
   ]);
   assert.match(gameRoute,/requireAuthenticatedUser/);
   assert.match(schema,/accountTurnState=sqliteTable\("account_turn_state"/);
@@ -497,7 +498,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(turnStore,/await ensureResolutionAuthorityMigration\(\)/);
   assert.match(turnStore,/class DailyResolutionPreparationError/);
   assert.match(turnStore,/DAILY_RESOLUTION_GRANT_CREATE_FAILED/);
+  assert.match(turnStore,/DAILY_RESOLUTION_CAMPAIGN_ID_REPAIR_FAILED/);
   assert.match(turnRoute,/error instanceof DailyResolutionPreparationError/);
+  assert.match(campaignStore,/isCampaignIdentifier\(state\.campaignId\)/);
   assert.match(resolutionMigrationBridge,/0014_campaign_resolution_grants\.sql/);
   assert.match(resolutionMigrationBridge,/CREATE TABLE IF NOT EXISTS campaign_resolution_grants/);
   assert.match(resolutionMigrationBridge,/ALTER TABLE active_campaigns ADD last_resolution_grant_marker text/);

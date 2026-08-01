@@ -251,7 +251,7 @@ export async function claimDailyResolution(
       allowed: false,
       ...snapshot,
     };
-  const campaign=(await resolutionPreparationStage(
+  let campaign=(await resolutionPreparationStage(
     "DAILY_RESOLUTION_CAMPAIGN_READ_FAILED",
     ()=>state.db
       .select()
@@ -261,7 +261,6 @@ export async function claimDailyResolution(
   ))[0];
   if(
     !campaign||
-    campaign.campaignId!==target.campaignId||
     campaign.revision!==target.expectedRevision
   )throw new DailyResolutionConflictError(
     "The active campaign changed before turnover authority could be prepared.",
@@ -277,6 +276,27 @@ export async function claimDailyResolution(
   )throw new DailyResolutionConflictError(
     "The active campaign snapshot no longer matches the prepared resolution.",
   );
+  if(campaign.campaignId!==restored.campaignId){
+    const repaired=await resolutionPreparationStage(
+      "DAILY_RESOLUTION_CAMPAIGN_ID_REPAIR_FAILED",
+      ()=>state.db
+        .update(activeCampaigns)
+        .set({campaignId:restored.campaignId})
+        .where(
+          and(
+            eq(activeCampaigns.ownerEmail,state.ownerEmail),
+            eq(activeCampaigns.campaignId,campaign.campaignId),
+            eq(activeCampaigns.revision,target.expectedRevision),
+          ),
+        )
+        .returning(),
+    );
+    if(repaired.length!==1)
+      throw new DailyResolutionConflictError(
+        "The active campaign identity changed before turnover authority could be prepared.",
+      );
+    campaign=repaired[0];
+  }
   const opportunityFractionPpm=Math.round(
     Math.max(
       0,
