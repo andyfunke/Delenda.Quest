@@ -76,7 +76,95 @@ const shellNames = new Set([
   "history",
   "clear",
   "download",
+  "man",
+  "which",
+  "tree",
+  "stat",
+  "file",
+  "head",
+  "tail",
+  "sort",
+  "uniq",
+  "wc",
+  "cut",
+  "column",
+  "brew",
+  "vim",
+  "nano",
+  "archive",
+  "git",
+  "sqlite3",
+  "ps",
+  "systemctl",
+  "crontab",
+  "fortune",
+  "sudo",
+  "make",
+  "rm",
+  "hostname",
+  "uptime",
+  "ava",
+  "jq",
+  "bat",
+  "bc",
+  "units",
+  "cal",
 ]);
+
+const pipelineFilters = new Set([
+  "grep",
+  "head",
+  "tail",
+  "sort",
+  "uniq",
+  "wc",
+  "cut",
+  "column",
+  "less",
+  "jq",
+]);
+
+const pipelineShellProducers = new Set([
+  "cat", "grep", "find", "history", "ls", "tree", "ps", "crontab",
+  "fortune", "systemctl", "stat", "file",
+]);
+
+const pipelineProducers = new Set([
+  "status",
+  "brief",
+  "daily brief",
+  "production",
+  "military",
+  "diplomacy",
+  "doctrine",
+  "missions",
+  "orders",
+]);
+
+const splitPipeline = (raw: string) => {
+  const stages: string[] = [];
+  let current = "";
+  let quote: "'" | '"' | null = null;
+  for (const character of raw) {
+    if (quote) {
+      current += character;
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      continue;
+    }
+    if (character === "|") {
+      stages.push(current.trim());
+      current = "";
+    } else current += character;
+  }
+  if (quote) return null;
+  stages.push(current.trim());
+  return stages;
+};
 
 const darkNetInput = (raw: string) => {
   const trimmed = raw.trim();
@@ -157,7 +245,7 @@ const shellArgumentError = (
   command: string,
   args: string[],
 ): string | null => {
-  if (["pwd", "whoami", "history", "clear"].includes(command))
+  if (["pwd", "whoami", "history", "clear", "ps", "hostname", "uptime", "fortune"].includes(command))
     return args.length ? `${command}: unexpected operand` : null;
   if (command === "cd")
     return args.length > 1 || args.some((arg) => arg.startsWith("-"))
@@ -202,7 +290,48 @@ const shellArgumentError = (
     return null;
   }
   if (command === "download")
-    return args.length === 1 ? null : "download: expected one .xlsx file";
+    return args.length === 1 ? null : "download: expected one artifact";
+  if (["vim", "nano", "stat"].includes(command))
+    return args.length === 1 ? null : `${command}: expected one path`;
+  if (command === "file")
+    return args.length ? null : "file: expected one or more paths";
+  if (command === "man")
+    return args.length === 1 || (args.length === 2 && /^\d$/.test(args[0]))
+      ? null
+      : "man: expected [section] page";
+  if (command === "which")
+    return args.length ? null : "which: expected one or more command names";
+  if (["head", "tail"].includes(command)) {
+    if (!args.length) return null;
+    if (args.length === 2 && args[0] === "-n" && /^\d+$/.test(args[1])) return null;
+    return `${command}: expected [-n count]`;
+  }
+  if (command === "sort")
+    return args.length === 0 || (args.length === 1 && args[0] === "-r")
+      ? null
+      : "sort: expected only -r";
+  if (command === "uniq")
+    return args.length === 0 || (args.length === 1 && args[0] === "-c")
+      ? null
+      : "uniq: expected only -c";
+  if (command === "wc")
+    return args.length === 0 || (args.length === 1 && /^-[lwc]$/.test(args[0]))
+      ? null
+      : "wc: expected -l, -w, or -c";
+  if (command === "cut")
+    return args.length === 4 && args[0] === "-d" && args[2] === "-f" && /^\d+$/.test(args[3])
+      ? null
+      : "cut: expected -d DELIMITER -f FIELD";
+  if (command === "column")
+    return args.length === 0 || (args.length === 1 && args[0] === "-t")
+      ? null
+      : "column: expected only -t";
+  if (command === "crontab")
+    return args.length === 1 && args[0] === "-l" ? null : "crontab: only -l is available";
+  if (command === "systemctl")
+    return args.length === 2 && args[0] === "status" ? null : "systemctl: expected status UNIT";
+  if (command === "ava")
+    return args.length === 1 && args[0] === "doctor" ? null : "ava: expected doctor";
   if (command === "help")
     return args.length === 1 && shellNames.has(args[0].toLowerCase())
       ? null
@@ -213,9 +342,59 @@ const shellArgumentError = (
 export const parseAvaShellInput = (
   raw: string,
   availableFileReferences: string[] = [],
+  editorProgram?: "vim" | "nano",
 ): AvaShellInstruction | null => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
+  if (editorProgram)
+    return { command: "EDITOR_INPUT", args: [trimmed], raw: trimmed };
+  if (/^explain\s+--trace\s+last$/i.test(trimmed))
+    return { command: "AVA_TRACE", args: [], raw: trimmed };
+  if (/^prove\s+last$/i.test(trimmed))
+    return { command: "PROVE", args: [], raw: trimmed };
+  const normalizedCommand = normalizeSemanticInput(trimmed).normalized;
+  if (
+    /^(?:quote|daily quote|quote of the day|todays quote|what is todays quote|aphorism|epigraph)$/.test(
+      normalizedCommand,
+    )
+  )
+    return { command: "FORTUNE", args: [], raw: trimmed };
+  if (
+    /^(?:generate|make|write|create) (?:a )?social (?:post|status)$/.test(
+      normalizedCommand,
+    )
+  )
+    return { command: "SOCIAL_POST", args: [], raw: trimmed };
+  const pipelineSegments = trimmed.includes("|") ? splitPipeline(trimmed) : null;
+  if (pipelineSegments && pipelineSegments.length > 1) {
+    const segments = pipelineSegments;
+    if (segments.length > 8 || segments.some((segment) => !segment))
+      return rejectedShell(trimmed, "pipeline requires 2 to 8 complete stages");
+    const stages = segments.map((segment, index) => {
+      const normalized = normalizeSemanticInput(segment).normalized;
+      if (index === 0 && pipelineProducers.has(normalized))
+        return { command: "STREAM" as const, args: [normalized], raw: segment };
+      if (index > 0 && normalized === "less")
+        return { command: "LESS" as const, args: [], raw: segment };
+      return parseAvaShellInput(segment, availableFileReferences);
+    });
+    if (stages.some((stage) => !stage || stage.command === "REJECT"))
+      return rejectedShell(trimmed, "every pipeline stage must be a supported read-only producer or filter");
+    if (
+      stages.slice(1).some(
+        (stage) => !pipelineFilters.has(stage!.command.toLowerCase()),
+      )
+    )
+      return rejectedShell(trimmed, "only grep, head, tail, sort, uniq, wc, cut, column, jq, and less may follow |");
+    if(stages[0]!.command!=="STREAM"&&!pipelineShellProducers.has(stages[0]!.command.toLowerCase()))
+      return rejectedShell(trimmed,"the first pipeline stage must be a read-only text producer");
+    return {
+      command: "PIPELINE",
+      args: [],
+      raw: trimmed,
+      stages: stages as AvaShellInstruction[],
+    };
+  }
   const darkNet = darkNetInput(trimmed);
   if (darkNet) {
     if (trimmed.length > 512)
@@ -231,7 +410,18 @@ export const parseAvaShellInput = (
       return rejectedShell(trimmed, "unterminated quoted argument");
     return { command: "DARK_NET", args, raw: trimmed };
   }
-  const lexicalHead = trimmed.match(/^([a-z]+)/i)?.[1].toLowerCase();
+  const lexicalHead = trimmed.match(/^([a-z][a-z0-9]*)/i)?.[1].toLowerCase();
+  if (lexicalHead === "less" && normalizedCommand === "less") return null;
+  if (lexicalHead === "ava" && normalizedCommand !== "ava doctor") return null;
+  if (lexicalHead === "make" && normalizedCommand !== "make victory") return null;
+  if (
+    lexicalHead === "which" &&
+    !normalizeSemanticInput(trimmed)
+      .normalized.split(" ")
+      .slice(1)
+      .every((name) => shellNames.has(name))
+  )
+    return null;
   const beginsAsShell = !!lexicalHead && shellNames.has(lexicalHead);
   if (beginsAsShell && trimmed.length > 512)
     return rejectedShell(trimmed, "command exceeds the 512-character limit");
@@ -249,6 +439,15 @@ export const parseAvaShellInput = (
       ? rejectedShell(trimmed, "unterminated quoted argument")
       : null;
   const command = tokens[0].toLowerCase();
+  if (command === "ava" && normalizeSemanticInput(trimmed).normalized !== "ava doctor")
+    return null;
+  if (
+    command === "which" &&
+    !tokens.slice(1).every((token) => shellNames.has(token.toLowerCase()))
+  )
+    return null;
+  if (command === "make" && normalizeSemanticInput(trimmed).normalized !== "make victory")
+    return null;
   if (command === "help") {
     if (tokens.length < 2 || !shellNames.has(tokens[1].toLowerCase()))
       return null;
@@ -288,8 +487,9 @@ export const parseAvaShellInput = (
     return null;
   const argumentError = shellArgumentError(command, tokens.slice(1));
   if (argumentError) return rejectedShell(trimmed, argumentError);
+  const canonicalCommand = command === "ava" ? "AVA_DOCTOR" : command.toUpperCase();
   return {
-    command: command.toUpperCase() as AvaShellInstruction["command"],
+    command: canonicalCommand as AvaShellInstruction["command"],
     args: tokens.slice(1),
     raw: trimmed,
   };
@@ -977,6 +1177,15 @@ const directiveFor = (
     baseSubject === "CAMPAIGN_CHOICE"
   )
     return { subjectEntityIds: [] };
+  const explicitNonDirectiveAction = matchedEntityIds(
+    input,
+    context.entities,
+  ).some((id) => {
+    const action = context.entities.find((entity) => entity.id === id)?.action;
+    return !!action && action.kind !== "directive";
+  });
+  if (operation === "COMPARE" && explicitNonDirectiveAction)
+    return { subjectEntityIds: [] };
   const channels = [
     /\bproduction\b/.test(input) ? "production" : null,
     /\bmilitary\b/.test(input) ? "military" : null,
@@ -987,13 +1196,6 @@ const directiveFor = (
   const uniqueChannels = [...new Set(channels)];
   const inherited = context.discourse?.directiveContext;
   if (!uniqueChannels.length) {
-    const explicitNonDirectiveAction = matchedEntityIds(
-      input,
-      context.entities,
-    ).some((id) => {
-      const action = context.entities.find((entity) => entity.id === id)?.action;
-      return !!action && action.kind !== "directive";
-    });
     if (explicitNonDirectiveAction) return { subjectEntityIds: [] };
     if (inherited)
       return {
@@ -1001,6 +1203,16 @@ const directiveFor = (
           channel: inherited.channel,
           actorId: inherited.actorId,
         },
+        subjectEntityIds: [],
+      };
+    if (context.currentModule === "national")
+      return {
+        directive: { channel: "production" },
+        subjectEntityIds: [],
+      };
+    if (context.currentModule === "military")
+      return {
+        directive: { channel: "military" },
         subjectEntityIds: [],
       };
     return { subjectEntityIds: [] };
@@ -1191,7 +1403,12 @@ export const compileSemanticQuery = (
   const bucket =
     AVA_UTTERANCE_INDEX.get(stableUtteranceHash(input)) ?? [];
   const indexed = bucket.find((entry) => entry.normalized === input);
-  if (indexed) {
+  const screenScopedAdvice =
+    context.currentModule !== "campaign" &&
+    /^(?:advise|recommend|what should i do|what do i do|what now|next move)$/.test(
+      input,
+    );
+  if (indexed && !screenScopedAdvice) {
     const query = AVA_COMPILED_AGENCY_BUNDLE.parse(input);
     if (!query)
       throw new Error(
@@ -1231,7 +1448,17 @@ export const compileSemanticQuery = (
     };
   }
   const operation = operationFor(input, context.discourse);
-  const docketReference = resolveOrdinalDocketReference(input, context);
+  const embeddedDocket =
+    operationFor(input, context.discourse) === "COMPARE"
+      ? input.match(
+          /\b(?:campaign|main|domestic|network|production|prod|military|mil|diplomacy|diplo|doctrine)\s+(?:option |choice |item )?(?:\d+|first|1st|second|2nd|third|3rd)\b/,
+        )?.[0]
+      : undefined;
+  const docketReference =
+    resolveOrdinalDocketReference(input, context) ??
+    (embeddedDocket
+      ? resolveOrdinalDocketReference(embeddedDocket, context)
+      : null);
   let scope = scopeFor(input);
   const baseSubject = subjectFor(input);
   const directive = directiveFor(
@@ -1255,7 +1482,12 @@ export const compileSemanticQuery = (
         ...directive.subjectEntityIds,
         ...(docketReference ? [docketReference.entity.id] : []),
       ]
-    : matchedEntityIds(input, context.entities);
+    : [
+        ...new Set([
+          ...matchedEntityIds(input, context.entities),
+          ...(docketReference ? [docketReference.entity.id] : []),
+        ]),
+      ];
   if (
     subject === "UNKNOWN" &&
     entityIds.some(

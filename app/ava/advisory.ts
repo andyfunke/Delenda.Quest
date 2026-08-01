@@ -23,6 +23,7 @@ import type { AvaCognitiveDecisionGuidance } from "./cognitive-nexus";
 import { canonicalJson } from "./cognitive-types";
 import { avaVisibleWorldRevision } from "./world-model";
 import { narratedCampaignRecommendation } from "./campaign-narrative";
+import { formatPublicRating, publicOpportunityRating } from "./public-rating";
 
 export type AvaEvaluatedAction = {
   descriptor: AvaActionDescriptor;
@@ -290,11 +291,18 @@ const campaignCandidates = (
     ),
   );
   const actions = enumerateAvaActions(state, opportunityFraction).filter(
-    (action) =>
-      action.available &&
-      !!action.domain &&
-      !removedDomains.has(action.domain) &&
-      (!domains.size || domains.has(action.domain)),
+    (action) => {
+      if (!action.available) return false;
+      const explicitlyNamed = query.subject.entityIds.some(
+        (id) => action.id === id || action.id.includes(id),
+      );
+      if (explicitlyNamed) return true;
+      return (
+        !!action.domain &&
+        !removedDomains.has(action.domain) &&
+        (!domains.size || domains.has(action.domain))
+      );
+    },
   );
   if (!query.subject.entityIds.length) return actions;
   const explicit = actions.filter(
@@ -757,6 +765,10 @@ const answerSemanticQueryUnproven = (
   ];
 
   const direct = `Take ${formatOption(best.descriptor)}.`;
+  const publicRating = formatPublicRating(publicOpportunityRating(best.score));
+  const alternativeRating = second
+    ? formatPublicRating(publicOpportunityRating(second.score))
+    : null;
   const tradeoff =
     plan.tradeoffs[0] ??
     "Its principal cost is the opportunity to issue a different order.";
@@ -766,7 +778,7 @@ const answerSemanticQueryUnproven = (
   const parts =
     structureIndex === 0
       ? [
-          `ANSWER\n${direct}`,
+          `ANSWER\n${direct}\nRATING ${publicRating}`,
           `WHY\n${reason}`,
           `TRADEOFF\n${tradeoff}`,
           `ALTERNATIVE\n${alternative}`,
@@ -774,13 +786,13 @@ const answerSemanticQueryUnproven = (
       : structureIndex === 1
         ? [
             `DISTINCTION\nThe decisive criterion is ${criterionLabel(criterion)}.`,
-            `ANSWER\n${direct}`,
+            `ANSWER\n${direct}\nRATING ${publicRating}`,
             `WHY\n${reason}`,
             `TRADEOFF\n${tradeoff}`,
           ]
         : [
             `ELIMINATION\n${second ? `${formatOption(second.descriptor)} loses the comparison under ${criterionLabel(criterion)}.` : "There is no second legal course to eliminate."}`,
-            `ANSWER\n${direct}`,
+            `ANSWER\n${direct}\nRATING ${publicRating}`,
             `WHY\n${reason}`,
             `TRADEOFF\n${tradeoff}`,
           ];
@@ -789,6 +801,14 @@ const answerSemanticQueryUnproven = (
   if (plan.calculationDisclosure === "FULL")
     parts.push(
       `CALCULATION\nThe complete disclosed calculus is preserved in reports/current/command-dashboard.xlsx. Use: download reports/current/command-dashboard.xlsx`,
+    );
+  if (second && alternativeRating)
+    parts.push(
+      `ALTERNATIVE RATING\n${formatOption(second.descriptor)} · ${alternativeRating}`,
+    );
+  if (best.descriptor.action.kind === "maneuver")
+    parts.push(
+      `BATTLEFIELD RANGE\nCampaign orders own the largest direct movement conversion. A successful order can reverse standing attrition; an operational-collapse branch can be worse than accepting the standing loss for the day.`,
     );
   const mainCampaignNarrative =
     interaction === "open-ended" &&

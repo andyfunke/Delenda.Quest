@@ -775,6 +775,18 @@ const consequentialRuleWords: Record<string, string[]> = {
     "options",
     "choice",
     "choices",
+    "campaign",
+    "production",
+    "prod",
+    "military",
+    "mil",
+    "diplomacy",
+    "diplo",
+    "doctrine",
+    "item",
+    "1",
+    "2",
+    "3",
   ],
 };
 
@@ -1445,7 +1457,11 @@ export function compileAvaCommand(
   context: AvaCompilerContext,
 ): AvaCompileResult {
   const semantic = compileSemanticQuery(raw, context);
-  const shell = parseAvaShellInput(raw, context.shellFileReferences);
+  const shell = parseAvaShellInput(
+    raw,
+    context.shellFileReferences,
+    context.shellEditor,
+  );
   if (shell) {
     const instruction: AvaInstruction = { kind: "SHELL", shell };
     return {

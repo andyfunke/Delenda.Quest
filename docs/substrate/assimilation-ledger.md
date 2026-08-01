@@ -49,3 +49,55 @@ Permutation policy for this epoch:
 - `enemyt` is an enumerated typo, not an edit-distance rule.
 - Campaign handles are resolved against today's visible entities, so the M2
   identity rotates with the campaign docket without hard-coding content IDs.
+
+## Epoch 2026-08-01-B — daily quotation and typed terminal language
+
+Source: the approved terminal, quotation, export, archive, and bounded-tool
+batch evaluated immediately before implementation.
+
+| Observed surface | Class | Canonical result | Assimilation rule |
+|---|---|---|---|
+| `quote`, `daily quote`, `quote of the day` | exact read aliases | assigned daily aphorism | Retrieval never rerolls or consumes a second quotation. |
+| `fortune` | shell read alias | assigned daily aphorism | Shell and Ava return the same campaign-day assignment. |
+| `A \| grep PATTERN` | typed composition | read-only pipeline | The first stage must produce visible text and every later stage must be an enumerated filter. |
+| `explain --trace last` | exact diagnostic | prior compiler trace | The trace is session-local and cannot expose sealed state. |
+| `prove last` | exact diagnostic | prior public proof digest | The receipt attests to the prior visible result without becoming a hidden-state oracle. |
+| `vim PATH`, `nano PATH` | bounded applications | commander note editor | Writes are limited to declared commander directories and text extensions. |
+
+Permutation policy for this epoch:
+
+- Quote aliases admit ordinary apostrophe, case, punctuation, and whitespace
+  normalization only.
+- A literal pipe inside a quoted grep pattern remains data, not composition.
+- Pipelines reject mutation commands, redirects, chaining, substitutions,
+  binary downloads, and remote archive requests.
+- Bare `less` retains Ava's disclosure-depth meaning; `less` is a pager only
+  when it appears after a typed pipe.
+- Editor controls are enumerated state transitions, never host keystroke or
+  process access.
+
+## Epoch 2026-08-01-C — public artifacts and unresolved directive handles
+
+Source: reviewed player transcript attached as `Pasted text(8).txt`, including
+the failed `compare production`, `p1`, and `production 1` surfaces.
+
+| Observed surface | Class | Canonical result | Assimilation rule |
+|---|---|---|---|
+| `generate social post` | exact read alias | assigned quote plus canonical HTTPS availability line | The command retrieves the day's existing quote and cannot publish externally. |
+| `compare production` | recognized unsupported capability | no mutation | Remains rejected until every visible directive has a stable action identity and a shared comparison projection. |
+| `p1` | unresolved directive shorthand | clarification | Must not be aliased to a legacy global `P<n>` identity; the next epoch must bind it to the displayed Production docket. |
+| `production 1` | unresolved ordinal | clarification | Must resolve only against the currently displayed Production docket and its state seal. |
+| `compare M1 M2` | existing Campaign comparison | read-only cognitive comparison | Campaign comparison remains valid but does not imply directive or cross-menu comparability. |
+
+Permutation policy for this epoch:
+
+- Social-post aliases admit case, punctuation, and whitespace normalization
+  only; they never call a social network or consume another aphorism.
+- Raw directive scores are no longer player-facing; the workbook retains the
+  internal values and formula provenance.
+- A local directive ordinal may be assimilated only after the rendered docket,
+  Ava discourse context, and Nexus all share one day- and revision-sealed
+  descriptor.
+- No grammar rule may reinterpret bare `M1` as a directive merely because the
+  player most recently viewed Military; explicit Campaign identities retain
+  precedence until distinct directive handles exist.

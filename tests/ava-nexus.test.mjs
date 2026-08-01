@@ -135,13 +135,13 @@ test("chat export crosses the Nexus as a local read-only presentation request", 
   assert.equal(exported.envelope.instructionKind, "EXPORT_CHAT");
   assert.deepEqual(exported.state, state);
   assert.deepEqual(exported.envelope.presentation.chatExport, {
-    filename: "delenda-quest-ava-chat-day-001.txt",
-    mime: "text/plain;charset=utf-8",
+    filename: "delenda-quest-ava-chat-day-001.md",
+    mime: "text/markdown;charset=utf-8",
   });
   assert.match(exported.text, /CHAT LOG EXPORT[\s\S]*remains local/i);
 });
 
-test("godmode force-opportunity returns one canonical visible result", () => {
+test("godmode keeps Day 1 sealed and returns one canonical later result", () => {
   let state;
   for(let seed=1;seed<1000;seed+=1){
     const candidate=newState(seed);
@@ -157,6 +157,17 @@ test("godmode force-opportunity returns one canonical visible result", () => {
     operation:"force-opportunity",
     expectedStateSeal:nexus.avaNexusStateRevision(state),
   };
+  const dayOne=nexus.runAvaNexusRequest(
+    request,
+    ctxFor(state,"command","internal"),
+    state,
+    nexus.createAvaNexusSession(),
+  );
+  assert.equal(dayOne.response.status,"REJECTED",dayOne.text);
+  assert.equal(dayOne.response.recovery.code,"OPPORTUNITY_DAY_ONE_SEALED");
+  assert.strictEqual(dayOne.state,state);
+  state={...state,day:2,currentSituation:null};
+  request.expectedStateSeal=nexus.avaNexusStateRevision(state);
   const forced=nexus.runAvaNexusRequest(
     request,
     ctxFor(state,"command","internal"),
@@ -187,7 +198,7 @@ test("godmode force-opportunity returns one canonical visible result", () => {
 });
 
 test("browser-origin opportunity responses execute through the typed Nexus", () => {
-  const opening=game.forceOpportunityForCurrentDay(newState(1731));
+  const opening=game.forceOpportunityForCurrentDay({...newState(1731),day:2,currentSituation:null});
   const packet=game.opportunityStatusForFraction(opening,.5).packet;
   assert.ok(packet);
   const response=packet.responses.find((candidate)=>
@@ -749,6 +760,27 @@ test("an explicit Campaign handle outranks stale directive discourse", () => {
   ]);
   assert.match(advised.text, /\[M2\]/);
   assert.doesNotMatch(advised.text, /JUDGMENT \/ PRODUCTION/);
+});
+
+test("bare advice follows the current visual module", () => {
+  const state = newState(705);
+  const national = run(
+    "advise",
+    state,
+    nexus.createAvaNexusSession(true, "national"),
+  );
+  assert.equal(national.response.status, "OK", national.text);
+  assert.equal(national.envelope.semantic.subject.type, "DIRECTIVE");
+  assert.equal(national.envelope.semantic.directive.channel, "production");
+  assert.match(national.text, /JUDGMENT \/ PRODUCTION/);
+
+  const military = run(
+    "what should i do",
+    state,
+    nexus.createAvaNexusSession(true, "military"),
+  );
+  assert.equal(military.response.status, "OK", military.text);
+  assert.equal(military.envelope.semantic.directive.channel, "military");
 });
 
 test("all conversational campaign-module wrappers reach functioning Nexus handlers", () => {

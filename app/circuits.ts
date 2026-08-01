@@ -59,6 +59,8 @@ const baseOutput:Record<Resource,number>={munitions:540,armor:2.55,flight:.74,dr
 const baseUse:Record<Resource,number>={munitions:21000,armor:74,flight:17,drones:355};
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
 export const NO_ACTION_DAILY_FRONT_LOSS=-1.1;
+export const CAMPAIGN_SUCCESS_PRESSURE_CONVERSION=1.4;
+export const CAMPAIGN_FAILURE_PRESSURE_CONVERSION=1.2;
 export const enemyDeploymentShareForPosture=(posture:string)=>posture.includes("Reconstitute") ? .28 : posture.includes("Concentrated") ? .72 : posture.includes("Exploit") ? .62 : posture.includes("Counterstroke") ? .58 : posture.includes("Defense") ? .38 : .48;
 const allocationFor=(target:GameState["target"],resource:Resource)=>target==="balanced"?25:resource===target?46:18;
 
@@ -214,7 +216,7 @@ export const operationsCircuit:Circuit<GameState,OperationsLedger,OperationsCont
     const networkTempoPressure=maneuver?(state.networkPosture==="broadcast"?.25:state.networkPosture==="dark"?-.08:.12):0;
     const basePressure=(maneuver?0:NO_ACTION_DAILY_FRONT_LOSS)+(context.tempoPressure-.35)*.45+networkTempoPressure+atrocities;
     const enemyPressureDeviation=(state.adversaryLedger?.pressure??.35)-.35;
-    const maneuverConversion=maneuverPressure>=0?1.4:.2;
+    const maneuverConversion=maneuverPressure>=0?CAMPAIGN_SUCCESS_PRESSURE_CONVERSION:CAMPAIGN_FAILURE_PRESSURE_CONVERSION;
     const groundMovement=basePressure+maneuverPressure*maneuverConversion+forceRatioPressure+intelligencePressure+shortagePressure+context.directorFriendlyPressure-context.directorEnemyPressure-enemyPressureDeviation;
     const evidence=[`${committed.toLocaleString()} soldiers committed (${(committed/Math.max(1,operationallyAvailable)*100).toFixed(1)}% of operationally available force; ${state.patrolCommitment.toLocaleString()} assigned to desertion patrols)`,...(packageEfficiency<1?[`${nominalCommitment.toLocaleString()} nominal requirement delivered by ${committed.toLocaleString()} exposed soldiers under the task-organization rule`]:[]),`${effectiveCommitted.toFixed(0)} terrain- and condition-adjusted committed power`,`Resolution roll ${(context.roll*100).toFixed(1)} against ${(context.confidence*100).toFixed(1)} execution confidence; margin ${margin>=0?"+":""}${(margin*100).toFixed(1)} points`,`${outcomeBand.toUpperCase()} outcome band selected from the stored margin`,`${friendlyLosses.toLocaleString()} friendly and ${enemyLosses.toLocaleString()} estimated enemy losses`,`${groundMovement>=0?"+":""}${groundMovement.toFixed(2)} km ground movement`];
     const signals:CircuitSignal[]=[];if(frontageSaturation>1.35)signals.push({severity:"warning",code:"operations.frontage.congestion",message:"Committed force exceeds useful frontage and loses conversion efficiency."});if(networkFactor<.8)signals.push({severity:"critical",code:"operations.network.severed",message:"Command network sharply reduces committed-force conversion."});if(supplyFactor<.8)signals.push({severity:"critical",code:"operations.supply.interdicted",message:"Supply condition constrains operational power."});

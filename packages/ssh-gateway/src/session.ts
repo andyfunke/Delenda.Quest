@@ -9,6 +9,7 @@ import {
   loadRemoteCampaign,
   openRemoteAudit,
   readGatewayConfig,
+  queryRemoteArchive,
   saveRemoteCampaign,
   type RemoteCampaignEnvelope,
 } from "./remote-store";
@@ -139,7 +140,13 @@ const runLine=async(raw:string)=>{
       return true;
     }
   }else nexusSession=result.session;
-  write(`${result.publicResult.text}\n\n`);
+  let publicText=result.publicResult.text;
+  if(result.publicResult.archiveRequest){
+    publicText=await queryRemoteArchive(config,result.publicResult.archiveRequest)
+      .then((archive)=>archive.text)
+      .catch(()=>"ARCHIVE UNAVAILABLE\nThe archival broker could not be reached. No campaign state changed.");
+  }
+  write(`${publicText}\n\n`);
   return true;
 };
 

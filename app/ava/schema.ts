@@ -209,6 +209,8 @@ export type AvaAnswerPlan = {
 
 export type AvaShellCommandName =
   | "REJECT"
+  | "PIPELINE"
+  | "STREAM"
   | "DARK_NET"
   | "PWD"
   | "CD"
@@ -221,11 +223,50 @@ export type AvaShellCommandName =
   | "WHOAMI"
   | "HISTORY"
   | "CLEAR"
-  | "DOWNLOAD";
+  | "DOWNLOAD"
+  | "MAN"
+  | "WHICH"
+  | "TREE"
+  | "STAT"
+  | "FILE"
+  | "HEAD"
+  | "TAIL"
+  | "SORT"
+  | "UNIQ"
+  | "WC"
+  | "CUT"
+  | "COLUMN"
+  | "LESS"
+  | "BREW"
+  | "VIM"
+  | "NANO"
+  | "EDITOR_INPUT"
+  | "ARCHIVE"
+  | "GIT"
+  | "SQLITE3"
+  | "PS"
+  | "SYSTEMCTL"
+  | "CRONTAB"
+  | "FORTUNE"
+  | "SOCIAL_POST"
+  | "SUDO"
+  | "MAKE"
+  | "RM"
+  | "HOSTNAME"
+  | "UPTIME"
+  | "AVA_DOCTOR"
+  | "AVA_TRACE"
+  | "PROVE"
+  | "JQ"
+  | "BAT"
+  | "BC"
+  | "UNITS"
+  | "CAL";
 export type AvaShellInstruction = {
   command: AvaShellCommandName;
   args: string[];
   raw: string;
+  stages?: AvaShellInstruction[];
 };
 
 export type AvaVirtualFile = {
@@ -239,12 +280,25 @@ export type AvaVirtualFile = {
   stateRevision: string;
   asOfFraction?: number;
   workbookBytes?: number[];
+  mime?: string;
 };
 export type AvaShellSession = {
   cwd: string;
   history: string[];
   files: AvaVirtualFile[];
   darkNetUnlocked: boolean;
+  installedPackages: string[];
+  editor?: {
+    program: "vim" | "nano";
+    path: string;
+    buffer: string;
+    savedBuffer: string;
+    undo: string[];
+    mode: "normal" | "insert";
+  };
+  lastCompilerTrace?: string;
+  lastProofDigest?: string;
+  lastOperatorFamilies?: string[];
 };
 
 export type AvaActionRef =
@@ -435,6 +489,7 @@ export type AvaCompilerContext = {
   discourse?: AvaDiscourseState;
   openApplet?: string | null;
   shellFileReferences?: string[];
+  shellEditor?: "vim" | "nano";
 };
 
 export type AvaCommandHelp = {

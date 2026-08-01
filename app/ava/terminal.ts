@@ -40,7 +40,7 @@ import {
   initialAvaShellSession,
   saveAvaReportSnapshot,
 } from "./filesystem";
-import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
+import { avaWorkbookFilename, buildAvaCsvBundle, buildAvaWorkbook } from "./workbook";
 import { answerSemanticQuery } from "./advisory";
 import {
   canonicalDailyBriefing,
@@ -64,6 +64,7 @@ import type {
   AvaDiscourseState,
   AvaSemanticQuery,
 } from "./schema";
+import { formatPublicRating, publicCognitiveRating } from "./public-rating";
 
 export { completeAvaInput } from "./completion";
 export { avaShellFileReferences } from "./filesystem";
@@ -98,7 +99,11 @@ export type AvaTerminalResult = {
   };
   chatExport?: {
     filename: string;
-    mime: "text/plain;charset=utf-8";
+    mime: "text/markdown;charset=utf-8";
+  };
+  archiveRequest?: {
+    operation: "search" | "maps" | "photos" | "open" | "cite" | "save" | "analog";
+    query: string;
   };
   answerPlan?: AvaAnswerPlan;
   proofGraph?: CanonicalProofGraph;
@@ -261,7 +266,7 @@ const missionText = (state: GameState, fraction: number) => {
     opportunity.length
       ? `TARGET OF OPPORTUNITY\n${listed(opportunity)}`
       : "TARGET OF OPPORTUNITY: NONE ACTIVE",
-    `COMMANDS\n> stage M2${packet.activeDomains.includes("domestic") ? " D1" : ""}${packet.activeDomains.includes("network") ? " N3" : ""}\n> forecast M2\n> compare M2 M4\n> issue plan`,
+    `COMMANDS\n> stage M2${packet.activeDomains.includes("domestic") ? " D1" : ""}${packet.activeDomains.includes("network") ? " N3" : ""}\n> forecast M2\n> production\n> compare M2 production 1\n> issue plan`,
   ];
   return sections.filter((section):section is string=>!!section).join("\n\n");
 };
@@ -408,7 +413,11 @@ const cognitiveComparisonText = (
         return `${metric.metricId.toUpperCase()} ${value}`;
       })
       .join(" · ");
-    return `${index + 1}. [${descriptor.handle}] ${descriptor.label} · ROBUST UTILITY ${candidate.utility.low.toFixed(3)} TO ${candidate.utility.high.toFixed(3)} · ${metrics}`;
+    const rating = publicCognitiveRating(
+      candidate.utility.low,
+      candidate.utility.high,
+    );
+    return `${index + 1}. [${descriptor.handle}] ${descriptor.label} · ${formatPublicRating(rating)} · ${metrics}`;
   });
   const winner = labels.get(decision.winnerId)!;
   return [
@@ -818,14 +827,20 @@ function executeAvaInstruction(
               state,
               shellResult.download.topic ?? "command-dashboard",
             ),
-          mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          mime: shellResult.download.mime ?? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           bytes: shellResult.download.workbookBytes
             ? Uint8Array.from(shellResult.download.workbookBytes)
-            : buildAvaWorkbook(
-                state,
-                shellResult.download.topic ?? "command-dashboard",
-                opportunityFraction,
-              ),
+            : shellResult.download.mime === "application/zip"
+              ? buildAvaCsvBundle(
+                  state,
+                  shellResult.download.topic ?? "command-dashboard",
+                  opportunityFraction,
+                )
+              : buildAvaWorkbook(
+                  state,
+                  shellResult.download.topic ?? "command-dashboard",
+                  opportunityFraction,
+                ),
           stateRevision: shellResult.download.stateRevision,
         }
       : undefined;
@@ -834,6 +849,7 @@ function executeAvaInstruction(
       clearScreen: shellResult.clearScreen,
       aphorismViewIds: shellResult.aphorismViewIds,
       download,
+      archiveRequest: shellResult.archiveRequest,
     });
   }
   if (instruction.kind === "SEMANTIC") {
@@ -992,8 +1008,8 @@ function executeAvaInstruction(
       ),
       {
         chatExport: {
-          filename: `delenda-quest-ava-chat-day-${String(state.day).padStart(3, "0")}.txt`,
-          mime: "text/plain;charset=utf-8",
+          filename: `delenda-quest-ava-chat-day-${String(state.day).padStart(3, "0")}.md`,
+          mime: "text/markdown;charset=utf-8",
         },
       },
     );

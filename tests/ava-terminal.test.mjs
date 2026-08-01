@@ -445,6 +445,33 @@ test("the sealed Ava shell navigates a realistic fake filesystem and denies prot
   assert.equal(cleared.text,"");
 });
 
+test("typed pipelines and the daily quote stay read-only and deterministic",()=>{
+  const state=newState(441);
+  const quote=run("daily quote",state);
+  assert.equal(quote.outputKind,"shell");
+  assert.match(quote.text,/“.+”\n— /s);
+  assert.deepEqual(quote.state,state);
+
+  const piped=run("status | grep -i orders",state,quote.session);
+  assert.equal(piped.outputKind,"shell");
+  assert.match(piped.text,/orders/i);
+  assert.deepEqual(piped.state,state);
+
+  const history=run("history | tail -n 2",state,piped.session);
+  assert.match(history.text,/status \| grep -i orders[\s\S]*history \| tail -n 2/i);
+  assert.deepEqual(history.state,state);
+
+  const social=run("generate social post",state,history.session);
+  assert.match(social.text,/DELENDA\.QUEST \/\/ DAY 1/);
+  assert.match(social.text,/Available over browser, SSH, and CLI \| https:\/\/delenda\.quest/);
+  assert.match(social.text,new RegExp(state.reports[0].epigraph.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.deepEqual(social.state,state);
+
+  const manual=run("man ps",state,social.session);
+  assert.match(manual.text,/PS\(1\)[\s\S]*virtual processes/);
+  assert.doesNotMatch(manual.text,/aux|process id|host process/i);
+});
+
 test("Dark Net mounts the complete campaign corpus and preserves the current docket separately",()=>{
   const state=newState(1);
   const telemetry={
@@ -619,8 +646,22 @@ test("Ava report workbooks are real downloadable xlsx files with formulas preser
     "F2*0.5+E2*0.35-D2*0.55-G2*0.00025",
     "Campaign Score",
     "EXP((28-B3)/5.2)",
+    "Formula Registry",
+    "Player Interventions",
+    "Sensitivity Analysis",
+    "DIRECT PLAYER INTERVENTION",
   ])assert.match(archive,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),marker);
   assert.doesNotMatch(archive,/resolutionTicket|raw prompt|accountOpportunityIds/i);
+
+  const csvBundle=run(
+    "download reports/current/command-dashboard-csv.zip",
+    state,
+    download.session,
+  );
+  assert.equal(csvBundle.download?.mime,"application/zip");
+  const csvArchive=Buffer.from(csvBundle.download.bytes).toString("utf8");
+  assert.match(csvArchive,/provenance-manifest\.json/);
+  assert.match(csvArchive,/formula-registry\.csv/);
 
   const resolvePending=run("resolve day",state,download.session);
   const nextDay=confirmPending(state,resolvePending.session);

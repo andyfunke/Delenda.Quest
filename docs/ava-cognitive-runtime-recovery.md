@@ -386,3 +386,91 @@ For every subsequent epoch:
     warnings
   - native SSH gateway typecheck, build, and in-process session contracts passed
   - Cloudflare types and Wrangler dry run passed with production D1 preserved
+
+## Command-environment epoch — typed tools, archival broker, and auditable exports
+
+- Date: 2026-08-01
+- State: implementation complete; production promotion remains a separate approval
+- Scope:
+  - typed, read-only pipelines with bounded `grep`, `head`, `tail`, `sort`,
+    `uniq`, `wc`, `cut`, `column`, `jq`, and `less` filters
+  - abridged manual pages for every implemented system command, with upstream
+    manual provenance recorded under `docs/third-party/man-sources.md`
+  - one campaign-day quotation shared by Ava and `fortune`
+  - commander-owned notes plus bounded Vim and Nano state machines
+  - declared Homebrew-style capability registry with no executable downloads
+  - read-only campaign Git, SQLite, process, service, schedule, and diagnostic
+    metaphors
+  - Library of Congress catalog broker carried through browser and native SSH
+    adapters without granting arbitrary network or host-shell access
+  - Markdown chat export with message time, identity, surface, module,
+    operation, status, handles, cognitive families, and proof-receipt metadata
+  - workbook formula registry, player-intervention provenance, sensitivity
+    analysis, provenance colors, and a CSV-plus-manifest interoperability bundle
+  - separate Email Nexus contract and source-grounded architecture plan; no
+    provider account, DNS record, outbound message, or email mutation endpoint
+    was created in this epoch
+- Acceptance:
+  - complete production suite passed
+  - TypeScript passed
+  - all 4,800 whole-IR grammar proofs passed
+  - Ava focused suite passed after explicit shell-language collision repairs
+  - 209/209 Nexus/Substrate contracts passed
+  - native SSH gateway built and its in-process contracts passed
+  - production build, Cloudflare types, and Wrangler dry run passed with D1,
+    Images, and Assets bindings preserved
+  - lint passed with zero errors and the existing 22 warnings
+
+## Adjacent public-control foundation epoch
+
+- Date: 2026-08-01
+- State: tested foundation only; cross-menu comparison and directive shorthand
+  remain explicitly outside this epoch
+- Scope:
+  - random Daily missions are structurally sealed on Day 1, including the
+    authenticated force-open path
+  - `generate social post` returns the already-assigned daily quotation and the
+    canonical `https://delenda.quest` browser, SSH, and CLI link
+  - public advice replaces raw internal directive scores with a bounded,
+    percentile-shaped 1–100 rating while preserving raw calculus in the
+    workbook
+  - campaign outcomes have larger direct battlefield conversion in both the
+    success and failure branches, so an operational collapse can be worse than
+    accepting the standing loss
+  - completed public campaign records expose a versioned simulation credential
+    payload and SHA-256 digest; the artifact explicitly disclaims licensure,
+    accreditation, and identity verification
+  - Email Nexus defines the sole typed contract for future authentication,
+    notification, certification, and play-by-email transport; it performs no
+    provider call in this epoch
+- Explicit exclusions:
+  - directive menus do not yet mint player-facing `P1`, `P2`, and equivalent
+    per-docket handles
+  - `compare production`, within-directive comparison, and Campaign-versus-
+    directive comparison do not yet share a handler
+  - the current public rating distributions are presentation mappings inside
+    separate score families; they are not yet a cross-family comparable utility
+    model
+  - no email provider, DNS record, authentication endpoint, inbound route, or
+    outbound send is created
+- Acceptance: covered by the command-environment epoch's complete gate above.
+
+## Release-verification correction — public activation attestations
+
+- Date: 2026-08-01
+- State: verification-only correction for production promotion
+- Scope:
+  - refresh the sealed public text digests for the decision, directive, and
+    forecast activation probes after this epoch intentionally added public
+    ratings, battlefield-range disclosure, and forecast presentation detail
+  - preserve identical probe outputs across browser and native terminal cores
+  - remove one prematurely admitted cross-menu comparison assertion from this
+    epoch's executable gate; the requirement remains preserved in the adjacent
+    foundation epoch's explicit exclusions and subsequent implementation queue
+  - change no runtime behavior, campaign mechanics, grammar, authority,
+    persistence, provider integration, or production configuration
+- Acceptance:
+  - all seven activation probes retain their expected signal, operator family,
+    authority, proof identity, tamper-evident marker, and web/SSH parity
+  - the complete repository gate is rerun against the isolated release tree
+    before production promotion

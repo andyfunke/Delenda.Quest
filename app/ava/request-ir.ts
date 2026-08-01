@@ -151,7 +151,11 @@ export type AvaEnvelopePresentation = {
   };
   chatExport?: {
     filename: string;
-    mime: "text/plain;charset=utf-8";
+    mime: "text/markdown;charset=utf-8";
+  };
+  archiveRequest?: {
+    operation: "search" | "maps" | "photos" | "open" | "cite" | "save" | "analog";
+    query: string;
   };
 };
 
@@ -384,6 +388,8 @@ const REPORT_TOPICS = new Set<AvaReportTopic>([
 ]);
 const SHELL_COMMANDS = new Set<AvaShellCommandName>([
   "REJECT",
+  "PIPELINE",
+  "STREAM",
   "DARK_NET",
   "PWD",
   "CD",
@@ -397,6 +403,44 @@ const SHELL_COMMANDS = new Set<AvaShellCommandName>([
   "HISTORY",
   "CLEAR",
   "DOWNLOAD",
+  "MAN",
+  "WHICH",
+  "TREE",
+  "STAT",
+  "FILE",
+  "HEAD",
+  "TAIL",
+  "SORT",
+  "UNIQ",
+  "WC",
+  "CUT",
+  "COLUMN",
+  "LESS",
+  "BREW",
+  "VIM",
+  "NANO",
+  "EDITOR_INPUT",
+  "ARCHIVE",
+  "GIT",
+  "SQLITE3",
+  "PS",
+  "SYSTEMCTL",
+  "CRONTAB",
+  "FORTUNE",
+  "SOCIAL_POST",
+  "SUDO",
+  "MAKE",
+  "RM",
+  "HOSTNAME",
+  "UPTIME",
+  "AVA_DOCTOR",
+  "AVA_TRACE",
+  "PROVE",
+  "JQ",
+  "BAT",
+  "BC",
+  "UNITS",
+  "CAL",
 ]);
 const LIST_SCOPES = new Set([
   "missions",
@@ -807,16 +851,23 @@ export const isAvaEntity = (value: unknown): value is AvaEntity => {
 const isExecutableEntity = (value: unknown): value is AvaEntity =>
   isAvaEntity(value) && value.action !== undefined;
 
-const isAvaShellInstruction = (
+function isAvaShellInstruction(
   value: unknown,
-): value is AvaShellInstruction =>
-  isRecord(value) &&
-  hasExactKeys(value, ["command", "args", "raw"]) &&
+): value is AvaShellInstruction {
+  return isRecord(value) &&
+  hasExactKeys(value, ["command", "args", "raw"], ["stages"]) &&
   typeof value.command === "string" &&
   SHELL_COMMANDS.has(value.command as AvaShellCommandName) &&
   isStringArray(value.args) &&
   value.args.every((argument) => !!argument.trim()) &&
-  isNonEmptyString(value.raw);
+  isNonEmptyString(value.raw) &&
+  (value.command === "PIPELINE"
+    ? Array.isArray(value.stages) &&
+      value.stages.length >= 2 &&
+      value.stages.length <= 8 &&
+      value.stages.every(isAvaShellInstruction)
+    : value.stages === undefined);
+}
 
 export type AvaInstructionValidation =
   | { ok: true; instruction: AvaInstruction }

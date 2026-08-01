@@ -255,6 +255,18 @@ type Metric =
 type Message = {
   who: "AVA" | "YOU";
   text: string;
+  messageId?: string;
+  timestamp?: string;
+  campaignDay?: number;
+  stateRevision?: string;
+  surface?: "web";
+  activeModule?: string;
+  canonicalOperation?: string;
+  responseStatus?: string;
+  handles?: string[];
+  operatorFamilies?: readonly string[];
+  proofDigest?: string;
+  contentClass?: "player-input" | "canonical-output" | "narrative-realization";
   anchorId?: string;
   kind?: "ava" | "shell";
   cognitiveActivation?: AvaCognitiveActivationReceipt;
@@ -3789,11 +3801,15 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       history: [],
       files: avaSession.terminal.shell.files,
       darkNetUnlocked: avaSession.terminal.shell.darkNetUnlocked,
+      installedPackages: avaSession.terminal.shell.installedPackages,
+      editor: avaSession.terminal.shell.editor,
     }),
     [
       avaSession.terminal.shell.cwd,
       avaSession.terminal.shell.darkNetUnlocked,
       avaSession.terminal.shell.files,
+      avaSession.terminal.shell.installedPackages,
+      avaSession.terminal.shell.editor,
     ],
   );
   const [messages, setMessages] = useState<Message[]>([]);
@@ -4013,12 +4029,17 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               terminal:{
                 ...current.terminal,
                 shell:{
+                  ...current.terminal.shell,
                   cwd:interacted?current.terminal.shell.cwd:archived.cwd,
                   history:current.terminal.shell.history,
                   files:[...byPath.values()],
                   darkNetUnlocked:
                     current.terminal.shell.darkNetUnlocked||
                     archived.darkNetUnlocked,
+                  installedPackages:[...new Set([
+                    ...archived.installedPackages,
+                    ...current.terminal.shell.installedPackages,
+                  ])],
                 },
               },
             };
@@ -5569,6 +5590,18 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       {
         who: "AVA",
         text: opening.text,
+        messageId: portableId(),
+        timestamp: new Date().toISOString(),
+        campaignDay: s.day,
+        stateRevision: avaNexusStateRevision(s),
+        surface: "web",
+        activeModule: opening.session.currentModule,
+        canonicalOperation: opening.envelope.semantic?.operation ?? opening.envelope.instructionKind,
+        responseStatus: opening.response.status,
+        handles: [...(opening.envelope.semantic?.subject.entityIds ?? [])],
+        operatorFamilies: opening.cognitiveActivation?.operatorFamilies,
+        proofDigest: opening.cognitiveActivation?.digest,
+        contentClass: "canonical-output",
         anchorId,
         kind: opening.envelope.presentation.outputKind ?? "ava",
         cognitiveActivation: opening.cognitiveActivation,
@@ -5605,7 +5638,19 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
     }
     const anchorId = `ava-turn-${++avaAnchorSequenceRef.current}`;
     avaActiveAnchorRef.current = anchorId;
-    setMessages((m) => [...m, { who: "YOU", text: raw, anchorId }]);
+    const submittedAt = new Date().toISOString();
+    setMessages((m) => [...m, {
+      who: "YOU",
+      text: raw,
+      anchorId,
+      messageId: portableId(),
+      timestamp: submittedAt,
+      campaignDay: s.day,
+      stateRevision: avaNexusStateRevision(liveStateRef.current),
+      surface: "web",
+      activeModule: gameModuleForPage(page),
+      contentClass: "player-input",
+    }]);
     const turnModeIntent = compileAvaTurnModeIntent(raw);
     const godModeIntent = compileAvaGodModeIntent(raw);
     if (godModeIntent?.kind === "force-random-event") {
@@ -5920,10 +5965,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       darkNetContext,
     );
     const presentation=terminal.envelope.presentation;
-    const terminalText =
+    let terminalText =
       presentation.report && !avaArchiveWritable
         ? `${terminal.text}\n\nSESSION-ONLY FILE // DOWNLOAD BEFORE RELOAD`
         : terminal.text;
+    if (presentation.archiveRequest) {
+      const params = new URLSearchParams(presentation.archiveRequest);
+      try {
+        const archiveResponse = await fetch(`/api/archive/loc?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const archiveBody = await archiveResponse.json() as { text?: string; error?: string };
+        terminalText = archiveResponse.ok && archiveBody.text
+          ? archiveBody.text
+          : `ARCHIVE UNAVAILABLE\n${archiveBody.error ?? "The archival broker returned no usable record."}`;
+      } catch {
+        terminalText = "ARCHIVE UNAVAILABLE\nThe archival broker could not be reached. No campaign state changed.";
+      }
+    }
     liveAvaSessionRef.current=terminal.session;
     setAvaSession(terminal.session);
     if (presentation.aphorismViewIds?.length) {
@@ -5973,8 +6032,33 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
         exportedAt: new Date(),
         entries: [
           ...messages,
-          { who: "YOU", text: raw },
-          { who: "AVA", text: terminalText },
+          {
+            who: "YOU",
+            text: raw,
+            messageId: portableId(),
+            timestamp: submittedAt,
+            campaignDay: stateAtExecution.day,
+            stateRevision: nexusContext.campaignRevision,
+            surface: "web",
+            activeModule: gameModuleForPage(page),
+            contentClass: "player-input",
+          },
+          {
+            who: "AVA",
+            text: terminalText,
+            messageId: portableId(),
+            timestamp: new Date().toISOString(),
+            campaignDay: stateAtExecution.day,
+            stateRevision: nexusContext.campaignRevision,
+            surface: "web",
+            activeModule: terminal.session.currentModule,
+            canonicalOperation: terminal.envelope.semantic?.operation ?? terminal.envelope.instructionKind,
+            responseStatus: terminal.response.status,
+            handles: [...(terminal.envelope.semantic?.subject.entityIds ?? [])],
+            operatorFamilies: terminal.cognitiveActivation?.operatorFamilies,
+            proofDigest: terminal.cognitiveActivation?.digest,
+            contentClass: "canonical-output",
+          },
         ],
       });
       const url = window.URL.createObjectURL(
@@ -6036,6 +6120,18 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               text: terminalText,
               kind: presentation.outputKind ?? "ava",
               cognitiveActivation: terminal.cognitiveActivation,
+              messageId: portableId(),
+              timestamp: new Date().toISOString(),
+              campaignDay: stateAtExecution.day,
+              stateRevision: nexusContext.campaignRevision,
+              surface: "web" as const,
+              activeModule: terminal.session.currentModule,
+              canonicalOperation: terminal.envelope.semantic?.operation ?? terminal.envelope.instructionKind,
+              responseStatus: terminal.response.status,
+              handles: [...(terminal.envelope.semantic?.subject.entityIds ?? [])],
+              operatorFamilies: terminal.cognitiveActivation?.operatorFamilies,
+              proofDigest: terminal.cognitiveActivation?.digest,
+              contentClass: "canonical-output" as const,
             },
           ]
         : []),

@@ -782,6 +782,7 @@ const opportunitySchedule=(seed:number,throughDay:number)=>{
 const opportunityOrder=(seed:number)=>[...OPPORTUNITY_TEMPLATES].sort((a,b)=>hash(`${seed}:target-of-opportunity:deck:${a.id}`)-hash(`${seed}:target-of-opportunity:deck:${b.id}`));
 
 export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
+  if(state.day<=1)return null;
   const forced=(state.forcedOpportunityDays??[]).includes(state.day);
   if(!forced&&!opportunityOccurs(state.campaignSeed,state.day))return null;
   const occurrence=opportunitySchedule(state.campaignSeed,state.day-1).length;
@@ -800,6 +801,7 @@ export const opportunityForState=(state:GameState):OpportunityPacket|null=>{
 };
 
 export const forceOpportunityForCurrentDay=(state:GameState)=>{
+  if(state.day<=1)return state;
   if((state.forcedOpportunityDays??[]).includes(state.day))return state;
   const next=clone(state);
   next.forcedOpportunityDays=[...(next.forcedOpportunityDays??[]),state.day];

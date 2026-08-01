@@ -23,6 +23,8 @@ import type {
   AvaShellSession,
   AvaVirtualFile,
 } from "./schema";
+import { APHORISMS } from "../aphorisms";
+import { AVA_MAN_PAGES, avaManPage, renderAvaManPage } from "./man-pages";
 
 export const AVA_HOME = "/home/commander";
 export const AVA_INITIAL_CWD = `${AVA_HOME}/home`;
@@ -50,6 +52,9 @@ const staticDirectories: VirtualDirectory[] = [
   { path: AVA_HOME, mode: "0750", owner: "commander" },
   { path: AVA_INITIAL_CWD, mode: "0750", owner: "commander" },
   { path: `${AVA_INITIAL_CWD}/orders`, mode: "0750", owner: "commander" },
+  { path: `${AVA_HOME}/notes`, mode: "0750", owner: "commander" },
+  { path: `${AVA_HOME}/archive`, mode: "0750", owner: "commander" },
+  { path: `${AVA_HOME}/exports`, mode: "0750", owner: "commander" },
   { path: `${AVA_INITIAL_CWD}/reports`, mode: "0750", owner: "commander" },
   {
     path: `${AVA_INITIAL_CWD}/reports/current`,
@@ -216,6 +221,21 @@ const currentReportFile = (
   asOfFraction: boundedFraction(fraction),
 });
 
+const currentCsvBundleFile = (
+  state: GameState,
+  fraction: number,
+): AvaVirtualFile => ({
+  path: `${AVA_INITIAL_CWD}/reports/current/command-dashboard-csv.zip`,
+  kind: "workbook",
+  mode: "0640",
+  owner: "commander",
+  createdDay: state.day,
+  topic: "command-dashboard",
+  stateRevision: avaReportRevision(state, fraction),
+  asOfFraction: boundedFraction(fraction),
+  mime: "application/zip",
+});
+
 const currentTextReport = (
   topic: AvaReportTopic,
   state: GameState,
@@ -282,7 +302,7 @@ const staticFiles = (
       owner: "ava",
       createdDay: state.day,
       content:
-        "Supported commands: pwd cd ls cat grep find whoami history clear download.\nThis is a sealed campaign filesystem. It cannot reach the host system.\n",
+        "Use `man ava`, `man 5 orders`, or `man <command>`.\nThe shell is sealed: declared adapters can inspect campaign state and commander files but cannot reach the host system.\n",
       stateRevision: avaStateRevision(state),
     },
     {
@@ -305,6 +325,7 @@ const staticFiles = (
       stateRevision: avaStateRevision(state),
     },
     ...reportTopics.map((topic) => currentReportFile(topic, state, fraction)),
+    currentCsvBundleFile(state, fraction),
     ...(
       [
         "daily-brief",
@@ -396,12 +417,14 @@ export const initialAvaShellSession = (): AvaShellSession => ({
   history: [],
   files: [],
   darkNetUnlocked: false,
+  installedPackages: ["bat", "less", "milhist", "nano", "tree", "vim"],
 });
 
 export const serializeAvaShellSession = (shell: AvaShellSession) => ({
   cwd: shell.cwd,
   files: shell.files,
   darkNetUnlocked: shell.darkNetUnlocked,
+  installedPackages: shell.installedPackages,
 });
 
 export const restoreAvaShellSession = (
@@ -414,6 +437,7 @@ export const restoreAvaShellSession = (
     cwd?: unknown;
     files?: unknown;
     darkNetUnlocked?: unknown;
+    installedPackages?: unknown;
   };
   const darkNetUnlocked = candidate.darkNetUnlocked === true;
   const requestedCwd =
@@ -432,7 +456,12 @@ export const restoreAvaShellSession = (
       if (
         typeof file.path !== "string" ||
         cleanPath(file.path) !== file.path ||
-        !file.path.startsWith(`${AVA_INITIAL_CWD}/reports/saved/`) ||
+        ![
+          `${AVA_INITIAL_CWD}/reports/saved/`,
+          `${AVA_HOME}/notes/`,
+          `${AVA_HOME}/archive/`,
+          `${AVA_HOME}/exports/`,
+        ].some((root)=>file.path!.startsWith(root)) ||
         (file.kind !== "text" && file.kind !== "workbook") ||
         typeof file.createdDay !== "number" ||
         !Number.isInteger(file.createdDay) ||
@@ -485,7 +514,20 @@ export const restoreAvaShellSession = (
         },
       ];
     });
-  return { cwd, history: [], files, darkNetUnlocked };
+  const installedPackages = (Array.isArray(candidate.installedPackages)
+    ? candidate.installedPackages
+    : initial.installedPackages
+  ).filter(
+    (value): value is string =>
+      typeof value === "string" && /^[a-z0-9-]{1,32}$/.test(value),
+  );
+  return {
+    cwd,
+    history: [],
+    files,
+    darkNetUnlocked,
+    installedPackages: [...new Set(installedPackages)],
+  };
 };
 
 export const saveAvaReportSnapshot = (
@@ -717,6 +759,16 @@ export const avaShellCompletionCandidates = (
     "history",
     "clear",
     "download ",
+    "man ",
+    "which ",
+    "tree ",
+    "stat ",
+    "file ",
+    "ps",
+    "systemctl status supply.service",
+    "crontab -l",
+    "fortune",
+    "ava doctor",
     "tor",
     "tor campaign",
     "tor campaign current",
@@ -774,6 +826,10 @@ export type AvaShellExecution = {
   clearScreen?: boolean;
   download?: AvaVirtualFile;
   aphorismViewIds?: string[];
+  archiveRequest?: {
+    operation: "search" | "maps" | "photos" | "open" | "cite" | "save" | "analog";
+    query: string;
+  };
 };
 
 const fail = (shell: AvaShellSession, command: string, message: string) => ({
@@ -781,19 +837,157 @@ const fail = (shell: AvaShellSession, command: string, message: string) => ({
   text: `${command.toLowerCase()}: ${message}`,
 });
 
+const BREW_PACKAGES: Record<string, { description: string; commands: string[] }> = {
+  bat: { description: "Readable text-file rendering.", commands: ["bat"] },
+  bc: { description: "Bounded decimal arithmetic.", commands: ["bc"] },
+  cal: { description: "Campaign-day calendar.", commands: ["cal"] },
+  csvkit: { description: "CSV inspection adapters.", commands: ["csvlook", "csvcut", "csvstat"] },
+  fortune: { description: "The assigned campaign aphorism.", commands: ["fortune"] },
+  jq: { description: "Bounded JSON formatting and top-level field selection.", commands: ["jq"] },
+  less: { description: "Bounded pipeline pager.", commands: ["less"] },
+  milhist: { description: "Library of Congress military-history archive broker.", commands: ["archive", "milhist"] },
+  nano: { description: "Bounded commander-note editor.", commands: ["nano"] },
+  tree: { description: "Visible filesystem hierarchy.", commands: ["tree"] },
+  units: { description: "Declared distance and mass conversion.", commands: ["units"] },
+  vim: { description: "Bounded modal commander-note editor.", commands: ["vim"] },
+};
+
+const commanderWritablePath = (path:string) =>
+  [`${AVA_HOME}/notes/`,`${AVA_HOME}/archive/`,`${AVA_HOME}/exports/`].some((root)=>path.startsWith(root)) &&
+  /\.(?:md|txt|json|csv)$/i.test(path);
+
+const writeCommanderText = (
+  shell:AvaShellSession,
+  state:GameState,
+  path:string,
+  content:string,
+) => {
+  const file:AvaVirtualFile={path,kind:"text",mode:"0640",owner:"commander",createdDay:state.day,content:content.slice(0,250_000),stateRevision:avaStateRevision(state)};
+  return {...shell,files:[...shell.files.filter((entry)=>entry.path!==path),file]};
+};
+
+const editorStatus=(editor:NonNullable<AvaShellSession["editor"]>)=>
+  `${editor.program.toUpperCase()} // ${editor.path}\nMODE: ${editor.mode.toUpperCase()} // ${editor.buffer.split("\n").length} LINES // ${editor.buffer.length} CHARACTERS`;
+
+const executeEditorInput=(state:GameState,shell:AvaShellSession,raw:string):AvaShellExecution=>{
+  const editor=shell.editor;
+  if(!editor)return fail(shell,"editor","no editor is open");
+  const close=(nextShell:AvaShellSession,text:string)=>({shell:{...nextShell,editor:undefined},text});
+  if(editor.program==="nano"){
+    if(/^\^w\s+/i.test(raw)){
+      const needle=raw.replace(/^\^w\s+/i,"");
+      const line=editor.buffer.split("\n").findIndex((entry)=>entry.includes(needle));
+      return{shell,text:line>=0?`SEARCH: ${needle} // LINE ${line+1}`:`SEARCH: ${needle} // NOT FOUND`};
+    }
+    if(/^\^o$/i.test(raw)){
+      const written=writeCommanderText(shell,state,editor.path,editor.buffer);
+      return{shell:{...written,editor:{...editor,savedBuffer:editor.buffer}},text:`WROTE ${editor.buffer.length} CHARACTERS // ${editor.path}`};
+    }
+    if(/^\^x$/i.test(raw))return close(shell,editor.buffer===editor.savedBuffer?"NANO CLOSED":"NANO CLOSED // UNSAVED BUFFER DISCARDED");
+    const next={...editor,undo:[...editor.undo,editor.buffer].slice(-50),buffer:editor.buffer?`${editor.buffer}\n${raw}`:raw};
+    return{shell:{...shell,editor:next},text:editorStatus(next)};
+  }
+  if(editor.mode==="insert"){
+    if(/^(?:esc|escape)$/i.test(raw)){
+      const next={...editor,mode:"normal" as const};
+      return{shell:{...shell,editor:next},text:editorStatus(next)};
+    }
+    const next={...editor,undo:[...editor.undo,editor.buffer].slice(-50),buffer:editor.buffer?`${editor.buffer}\n${raw}`:raw};
+    return{shell:{...shell,editor:next},text:editorStatus(next)};
+  }
+  if(raw==="i")return{shell:{...shell,editor:{...editor,mode:"insert"}},text:"-- INSERT --"};
+  if(raw==="dd"){
+    const lines=editor.buffer.split("\n");
+    const next={...editor,undo:[...editor.undo,editor.buffer].slice(-50),buffer:lines.slice(0,-1).join("\n")};
+    return{shell:{...shell,editor:next},text:editorStatus(next)};
+  }
+  if(raw==="u"){
+    const previous=editor.undo.at(-1);if(previous===undefined)return{shell,text:"Already at oldest change"};
+    const next={...editor,buffer:previous,undo:editor.undo.slice(0,-1)};
+    return{shell:{...shell,editor:next},text:editorStatus(next)};
+  }
+  if(raw.startsWith("/")){
+    const needle=raw.slice(1);const line=editor.buffer.split("\n").findIndex((entry)=>entry.includes(needle));
+    return{shell,text:line>=0?`/${needle} // LINE ${line+1}`:`Pattern not found: ${needle}`};
+  }
+  if(raw===":w"||raw===":wq"){
+    const written=writeCommanderText(shell,state,editor.path,editor.buffer);
+    const saved={...written,editor:{...editor,savedBuffer:editor.buffer}};
+    return raw===":wq"?close(saved,`WROTE ${editor.buffer.length} CHARACTERS // ${editor.path}`):{shell:saved,text:`WROTE ${editor.buffer.length} CHARACTERS // ${editor.path}`};
+  }
+  if(raw===":q")return editor.buffer===editor.savedBuffer?close(shell,"VIM CLOSED"):{shell,text:"E37: No write since last change; use :wq"};
+  return{shell,text:"VIM NORMAL // i · dd · u · /PATTERN · :w · :q · :wq"};
+};
+
 export const executeAvaShell = (
   state: GameState,
   shell: AvaShellSession,
   instruction: AvaShellInstruction,
   fraction = 0,
   darkNetContext: AvaDarkNetContext = {},
+  stdin?: string,
+  recordHistory = true,
 ): AvaShellExecution => {
   const nextShell = {
     ...shell,
-    history: [...shell.history, instruction.raw].slice(-200),
+    history: recordHistory
+      ? [...shell.history, instruction.raw].slice(-200)
+      : shell.history,
   };
   const command = instruction.command;
   const args = [...instruction.args];
+
+  if (command === "PIPELINE") {
+    let pipelineShell = nextShell;
+    let stream = "";
+    for (const stage of instruction.stages ?? []) {
+      const result = executeAvaShell(
+        state,
+        pipelineShell,
+        stage,
+        fraction,
+        darkNetContext,
+        stream,
+        false,
+      );
+      pipelineShell = result.shell;
+      stream = result.text;
+      if (/^[a-z0-9-]+: /i.test(stream) && !stream.includes("\n")) break;
+    }
+    return { shell: pipelineShell, text: stream };
+  }
+  if (command === "STREAM") {
+    const producer = args[0];
+    const topic =
+      producer === "production"
+        ? "production"
+        : producer === "military"
+          ? "military"
+          : producer === "diplomacy"
+            ? "diplomacy"
+            : producer === "doctrine"
+              ? "doctrine"
+              : producer === "brief" || producer === "daily brief"
+                ? "daily-brief"
+                : "overview";
+    const report = buildAvaReport(
+      { kind: "REPORT", topic, scope: "current" },
+      state,
+    );
+    return {
+      shell: nextShell,
+      text:
+        producer === "missions" || producer === "orders"
+          ? staticFiles(state, fraction).find((file) =>
+              file.path.endsWith("/orders/current.txt"),
+            )?.content ?? ""
+          : reportArchiveText(report),
+    };
+  }
+
+  if(command==="EDITOR_INPUT")return executeEditorInput(state,nextShell,args[0]??"");
+  if(command==="AVA_TRACE")return{shell:nextShell,text:shell.lastCompilerTrace?`LAST COMPILER TRACE\n${shell.lastCompilerTrace}\nOPERATORS: ${(shell.lastOperatorFamilies??[]).join(", ")||"NONE"}`:"No prior compiler trace is available in this session."};
+  if(command==="PROVE")return{shell:nextShell,text:shell.lastProofDigest?`LAST PROOF RECEIPT\n${shell.lastProofDigest}\nThis digest attests to the canonical visible response without exposing sealed state.`:"No prior proof receipt is available in this session."};
 
   if (command === "REJECT")
     return fail(
@@ -830,6 +1024,104 @@ export const executeAvaShell = (
     };
   if (command === "CLEAR")
     return { shell: nextShell, text: "", clearScreen: true };
+  if (command === "FORTUNE") {
+    const quote =
+      state.reports.find((report) => report.day === state.day)?.epigraph ??
+      situationForState(state).quote;
+    const source =
+      APHORISMS.find((item) => item.text === quote)?.source ??
+      `Campaign dispatch, Day ${state.day}`;
+    const rendered = `“${quote}”\n— ${source}`;
+    return {
+      shell: nextShell,
+      text: rendered,
+    };
+  }
+  if (command === "SOCIAL_POST") {
+    const quote =
+      state.reports.find((report) => report.day === state.day)?.epigraph ??
+      situationForState(state).quote;
+    return {
+      shell: nextShell,
+      text: `“${quote}”\n\nDELENDA.QUEST // DAY ${state.day}\nAvailable over browser, SSH, and CLI | https://delenda.quest`,
+    };
+  }
+  if(command==="BREW"){
+    const operation=args[0]??"help",name=args[1]?.toLowerCase();
+    if(operation==="search"){
+      const needle=(name??"").toLowerCase();
+      return{shell:nextShell,text:Object.keys(BREW_PACKAGES).filter((item)=>item.includes(needle)).sort().join("\n")};
+    }
+    if(operation==="info"&&name){const item=BREW_PACKAGES[name];return item?{shell:nextShell,text:`${name}: ${item.description}\nCOMMANDS: ${item.commands.join(", ")}\nSOURCE: DECLARED ADAPTER // NO EXECUTABLE DOWNLOAD`}:fail(nextShell,"brew",`No available formula named ${name}`);}
+    if(operation==="install"&&name){
+      if(!BREW_PACKAGES[name])return fail(nextShell,"brew",`No available formula named ${name}`);
+      const installed=[...new Set([...nextShell.installedPackages,name])].sort();
+      return{shell:{...nextShell,installedPackages:installed},text:nextShell.installedPackages.includes(name)?`Warning: ${name} already installed`:`Installed ${name} // DECLARED ADAPTER ENABLED`};
+    }
+    if(operation==="list")return{shell:nextShell,text:[...nextShell.installedPackages].sort().join("\n")};
+    if(operation==="doctor")return{shell:nextShell,text:"Your sealed capability registry is ready to brew. No host paths or executable downloads are enabled."};
+    return fail(nextShell,"brew","use search, info, install, list, or doctor");
+  }
+  if(command==="VIM"||command==="NANO"){
+    const program=command.toLowerCase() as "vim"|"nano";
+    if(!nextShell.installedPackages.includes(program))return fail(nextShell,program,`adapter is not installed; use brew install ${program}`);
+    const path=resolveAvaPath(shell.cwd,args[0]);
+    if(!commanderWritablePath(path))return fail(nextShell,program,"only .md, .txt, .json, and .csv files under ~/notes, ~/archive, or ~/exports are writable");
+    const resolution=resolveFileReference(args[0],state,shell,fraction,darkNetContext);
+    const buffer=resolution.status==="resolved"&&resolution.file.kind==="text"?resolution.file.content??"":"";
+    const editor:NonNullable<AvaShellSession["editor"]>={program,path,buffer,savedBuffer:buffer,undo:[],mode:"normal"};
+    return{shell:{...nextShell,editor},text:`${editorStatus(editor)}\n${program==="vim"?"NORMAL: i · dd · u · /PATTERN · :w · :q · :wq":"ENTER LINES · ^W PATTERN · ^O WRITE · ^X EXIT"}`};
+  }
+  if(command==="ARCHIVE"){
+    if(!nextShell.installedPackages.includes("milhist"))return fail(nextShell,"archive","milhist adapter is not installed; use brew install milhist");
+    const operation=(args[0]??"search").toLowerCase();
+    if(!["search","maps","photos","open","cite","save","analog"].includes(operation))return fail(nextShell,"archive","use search, maps, photos, open, cite, save, or analog");
+    const query=args.slice(1).join(" ").trim();
+    if(!query)return fail(nextShell,"archive",`${operation} requires a query or record id`);
+    return{shell:nextShell,text:`ARCHIVE REQUEST // ${operation.toUpperCase()} // ${query}\nAwaiting the normalized Library of Congress broker.`,archiveRequest:{operation:operation as NonNullable<AvaShellExecution["archiveRequest"]>["operation"],query}};
+  }
+  if(command==="GIT"){
+    const operation=args[0]??"status";
+    if(operation==="status")return{shell:nextShell,text:`On campaign ${state.campaignId}\nDay ${state.day} · ${state.actions} orders remaining\nState seal ${avaStateRevision(state)}\nWorking tree clean: campaign mutations occur only through the Nexus.`};
+    if(operation==="log"){
+      const rows=[...state.resolutionHistory].sort((a,b)=>b.resolvedDay-a.resolvedDay).map((record)=>`${record.eventId.slice(-8)} day-${String(record.resolvedDay).padStart(3,"0")} ${record.sector} ${record.outcome.groundMovement>=0?"+":""}${record.outcome.groundMovement.toFixed(1)}km`);
+      return{shell:nextShell,text:rows.join("\n")||"No resolved campaign commits."};
+    }
+    const day=Number(args.join(" ").match(/(?:day[- ]?)?(\d+)/i)?.[1]);
+    const record=state.resolutionHistory.find((item)=>item.resolvedDay===day);
+    if(operation==="show")return record?{shell:nextShell,text:`commit ${record.eventId}\nDAY ${day} // ${record.sector}\nGROUND ${record.outcome.groundMovement>=0?"+":""}${record.outcome.groundMovement.toFixed(1)} KM\nFRIENDLY LOSSES ${fmt(record.personnel.combatLosses,true)}\nENEMY LOSSES ${fmt(record.operations.enemyLosses,true)}`}:fail(nextShell,"git",`unknown day ${day||""}`);
+    if(operation==="diff"){
+      const days=args.join(" ").match(/\d+/g)?.map(Number)??[];
+      const left=state.resolutionHistory.find((item)=>item.resolvedDay===days[0]),right=state.resolutionHistory.find((item)=>item.resolvedDay===days[1]);
+      return left&&right?{shell:nextShell,text:`GROUND: ${left.outcome.groundMovement.toFixed(1)} → ${right.outcome.groundMovement.toFixed(1)}\nFRIENDLY LOSSES: ${left.personnel.combatLosses} → ${right.personnel.combatLosses}\nENEMY LOSSES: ${left.operations.enemyLosses} → ${right.operations.enemyLosses}`}:fail(nextShell,"git","diff expects two resolved day numbers");
+    }
+    return fail(nextShell,"git","only status, log, show, and diff are available");
+  }
+  if(command==="SQLITE3"){
+    const query=args.filter((arg)=>arg!=="campaign.db").join(" ").trim();
+    if(!query)return{shell:nextShell,text:"SQLite 3 // READ ONLY\nTABLES: resolution_history, decisions, production"};
+    if(!/^select\b/i.test(query)||/\b(insert|update|delete|drop|alter|attach|pragma)\b/i.test(query))return fail(nextShell,"sqlite3","only bounded SELECT queries are accepted");
+    if(/\bfrom\s+resolution_history\b/i.test(query))return{shell:nextShell,text:["day|sector|ground_movement|friendly_losses|enemy_losses",...state.resolutionHistory.slice(0,100).map((record)=>`${record.resolvedDay}|${record.sector}|${record.outcome.groundMovement.toFixed(1)}|${record.personnel.combatLosses}|${record.operations.enemyLosses}`)].join("\n")};
+    if(/\bfrom\s+decisions\b/i.test(query))return{shell:nextShell,text:["day|family|choice",...state.decisions.slice(0,100).map((row)=>`${row.day}|${row.family}|${row.choice}`)].join("\n")};
+    if(/\bfrom\s+production\b/i.test(query))return{shell:nextShell,text:["resource|stock|allocation|use",...Object.entries(state.production).map(([resource,line])=>`${resource}|${line.stock}|${line.allocation}|${line.use}`)].join("\n")};
+    return fail(nextShell,"sqlite3","unknown visible table");
+  }
+  if(command==="BC"){
+    if(!nextShell.installedPackages.includes("bc"))return fail(nextShell,"bc","adapter is not installed; use brew install bc");
+    const expression=args.join(" ");const match=expression.match(/^(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/);
+    if(!match)return fail(nextShell,"bc","expected NUMBER OP NUMBER");
+    const left=Number(match[1]),right=Number(match[3]),value=match[2]==="+"?left+right:match[2]==="-"?left-right:match[2]==="*"?left*right:right===0?NaN:left/right;
+    return Number.isFinite(value)?{shell:nextShell,text:String(value)}:fail(nextShell,"bc","undefined result");
+  }
+  if(command==="UNITS"){
+    if(!nextShell.installedPackages.includes("units"))return fail(nextShell,"units","adapter is not installed; use brew install units");
+    const match=args.join(" ").match(/^(\d+(?:\.\d+)?)\s*(km|mi|kg|lb)\s+(?:to\s+)?(km|mi|kg|lb)$/i);
+    if(!match)return fail(nextShell,"units","expected VALUE km|mi|kg|lb to km|mi|kg|lb");
+    const rates:Record<string,number>={km:1,mi:1.609344,kg:1,lb:.45359237};
+    const groups=(match[2].toLowerCase() in {km:1,mi:1}&&match[3].toLowerCase() in {km:1,mi:1})||(match[2].toLowerCase() in {kg:1,lb:1}&&match[3].toLowerCase() in {kg:1,lb:1});
+    return groups?{shell:nextShell,text:`${(Number(match[1])*rates[match[2].toLowerCase()]/rates[match[3].toLowerCase()]).toFixed(4)} ${match[3].toLowerCase()}`}:fail(nextShell,"units","incompatible dimensions");
+  }
+  if(command==="CAL")return{shell:nextShell,text:`DELENDA CAMPAIGN\nCURRENT DAY: ${state.day}\nRESOLVED: ${state.resolutionHistory.length}\nORDERS REMAINING: ${state.actions}`};
   if (command === "HELP")
     return {
       shell: nextShell,
@@ -837,11 +1129,209 @@ export const executeAvaShell = (
         "AVA SEALED SHELL",
         "pwd · cd [path] · ls [-al] [path] · cat file · open file",
         "grep [-inr] literal [path] · find [path] [-maxdepth n] [-type f|d] [-name glob]",
-        "whoami · history · clear · download file.xlsx",
+        "whoami · history · clear · download file",
+        "man · which · tree · stat · file · head · tail · sort · uniq · wc · cut · column · less",
+        "brew · vim · nano · archive · git · sqlite3 · ps · systemctl · crontab",
+        "Pipelines: status | grep -i readiness · history | tail -10",
         "",
         "Recognized Ava commands remain available outside this shell grammar.",
       ].join("\n"),
     };
+  if (command === "MAN") {
+    const section = args.length === 2 ? Number(args[0]) : undefined;
+    const name = args.at(-1) ?? "";
+    const entry = avaManPage(name, section);
+    return entry
+      ? { shell: nextShell, text: renderAvaManPage(entry) }
+      : fail(nextShell, "man", `${name}: No manual entry`);
+  }
+  if (command === "WHICH") {
+    const known = new Set(AVA_MAN_PAGES.filter((page) => page.section === 1).map((page) => page.name));
+    return {
+      shell: nextShell,
+      text: args
+        .map((name) =>
+          known.has(name.toLowerCase()) ? `/usr/bin/${name.toLowerCase()}` : `${name} not found`,
+        )
+        .join("\n"),
+    };
+  }
+  if (command === "HOSTNAME")
+    return { shell: nextShell, text: "delenda-command" };
+  if (command === "UPTIME")
+    return {
+      shell: nextShell,
+      text: `up ${Math.max(1, state.day)} campaign day${state.day === 1 ? "" : "s"}, ${state.actions} orders available`,
+    };
+  if (command === "PS") {
+    const rows = [
+      "PID COMMAND                         STATE",
+      `  1 campaign-day-${String(state.day).padStart(3, "0")}              active`,
+      ...(state.maneuver ? [` 11 ${state.maneuver.padEnd(31)} staged`] : []),
+      ...Object.entries(state.active).map(
+        ([family, choice], index) =>
+          `${String(20 + index).padStart(3, " ")} ${`${family}:${choice}`.padEnd(31)} policy`,
+      ),
+    ];
+    return { shell: nextShell, text: rows.join("\n") };
+  }
+  if (command === "SYSTEMCTL") {
+    const unit = args[1];
+    const known: Record<string, [string, string]> = {
+      "supply.service": [
+        projectProduction(state).lines.some((line) => line.unmetUse > 0) ? "degraded" : "active",
+        "Converts current production and stock into fulfilled field use.",
+      ],
+      "command-network.service": [
+        state.networkPosture === "dark" ? "degraded" : "active",
+        `Current network posture: ${state.networkPosture}.`,
+      ],
+      "replacement.service": [
+        state.trainingCohorts.length ? "active" : "inactive",
+        `${state.trainingCohorts.length} training cohort${state.trainingCohorts.length === 1 ? "" : "s"} in the visible pipeline.`,
+      ],
+    };
+    const record = known[unit];
+    return record
+      ? {
+          shell: nextShell,
+          text: `● ${unit}\n   Loaded: sealed campaign adapter\n   Active: ${record[0]}\n   Status: ${record[1]}`,
+        }
+      : fail(nextShell, "systemctl", `${unit}: Unit not found`);
+  }
+  if (command === "CRONTAB") {
+    const scheduled = state.scheduled.length
+      ? state.scheduled.map((item) => `@day-${item.day} ${item.source}`)
+      : ["# no player-visible scheduled consequences"];
+    return { shell: nextShell, text: scheduled.join("\n") };
+  }
+  if (command === "AVA_DOCTOR")
+    return {
+      shell: nextShell,
+      text: [
+        "AVA DOCTOR",
+        `STATE SEAL: ${avaStateRevision(state)}`,
+        `DAY: ${state.day}`,
+        `VISIBLE FILES: ${allFiles(state, shell, fraction, darkNetContext).length}`,
+        `CURRENT DOCKET: ${enumerateAvaActions(state, fraction).filter((action) => action.available).length} available actions`,
+        "MUTATION AUTHORITY: canonical Nexus only",
+        "RESULT: HEALTHY",
+      ].join("\n"),
+    };
+  if (command === "SUDO")
+    return {
+      shell: nextShell,
+      text: "commander is not in the sudoers file. Authority is not the same thing as root.",
+    };
+  if (command === "MAKE")
+    return {
+      shell: nextShell,
+      text:
+        args.join(" ").toLowerCase() === "victory"
+          ? "make: victory requires resolved campaign state; romance is not a build dependency"
+          : `make: No rule to make target '${args.join(" ") || "all"}'`,
+    };
+  if (command === "RM")
+    return {
+      shell: nextShell,
+      text: "rm: sealed filesystem is append-only; no campaign or host data was removed",
+    };
+  if (command === "HEAD" || command === "TAIL") {
+    const count = args[0] === "-n" ? Number(args[1]) : 10;
+    const lines = (stdin ?? "").split("\n");
+    return {
+      shell: nextShell,
+      text: (command === "HEAD" ? lines.slice(0, count) : lines.slice(-count)).join("\n"),
+    };
+  }
+  if (command === "SORT") {
+    const lines = (stdin ?? "").split("\n").sort((left, right) => left.localeCompare(right));
+    if (args[0] === "-r") lines.reverse();
+    return { shell: nextShell, text: lines.join("\n") };
+  }
+  if (command === "UNIQ") {
+    const output: Array<{ line: string; count: number }> = [];
+    for (const line of (stdin ?? "").split("\n")) {
+      const last = output.at(-1);
+      if (last?.line === line) last.count += 1;
+      else output.push({ line, count: 1 });
+    }
+    return {
+      shell: nextShell,
+      text: output
+        .map((entry) => args[0] === "-c" ? `${String(entry.count).padStart(7, " ")} ${entry.line}` : entry.line)
+        .join("\n"),
+    };
+  }
+  if (command === "WC") {
+    const input = stdin ?? "";
+    const value =
+      args[0] === "-w"
+        ? input.trim() ? input.trim().split(/\s+/).length : 0
+        : args[0] === "-c"
+          ? [...input].length
+          : input ? input.split("\n").length : 0;
+    return { shell: nextShell, text: String(value) };
+  }
+  if (command === "CUT") {
+    const delimiter = args[1] ?? "\t";
+    const field = Number(args[3]) - 1;
+    return {
+      shell: nextShell,
+      text: (stdin ?? "").split("\n").map((line) => line.split(delimiter)[field] ?? "").join("\n"),
+    };
+  }
+  if (command === "COLUMN") {
+    const rows = (stdin ?? "").split("\n").map((line) => line.trim().split(/\s+/));
+    const widths = rows.reduce<number[]>((current, row) => {
+      row.forEach((cell, index) => { current[index] = Math.max(current[index] ?? 0, cell.length); });
+      return current;
+    }, []);
+    return {
+      shell: nextShell,
+      text: rows.map((row) => row.map((cell, index) => cell.padEnd(widths[index])).join("  ").trimEnd()).join("\n"),
+    };
+  }
+  if (command === "LESS")
+    return {
+      shell: nextShell,
+      text: (stdin ?? "").split("\n").slice(0, MAX_OUTPUT_LINES).join("\n"),
+    };
+  if (command === "TREE") {
+    const requested = args[0] ?? ".";
+    const root = resolveAvaPath(shell.cwd, requested);
+    if (deniedDirectory(root)) return fail(nextShell, "tree", `${requested}: Permission denied`);
+    const entries = [
+      ...allDirectories(state, shell).filter((directory) => !directory.denied && isInside(directory.path, root)),
+      ...allFiles(state, shell, fraction, darkNetContext).filter((file) => isInside(file.path, root)),
+    ]
+      .map((entry) => entry.path)
+      .filter((path) => path !== root)
+      .sort()
+      .slice(0, MAX_OUTPUT_LINES);
+    return {
+      shell: nextShell,
+      text: [baseName(root), ...entries.map((path) => `${"  ".repeat(Math.max(1, path.slice(root.length).split("/").filter(Boolean).length))}${baseName(path)}`)].join("\n"),
+    };
+  }
+  if (command === "STAT" || command === "FILE") {
+    const requestedPaths = command === "STAT" ? [args[0]] : args;
+    const rows = requestedPaths.map((requested) => {
+      const target = resolveAvaPath(shell.cwd, requested);
+      const directory = allDirectories(state, shell).find((entry) => entry.path === target);
+      if (directory)
+        return command === "STAT"
+          ? `File: ${target}\nType: directory\nMode: ${directory.mode}\nOwner: ${directory.owner}\nCampaign day: ${state.day}`
+          : `${requested}: directory`;
+      const resolution = resolveFileReference(requested, state, shell, fraction, darkNetContext);
+      if (resolution.status !== "resolved") return fileReferenceError(command.toLowerCase(), requested, resolution);
+      const file = resolution.file;
+      return command === "STAT"
+        ? `File: ${file.path}\nType: ${file.kind}\nMode: ${file.mode}\nOwner: ${file.owner}\nCampaign day: ${file.createdDay}\nState revision: ${file.stateRevision}`
+        : `${requested}: ${file.kind === "workbook" ? "Microsoft Excel 2007+ workbook" : "UTF-8 text"}`;
+    });
+    return { shell: nextShell, text: rows.join("\n") };
+  }
   if (command === "CD") {
     const requested = args[0] ?? AVA_HOME;
     const target = resolveAvaPath(
@@ -928,6 +1418,16 @@ export const executeAvaShell = (
       aphorismViewIds: [...aphorismViewIds],
     };
   }
+  if(command==="BAT"){
+    if(!nextShell.installedPackages.includes("bat"))return fail(nextShell,"bat","adapter is not installed; use brew install bat");
+    const requested=args[0];if(!requested)return fail(nextShell,"bat","expected one text file");
+    const resolution=resolveFileReference(requested,state,shell,fraction,darkNetContext);
+    if(resolution.status!=="resolved")return{shell:nextShell,text:fileReferenceError("bat",requested,resolution)};
+    if(resolution.file.kind!=="text")return fail(nextShell,"bat",`${requested}: binary artifact`);
+    return{shell:nextShell,text:(resolution.file.content??"").split("\n").slice(0,MAX_OUTPUT_LINES).map((line,index)=>`${String(index+1).padStart(4," ")} │ ${line}`).join("\n")};
+  }
+  if(["HEAD","TAIL","SORT","UNIQ","WC","CUT","COLUMN","LESS","JQ"].includes(command))
+    return fail(nextShell,command,"pipeline input required");
   if (command === "OPEN") {
     if (args.length !== 1)
       return fail(nextShell, "open", "expected one file");
@@ -1000,6 +1500,23 @@ export const executeAvaShell = (
     if (!operands.length)
       return fail(nextShell, "grep", "expected PATTERN [PATH]");
     const [pattern, ...explicitPaths] = operands;
+    if (stdin !== undefined && !explicitPaths.length) {
+      if (pattern.length > MAX_GREP_PATTERN_LENGTH)
+        return fail(nextShell, "grep", `literal pattern exceeds the ${MAX_GREP_PATTERN_LENGTH}-character limit`);
+      const expression = literalSearchExpression(pattern, flags.includes("i"));
+      return {
+        shell: nextShell,
+        text: stdin
+          .split("\n")
+          .flatMap((line, index) =>
+            expression.test(line)
+              ? [`${flags.includes("n") ? `${index + 1}:` : ""}${line}`]
+              : [],
+          )
+          .slice(0, MAX_OUTPUT_LINES)
+          .join("\n"),
+      };
+    }
     const inDarkNet = isInside(shell.cwd, AVA_DARK_NET_ROOT);
     const requestedPaths =
       explicitPaths.length

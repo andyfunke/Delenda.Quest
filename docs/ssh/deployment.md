@@ -48,6 +48,36 @@ fly deploy --config packages/ssh-gateway/fly.toml
 
 Raw SSH is a non-HTTP, non-TLS TCP protocol. Fly therefore requires a dedicated IPv4 address for IPv4 clients. Public IPv6 remains available as well. The dedicated IPv4 currently costs $2 per month.
 
+The checked-in Machine is `shared-cpu-1x` with 512 MB in Seattle. At the current Seattle price that is approximately $3.32 per full month, plus the $2 dedicated IPv4, before egress. A 256 MB Machine is approximately $2.02 per full month if the gateway proves stable within that memory ceiling.
+
+The current production-safe configuration keeps one 512 MB Machine running. The cheaper Fly experiment is:
+
+```toml
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+```
+
+Fly Proxy can start a stopped Machine from an incoming service connection, but cold-start SSH handshake behavior must pass live tests before this replaces the always-on setting. Raw non-TLS SSH cannot use Fly shared IPv4 routing, so the $2 dedicated IPv4 remains required for normal IPv4 clients.
+
+Official references:
+
+- Fly pricing: https://fly.io/docs/about/pricing/
+- Fly public network services: https://fly.io/docs/networking/services/
+- Fly autostop and autostart: https://fly.io/docs/launch/autostop-autostart/
+
+## Cheaper and home-hosted alternatives
+
+An IPv6-only Fly endpoint removes the dedicated IPv4 charge but excludes clients without working IPv6. It is not an acceptable default public endpoint.
+
+Home hosting can be zero incremental compute cost when the site has a public IPv4 or usable IPv6, stable power, and router control. Run the same gateway container on an isolated host, forward only TCP 22, publish DNS-only A and AAAA records, update DNS after address changes, retain the host key outside the container, and deny all forwarding and host-shell access exactly as the Fly image does. Add automatic security updates, a UPS if practical, health monitoring, and a recovery path for ISP outages.
+
+Carrier-grade NAT blocks unsolicited IPv4 port forwarding. Cloudflare Tunnel can carry SSH when clients install `cloudflared` or configure a ProxyCommand, but that breaks the ordinary `ssh play@ssh.delenda.quest` promise. Cloudflare Spectrum can proxy one SSH application on Pro or Business, but it is not available on Free and adds a paid-plan dependency. For a normal one-line SSH command, Fly with a dedicated IPv4 remains the cheapest low-operations public topology; home hosting is cheaper only when the network conditions and operational burden are acceptable.
+
 For GitHub deployment, create the protected `ssh-production` environment and
 add a least-privilege `FLY_API_TOKEN` secret. A relevant push to `main` runs the
 containerized native-handshake contract, deploys the Fly gateway, and verifies

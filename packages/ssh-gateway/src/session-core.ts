@@ -25,6 +25,10 @@ export type NativeSshGatewayPublicResult = {
   status: SemanticResponse<unknown>["status"];
   text: string;
   cognitiveAttestation?: NativeSshGatewayCognitiveAttestation;
+  archiveRequest?: {
+    operation: "search" | "maps" | "photos" | "open" | "cite" | "save" | "analog";
+    query: string;
+  };
 };
 
 export type NativeSshGatewayLineExecution = {
@@ -198,6 +202,9 @@ export const executeNativeSshGatewayLine = (input: {
     publicResult: Object.freeze({
       status: result.response.status,
       text: result.text,
+      ...(result.envelope.presentation.archiveRequest
+        ? { archiveRequest: result.envelope.presentation.archiveRequest }
+        : {}),
       ...(cognitiveAttestation ? { cognitiveAttestation } : {}),
     }),
   };

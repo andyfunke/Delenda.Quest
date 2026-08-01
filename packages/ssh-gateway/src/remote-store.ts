@@ -114,3 +114,10 @@ export const closeRemoteAudit=(config:GatewayConfig,input:{id:string;commandsRea
   request<{ok:true;id:string}>(config,"/api/ssh/gateway/audit",{
     method:"POST",body:JSON.stringify({event:"close",...input}),
   });
+
+export const queryRemoteArchive=(config:GatewayConfig,input:{operation:string;query:string})=>
+  request<{text:string;source:string}>(
+    config,
+    `/api/archive/loc?operation=${encodeURIComponent(input.operation)}&query=${encodeURIComponent(input.query)}`,
+    {method:"GET"},
+  );

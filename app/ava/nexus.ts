@@ -36,6 +36,7 @@ import type {
   AvaSemanticQuery,
   AvaShellInstruction,
 } from "./schema";
+import { formatPublicRating, publicDirectiveRating } from "./public-rating";
 import { avaShellFileReferences } from "./filesystem";
 import {
   initialAvaTerminalSession,
@@ -559,6 +560,7 @@ const terminalPresentation = (
   aphorismViewIds: terminalResult?.aphorismViewIds,
   download: terminalResult?.download,
   chatExport: terminalResult?.chatExport,
+  archiveRequest: terminalResult?.archiveRequest,
 });
 
 const withEnvelope = (
@@ -1058,14 +1060,17 @@ const directiveJudgment = (
     ? rows.findIndex((row) => row.choiceId === targetedRow.choiceId) + 1
     : 0;
   const strongest = legalRows[0];
+  const publicRatings = new Map(
+    rows.map((row) => [row.choiceId, publicDirectiveRating(row.score)]),
+  );
   const judgment = targetedChoice && targetedRow
     ? [
         `[${docket.response.fact.choices.findIndex((choice) => choice.choiceId === targetedChoice.choiceId) + 1}] ${targetedChoice.title.toUpperCase()} · ${targetedRow.legal ? "AVAILABLE" : "UNAVAILABLE"}`,
         targetedChoice.brief,
         `ASSESSMENT\n${targetedRow.legal
           ? targetedRank === 1
-            ? `This is the strongest current ${binding.channel} choice under the compiled ${cognitiveGuidance.decision.modelId} model. Score ${targetedRow.score}.`
-            : `This ranks ${targetedRank} of ${rows.length} under the compiled ${cognitiveGuidance.decision.modelId} model. ${(labelByChoice.get(strongest?.choiceId ?? "") ?? strongest?.choiceId ?? "No legal alternative").toUpperCase()} ranks first.`
+            ? `This is the strongest current ${binding.channel} choice under the compiled ${cognitiveGuidance.decision.modelId} model. Rating ${formatPublicRating(publicRatings.get(targetedRow.choiceId)!)}.`
+            : `This ranks ${targetedRank} of ${rows.length} under the compiled ${cognitiveGuidance.decision.modelId} model at ${formatPublicRating(publicRatings.get(targetedRow.choiceId)!)}. ${(labelByChoice.get(strongest?.choiceId ?? "") ?? strongest?.choiceId ?? "No legal alternative").toUpperCase()} ranks first.`
           : `This choice is not currently executable: ${targetedRow.disqualifiers.join(", ") || "the visible gate is closed"}.`}`,
         `KNOWN EFFECTS\n${[
           ...targetedRow.knownBenefits,
@@ -1077,7 +1082,7 @@ const directiveJudgment = (
       ? rows
           .map(
             (row, index) =>
-              `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · SCORE ${row.score}${row.legal ? "" : " · UNAVAILABLE"}`,
+              `${index + 1}. ${(labelByChoice.get(row.choiceId) ?? row.choiceId).toUpperCase()} · ${formatPublicRating(publicRatings.get(row.choiceId)!)}${row.legal ? "" : " · UNAVAILABLE"}`,
           )
           .join("\n")
       : "No legal choice is visible in this channel.";
@@ -2589,6 +2594,14 @@ const executeInternalRequest = (
   let packetId: string | undefined;
   let packetHeadline: string | undefined;
   if (request.operation === "force-opportunity") {
+    if (state.day <= 1)
+      return responseFailure(
+        state,
+        session,
+        "REJECTED",
+        "OPPORTUNITY_DAY_ONE_SEALED",
+        "Random Daily missions never open on Day 1.",
+      );
     next = forceOpportunityForCurrentDay(state);
     status = next === state ? "unchanged" : "opened";
     const forcedWindow = opportunityStatusForFraction(next, 0);
@@ -2857,6 +2870,7 @@ export const runAvaNexusLine = (
           session.terminal.shell,
           opportunityFraction,
         ),
+        shellEditor: session.terminal.shell.editor?.program,
       });
   if (compile?.status === "clarify") {
     const nextSession = {
@@ -2875,8 +2889,8 @@ export const runAvaNexusLine = (
       semantic:
         compile.semantic ??
         compileAvaCommand("help", {
-          currentModule: session.currentModule,
-          entities: visible.entities,
+        currentModule: session.currentModule,
+        entities: visible.entities,
         }).semantic!,
       trace: compile.trace,
       expectedStateSeal,
@@ -2928,8 +2942,28 @@ export const runAvaNexusLine = (
     opportunityFraction,
     darkNetContext,
   );
+  const preserveTrace =
+    instruction.kind === "SHELL" &&
+    (instruction.shell.command === "AVA_TRACE" || instruction.shell.command === "PROVE");
+  const sessionWithTrace = preserveTrace
+    ? result.session
+    : {
+        ...result.session,
+        terminal: {
+          ...result.session.terminal,
+          shell: {
+            ...result.session.terminal.shell,
+            lastCompilerTrace: compile?.status === "compiled"
+              ? JSON.stringify(compile.trace)
+              : result.session.terminal.shell.lastCompilerTrace,
+            lastProofDigest: result.proofGraph.digest,
+            lastOperatorFamilies: [...(result.cognitiveActivation?.operatorFamilies ?? [])],
+          },
+        },
+      };
   return {
     ...result,
+    session: sessionWithTrace,
     compile: compile ?? undefined,
     envelope: {
       ...result.envelope,

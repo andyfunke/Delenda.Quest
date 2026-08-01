@@ -412,7 +412,7 @@ test("the opportunity corpus is unique, full-day, and uses a one-in-three daily 
   assert.equal(opportunityForState(state),null,"a new campaign cannot open with an organic opportunity");
 });
 
-test("the godmode override opens a visible current-day opportunity without duplicating it",()=>{
+test("the godmode override keeps Day 1 sealed and opens later opportunities without duplication",()=>{
   let state;
   for(let seed=1;seed<1000;seed++){
     const candidate=initialState({seed,theater:"industrial"});
@@ -422,6 +422,10 @@ test("the godmode override opens a visible current-day opportunity without dupli
     }
   }
   assert.ok(state,"the fixture needs a day-one seed without an organic event");
+  const dayOneForced=forceOpportunityForCurrentDay(state);
+  assert.strictEqual(dayOneForced,state,"godmode cannot force a Day 1 opportunity");
+  assert.equal(opportunityStatusForFraction(dayOneForced,.5).status,"none");
+  state={...state,day:2,currentSituation:null};
   const forced=forceOpportunityForCurrentDay(state);
   const window=opportunityStatusForFraction(forced,.5);
   assert.notStrictEqual(forced,state);

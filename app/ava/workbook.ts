@@ -1134,25 +1134,94 @@ const reportEvidenceSheet = (
   };
 };
 
+const formulaRegistrySheet = (): Sheet => ({
+  name: "Formula Registry",
+  widths: [28, 72, 58, 22],
+  rows: [
+    header("EXPRESSION", "EXCEL FORMULA", "MECHANICAL PURPOSE", "PROVENANCE"),
+    [text("industrial.closing-stock"), text("MAX(0, stock + converted output - fulfilled use)"), text("Closes each production line after field consumption."), text("game.ts / projectProduction")],
+    [text("operations.ground-movement"), text("base pressure + maneuver pressure × conversion + force + intelligence + supply + director pressures - enemy deviation"), text("Resolves disclosed battlefield movement from the sealed daily draw."), text("circuits.ts / operationsCircuit")],
+    [text("decision.robust-utility"), text("MIN(disclosed scenario utilities) TO MAX(disclosed scenario utilities)"), text("Ranks choices without revealing the unresolved outcome."), text("ava/advisory.ts")],
+    [text("rating.public-percentile"), text("ROUND(100 × NormalCDF((midpoint - center) / spread),0)"), text("Maps internal robust utility to a public 1-100 percentile."), text("ava/public-rating.ts")],
+    [text("campaign.total"), text("MAX(0,MIN(10000,SUM(component scores)))"), text("Produces the auditable campaign score."), text("campaign-score.ts")],
+    [text("campaign.early-victory"), text("IF(day>=28,0,((EXP((28-day)/5.2)-1)/(EXP(13/5.2)-1))*2600)"), text("Rewards earlier victory on the declared exponential curve."), text("campaign-score.ts")],
+  ],
+});
+
+const playerInterventionsSheet = (state: GameState): Sheet => ({
+  name: "Player Interventions",
+  widths: [12, 22, 34, 38, 22, 56],
+  rows: [
+    header("DAY", "DOMAIN", "COMMAND", "PLAYER CHOICE", "EFFECT CLASS", "SOURCE / REVISION"),
+    [text("LEGEND", 5), text("", 5), text("", 5), text("", 5), text("DIRECT PLAYER INTERVENTION", 5), text("Blue cells are commands directly chosen by the player.", 5)],
+    [text("LEGEND", 6), text("", 6), text("", 6), text("", 6), text("DOWNSTREAM PLAYER-CAUSED EFFECT", 6), text("Pale-blue cells are later effects with recorded lineage.", 6)],
+    ...state.decisions.map((decision) => [
+      number(decision.day, 5),
+      text((decision.domain ?? decision.family).toUpperCase(), 5),
+      text(decision.family, 5),
+      text(decision.choice, 5),
+      text("DIRECT PLAYER INTERVENTION", 5),
+      text(decision.resolutionTicket ?? `campaign:${state.campaignId}:day:${decision.day}`, 5),
+    ]),
+    ...state.resolutionHistory.map((record) => [
+      number(record.resolvedDay, 6),
+      text("BATTLEFIELD", 6),
+      text(record.sector, 6),
+      text(`${record.outcome.groundMovement >= 0 ? "+" : ""}${record.outcome.groundMovement.toFixed(2)} km`, 6),
+      text("DOWNSTREAM PLAYER-CAUSED EFFECT", 6),
+      text(record.eventId, 6),
+    ]),
+  ],
+});
+
+const sensitivitySheet = (state: GameState): Sheet => {
+  const projection = projectProduction(state);
+  return {
+    name: "Sensitivity Analysis",
+    widths: [30, 20, 22, 22, 60],
+    rows: [
+      header("INPUT", "CURRENT", "+1 MARGINAL", "-1 MARGINAL", "DISCLOSURE"),
+      [text("Readiness"), number(state.readiness), number(1, 8), number(-1, 8), text("Local disclosed sensitivity; interactions may change the resolved result.")],
+      [text("Intelligence"), number(state.intelligence), number(1, 8), number(-1, 8), text("Improves execution confidence and narrows estimates through declared mechanics.")],
+      [text("Maintenance Debt"), number(state.maintenanceDebt), number(-1, 8), number(1, 8), text("Lower debt preserves equipment conversion.")],
+      ...projection.lines.map((line) => [
+        text(`${line.resource.toUpperCase()} allocation`),
+        number(line.allocation / 100, 4),
+        number(line.output / Math.max(1, line.allocation), 8),
+        number(-line.output / Math.max(1, line.allocation), 8),
+        text("First-order disclosed output sensitivity; allocation coupling is evaluated by the engine."),
+      ]),
+    ],
+  };
+};
+
 const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="2">
     <font><sz val="11"/><name val="Arial"/></font>
     <font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Arial"/></font>
   </fonts>
-  <fills count="3">
+  <fills count="7">
     <fill><patternFill patternType="none"/></fill>
     <fill><patternFill patternType="gray125"/></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FF191B18"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF9CCBFF"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFDCEEFF"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD7ED42"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE7E7E7"/><bgColor indexed="64"/></patternFill></fill>
   </fills>
   <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="5">
+  <cellXfs count="9">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
     <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>
     <xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="6" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
   </cellXfs>
   <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
@@ -1255,16 +1324,16 @@ const storedZip = (entries: Array<{ name: string; content: string }>) => {
   return concat(locals, central, end);
 };
 
-export const buildAvaWorkbook = (
+const workbookSheets = (
   state: GameState,
-  topic: WorkbookTopic = "command-dashboard",
-  fraction = 0,
+  topic: WorkbookTopic,
+  fraction: number,
 ) => {
   const asOfFraction = Math.max(
     0,
     Math.min(1, Number.isFinite(fraction) ? fraction : 0),
   );
-  const sheets = [
+  return [
     summarySheet(state, topic, asOfFraction),
     industrialSheet(state, asOfFraction),
     calculationInputsSheet(state, asOfFraction),
@@ -1279,7 +1348,18 @@ export const buildAvaWorkbook = (
     resolutionHistorySheet(state),
     scoreSheet(state),
     reportEvidenceSheet(state, topic),
+    formulaRegistrySheet(),
+    playerInterventionsSheet(state),
+    sensitivitySheet(state),
   ];
+};
+
+export const buildAvaWorkbook = (
+  state: GameState,
+  topic: WorkbookTopic = "command-dashboard",
+  fraction = 0,
+) => {
+  const sheets = workbookSheets(state, topic, fraction);
   const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>${sheets
@@ -1325,6 +1405,41 @@ export const buildAvaWorkbook = (
     ...sheets.map((sheet, index) => ({
       name: `xl/worksheets/sheet${index + 1}.xml`,
       content: worksheetXml(sheet),
+    })),
+  ]);
+};
+
+const csvValue = (cell: Cell) => {
+  const raw = cell.kind === "formula" ? `=${cell.formula}` : String(cell.value);
+  return /[",\r\n]/.test(raw) ? `"${raw.replaceAll('"', '""')}"` : raw;
+};
+
+export const buildAvaCsvBundle = (
+  state: GameState,
+  topic: WorkbookTopic = "command-dashboard",
+  fraction = 0,
+) => {
+  const sheets = workbookSheets(state, topic, fraction);
+  const manifest = {
+    format: "delenda-ava-csv-bundle-v1",
+    campaignId: state.campaignId,
+    day: state.day,
+    topic,
+    disclosure:
+      "CSV preserves formulas as leading-equals text. Provenance styling remains authoritative in the XLSX artifact.",
+    provenanceStyles: {
+      directPlayerIntervention: "blue",
+      downstreamPlayerEffect: "pale blue",
+      currentDecision: "chartreuse",
+      forecastOrUncertainty: "gray",
+    },
+    sheets: sheets.map((sheet) => sheet.name),
+  };
+  return storedZip([
+    { name: "provenance-manifest.json", content: JSON.stringify(manifest, null, 2) },
+    ...sheets.map((sheet) => ({
+      name: `${sheet.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.csv`,
+      content: sheet.rows.map((row) => row.map(csvValue).join(",")).join("\n"),
     })),
   ]);
 };
