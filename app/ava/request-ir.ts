@@ -842,6 +842,8 @@ export const validateAvaInstruction = (
     "CANCEL",
     "MORE",
     "LESS",
+    "STORYTELLER",
+    "CONCISE",
     "REPEAT",
     "IDENTITY",
     "GRATITUDE",

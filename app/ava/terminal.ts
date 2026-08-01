@@ -934,6 +934,24 @@ function executeAvaInstruction(
       ),
     );
   }
+  if (instruction.kind === "STORYTELLER")
+    return finalize(
+      state,
+      session,
+      withHeader(
+        state,
+        "STORYTELLER MODE\nEnabled. I will preserve the exact command answer, then unfold its theater, continuity, and consequence from the visible campaign record.",
+      ),
+    );
+  if (instruction.kind === "CONCISE")
+    return finalize(
+      state,
+      session,
+      withHeader(
+        state,
+        "CONCISE MODE\nEnabled. I will return to the standard command realization without changing disclosure depth.",
+      ),
+    );
   if (instruction.kind === "HELP") {
     const rows = AVA_COMMAND_HELP.filter(
       (item) =>
@@ -1538,6 +1556,8 @@ const voiceCueForInstruction = (
       return { mode: "correction" };
     case "MORE":
     case "LESS":
+    case "STORYTELLER":
+    case "CONCISE":
       return { mode: "detail" };
     case "REPORT":
       return { topic: instruction.topic };

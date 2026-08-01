@@ -43,7 +43,12 @@ import {
   type AvaTerminalResult,
   type AvaTerminalSession,
 } from "./terminal";
-import { voiceAvaResponse, type AvaVoiceCue } from "./voice";
+import {
+  realizeAvaPresentation,
+  voiceAvaResponse,
+  type AvaRealizationMode,
+  type AvaVoiceCue,
+} from "./voice";
 import type { AvaDarkNetContext } from "./darknet";
 import {
   avaRequestStateSeal,
@@ -222,6 +227,7 @@ export type AvaNexusSession = {
   interactive: boolean;
   commandsRead: number;
   consequentialAttempts: number;
+  realizationMode: AvaRealizationMode;
   proposalToken?: string;
   proposalExpiresAt?: string;
   consumedResolutionGrantIds: string[];
@@ -266,6 +272,7 @@ export const createAvaNexusSession = (
   interactive,
   commandsRead: 0,
   consequentialAttempts: 0,
+  realizationMode: "concise",
   consumedResolutionGrantIds: [],
   typedPreparations: [],
 });
@@ -556,6 +563,19 @@ const withEnvelope = (
     terminalResult?: AvaTerminalResult;
   } = {},
 ): AvaNexusResult => {
+  const realizedText = realizeAvaPresentation(
+    result.state,
+    result.text,
+    result.session.realizationMode,
+  );
+  result = {
+    ...result,
+    text: realizedText,
+    session: {
+      ...result.session,
+      terminal: { ...result.session.terminal, lastText: realizedText },
+    },
+  };
   const { cognition, ...publicResult } = result;
   const semantic =
     request.kind === "instruction" ? request.semantic : undefined;
@@ -2802,6 +2822,13 @@ export const runAvaNexusLine = (
           currentModule: session.currentModule,
           entities: visible.entities,
         }).semantic!;
+  const mode =
+    instruction.kind === "STORYTELLER"
+      ? "storyteller"
+      : instruction.kind === "CONCISE"
+        ? "concise"
+        : session.realizationMode;
+  session = { ...session, realizationMode: mode };
   const request = instructionAvaRequest({
     origin,
     rawInput: raw,

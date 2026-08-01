@@ -624,6 +624,18 @@ function compileLegacyCommand(
     return compiled(input, "more", { kind: "MORE" });
   if (/^(less|less detail|shorter)$/.test(input))
     return compiled(input, "less", { kind: "LESS" });
+  if (
+    /^(?:enable |turn on |switch to )?(?:verbose )?(?:storyteller|story|narrative) mode(?: on)?$/.test(
+      input,
+    ) || /^(?:tell|give) me (?:the )?(?:whole|full) story$/.test(input)
+  )
+    return compiled(input, "storyteller-mode", { kind: "STORYTELLER" });
+  if (
+    /^(?:disable |turn off |leave )?(?:storyteller|story|narrative) mode$/.test(
+      input,
+    ) || /^(?:concise|brief|normal|standard) mode$/.test(input)
+  )
+    return compiled(input, "concise-mode", { kind: "CONCISE" });
   if (/^(repeat|say that again)$/.test(input))
     return compiled(input, "repeat", { kind: "REPEAT" });
 

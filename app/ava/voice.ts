@@ -26,6 +26,8 @@ export type AvaVoiceCue = {
   variant?: number;
 };
 
+export type AvaRealizationMode = "concise" | "storyteller";
+
 const recentCombatLosses = (state: GameState, days = 5) =>
   state.resolutionHistory
     .slice(0, days)
@@ -216,4 +218,38 @@ export const voiceAvaResponse = (
   if (/^FIELD NOTE(?:\s*\/{1,2}|\n)/.test(text.trimStart())) return text;
   const opening = responseOpening(state, cue);
   return `FIELD NOTE / ${opening.label}\n${opening.line}\n\n${text}`;
+};
+
+/**
+ * Expands an already-authoritative Ava answer. Every sentence is compiled from
+ * the player-visible situation or resolved history; this layer never chooses an
+ * action, calculates an outcome, or introduces a new claim.
+ */
+export const realizeAvaPresentation = (
+  state: GameState,
+  text: string,
+  mode: AvaRealizationMode,
+) => {
+  if (mode !== "storyteller" || /\b(?:STORYTELLER|CONCISE) MODE\b/.test(text))
+    return text;
+  const situation = situationForState(state);
+  const latest = state.resolutionHistory[0];
+  const continuity = latest
+    ? `Yesterday's ledger closed with ${latest.outcome.groundMovement >= 0 ? "+" : ""}${latest.outcome.groundMovement.toFixed(1)} km of ground movement and ${latest.personnel.combatLosses.toLocaleString("en-US")} combat losses. Those are resolved facts, not a promise about today.`
+    : "No prior day has resolved. Everything in the command answer still belongs to the opening position.";
+  const network = situation.network.toLowerCase();
+  const networkArticle = /^[aeiou]/.test(network) ? "an" : "a";
+  const intelligence = /[.!?]$/.test(situation.intelligence)
+    ? situation.intelligence
+    : `${situation.intelligence}.`;
+  const pressure = `At ${situation.sector}, ${situation.terrain.toLowerCase()} ground carries a ${situation.supply.toLowerCase()} supply condition through ${networkArticle} ${network} network. ${intelligence}`;
+  const consequence = state.actions > 0
+    ? `${state.actions} of 3 orders remain. The answer above names the command decision; the surrounding story explains what that decision enters.`
+    : "No orders remain today. The answer above can still explain the war, but it cannot manufacture command capacity.";
+  return [
+    text,
+    `THEATER\n${situation.headline}. ${situation.briefing}`,
+    `CONTINUITY\n${continuity}`,
+    `COMMANDER'S VIEW\n${pressure} ${consequence}`,
+  ].join("\n\n");
 };

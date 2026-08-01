@@ -70,6 +70,25 @@ const typedSemanticRequest = (state, query, rawInput = "typed") => ({
   expectedStateSeal: nexus.avaNexusStateRevision(state),
 });
 
+test("storyteller mode is Ava-controlled, persistent, factual, and reversible", () => {
+  const state = newState(1729);
+  const enabled = run("storyteller mode", state);
+  assert.equal(enabled.session.realizationMode, "storyteller");
+  assert.match(enabled.text, /STORYTELLER MODE[\s\S]*Enabled/i);
+
+  const told = run("what to do", state, enabled.session);
+  assert.equal(told.session.realizationMode, "storyteller");
+  assert.match(told.text, /THEATER[\s\S]*CONTINUITY[\s\S]*COMMANDER'S VIEW/);
+  assert.match(told.text, new RegExp(state.currentSituation.sector, "i"));
+  assert.match(told.text, /orders remain/i);
+  assert.doesNotMatch(told.text, /hidden order|sealed adversary choice/i);
+
+  const concise = run("concise mode", state, told.session);
+  assert.equal(concise.session.realizationMode, "concise");
+  const brief = run("what to do", state, concise.session);
+  assert.doesNotMatch(brief.text, /\n\nTHEATER\n/);
+});
+
 test("strategic posture reaches the evaluator instead of collapsing to default", () => {
   const state = newState();
   const posture = {

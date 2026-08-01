@@ -360,6 +360,8 @@ export type AvaInstruction =
       kind:
         | "MORE"
         | "LESS"
+        | "STORYTELLER"
+        | "CONCISE"
         | "REPEAT"
         | "IDENTITY"
         | "GRATITUDE"
@@ -618,6 +620,13 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
     purpose:
       "Change terminal disclosure depth without changing campaign state.",
     examples: ["more detail", "less", "go deeper"],
+    mutates: false,
+  },
+  {
+    command: "STORYTELLER / CONCISE MODE",
+    purpose:
+      "Change Ava's realization register without changing facts, mechanics, analytical depth, or campaign state.",
+    examples: ["storyteller mode", "tell me the whole story", "concise mode"],
     mutates: false,
   },
   {
