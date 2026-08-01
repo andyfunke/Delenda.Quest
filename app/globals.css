@@ -13185,6 +13185,7 @@ small,
 /* Ava inherits the active interface's identity color without changing the
    semantic colors used for warnings, gains, or recommendation blocks. */
 .ava.ava-briefing {
+  --b-cyan: #6fb3b8;
   border-color: var(--b-cyan);
 }
 .ava.ava-briefing header > div > span,
