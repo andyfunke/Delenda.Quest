@@ -2,6 +2,20 @@
 
 All authentication, notification, certificate, and play-by-email traffic enters `app/email/nexus.ts`. Provider adapters may transport a typed decision, but may not invent identity, campaign, or order authority.
 
+## Parking-lot status
+
+External email activation is parked. The durable execution plans, dependencies,
+security gates, and activation boundaries live in
+[`docs/parking-lot/README.md`](../parking-lot/README.md), beginning with
+`PL-EMAIL-001` through `PL-EMAIL-006`. This architecture document describes the
+target system; it does not authorize provider accounts, DNS changes, OAuth
+configuration, secrets, sends, inbound routes, or production activation.
+
+The parked epochs additionally preserve Google-backed account sign-in,
+reciprocal friend-invitation delivery, certificate delivery, and the unresolved
+earlier password requirement. Provider facts below were captured on 2026-08-01
+and must be revalidated from official sources when an epoch is activated.
+
 ## Provider decision
 
 Start with Resend Free for outbound and inbound mail. It currently includes 3,000 messages per month, a 100-message daily ceiling, one domain, and receiving. This is the simplest zero-dollar launch topology. Keep the provider behind one adapter so it can be replaced without changing Email Nexus contracts.
@@ -63,4 +77,3 @@ Attachments are ignored on inbound command mail. Exported workbooks and campaign
 4. Read-only email play.
 5. Prepared orders with explicit second-channel confirmation.
 6. Opt-in daily brief and campaign-record delivery.
-

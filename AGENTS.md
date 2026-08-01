@@ -49,3 +49,12 @@ live in `worker-configuration.d.ts`.
 - Schema changes require a checked-in migration under `drizzle/`.
 - Never replace the production D1 UUID with a placeholder.
 - Keep secrets in Cloudflare, never in Git.
+
+## Planning memory
+
+Future and externally blocked plans live in `docs/parking-lot/README.md` and its
+append-only epoch files. Read the master index and every overlapping epoch
+before proposing or activating deferred work. A `PARKED` plan is durable memory,
+not authorization to create accounts, change DNS, add secrets, contact users,
+send mail, or deploy. Append dated amendments; never silently overwrite an
+earlier epoch decision.

@@ -455,22 +455,27 @@ For every subsequent epoch:
     outbound send is created
 - Acceptance: covered by the command-environment epoch's complete gate above.
 
-## Release-verification correction — public activation attestations
+## Parking Lot foundation epoch — durable future-plan registry
 
 - Date: 2026-08-01
-- State: verification-only correction for production promotion
+- State: documentation complete; every recorded external action remains parked
 - Scope:
-  - refresh the sealed public text digests for the decision, directive, and
-    forecast activation probes after this epoch intentionally added public
-    ratings, battlefield-range disclosure, and forecast presentation detail
-  - preserve identical probe outputs across browser and native terminal cores
-  - remove one prematurely admitted cross-menu comparison assertion from this
-    epoch's executable gate; the requirement remains preserved in the adjacent
-    foundation epoch's explicit exclusions and subsequent implementation queue
-  - change no runtime behavior, campaign mechanics, grammar, authority,
-    persistence, provider integration, or production configuration
-- Acceptance:
-  - all seven activation probes retain their expected signal, operator family,
-    authority, proof identity, tamper-evident marker, and web/SSH parity
-  - the complete repository gate is rerun against the isolated release tree
-    before production promotion
+  - established `docs/parking-lot/README.md` as the permanent master registry
+    for future Delenda Quest plans
+  - defined append-only retrieval, lifecycle, authorization, activation, and
+    rollback contracts so a documented plan cannot be mistaken for approval
+  - separated all known externally dependent email work into six epochs:
+    provider/domain foundation, account identity and Google sign-in, reciprocal
+    friend invitations, play by email, certificate/LinkedIn delivery, and mail
+    operations
+  - preserved the current Resend-first provider preference, later Cloudflare
+    consolidation option, Email Nexus authority, magic-link design, Google auth
+    requirement, earlier password requirement, private reciprocal friend graph,
+    opaque campaign reply aliases, confirmation-before-mutation rule,
+    simulation-only certificate language, and suppression/consent boundaries
+  - connected `AGENTS.md` and `docs/email/architecture.md` to the master registry
+- Explicit exclusions:
+  - no provider account, OAuth application, LinkedIn Page, DNS record, webhook,
+    secret, recipient import, outbound message, inbound route, schema migration,
+    deployment, or production configuration was created or changed
+  - parked epochs are not implementation or activation authority
