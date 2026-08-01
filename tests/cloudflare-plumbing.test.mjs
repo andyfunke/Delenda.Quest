@@ -152,3 +152,18 @@ test("relevant main pushes validate and deploy the native SSH gateway", async ()
   assert.match(workflow, /flyctl deploy --remote-only/);
   assert.match(workflow, /ssh-keyscan -p 22 ssh\.delenda\.quest/);
 });
+
+test("Fly deploys only the native SSH gateway", async () => {
+  const manifests = await Promise.all([
+    readFile(new URL("../fly.toml", import.meta.url), "utf8"),
+    readFile(new URL("../packages/ssh-gateway/fly.toml", import.meta.url), "utf8"),
+  ]);
+
+  for (const manifest of manifests) {
+    assert.match(manifest, /^app = "delenda-quest"$/m);
+    assert.match(manifest, /dockerfile = "packages\/ssh-gateway\/Dockerfile"/);
+    assert.match(manifest, /internal_port = 2222/);
+    assert.match(manifest, /port = 22/);
+    assert.doesNotMatch(manifest, /internal_port = 8080/);
+  }
+});
