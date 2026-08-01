@@ -1215,12 +1215,21 @@ export const compileSemanticQuery = (
     );
   }
   if (!scope.domains.length && subject === "CAMPAIGN_CHOICE") {
-    scope = {
-      ...scope,
-      group: "ALL",
-      domains: ["MAIN", "DOMESTIC", "NETWORK"],
-    };
-    contextualResolutions.push("Campaign scope defaulted to the active docket.");
+    const mainFirst =
+      (operation === "ADVISE" || operation === "RECOMMEND") &&
+      !/\b(?:missions?|docket|all choices|all options)\b/.test(input);
+    scope = mainFirst
+      ? { ...scope, group: "MAIN", domains: ["MAIN"] }
+      : {
+          ...scope,
+          group: "ALL",
+          domains: ["MAIN", "DOMESTIC", "NETWORK"],
+        };
+    contextualResolutions.push(
+      mainFirst
+        ? "Unscoped advice defaulted to the Main Campaign module."
+        : "Campaign scope defaulted to the active docket.",
+    );
   }
 
   if (
@@ -1357,6 +1366,7 @@ export const genericSemanticQuery = (
             topic: instruction.topic,
             days: instruction.days,
             scope: instruction.scope,
+            canonical: instruction.canonical,
           }),
         ]
       : instruction.kind === "STATUS"
@@ -1430,7 +1440,10 @@ export const genericSemanticQuery = (
       type: subject,
       entityIds,
     },
-    scope: { domains: [], excludedDomains: [] },
+    scope:
+      instruction.kind === "ADVISE"
+        ? { group: "MAIN", domains: ["MAIN"], excludedDomains: [] }
+        : { domains: [], excludedDomains: [] },
     timeframe: "CURRENT_DOCKET",
     criteria: ["OVERALL_VALUE"],
     polarity: "AFFIRMATIVE",

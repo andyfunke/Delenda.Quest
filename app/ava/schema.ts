@@ -337,6 +337,7 @@ export type AvaInstruction =
       topic: AvaReportTopic;
       days?: number;
       scope?: AvaModule | "current";
+      canonical?: true;
     }
   | {
       kind: "EXPLAIN";
@@ -382,6 +383,7 @@ export type AvaFailureCode =
 export type AvaCompilerTrace = {
   rule: string;
   rawInput: string;
+  interaction: "open-ended" | "explicit";
   normalizedInput: string;
   normalizedTokens: string[];
   recognizedConcepts: Array<{

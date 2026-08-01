@@ -43,7 +43,32 @@ export chat
 export ava chat
 export ava chat log
 export ava log
+daily briefing
+brief me
 ```
+
+## Interaction and realization
+
+The compiler labels every utterance as `open-ended` or `explicit` before
+realization. In concise mode, explicit commands render their operational result
+without an ornamental field-note preface. Open-ended requests may be narrated,
+but an unscoped next-action request is bounded to the Main Campaign so Ava
+answers one module at a time. The answer contains a situation summary, one
+recommendation, and the three canonical M1/M2/M3 declarations; it does not
+prepare or issue an order.
+
+`storyteller mode` permits narrative expansion for both reads and explicit
+commands. `concise mode` restores the interaction-sensitive default.
+
+The daily briefing has two read-only realizations:
+
+| Surface | Realization |
+|---|---|
+| `daily briefing` | Exact authored headline, briefing, command question, and maneuver flavor |
+| `brief me` / `summarize the daily briefing` | Deterministic Ava paraphrase with a route back to the exact text |
+
+Canonical briefing text is never decorated or paraphrased, even while
+storyteller mode is active.
 
 ## Authenticated debug turnover
 

@@ -42,6 +42,10 @@ import {
 } from "./filesystem";
 import { avaWorkbookFilename, buildAvaWorkbook } from "./workbook";
 import { answerSemanticQuery } from "./advisory";
+import {
+  canonicalDailyBriefing,
+  summarizedDailyBriefing,
+} from "./campaign-narrative";
 import { projectAvaEnvelope } from "./projection";
 import { avaVisibleWorldRevision } from "./world-model";
 import type { AvaDarkNetContext } from "./darknet";
@@ -775,6 +779,7 @@ function executeAvaInstruction(
   cognitiveConstraint?: AvaCognitiveConstraintGuidance,
   cognitiveCausal?: AvaCognitiveCausalGuidance,
   cognitiveEpistemic?: AvaCognitiveEpistemicGuidance,
+  interaction: AvaCompilerTrace["interaction"] = "explicit",
 ): AvaTerminalResult {
   if (instruction.kind === "SHELL") {
     const shellResult = executeAvaShell(
@@ -859,6 +864,7 @@ function executeAvaInstruction(
       session.discourse,
       opportunityFraction,
       cognitiveGuidance,
+      interaction,
     );
     const next = { ...session, discourse: answer.discourse };
     return finalize(state, next, withHeader(state, answer.text), {
@@ -1033,14 +1039,17 @@ function executeAvaInstruction(
     );
   }
   if (instruction.kind === "ADVISE") {
+    const openEndedCampaignQuestion = interaction === "open-ended";
     const answer = answerSemanticQuery(
       state,
       {
         operation: "ADVISE",
         subject: { type: "CAMPAIGN_CHOICE", entityIds: [] },
         scope: {
-          group: "ALL",
-          domains: ["MAIN", "DOMESTIC", "NETWORK"],
+          group: openEndedCampaignQuestion ? "MAIN" : "ALL",
+          domains: openEndedCampaignQuestion
+            ? ["MAIN"]
+            : ["MAIN", "DOMESTIC", "NETWORK"],
           excludedDomains: [],
         },
         timeframe: "CURRENT_DOCKET",
@@ -1056,6 +1065,7 @@ function executeAvaInstruction(
       session.discourse,
       opportunityFraction,
       cognitiveGuidance,
+      interaction,
     );
     return finalize(
       state,
@@ -1075,6 +1085,18 @@ function executeAvaInstruction(
   }
   if (instruction.kind === "REPORT") {
     const report = buildAvaReport(instruction, state);
+    if (instruction.topic === "daily-brief")
+      return finalize(
+        state,
+        session,
+        withHeader(
+          state,
+          instruction.canonical
+            ? canonicalDailyBriefing(state)
+            : summarizedDailyBriefing(state, session.voiceCursor),
+        ),
+        { report },
+      );
     const saved = saveAvaReportSnapshot(
       session.shell,
       state,
@@ -1647,6 +1669,7 @@ export function runAvaInstruction(
       cognitiveConstraint,
       cognitiveCausal,
       cognitiveEpistemic,
+      compilerTrace?.interaction,
     );
   if (result.outputKind === "shell")
     return {

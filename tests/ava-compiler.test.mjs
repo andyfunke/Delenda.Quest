@@ -84,6 +84,21 @@ test("reports resolve module aliases",()=>{
   assert.deepEqual(instruction("casualties past three days"),{kind:"REPORT",topic:"losses",days:3,scope:"current"});
 });
 
+test("daily briefing preserves a canonical source-text command beside paraphrased briefing language",()=>{
+  assert.deepEqual(instruction("daily briefing"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",canonical:true,
+  });
+  assert.deepEqual(instruction("read the daily brief"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",canonical:true,
+  });
+  assert.deepEqual(instruction("brief me"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",
+  });
+  assert.deepEqual(instruction("summarize the daily briefing"),{
+    kind:"REPORT",topic:"daily-brief",scope:"current",
+  });
+});
+
 test("advice language compiles to the deterministic advisory layer",()=>{
   for(const phrase of ["what should I do","what to do","what do I do","what next","whats next","what now","what am I supposed to do","wtf do I do","what the fuck do I do","where do I start","where do we go from here","how should we proceed","recommend a next move","advise me"]){
     const result=mod.compileAvaCommand(phrase,context);
@@ -93,6 +108,7 @@ test("advice language compiles to the deterministic advisory layer",()=>{
       `${phrase}: ${result.instruction.kind}`,
     );
     assert.equal(result.semantic.operation,"ADVISE",phrase);
+    assert.deepEqual(result.semantic.scope.domains,["MAIN"],phrase);
   }
 });
 

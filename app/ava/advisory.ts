@@ -22,6 +22,7 @@ import {
 import type { AvaCognitiveDecisionGuidance } from "./cognitive-nexus";
 import { canonicalJson } from "./cognitive-types";
 import { avaVisibleWorldRevision } from "./world-model";
+import { narratedCampaignRecommendation } from "./campaign-narrative";
 
 export type AvaEvaluatedAction = {
   descriptor: AvaActionDescriptor;
@@ -418,6 +419,7 @@ const answerSemanticQueryUnproven = (
   discourse: AvaDiscourseState,
   opportunityFraction = 0,
   cognitiveGuidance?: AvaCognitiveDecisionGuidance,
+  interaction: "open-ended" | "explicit" = "explicit",
 ): Omit<AvaSemanticAnswer, "proofGraph"> => {
   const situation = situationForState(state);
   if (query.polarity === "NEGATED" && query.operation === "CORRECT") {
@@ -788,8 +790,22 @@ const answerSemanticQueryUnproven = (
     parts.push(
       `CALCULATION\nThe complete disclosed calculus is preserved in reports/current/command-dashboard.xlsx. Use: download reports/current/command-dashboard.xlsx`,
     );
+  const mainCampaignNarrative =
+    interaction === "open-ended" &&
+    (query.operation === "ADVISE" || query.operation === "RECOMMEND") &&
+    query.scope.domains.length === 1 &&
+    query.scope.domains[0] === "MAIN";
   return {
-    text: `FIELD NOTE / ${query.operation === "JUSTIFY" ? "JUSTIFICATION" : query.operation === "CORRECT" ? "CORRECTION" : "JUDGMENT"}\n${narrative.line}\n\n${parts.join("\n\n")}`,
+    text: mainCampaignNarrative
+      ? narratedCampaignRecommendation({
+          state,
+          candidates: evaluated.map((entry) => entry.descriptor),
+          winner: best.descriptor,
+          reason,
+          tradeoff,
+          variant: discourse.realizationHistory.length,
+        })
+      : `FIELD NOTE / ${query.operation === "JUSTIFY" ? "JUSTIFICATION" : query.operation === "CORRECT" ? "CORRECTION" : "JUDGMENT"}\n${narrative.line}\n\n${parts.join("\n\n")}`,
     answerPlan: plan,
     retrievedFacts: best.facts,
     discourse: {
@@ -819,6 +835,7 @@ export const answerSemanticQuery = (
   discourse: AvaDiscourseState,
   opportunityFraction = 0,
   cognitiveGuidance?: AvaCognitiveDecisionGuidance,
+  interaction: "open-ended" | "explicit" = "explicit",
 ): AvaSemanticAnswer => {
   const answer = answerSemanticQueryUnproven(
     state,
@@ -826,6 +843,7 @@ export const answerSemanticQuery = (
     discourse,
     opportunityFraction,
     cognitiveGuidance,
+    interaction,
   );
   return {
     ...answer,

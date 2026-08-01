@@ -27,6 +27,10 @@ export type AvaVoiceCue = {
 };
 
 export type AvaRealizationMode = "concise" | "storyteller";
+export type AvaPresentationContext = {
+  interaction: "open-ended" | "explicit";
+  preserveCanonical?: boolean;
+};
 
 const recentCombatLosses = (state: GameState, days = 5) =>
   state.resolutionHistory
@@ -229,9 +233,16 @@ export const realizeAvaPresentation = (
   state: GameState,
   text: string,
   mode: AvaRealizationMode,
+  context: AvaPresentationContext = { interaction: "explicit" },
 ) => {
-  if (mode !== "storyteller" || /\b(?:STORYTELLER|CONCISE) MODE\b/.test(text))
-    return text;
+  const undecorated = text.replace(
+    /^FIELD NOTE\s*\/[^\n]*\n[^\n]*(?:\n\n|$)/,
+    "",
+  );
+  if (context.preserveCanonical) return undecorated;
+  if (mode !== "storyteller")
+    return context.interaction === "explicit" ? undecorated : text;
+  if (/\b(?:STORYTELLER|CONCISE) MODE\b/.test(text)) return undecorated;
   const situation = situationForState(state);
   const latest = state.resolutionHistory[0];
   const continuity = latest

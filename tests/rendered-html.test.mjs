@@ -139,11 +139,11 @@ test("the built activation route traverses every active engine through web and t
     cookie: "delenda_guest_session=00000000-0000-4000-8000-000000000001",
   };
   const expectedActivation = {
-    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "89b6bae2d3c4699c7f991ad9118898b484f21f13c5834a340c9e13095181118b" },
-    directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "42572f3e81ee8bc24f6dc1f56d67db97ab7ed752da36441d601cea36690c29e4" },
-    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "0633a250306d7e356eb33af0289c897a4c74c585e4725b43d6dccb0e1c0f4285" },
-    constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "2cb5f76074f68761aa85a3ee07cc4aa09e19fa3cc339e16dace388d3d443d5eb" },
-    planning: { authority: "PLAN_ONLY", families: ["PLANNING", "REALIZATION"], signal: "PLAN_ONLY_CONFIRMATION_READY", textDigest: "37e1f550586f815005d34270244272e7244b6b4df18d40244fa7841721ff51b2" },
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "9e7399969dc11d47069d52f9bba734d694e4a576f1891a78a46a3d25392e96d6" },
+    directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "2f67b76d59eacfcb813303f3b5553e3fe43aedf48fecf43b476898fb704b4db0" },
+    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "231448baf10152efdb94339fa8adfbcf1087d77b22fa2f2b1f88f1fd604d0587" },
+    constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "60b13ace278e96aac9946f8b74a28fef466c6f8579d7683392b3574535e7aa37" },
+    planning: { authority: "PLAN_ONLY", families: ["PLANNING", "REALIZATION"], signal: "PLAN_ONLY_CONFIRMATION_READY", textDigest: "061b0ba228856554ecf32ed0a0f00d0138cf4ff90c5927c4377a165ae3921d82" },
     causal: { authority: "READ_ONLY", families: ["CAUSAL", "REALIZATION"], signal: "OBSERVATIONAL_CAUSAL_DIAGNOSIS", textDigest: "3e07acfeb8c657cc252a8b49449d994237b408cb60aab3fd9b18eca7f2ec6aac" },
     epistemic: { authority: "READ_ONLY", families: ["EPISTEMIC", "REALIZATION"], signal: "SINGLE_RECORD_EVIDENCE_BOUND", textDigest: "ccd2ba2ee4fc1c3a4680d3a138307c3b3d6be273070d4b6e5a4cb109a31896c6" },
   };

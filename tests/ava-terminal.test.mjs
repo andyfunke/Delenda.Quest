@@ -382,8 +382,9 @@ test("ordinary advice is narrative while explicit forecast and compare expose bo
   const state=newState(1729);
   const advice=run("what should I do",state);
   assert.match(advice.text,/^FIELD NOTE \/ JUDGMENT/);
-  assert.match(advice.text,/\n\n(?:ANSWER|DISTINCTION|ELIMINATION)\n/);
-  assert.match(advice.text,/\n\n(?:WHY|TRADEOFF)\n/);
+  assert.match(advice.text,/AVA \/ CAMPAIGN \/ DAY 1/);
+  assert.match(advice.text,/My recommendation is M\d/);
+  assert.match(advice.text,/three declarant options/i);
   assert.doesNotMatch(advice.text,/CALCULATION|equation|option score|rules fired|corridor viability/i);
   assert.ok(advice.answerPlan);
   assert.equal(advice.answerPlan.calculationDisclosure,"NONE");

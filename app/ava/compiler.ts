@@ -77,6 +77,31 @@ export const normalizeAvaInput = (raw: string) =>
     .trim()
     .replace(/\s+/g, " ");
 
+export const classifyAvaInteraction = (
+  raw: string,
+): AvaCompilerTrace["interaction"] => {
+  const input = normalizeAvaInput(raw);
+  if (
+    /^(?:status|missions?|orders?|help|grammar|capabilities|commands?|production|military|diplomacy|doctrine|projection|retrospective|daily brief(?:ing)?|more|less|repeat|storyteller mode|concise mode)$/.test(
+      input,
+    ) ||
+    /^(?:list|show|open|report|forecast|compare|inspect|prepare|stage|unstage|issue|execute|confirm|cancel|resolve|export|enable|disable)\b/.test(
+      input,
+    ) ||
+    /^daily unlock (?:on|off)$/.test(input)
+  )
+    return "explicit";
+  if (
+    /^(?:what|why|how|where|when|who|which)\b/.test(input) ||
+    /^(?:tell me|give me|brief me|catch me up|bring me up to speed|orient me|explain to me|can you|could you|would you)\b/.test(
+      input,
+    ) ||
+    compileAvaPlayerNeed(input)
+  )
+    return "open-ended";
+  return "explicit";
+};
+
 export type AvaPlayerNeed =
   | "NEXT_ACTION"
   | "HOW_TO_PLAY"
@@ -500,6 +525,7 @@ const trace = (
   return {
     rule,
     rawInput: input,
+    interaction: classifyAvaInteraction(input),
     normalizedInput: normalizeSemanticInput(input).normalized,
     normalizedTokens: normalizeSemanticInput(input).tokens,
     recognizedConcepts: semantic?.concepts ?? [],
@@ -1025,7 +1051,18 @@ function compileLegacyCommand(
       scope: "current",
     });
   if (
-    /^(brief me|daily brief|todays brief|give me the daily brief|alt ux brief)$/.test(
+    /^(?:daily brief(?:ing)?|todays daily brief(?:ing)?|give me the daily brief(?:ing)?|read (?:me )?(?:the )?daily brief(?:ing)?|(?:exact|verbatim) daily brief(?:ing)?|daily brief(?:ing)? (?:exact text|verbatim))$/.test(
+      input,
+    )
+  )
+    return compiled(input, "daily-brief-canonical", {
+      kind: "REPORT",
+      topic: "daily-brief",
+      scope: "current",
+      canonical: true,
+    });
+  if (
+    /^(?:brief me|todays brief|alt ux brief|summarize (?:the )?daily brief(?:ing)?|give me (?:a |the )?summary of (?:the )?daily brief(?:ing)?)$/.test(
       input,
     )
   )
@@ -1390,6 +1427,7 @@ export function compileAvaCommand(
       trace: {
         rule: `shell-${shell.command.toLowerCase()}`,
         rawInput: raw,
+        interaction: "explicit",
         normalizedInput: raw.trim(),
         normalizedTokens: [shell.command.toLowerCase(), ...shell.args],
         recognizedConcepts: [

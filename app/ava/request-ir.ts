@@ -888,7 +888,7 @@ export const validateAvaInstruction = (
         ? { ok: true, instruction: value as AvaInstruction }
         : instructionFailure("LIST scope is unknown");
     case "REPORT":
-      return hasExactKeys(value, ["kind", "topic"], ["days", "scope"]) &&
+      return hasExactKeys(value, ["kind", "topic"], ["days", "scope", "canonical"]) &&
         typeof value.topic === "string" &&
         REPORT_TOPICS.has(value.topic as AvaReportTopic) &&
         (value.days === undefined ||
@@ -899,7 +899,9 @@ export const validateAvaInstruction = (
         (value.scope === undefined ||
           value.scope === "current" ||
           (typeof value.scope === "string" &&
-            MODULES.has(value.scope as AvaModule)))
+            MODULES.has(value.scope as AvaModule))) &&
+        (value.canonical === undefined ||
+          (value.canonical === true && value.topic === "daily-brief"))
         ? { ok: true, instruction: value as AvaInstruction }
         : instructionFailure("REPORT fields are malformed");
     case "EXPLAIN":

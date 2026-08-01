@@ -89,6 +89,41 @@ test("storyteller mode is Ava-controlled, persistent, factual, and reversible", 
   assert.doesNotMatch(brief.text, /\n\nTHEATER\n/);
 });
 
+test("open-ended Ava requests narrate one module while concise commands remain undecorated",()=>{
+  const state=newState(1729);
+  const open=run("what next",state);
+  assert.equal(open.compile.trace.interaction,"open-ended");
+  assert.deepEqual(open.envelope.semantic.scope.domains,["MAIN"]);
+  assert.match(open.text,/AVA \/ CAMPAIGN \/ DAY 1/);
+  assert.match(open.text,/three declarant options/i);
+  assert.match(open.text,/M1 declares[\s\S]*M2 declares[\s\S]*M3 declares/i);
+  assert.doesNotMatch(open.text,/DOMESTIC FRONT|COMMAND NETWORK/);
+
+  const command=run("missions",state);
+  assert.equal(command.compile.trace.interaction,"explicit");
+  assert.doesNotMatch(command.text,/^FIELD NOTE/);
+  assert.match(command.text,/MISSIONS \[SEALED D\+0\]/);
+
+  const storyteller=run("storyteller mode",state);
+  const narratedCommand=run("missions",state,storyteller.session);
+  assert.match(narratedCommand.text,/THEATER[\s\S]*CONTINUITY[\s\S]*COMMANDER'S VIEW/);
+});
+
+test("daily briefing can return canonical authored text or Ava's deterministic paraphrase",()=>{
+  const state=newState(1729);
+  const exact=run("daily briefing",state);
+  assert.equal(exact.envelope.instructionKind,"REPORT");
+  assert.match(exact.text,new RegExp(state.currentSituation.headline.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.match(exact.text,new RegExp(state.currentSituation.briefing.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.match(exact.text,/DECLARANT OPTIONS[\s\S]*\[M1\][\s\S]*\[M2\][\s\S]*\[M3\]/);
+  assert.doesNotMatch(exact.text,/THEATER\n|COMMANDER'S VIEW/);
+
+  const summary=run("brief me",state);
+  assert.match(summary.text,/AVA \/ DAILY BRIEFING \/ DAY 1/);
+  assert.doesNotMatch(summary.text,new RegExp(state.currentSituation.briefing.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
+  assert.match(summary.text,/daily briefing.*authored text verbatim/i);
+});
+
 test("chat export crosses the Nexus as a local read-only presentation request", () => {
   const state = newState(1730);
   const exported = run("export ava chat log", state);

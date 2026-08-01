@@ -568,6 +568,17 @@ const withEnvelope = (
     result.state,
     result.text,
     result.session.realizationMode,
+    {
+      interaction:
+        request.kind === "instruction"
+          ? request.trace?.interaction ?? "explicit"
+          : "explicit",
+      preserveCanonical:
+        request.kind === "instruction" &&
+        request.instruction.kind === "REPORT" &&
+        request.instruction.topic === "daily-brief" &&
+        request.instruction.canonical === true,
+    },
   );
   result = {
     ...result,
@@ -1990,7 +2001,14 @@ const executeInstructionRequest = (
     );
     if (cognitive && !terminalResult.executed)
       terminalResult = { ...terminalResult, state };
-  } catch {
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        message: "Ava cognitive realization rejected",
+        error: error instanceof Error ? error.message : "Unknown realization error",
+        instruction: instruction.kind,
+      }),
+    );
     return responseFailure(
       state,
       session,
