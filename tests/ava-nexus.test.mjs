@@ -89,6 +89,19 @@ test("storyteller mode is Ava-controlled, persistent, factual, and reversible", 
   assert.doesNotMatch(brief.text, /\n\nTHEATER\n/);
 });
 
+test("chat export crosses the Nexus as a local read-only presentation request", () => {
+  const state = newState(1730);
+  const exported = run("export ava chat log", state);
+  assert.equal(exported.response.status, "OK", exported.text);
+  assert.equal(exported.envelope.instructionKind, "EXPORT_CHAT");
+  assert.deepEqual(exported.state, state);
+  assert.deepEqual(exported.envelope.presentation.chatExport, {
+    filename: "delenda-quest-ava-chat-day-001.txt",
+    mime: "text/plain;charset=utf-8",
+  });
+  assert.match(exported.text, /CHAT LOG EXPORT[\s\S]*remains local/i);
+});
+
 test("strategic posture reaches the evaluator instead of collapsing to default", () => {
   const state = newState();
   const posture = {

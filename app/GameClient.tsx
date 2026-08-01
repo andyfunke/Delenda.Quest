@@ -65,8 +65,10 @@ import { THEATER_SECTORS } from "./campaign-substrate";
 import { openWikiApplet } from "./wiki-events";
 import {
   compileAvaGodModeIntent,
+  compileAvaTurnModeIntent,
   isAvaConfirmationInput,
 } from "./ava/compiler";
+import { serializeAvaChatLog } from "./ava/chat-export";
 import { avaEntitiesForState } from "./ava/game-context";
 import { type AvaActionRef } from "./ava/schema";
 import type { AvaCognitiveActivationReceipt } from "./ava/request-ir";
@@ -5525,10 +5527,7 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       return;
     }
     setMessages((m) => [...m, { who: "YOU", text: raw }]);
-    const godModeCommand = raw
-      .toLocaleLowerCase("en-US")
-      .replace(/[^\p{L}\p{N}]+/gu, " ")
-      .trim();
+    const turnModeIntent = compileAvaTurnModeIntent(raw);
     const godModeIntent = compileAvaGodModeIntent(raw);
     if (godModeIntent?.kind === "force-random-event") {
       if (!turnAccess?.godMode) {
@@ -5581,11 +5580,8 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       ]);
       return;
     }
-    if (
-      godModeCommand === "enable godmode" ||
-      godModeCommand === "disable godmode"
-    ) {
-      const enabled = godModeCommand === "enable godmode";
+    if (turnModeIntent) {
+      const enabled = turnModeIntent.enabled;
       try {
         const response = await fetch("/api/turn", {
           method: "PATCH",
@@ -5606,9 +5602,14 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           ...current,
           {
             who: "AVA",
-            text: enabled
-              ? "GODMODE ENABLED\nActual-time daily turnover is disabled. Resolve Day can advance the campaign without a daily limit."
-              : "GODMODE DISABLED\nActual-time daily turnover is restored. Resolve Day is limited to once per account day and resets at account midnight.",
+            text:
+              turnModeIntent.vocabulary === "daily-unlock"
+                ? enabled
+                  ? "DAILY UNLOCK ON\nDaily mission reset is unlocked for debugging. Resolve Day can advance the campaign repeatedly without waiting for account midnight."
+                  : "DAILY UNLOCK OFF\nThe daily mission reset is locked to actual time. Resolve Day is limited to once per account day and resets at account midnight."
+                : enabled
+                  ? "GODMODE ENABLED\nActual-time daily turnover is disabled. Resolve Day can advance the campaign without a daily limit."
+                  : "GODMODE DISABLED\nActual-time daily turnover is restored. Resolve Day is limited to once per account day and resets at account midnight.",
           },
         ]);
       } catch (error) {
@@ -5881,6 +5882,28 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       const anchor = document.createElement("a");
       anchor.href = url;
       anchor.download = presentation.download.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    }
+    if (presentation.chatExport) {
+      const transcript = serializeAvaChatLog({
+        campaignId: stateAtExecution.campaignId,
+        day: stateAtExecution.day,
+        exportedAt: new Date(),
+        entries: [
+          ...messages,
+          { who: "YOU", text: raw },
+          { who: "AVA", text: terminalText },
+        ],
+      });
+      const url = window.URL.createObjectURL(
+        new Blob([transcript], { type: presentation.chatExport.mime }),
+      );
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = presentation.chatExport.filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -6442,8 +6465,8 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
               COMMAND MANUAL
             </button>
             <span>
-              MISSIONS // ADVISE // REPORT // STAGE // CD // LS // GREP //
-              FIND // DOWNLOAD
+              MISSIONS // ADVISE // REPORT // STAGE // EXPORT CHAT // CD // LS
+              // GREP // FIND // DOWNLOAD
             </span>
             <button onClick={() => openWikiApplet("site-telemetry")}>
               SIGNAL POLICY

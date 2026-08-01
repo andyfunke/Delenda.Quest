@@ -7,6 +7,7 @@ Copyable grammar source for clients and future agents.
 `HELP`, `BRIEF`, `STATUS`, `SHOW_DOCKET`, `SHOW_CHOICE`, `ASK_AVA`, `ADVISE`,
 `COMPARE`, `RANK`, `PREPARE`, `CONFIRM`, `CANCEL`, `INTERRUPTS`, `MISSIONS`,
 `SERVICE_RECORD`, `RECENT_DISPATCHES`, `WHOAMI`, `LOGOUT`, `QUIT`
+and the local presentation operation `EXPORT_CHAT`.
 
 ## Deterministic surface commands
 
@@ -38,7 +39,17 @@ recent dispatches
 whoami
 logout
 quit
+export chat
+export ava chat
+export ava chat log
+export ava log
 ```
+
+## Authenticated debug turnover
+
+`daily unlock on` and `daily unlock off` compile to one typed account-turn
+intent. The authenticated turn service persists the setting. It is deliberately
+not campaign state and does not create a second day-resolution implementation.
 
 ## Aliases
 

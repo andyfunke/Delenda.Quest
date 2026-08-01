@@ -33,6 +33,31 @@ test("godmode random-event language compiles to one explicit intent",()=>{
   ])assert.equal(mod.compileAvaGodModeIntent(phrase),null,phrase);
 });
 
+test("daily unlock aliases compile to the existing account turn gate",()=>{
+  assert.deepEqual(mod.compileAvaTurnModeIntent("daily unlock on"),{
+    kind:"set-daily-unlock",
+    enabled:true,
+    vocabulary:"daily-unlock",
+    normalizedInput:"daily unlock on",
+  });
+  assert.deepEqual(mod.compileAvaTurnModeIntent("daily unlock off"),{
+    kind:"set-daily-unlock",
+    enabled:false,
+    vocabulary:"daily-unlock",
+    normalizedInput:"daily unlock off",
+  });
+  assert.equal(mod.compileAvaTurnModeIntent("daily unlock maybe"),null);
+});
+
+test("Ava chat export phrases compile to one enumerated instruction",()=>{
+  for(const phrase of [
+    "export chat",
+    "export ava chat",
+    "export ava chat log",
+    "export ava log",
+  ])assert.deepEqual(instruction(phrase),{kind:"EXPORT_CHAT"},phrase);
+});
+
 test("natural status phrases compile to STATUS",()=>{
   assert.equal(instruction("How are we doing?").kind,"STATUS");
   assert.equal(instruction("where do we stand").kind,"STATUS");

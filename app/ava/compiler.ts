@@ -63,7 +63,7 @@ const filler = new Set([
   "its",
 ]);
 const commandWords = new Set(
-  "hello hi hey there online update orders order available actions missions list help grammar capabilities command commands status condition situation report reports produce brief briefing explain inspect what does meet mean affect affects underpin underpinnings improve raise change control calculus calculate open show take go navigate select choose prepare stage unstage remove plan maneuver manoeuvre forecast project projection predict compare versus vs with and clear cancel unselect commit issue execute do it that yes confirm never mind internalize learn respond exploit answer resolve end close day days to for from of over last past how is are give loss losses casualties attrition retrospective recap after action production domestic network intelligence intel adversary enemy effects resources personnel opportunities opportunity doctrine diplomatic military directives service record outlook next happens recommend recommendation advise viable viability feasible feasibility precondition preconditions prerequisite prerequisites start move more less repeat who you thanks thank fuck fucking shit sense".split(
+  "hello hi hey there online update orders order available actions missions list help grammar capabilities command commands status condition situation report reports produce brief briefing explain inspect what does meet mean affect affects underpin underpinnings improve raise change control calculus calculate open show take go navigate select choose prepare stage unstage remove plan maneuver manoeuvre forecast project projection predict compare versus vs with and clear cancel unselect commit issue execute do it that yes confirm never mind internalize learn respond exploit answer resolve end close day days daily unlock on off export chat log to for from of over last past how is are give loss losses casualties attrition retrospective recap after action production domestic network intelligence intel adversary enemy effects resources personnel opportunities opportunity doctrine diplomatic military directives service record outlook next happens recommend recommendation advise viable viability feasible feasibility precondition preconditions prerequisite prerequisites start move more less repeat who you thanks thank fuck fucking shit sense".split(
     " ",
   ),
 );
@@ -112,6 +112,39 @@ export const compileAvaGodModeIntent = (
   )
     return { kind: "force-random-event", normalizedInput: input };
 
+  return null;
+};
+
+export type AvaTurnModeIntent = {
+  kind: "set-daily-unlock";
+  enabled: boolean;
+  vocabulary: "daily-unlock" | "godmode";
+  normalizedInput: string;
+};
+
+/**
+ * Account turnover is persisted by the authenticated turn service rather than
+ * the synchronous campaign-state Nexus. Compile its Ava surface language into
+ * one typed adapter intent so aliases cannot acquire different mechanics.
+ */
+export const compileAvaTurnModeIntent = (
+  raw: string,
+): AvaTurnModeIntent | null => {
+  const input = normalizeAvaInput(raw);
+  if (input === "daily unlock on" || input === "daily unlock off")
+    return {
+      kind: "set-daily-unlock",
+      enabled: input.endsWith(" on"),
+      vocabulary: "daily-unlock",
+      normalizedInput: input,
+    };
+  if (input === "enable godmode" || input === "disable godmode")
+    return {
+      kind: "set-daily-unlock",
+      enabled: input === "enable godmode",
+      vocabulary: "godmode",
+      normalizedInput: input,
+    };
   return null;
 };
 
@@ -636,6 +669,12 @@ function compileLegacyCommand(
     ) || /^(?:concise|brief|normal|standard) mode$/.test(input)
   )
     return compiled(input, "concise-mode", { kind: "CONCISE" });
+  if (
+    /^(?:export chat|export ava chat|export ava chat log|export ava log)$/.test(
+      input,
+    )
+  )
+    return compiled(input, "export-ava-chat", { kind: "EXPORT_CHAT" });
   if (/^(repeat|say that again)$/.test(input))
     return compiled(input, "repeat", { kind: "REPEAT" });
 

@@ -553,6 +553,7 @@ const terminalPresentation = (
   clearScreen: terminalResult?.clearScreen,
   aphorismViewIds: terminalResult?.aphorismViewIds,
   download: terminalResult?.download,
+  chatExport: terminalResult?.chatExport,
 });
 
 const withEnvelope = (

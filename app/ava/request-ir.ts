@@ -149,6 +149,10 @@ export type AvaEnvelopePresentation = {
     bytes: Uint8Array;
     stateRevision: string;
   };
+  chatExport?: {
+    filename: string;
+    mime: "text/plain;charset=utf-8";
+  };
 };
 
 /**
@@ -844,6 +848,7 @@ export const validateAvaInstruction = (
     "LESS",
     "STORYTELLER",
     "CONCISE",
+    "EXPORT_CHAT",
     "REPEAT",
     "IDENTITY",
     "GRATITUDE",

@@ -523,13 +523,14 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
     resolutionMigration,
     /ALTER TABLE `active_campaigns` ADD `last_resolution_grant_marker` text/,
   );
-  assert.match(page,/godModeCommand === "enable godmode"/);
-  assert.match(page,/godModeCommand === "disable godmode"/);
+  assert.match(page,/compileAvaTurnModeIntent\(raw\)/);
+  assert.match(page,/DAILY UNLOCK ON\\nDaily mission reset is unlocked for debugging/);
+  assert.match(page,/DAILY UNLOCK OFF\\nThe daily mission reset is locked to actual time/);
   assert.match(page,/GODMODE ENABLED\\nActual-time daily turnover is disabled/);
   assert.match(page,/GODMODE DISABLED\\nActual-time daily turnover is restored/);
   const randomEventHandler=page.slice(
     page.indexOf('godModeIntent?.kind === "force-random-event"'),
-    page.indexOf('godModeCommand === "enable godmode"'),
+    page.indexOf('if (turnModeIntent)'),
   );
   assert.match(randomEventHandler,/!turnAccess\?\.godMode/);
   assert.match(randomEventHandler,/operation:"force-opportunity"/);
@@ -538,6 +539,9 @@ test("signed-in account turnover is daily by default and Ava can explicitly togg
   assert.match(randomEventHandler,/RANDOM EVENT FORCED/);
   assert.match(page,/void advance\("automatic"\)/);
   assert.match(page,/DAILY TURN ALREADY USED/);
+  assert.match(page,/serializeAvaChatLog\(/);
+  assert.match(page,/presentation\.chatExport/);
+  assert.match(page,/EXPORT CHAT/);
 });
 
 test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports are first-class UI contracts",async()=>{

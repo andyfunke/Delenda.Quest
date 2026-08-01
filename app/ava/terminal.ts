@@ -92,6 +92,10 @@ export type AvaTerminalResult = {
     bytes: Uint8Array;
     stateRevision: string;
   };
+  chatExport?: {
+    filename: string;
+    mime: "text/plain;charset=utf-8";
+  };
   answerPlan?: AvaAnswerPlan;
   proofGraph?: CanonicalProofGraph;
   trace?: {
@@ -952,6 +956,21 @@ function executeAvaInstruction(
         "CONCISE MODE\nEnabled. I will return to the standard command realization without changing disclosure depth.",
       ),
     );
+  if (instruction.kind === "EXPORT_CHAT")
+    return finalize(
+      state,
+      session,
+      withHeader(
+        state,
+        "CHAT LOG EXPORT\nPrepared from the Ava conversation visible in this client. The transcript remains local and is not added to telemetry.",
+      ),
+      {
+        chatExport: {
+          filename: `delenda-quest-ava-chat-day-${String(state.day).padStart(3, "0")}.txt`,
+          mime: "text/plain;charset=utf-8",
+        },
+      },
+    );
   if (instruction.kind === "HELP") {
     const rows = AVA_COMMAND_HELP.filter(
       (item) =>
@@ -1559,6 +1578,8 @@ const voiceCueForInstruction = (
     case "STORYTELLER":
     case "CONCISE":
       return { mode: "detail" };
+    case "EXPORT_CHAT":
+      return { mode: "acknowledgment", label: "CHAT EXPORT" };
     case "REPORT":
       return { topic: instruction.topic };
     case "STATUS":

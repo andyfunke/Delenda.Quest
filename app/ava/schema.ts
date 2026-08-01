@@ -356,6 +356,7 @@ export type AvaInstruction =
   | { kind: "CLEAR_PLAN" }
   | { kind: "CONFIRM"; token?: string }
   | { kind: "CANCEL" }
+  | { kind: "EXPORT_CHAT" }
   | {
       kind:
         | "MORE"
@@ -630,6 +631,25 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
     mutates: false,
   },
   {
+    command: "DAILY UNLOCK ON / OFF",
+    purpose:
+      "Unlock repeated day resolution for debugging, or restore the account-midnight daily limit.",
+    examples: ["daily unlock on", "daily unlock off"],
+    mutates: true,
+  },
+  {
+    command: "EXPORT AVA CHAT",
+    purpose:
+      "Download the current local Ava conversation as a plain-text chat log without uploading the transcript.",
+    examples: [
+      "export chat",
+      "export ava chat",
+      "export ava chat log",
+      "export ava log",
+    ],
+    mutates: false,
+  },
+  {
     command: "HELP [COMMAND]",
     purpose: "Open this command manual.",
     examples: ["help", "help forecast"],
@@ -653,7 +673,7 @@ export const AVA_COMMAND_HELP: AvaCommandHelp[] = [
 // This is also the future LLM tool contract. A language model may emit these
 // objects later, but it never bypasses the deterministic validator or executor.
 export const AVA_INSTRUCTION_SCHEMA = {
-  version: "delenda.quest.ava.instruction.v4",
+  version: "delenda.quest.ava.instruction.v5",
   intents: AVA_COMMAND_HELP.map((item) => item.command.split(" ")[0]),
   execution: "fail-closed",
   rawPromptStorage: false,
