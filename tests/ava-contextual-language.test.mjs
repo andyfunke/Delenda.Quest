@@ -112,6 +112,46 @@ test("authored references are indexed only from visible current briefing text", 
   assert.match(entry.evidence[0].excerpt, /Future freedom/);
 });
 
+test("the static catalog owns the packet's declared read-only vocabulary", () => {
+  const state = game.initialState({ seed: 1729 });
+  const projected = projection.buildAvaContextualLanguage(state, entities);
+  const ownerBySurface = new Map();
+  for (const entry of projected.entries.filter((candidate) => candidate.source === "STATIC_CATALOG")) {
+    for (const alias of entry.aliases) {
+      const normalized = language.normalizeAvaLanguageSurface(alias);
+      assert.equal(ownerBySurface.has(normalized), false, normalized);
+      ownerBySurface.set(normalized, entry.id);
+    }
+  }
+  for (const [surface, expected] of new Map([
+    ["gain ground", "priority.territory"],
+    ["advance", "priority.advance"],
+    ["front", "metric.front-movement"],
+    ["frontline", "metric.front-movement"],
+    ["km", "metric.front-movement"],
+    ["enemy position", "report.adversary"],
+    ["condition", "report.overview"],
+    ["goals", "objective.current"],
+    ["strategy", "advice.strategy"],
+  ])) {
+    assert.equal(ownerBySurface.get(surface), expected, surface);
+  }
+  const changed = projected.entries.map((entry) =>
+    entry.id === "priority.territory"
+      ? { ...entry, label: `${entry.label} changed` }
+      : entry,
+  );
+  assert.notEqual(
+    projected.digest,
+    language.contextualLanguageDigest({
+      version: projected.version,
+      stateRevision: projected.stateRevision,
+      contentRevision: projected.contentRevision,
+      entries: changed,
+    }),
+  );
+});
+
 test("declared contextual aliases lower to existing typed instruction kinds", () => {
   const state = game.initialState({ seed: 1729 });
   const contextual = projection.buildAvaContextualLanguage(state, entities);
