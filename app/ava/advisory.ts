@@ -775,7 +775,7 @@ const answerSemanticQueryUnproven = (
     );
     return formatPublicRating(
       candidate
-        ? publicCognitiveRating(candidate.utility.low, candidate.utility.low)
+        ? publicCognitiveRating(candidate.utility.low, candidate.utility.high)
         : publicOpportunityRating(entry.score),
     );
   };

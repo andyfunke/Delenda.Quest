@@ -36,7 +36,12 @@ export const publicRatingFromDistribution = (
 };
 
 export const publicCognitiveRating = (low: number, high: number) =>
-  publicRatingFromDistribution((low + high) / 2, 0.5577675, 0.0201283);
+  // Cognitive models normalize every weighted objective into the declared
+  // 0..1 utility domain. Anchor the public curve to that stable compiler
+  // contract instead of a narrow historical sample, which could collapse an
+  // entire legitimate docket into LOW 1/100 after the campaign moved outside
+  // the sample's tiny spread.
+  publicRatingFromDistribution(clamp((low + high) / 2, 0, 1), 0.5, 1 / 6);
 
 export const publicDirectiveRating = (score: number) =>
   publicRatingFromDistribution(score, 687.5063, 104.624);

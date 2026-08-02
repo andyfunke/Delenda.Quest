@@ -386,6 +386,15 @@ test("ordinary advice is narrative while explicit forecast and compare expose bo
   assert.match(advice.text,/My recommendation is M\d/);
   assert.match(advice.text,/three declarant options/i);
   assert.doesNotMatch(advice.text,/CALCULATION|equation|option score|rules fired|corridor viability/i);
+  const ratings=[...advice.text.matchAll(/\b(M\d) declares .*? Rating (LOW|MEDIUM|HIGH) (\d+)\/100/g)]
+    .map((match)=>({handle:match[1],band:match[2],value:Number(match[3])}));
+  assert.equal(ratings.length,3,"every declarant option needs one public rating");
+  assert.ok(ratings.every((rating)=>rating.value>1),"legal campaign choices must not collapse to 1/100");
+  assert.ok(new Set(ratings.map((rating)=>rating.value)).size>1,"the docket must retain score discrimination");
+  const recommended=advice.text.match(/My recommendation is (M\d),.*?rated (LOW|MEDIUM|HIGH) (\d+)\/100/);
+  assert.ok(recommended,"the recommendation needs its public rating");
+  assert.equal(Number(recommended[3]),Math.max(...ratings.map((rating)=>rating.value)));
+  assert.equal(recommended[1],ratings.find((rating)=>rating.value===Number(recommended[3]))?.handle);
   assert.ok(advice.answerPlan);
   assert.equal(advice.answerPlan.calculationDisclosure,"NONE");
   assert.ok(advice.trace?.semantic);

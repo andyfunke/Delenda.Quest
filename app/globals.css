@@ -11882,6 +11882,23 @@ small,
   font: 700 16px/1.55 var(--ui) !important;
   letter-spacing: 0;
 }
+.ava-action-handle,
+.ava-public-rating {
+  font-family: var(--mono) !important;
+  font-weight: 850;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+.ava-action-handle.handle-m { color: var(--ava-amber); }
+.ava-action-handle.handle-d { color: var(--ava-green); }
+.ava-action-handle.handle-n { color: var(--ava-cyan); }
+.ava-action-handle.handle-p { color: #c7a7ff; }
+.ava-action-handle.handle-x { color: var(--ava-red); }
+.ava-action-handle.handle-t { color: #f0d477; }
+.ava-action-handle.handle-z { color: var(--ava-muted); }
+.ava-public-rating.rating-high { color: var(--ava-green); }
+.ava-public-rating.rating-medium { color: var(--ava-amber); }
+.ava-public-rating.rating-low { color: var(--ava-red); }
 .ava form input {
   font: var(--type-data);
 }

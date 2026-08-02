@@ -139,7 +139,7 @@ test("the built activation route traverses every active engine through web and t
     cookie: "delenda_guest_session=00000000-0000-4000-8000-000000000001",
   };
   const expectedActivation = {
-    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "174544ae4550df8867192e491376a283b12c72f41cf5cdd5b81875f9d581d481" },
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "21f5704a48e3f0dcaaba759ab5c448f5ffefdf4e6a78d77a64afd7200fe5f7d0" },
     directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "8b84b49b6d0aff37f36835c8307c6d3a18c965bdc92a7209477cff95c7e99b19" },
     forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "b529d66bba623bbc5d7e0249661bb17d98cfd035b29052809dd9e523d71f0cbf" },
     constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "60b13ace278e96aac9946f8b74a28fef466c6f8579d7683392b3574535e7aa37" },
@@ -586,6 +586,11 @@ test("campaign fronts, pinned bubblettes, bidirectional wiki, and Ava reports ar
   assert.ok((bubblette.match(/openWikiApplet\(/g)??[]).length<=2,"only explicit detail and Field Manual actions may leave a bubblette");
   assert.match(manual,/Depends on/);assert.match(manual,/Used by/);assert.match(manual,/usedBy/);
   assert.match(page,/AvaTextRenderer/);assert.match(avaRenderer,/terminalBlocks/);assert.doesNotMatch(page,/AvaReportView/);
+  assert.match(avaRenderer,/tokenizeAvaInline/);
+  assert.match(avaRenderer,/data-ava-action-handle/);
+  assert.match(avaRenderer,/data-ava-public-rating/);
+  for(const family of ["m","d","n","p","x","t","z"])assert.match(css,new RegExp(`\\.ava-action-handle\\.handle-${family}`));
+  for(const band of ["high","medium","low"])assert.match(css,new RegExp(`\\.ava-public-rating\\.rating-${band}`));
   assert.match(page,/submitAvaCommand\("help"\)/);assert.doesNotMatch(page,/avaHelp|AVA_COMMAND_HELP|className="ava-help"/);
   assert.match(page,/useState<Message\[\]>\(\[\]\)/);assert.match(reports,/what should I do/);assert.match(reports,/report losses over the last 5 days/);
   assert.doesNotMatch(page,/<details|<summary/);assert.doesNotMatch(briefing,/<details|<summary/);

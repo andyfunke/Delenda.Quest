@@ -570,3 +570,42 @@ For every subsequent epoch:
   - TypeScript typecheck, native SSH build, Cloudflare binding-type check, and
     Worker dry-run with D1, Images, Assets, and maintenance binding intact
   - lint retained the established 22-warning baseline with zero errors
+
+## Public-rating and semantic transcript-color epoch
+
+- Date: 2026-08-01
+- State: implemented locally; not deployed
+- Scope:
+  - repaired the campaign public-rating projection that could collapse every
+    legal choice in one docket to `LOW 1/100` despite a valid internal ranking
+  - replaced the narrow historical cognitive calibration with the compiled
+    decision model's stable `0..1` utility domain: a `0.5` curve center and
+    `1/6` spread retain the promised monotonic bell-curve presentation across
+    the declared utility range
+  - restored the candidate utility interval midpoint by passing both its low
+    and high bounds into the public projection
+  - added a finite inline token classifier for every action-handle family:
+    Campaign `M`, Domestic `D`, Network `N`, directive `P`, opportunity `X`,
+    Doctrine `T`, and day resolution `Z`
+  - rendered those handles with distinct browser colors and rendered `HIGH`,
+    `MEDIUM`, and `LOW` public-rating bands with green, amber, and red semantic
+    colors
+  - retained the exact original plain text for SSH, chat export, workbooks,
+    logs, copy/paste, and accessibility; tokenization changes presentation only
+- Explicit exclusions:
+  - no decision ordering, feasibility, proof identity, action effect,
+    opportunity cost, campaign state, terminal command, or authority boundary
+    changed
+  - no raw cognitive utility or sealed information became player-visible
+  - no production push or deployment was performed
+- Acceptance:
+  - Day 1 and synthetic Day 6 campaign probes produce discriminated public
+    ratings rather than a docket-wide floor, with the recommended handle bound
+    to the highest public value
+  - the robust-decision activation attestation was refreshed for the new
+    visible rating text; its route, authority, engine families, proof identity,
+    and web/SSH parity remain unchanged
+  - inline-token contracts preserve byte-for-byte text while classifying all
+    seven handle families and all three rating bands
+  - 4,800 grammar proofs, 32 Ava terminal contracts, 215 Nexus/Substrate
+    contracts, and 30 rendered/Cloudflare contracts pass
