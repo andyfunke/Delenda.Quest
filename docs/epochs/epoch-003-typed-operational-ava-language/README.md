@@ -1,6 +1,6 @@
 # Epoch 003 — typed operational Ava language
 
-Status: in progress
+Status: in progress; NODE-20 proof and final seal pending
 
 This epoch extends the sealed contextual-language surface with disclosed,
 read-only operational concepts and authored evidence for the current maneuver
@@ -16,8 +16,8 @@ docket. It is ported onto the current `main` head; the stale handoff base
 | NODE-16 | authored maneuver evidence projection | complete |
 | NODE-17 | deterministic authored-reference indexing and lowering | complete |
 | NODE-18 | semantic rendering | complete |
-| NODE-19 | web, terminal, and native SSH parity | in progress |
-| NODE-20 | exhaustive proof, documentation, and receipt | pending |
+| NODE-19 | web, terminal, and native SSH parity | complete (`f10f465`) |
+| NODE-20 | exhaustive proof, documentation, and receipt | in progress |
 
 ## Release boundary
 

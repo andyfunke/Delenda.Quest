@@ -541,3 +541,26 @@ Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
 
 Next node handoff: verify canonical web, terminal, and native SSH semantic and
 proof parity without adapter-local parsers.
+
+### AVA-LANGUAGE-003-N19 / web, terminal, and native SSH parity
+
+Base commit: `2b0a547`
+
+Completed commit: `f10f465`
+
+Command/result: ran `npm run typecheck` and
+`bash scripts/test-substrate.sh`; both passed, with the focused substrate
+corpus green at 232/232. The expanded authored maneuver corpus was exercised
+through web Nexus, terminal-core, and native SSH session-core paths. Native
+SSH invoked `executeNativeSshGatewayLine` directly and did not use HTTP.
+
+Integrity: action-prefixed and negated maneuver references remained
+fail-closed; static aliases retained precedence; ambiguous identities produced
+structured clarification; unavailable declared references remained truthful;
+rendered authored evidence and cognitive proof matched across surfaces. No
+state, plan, day, decision, prepared order, D1, shadow environment, or remote
+ref was changed.
+
+Next node handoff: exhaustive generated corpus proof, canonical doctrine and
+feature-ledger documentation, full repository gates, manifest, and final
+receipt.
