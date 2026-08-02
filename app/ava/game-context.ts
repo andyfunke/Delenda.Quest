@@ -148,7 +148,19 @@ export const avaEntitiesForState = (
     id: "campaign-synopsis",
     kind: "mission",
     label: "Campaign Objective",
-    aliases: ["campaign synopsis", "current objective", situation.headline],
+    aliases: [
+      "campaign synopsis",
+      "campaign objective",
+      "campaign-objective",
+      "current objective",
+      "goal",
+      "goals",
+      "objective",
+      "objectives",
+      "operational objective",
+      "command objective",
+      situation.headline,
+    ],
     parentId: "main",
   };
   return [

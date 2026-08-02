@@ -8,6 +8,7 @@ const requestIr = await import(process.env.DELENDA_AVA_REQUEST_BUNDLE);
 const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
 const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
 const terminal = await import(process.env.DELENDA_TERMINAL_CORE_BUNDLE);
+const gameContext = await import(process.env.DELENDA_AVA_CONTEXT_BUNDLE);
 
 const entities = [
   { id: "front", kind: "metric", label: "Campaign Front" },
@@ -183,6 +184,29 @@ test("declared priority lowering is bounded and deterministic", () => {
     state,
     entities,
   ));
+});
+
+test("objective projection is visible, non-actionable, and absent when no situation is persisted", () => {
+  const state = game.initialState({ seed: 1729 });
+  const visibleEntities = gameContext.avaEntitiesForState(state);
+  const objective = visibleEntities.find((entity) => entity.id === "campaign-synopsis");
+  assert.ok(objective);
+  assert.equal(objective.action, undefined);
+  assert.ok(objective.aliases.includes("goals"));
+
+  const projected = projection.buildAvaContextualLanguage(state, visibleEntities);
+  assert.ok(projected.entries.some((entry) => entry.id === "objective.current"));
+  assert.equal(JSON.stringify(projected).includes("resolutionTicket"), false);
+  assert.equal(JSON.stringify(projected).includes("hiddenOrders"), false);
+
+  const withoutSituation = { ...state, currentSituation: null };
+  const staticOnly = projection.buildAvaContextualLanguage(
+    withoutSituation,
+    visibleEntities,
+  );
+  assert.equal(staticOnly.entries.some((entry) => entry.source === "CURRENT_SITUATION"), false);
+  assert.equal(staticOnly.entries.some((entry) => entry.source === "CURRENT_ACTION"), false);
+  assert.equal(staticOnly.entries.some((entry) => entry.source === "AUTHORED_BRIEF"), false);
 });
 
 test("declared contextual aliases lower to existing typed instruction kinds", () => {

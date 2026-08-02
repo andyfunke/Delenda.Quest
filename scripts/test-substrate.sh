@@ -23,10 +23,11 @@ AVA_RUNTIME_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-runtime.XXXXXX.mjs")"
 AVA_PROJECTION_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-projection.XXXXXX.mjs")"
 CONTEXTUAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-language.XXXXXX.mjs")"
 CONTEXTUAL_PROJECTION_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-projection.XXXXXX.mjs")"
+CONTEXT_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-context.XXXXXX.mjs")"
 REQUEST_IR_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-request-ir.XXXXXX.mjs")"
 EMAIL_NEXUS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-email-nexus.XXXXXX.mjs")"
 CREDENTIAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-credential.XXXXXX.mjs")"
-trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$CONTEXTUAL_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE" "$REQUEST_IR_BUNDLE" "$EMAIL_NEXUS_BUNDLE" "$CREDENTIAL_BUNDLE"' EXIT
+trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$CONTEXTUAL_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE" "$CONTEXT_BUNDLE" "$REQUEST_IR_BUNDLE" "$EMAIL_NEXUS_BUNDLE" "$CREDENTIAL_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/substrate/gates.ts --bundle --platform=node --format=esm --outfile="$GATE_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/substrate/docket.ts --bundle --platform=node --format=esm --outfile="$DOCKET_BUNDLE" >/dev/null
@@ -48,6 +49,7 @@ node_modules/.bin/esbuild app/ava/runtime.ts --bundle --platform=node --format=e
 node_modules/.bin/esbuild app/ava/projection.ts --bundle --platform=node --format=esm --outfile="$AVA_PROJECTION_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/contextual-language-projection.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_PROJECTION_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/ava/game-context.ts --bundle --platform=node --format=esm --outfile="$CONTEXT_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/ava/request-ir.ts --bundle --platform=node --format=esm --outfile="$REQUEST_IR_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/email/nexus.ts --bundle --platform=node --format=esm --outfile="$EMAIL_NEXUS_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/credential.ts --bundle --platform=node --format=esm --outfile="$CREDENTIAL_BUNDLE" >/dev/null
@@ -70,6 +72,7 @@ DELENDA_AVA_COGNITIVE_BUNDLE="file://$COGNITIVE_BUNDLE" \
 DELENDA_AVA_COGNITIVE_NEXUS_BUNDLE="file://$COGNITIVE_NEXUS_BUNDLE" \
 DELENDA_AVA_RUNTIME_BUNDLE="file://$AVA_RUNTIME_BUNDLE" \
 DELENDA_AVA_PROJECTION_BUNDLE="file://$AVA_PROJECTION_BUNDLE" \
+DELENDA_AVA_CONTEXT_BUNDLE="file://$CONTEXT_BUNDLE" \
 DELENDA_AVA_CONTEXTUAL_BUNDLE="file://$CONTEXTUAL_BUNDLE" \
 DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE="file://$CONTEXTUAL_PROJECTION_BUNDLE" \
 DELENDA_AVA_REQUEST_BUNDLE="file://$REQUEST_IR_BUNDLE" \

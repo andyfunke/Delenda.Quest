@@ -87,18 +87,29 @@ export const buildAvaContextualLanguage = (
   entities: readonly AvaEntity[],
 ) => {
   const disclosed = projectAvaDisclosedState(state);
-  const situation = situationForState(disclosed);
-  const sources = [
-    sectionText("headline", situation.headline),
-    sectionText("briefing", situation.briefing),
-    sectionText("question", situation.question),
-    sectionText("standing-order", situation.standingOrder),
-    ...Object.values(situation.maneuverPresentations).flatMap((presentation) => [
-      sectionText("maneuver-label", presentation.label),
-      sectionText("maneuver-rationale", presentation.rationale),
-    ]),
-  ].filter((source): source is AvaAuthoredBriefingSource => !!source);
-  const dynamic = dynamicSituationEntries(disclosed, entities);
+  const situation =
+    disclosed.currentSituation?.day === disclosed.day &&
+    disclosed.currentSituation.contentPackVersion === CONTENT_PACK_VERSION &&
+    disclosed.currentSituation.maneuverPresentations
+      ? disclosed.currentSituation
+      : null;
+  const sources = situation
+    ? [
+        sectionText("headline", situation.headline),
+        sectionText("briefing", situation.briefing),
+        sectionText("question", situation.question),
+        sectionText("standing-order", situation.standingOrder),
+        ...Object.values(situation.maneuverPresentations).flatMap(
+          (presentation) => [
+            sectionText("maneuver-label", presentation.label),
+            sectionText("maneuver-rationale", presentation.rationale),
+          ],
+        ),
+      ].filter((source): source is AvaAuthoredBriefingSource => !!source)
+    : [];
+  const dynamic = situation
+    ? dynamicSituationEntries(disclosed, entities)
+    : [];
   const authored = indexAvaAuthoredBriefing(sources, [
     ...AVA_CONTEXTUAL_CATALOG,
     ...dynamic,
