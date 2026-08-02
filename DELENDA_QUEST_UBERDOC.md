@@ -158,7 +158,7 @@ RESULT: PASS
 ```text
 NODE: AVA-LANGUAGE-E15
 OUTPUT: feature ledger, epoch nodes, doctrine protocol, source manifest
-RESULT: IN PROGRESS UNTIL FINAL LOCAL COMMIT
+RESULT: PASS; sealed by the local implementation commit below
 ```
 
 ## Seal receipt
@@ -168,9 +168,9 @@ intentionally excludes this append-only logbook and its own file, preventing a
 self-referential hash cycle.
 
 ```text
-EPOCH_COMMIT: pending
-TREE: pending
-SOURCE_MANIFEST_SHA256: pending
-FULL_GATES: pending
+EPOCH_COMMIT: 79181aef440c279f57e76f42ad346f7736f8cda2
+TREE: 675e7f70aa402deb3cab0f6ff4e183793549c4bd
+SOURCE_MANIFEST_SHA256: 52b13a53d752cf5e308ac548c2b8da96423649916e0cddad695a08146815a851
+FULL_GATES: PASS
 CLOUDFLARE_RELEASE: not run by policy and unavailable in this environment
 ```
