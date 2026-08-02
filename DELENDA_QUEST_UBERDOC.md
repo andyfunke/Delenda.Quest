@@ -174,3 +174,45 @@ SOURCE_MANIFEST_SHA256: 52b13a53d752cf5e308ac548c2b8da96423649916e0cddad695a0814
 FULL_GATES: PASS
 CLOUDFLARE_RELEASE: not run by policy and unavailable in this environment
 ```
+
+### AVA-LANGUAGE-002-N01 / contextual contract hardening
+
+Base commit: `adfeebb02c22089b2f916e546f53567b6adacbba`
+
+Completed commit: `2feb3af42b4f0960b978b0f791843dd425ddd5d2`
+
+Purpose: Port the packet's contract and normalization boundary onto the
+current-main contextual-language authority without introducing the stale
+priorities package or a second parser.
+
+Exact procedures executed:
+
+- Reconciled the unreachable `9973b8e` handoff against current `main`.
+- Added NFKC contextual surface normalization with punctuation separation and
+  preserved internal apostrophes.
+- Added provenance-aware route validation, language validation, digest
+  validation, and compiler re-exports.
+- Added normalization and fail-closed validator regression tests.
+
+Changed files: `app/ava/contextual-language.ts`, `app/ava/compiler.ts`,
+`tests/ava-contextual-language.test.mjs`, and the Epoch 002 manifest/preflight
+records.
+
+New semantic contracts: contextual entries must have valid route-specific
+destinations, non-empty provenance, and a digest matching their visible
+state/content revisions.
+
+Tests added: contextual surface normalization and runtime validation.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (221/221); `git diff --check` PASS.
+
+Non-goals preserved: no deployment, no D1 or shadow mutation, no GitHub push,
+no HTTP SSH substitute, no hidden-state exposure, no second parser.
+
+Known limitations: the packet's `surfaces` and `PriorityAxis` names remain
+represented by the live repository's `aliases` and `StrategicDimension`
+authorities.
+
+Next node handoff: extend the declared catalog with the packet's missing
+read-only aliases and verify collision-free deterministic ownership.
