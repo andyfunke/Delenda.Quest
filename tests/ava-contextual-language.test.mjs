@@ -214,8 +214,17 @@ test("declared contextual aliases lower to existing typed instruction kinds", ()
   const contextual = projection.buildAvaContextualLanguage(state, entities);
   const expected = new Map([
     ["gain territory", ["ADVISE", "PRIORITY_FOCUS"]],
+    ["gain ground", ["ADVISE", "PRIORITY_FOCUS"]],
     ["advance", ["ADVISE", "PRIORITY_FOCUS"]],
+    ["front", ["EXPLAIN", "METRIC_EXPLANATION"]],
+    ["frontline", ["EXPLAIN", "METRIC_EXPLANATION"]],
+    ["kilometers", ["EXPLAIN", "METRIC_EXPLANATION"]],
+    ["KM", ["EXPLAIN", "METRIC_EXPLANATION"]],
     ["enemy position", ["REPORT", "REPORT"]],
+    ["condition", ["REPORT", "REPORT"]],
+    ["attrition", ["REPORT", "REPORT"]],
+    ["strategy", ["ADVISE", "STRATEGIC_ADVICE"]],
+    ["goals", ["EXPLAIN", "OBJECTIVE_EXPLANATION"]],
     ["readiness", ["EXPLAIN", "METRIC_EXPLANATION"]],
     ["what is the objective", ["EXPLAIN", "OBJECTIVE_EXPLANATION"]],
   ]);
@@ -224,7 +233,17 @@ test("declared contextual aliases lower to existing typed instruction kinds", ()
     assert.equal(result.status, "compiled", raw);
     assert.equal(result.instruction.kind, kind, raw);
     assert.equal(result.instruction.contextual.route, route, raw);
+    assert.match(result.trace.rule, /^CONTEXTUAL_LANGUAGE:/, raw);
+    assert.equal(result.trace.exactIndexHit, true, raw);
+    assert.notEqual(result.semantic.subject.type, "UNKNOWN", raw);
   }
+  assert.notEqual(
+    compiler.compileAvaCommand(
+      "please gain territory",
+      compilerContext(state, contextual),
+    ).trace.rule,
+    "CONTEXTUAL_LANGUAGE:priority.territory",
+  );
   const stage = compiler.compileAvaCommand(
     "stage advance",
     compilerContext(state, contextual),

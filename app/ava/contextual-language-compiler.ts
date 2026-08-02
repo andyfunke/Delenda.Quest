@@ -19,11 +19,6 @@ import type {
 
 const CONSEQUENTIAL_HEAD = /^(?:stage|unstage|issue|commit|confirm|resolve|end|close|internalize|learn|respond|exploit|clear|select|prepare|choose)\b/;
 
-const containsPhrase = (input: string, phrase: string) => {
-  const paddedInput = ` ${input} `;
-  return paddedInput.includes(` ${phrase} `);
-};
-
 export type AvaContextualMatch = {
   entry: AvaLanguageEntry;
   alias: string;
@@ -40,6 +35,12 @@ export type AvaContextualCompilation = {
 export type AvaContextualCompilationResult =
   | { status: "compiled"; value: AvaContextualCompilation }
   | { status: "ambiguous"; normalizedInput: string; candidates: AvaLanguageEntry[] }
+  | {
+      status: "unavailable";
+      normalizedInput: string;
+      entry: AvaLanguageEntry;
+      entityId?: string;
+    }
   | null;
 
 export const matchAvaContextualLanguage = (
@@ -52,7 +53,7 @@ export const matchAvaContextualLanguage = (
   const candidates = context.language.entries.flatMap((entry) =>
     entry.aliases.flatMap((alias) => {
       const normalizedAlias = normalizeAvaLanguageInput(alias);
-      if (!normalizedAlias || !containsPhrase(normalizedInput, normalizedAlias))
+      if (!normalizedAlias || normalizedAlias !== normalizedInput)
         return [];
       return [
         {
@@ -83,7 +84,12 @@ export const matchAvaContextualLanguage = (
       selected.entry.route === "NARRATIVE_REFERENCE") &&
     !entity
   )
-    return null;
+    return {
+      status: "unavailable",
+      normalizedInput,
+      entry: selected.entry,
+      entityId: selected.entry.entityId,
+    };
   const priority = compileDeclaredPriorityFocus(selected.entry.priorityAxes ?? []);
   const contextual: AvaContextualBinding = {
     route: selected.entry.route,

@@ -1572,7 +1572,24 @@ export function compileAvaCommand(
         failure: "ambiguous-target",
         prompt: contextualFailurePrompt(contextual.candidates),
         semantic: semantic.query,
-        trace: trace("contextual-ambiguity", raw, [], semantic),
+        trace: trace("CONTEXTUAL_LANGUAGE:AMBIGUOUS", raw, [], semantic),
+      },
+      raw,
+      semantic,
+    );
+  if (contextual?.status === "unavailable")
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "missing-target",
+        prompt: `The declared contextual reading '${contextual.entry.label}' is unavailable in the current visible context. Ask about a currently disclosed entity or report.`,
+        semantic: semantic.query,
+        trace: trace(
+          `CONTEXTUAL_LANGUAGE:UNAVAILABLE:${contextual.entry.id}`,
+          raw,
+          [],
+          semantic,
+        ),
       },
       raw,
       semantic,
@@ -1586,14 +1603,14 @@ export function compileAvaCommand(
         {
           kind: "CONTEXTUAL_LANGUAGE",
           canonical: value.match.entry.id,
-          source: value.match.alias,
+          source: value.match.entry.source,
         },
       ],
       contextualResolutions: [
-        `Contextual route ${value.match.entry.route} resolved through ${value.match.entry.id}.`,
+        value.match.entry.id,
       ],
       grammarProvenance: [
-        "CONTEXTUAL_LANGUAGE",
+        `CONTEXTUAL_LANGUAGE:${value.match.entry.id}`,
         `SOURCE:${value.match.entry.source}`,
         `ROUTE:${value.match.entry.route}`,
       ],
@@ -1603,12 +1620,19 @@ export function compileAvaCommand(
       status: "compiled",
       instruction: value.instruction,
       semantic: value.semantic,
-      trace: trace(
-        `contextual-${value.match.entry.route.toLowerCase()}`,
-        raw,
-        entity,
-        contextualSemantic,
-      ),
+      trace: (() => {
+        const contextualTrace = trace(
+          `CONTEXTUAL_LANGUAGE:${value.match.entry.id}`,
+          raw,
+          entity,
+          contextualSemantic,
+        );
+        return {
+          ...contextualTrace,
+          normalizedInput: value.match.normalizedInput,
+          normalizedTokens: value.match.normalizedInput.split(" "),
+        };
+      })(),
     };
   }
   if (semantic.clarification)
