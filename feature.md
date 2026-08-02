@@ -89,8 +89,8 @@ epoch must preserve:
 ## Integrity convention
 
 The epoch source manifest uses SHA-256 over tracked implementation, test,
-doctrine, feature, and epoch files, excluding the manifest itself and the
-append-only logbook. The final commit and tree are reported alongside the
+doctrine, feature, epoch, and append-only logbook files, excluding the
+manifest itself. The final commit and tree are reported alongside the
 manifest digest in the seal receipt.
 
 ## Epoch 002 execution — contextual language hardening
@@ -178,7 +178,7 @@ outcomes, and mutation routes remain excluded.
 | NODE-24 | `17dac16` | `6ada48a` | bounded pairwise maneuver comparison |
 | NODE-25 | `6275e2d` | `73dc226` | compiler-owned operational relationships |
 | NODE-26 | `d021d9b` | `a6c3d12` | one semantic renderer and three-surface parity |
-| NODE-27 | pending | pending | generated proof, final gates, manifest, and epoch seal |
+| NODE-27 | `51863f0` + `33b30d4` | final local seal | generated proof, parity correction, final gates, manifest, and epoch seal |
 
 NODE-22 exposes the active disclosed decision and temporal authorities. NODE-23
 composes the winner, objective, priorities, alternatives, equations, rules,
@@ -190,5 +190,10 @@ through the existing Nexus for browser, terminal, and native SSH parity.
 The generated proof covers every canonical concept relation, every current
 maneuver pair, advice aliases, guarded action-like neighbors, unavailable
 relationship bounds, hidden-field exclusion, no-mutation behavior, and
-surface-parity contracts. Final gate and manifest results will be appended by
-the NODE-27 seal receipt.
+surface-parity contracts. It passes with 245/245 substrate tests. The full
+repository gate passes rendered/plumbing 30/30, rule suites 40+11+6+1+8+6+5,
+Ava 32/32, and the substrate corpus 245/245. Typecheck, production build,
+native SSH build, Wrangler types check, Cloudflare dry-run, lint (0 errors;
+23 pre-existing warnings), `git diff --check`, and the SHA-256 manifest
+verification all pass. The final local worktree is clean and `origin/main`
+remains unchanged; no push or deployment was performed.

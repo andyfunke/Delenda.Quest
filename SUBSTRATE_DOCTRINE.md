@@ -255,3 +255,13 @@ The Epoch 004 release boundary remains local-only: no GitHub push, Cloudflare
 deployment, D1 write, shadow mutation, secret movement, or destructive Git
 recovery occurs inside the epoch. Cloudflare checks are types and dry-run
 validation only.
+
+Epoch 004 completion record: the composed operational semantic model is
+covered by a generated 245/245 substrate corpus and the full repository gates.
+The operational projection follows the disclosed cognitive state for cognitive
+reads. Generic grammar defaults remain grammar provenance rather than authored
+evidence IDs; only exact contextual catalog routes may contribute stable
+contextual resolution IDs to the semantic digest. This keeps typed requests,
+text requests, browser/Nexus, terminal-core, and native SSH on one semantic
+identity while preserving the disclosure boundary. The activation route's
+text-digest fixtures were updated to the canonical rendered semantic output.
