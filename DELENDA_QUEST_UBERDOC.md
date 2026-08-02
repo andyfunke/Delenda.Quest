@@ -587,3 +587,20 @@ seal commit.
 
 Release boundary: no GitHub push, Cloudflare deployment, D1 write, shadow
 mutation, secret movement, HTTP SSH path, or destructive Git recovery.
+
+### EPOCH-003-SEAL / typed operational Ava language
+
+Implementation seal: `c41dc9b` (`Prove typed operational Ava language
+coverage`)
+
+Receipt seals: NODE-19 `85cfe3b`; NODE-20 `786da93`.
+
+Integrity result: `docs/epochs/epoch-003-typed-operational-ava-language/integrity/source-manifest.sha256`
+was regenerated for the final documentation bytes and verified with
+`sha256sum -c`; `git diff --check` passed. The epoch corpus is 234/234 and all
+full repository, type, build, SSH, Cloudflare dry-run, and lint gates are
+green. The next release boundary remains explicit: no push or deployment was
+performed.
+
+Next authorized scope: richer typed advice composition, maneuver comparison,
+and multi-entity explanations in a subsequent epoch.

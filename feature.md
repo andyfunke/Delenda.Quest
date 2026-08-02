@@ -138,8 +138,8 @@ mutation path.
 | NODE-16 | `4a5a063` | `cb72599` | stable current maneuver evidence projection |
 | NODE-17 | `ede0075` | `2251e34` | bounded exact authored-reference indexing and lowering |
 | NODE-18 | `2bec345` | `2b0a547` | typed evidence and truthful availability rendering |
-| NODE-19 | `f10f465` | pending | web, terminal, and native SSH parity proof |
-| NODE-20 | pending | pending | exhaustive generated proof, doctrine, gates, manifest, and receipt |
+| NODE-19 | `f10f465` | `85cfe3b` | web, terminal, and native SSH parity proof |
+| NODE-20 | `c41dc9b` | `786da93` | exhaustive generated proof, doctrine, gates, manifest, and receipt |
 
 The owner map confirms formation, reserve, route, and opening as typed,
 non-action entities. No concept is deferred in this epoch. Reserve retains only
@@ -156,7 +156,8 @@ hyphenation, whitespace normalization, collisions, ambiguity, availability,
 action-prefix, negation, hidden-state, rendering, and mutation boundaries.
 The focused substrate suite is green at 234/234 after the generated proof is
 included. Full repository gates and the SHA-256 manifest are recorded in the
-NODE-20 seal receipt.
+NODE-20 seal receipt. The manifest was verified after the final documentation
+seal update.
 
 Epoch 003 retains the release boundary: no GitHub push, Cloudflare deployment,
 D1 write, shadow mutation, HTTP SSH path, secret movement, or destructive Git

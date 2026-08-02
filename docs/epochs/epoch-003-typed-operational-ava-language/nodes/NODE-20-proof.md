@@ -1,9 +1,11 @@
 # NODE-20 / exhaustive typed operational Ava proof
 
-Status: implementation proof; the immutable NODE-20 receipt is appended only
-after the completed implementation commit.
+Status: sealed locally; immutable receipt `786da93` follows implementation
+commit `c41dc9b`.
 
 Base authority: current `main` at `3d04095961a40c72363adfa2d546ff2ec0187b79`.
+Implementation seal: `c41dc9b`; NODE-19 receipt: `85cfe3b`; NODE-20 receipt:
+`786da93`.
 The stale packet base `9973b8e` is not an authority and is not used.
 
 ## Owner-first vocabulary
