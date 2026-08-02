@@ -21,6 +21,10 @@ import {
   matchAvaContextualLanguage,
 } from "./contextual-language-compiler";
 export {
+  validateContextualLanguage,
+  validateLanguageEntries,
+} from "./contextual-language";
+export {
   AVA_CAMPAIGN_ADVICE_GRAMMAR,
   AVA_CAMPAIGN_LANGUAGE_CORPUS,
   AVA_CLASSIC_CAPABILITY_REGISTRY,

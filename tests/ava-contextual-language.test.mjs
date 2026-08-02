@@ -59,6 +59,33 @@ test("the contextual contract is versioned, normalized, and content-addressed", 
   );
 });
 
+test("contextual surface normalization and runtime validation fail closed", () => {
+  assert.equal(language.normalizeAvaLanguageSurface("GAIN TERRITORY"), "gain territory");
+  assert.equal(language.normalizeAvaLanguageSurface("Gain-Territory"), "gain territory");
+  assert.equal(language.normalizeAvaLanguageSurface("gain, territory"), "gain territory");
+  assert.equal(language.normalizeAvaLanguageSurface("  advance  "), "advance");
+  assert.equal(language.normalizeAvaLanguageSurface("enemy-position"), "enemy position");
+  assert.equal(language.normalizeAvaLanguageSurface("KM"), "km");
+  assert.equal(language.normalizeAvaLanguageSurface("commander’s order"), "commander's order");
+
+  assert.doesNotThrow(() => language.validateContextualLanguage(
+    projection.buildAvaContextualLanguage(
+      game.initialState({ seed: 1729 }),
+      entities,
+    ),
+  ));
+  assert.throws(() => language.validateLanguageEntries([
+    {
+      id: "bad.priority",
+      route: "PRIORITY_FOCUS",
+      label: "Bad priority",
+      aliases: ["bad priority"],
+      source: "STATIC_CATALOG",
+      provenance: ["test"],
+    },
+  ]));
+});
+
 test("authored references are indexed only from visible current briefing text", () => {
   const state = game.initialState({ seed: 1729 });
   const absent = projection.buildAvaContextualLanguage(state, entities);

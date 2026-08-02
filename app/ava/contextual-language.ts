@@ -46,6 +46,7 @@ export type AvaLanguageEntry = {
   topic?: AvaReportTopic;
   entityId?: string;
   priorityAxes?: StrategicDimension[];
+  provenance?: string[];
   evidence?: AvaLanguageEvidence[];
 };
 
@@ -116,24 +117,36 @@ const DIMENSIONS = new Set<StrategicDimension>([
 const nonEmpty = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
 
-export const normalizeAvaLanguageInput = (raw: string) =>
+/**
+ * Normalize only declared contextual-language surfaces. The general Ava
+ * command normalizer remains owned by compiler.ts; this boundary preserves
+ * apostrophes while making punctuation and Unicode presentation variants
+ * converge deterministically.
+ */
+export const normalizeAvaLanguageSurface = (raw: string) =>
   raw
-    .normalize("NFKD")
+    .normalize("NFKC")
     .toLowerCase()
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[‘’]/g, "'")
+    .replace(/[^\p{L}\p{N}']+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
+
+// Kept as a named compatibility export for the existing contextual modules.
+export const normalizeAvaLanguageInput = normalizeAvaLanguageSurface;
 
 export const languageTokens = (raw: string) =>
   normalizeAvaLanguageInput(raw).split(" ").filter(Boolean);
 
 const canonicalEntry = (entry: AvaLanguageEntry): AvaLanguageEntry => ({
   ...entry,
-  aliases: [...new Set(entry.aliases.map(normalizeAvaLanguageInput))].sort(),
+  aliases: [...new Set(entry.aliases.map(normalizeAvaLanguageSurface))].sort(),
   priorityAxes: entry.priorityAxes?.length
     ? [...new Set(entry.priorityAxes)].sort()
     : undefined,
+  provenance: entry.provenance?.length
+    ? [...new Set(entry.provenance)].sort()
+    : [`${entry.source}:${entry.id}`],
   evidence: entry.evidence?.map((item) => ({ ...item })).sort((left, right) =>
     `${left.section}:${left.phrase}`.localeCompare(
       `${right.section}:${right.phrase}`,
@@ -181,6 +194,7 @@ export const validateAvaLanguageEntries = (
       "topic",
       "entityId",
       "priorityAxes",
+      "provenance",
       "evidence",
     ];
     if (Object.keys(entry).some((key) => !allowed.includes(key)))
@@ -203,6 +217,13 @@ export const validateAvaLanguageEntries = (
       (typeof entry.topic !== "string" || !entry.topic.trim())
     )
       issues.push(`entry ${index} topic must be non-empty when present`);
+    if (
+      entry.provenance !== undefined &&
+      (!Array.isArray(entry.provenance) ||
+        !entry.provenance.length ||
+        entry.provenance.some((item) => !nonEmpty(item)))
+    )
+      issues.push(`entry ${index} provenance must be non-empty strings`);
     if (
       !Array.isArray(entry.aliases) ||
       !entry.aliases.length ||
@@ -258,14 +279,57 @@ export const validateAvaLanguageEntries = (
   return issues;
 };
 
+/**
+ * Runtime contract validator for the closed contextual catalog. Callers that
+ * cross a serialization boundary receive an exception instead of a partially
+ * trusted language object.
+ */
+export const validateLanguageEntries = (entries: unknown): void => {
+  const issues = validateAvaLanguageEntries(entries);
+  if (Array.isArray(entries)) {
+    entries.forEach((value, index) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return;
+      const entry = value as Record<string, unknown>;
+      const route = entry.route as AvaLanguageRoute;
+      const requireField = (field: string) => {
+        if (!nonEmpty(entry[field]))
+          issues.push(`entry ${index} ${field} is required for ${route}`);
+      };
+      if (route === "PRIORITY_FOCUS") {
+        if (
+          !Array.isArray(entry.priorityAxes) ||
+          entry.priorityAxes.length === 0 ||
+          entry.priorityAxes.length > 4
+        )
+          issues.push(`entry ${index} priorityAxes must contain 1-4 axes`);
+      }
+      if (route === "REPORT") requireField("topic");
+      if (route === "METRIC_EXPLANATION" || route === "OBJECTIVE_EXPLANATION")
+        requireField("entityId");
+      if (
+        route === "NARRATIVE_REFERENCE" &&
+        (!Array.isArray(entry.evidence) || entry.evidence.length === 0)
+      )
+        issues.push(`entry ${index} evidence is required for narrative references`);
+      if (
+        entry.provenance !== undefined &&
+        Array.isArray(entry.provenance) &&
+        entry.provenance.length > 0
+      )
+        return;
+      issues.push(`entry ${index} provenance is required`);
+    });
+  }
+  if (issues.length) throw new Error(`Invalid Ava language entries: ${issues.join("; ")}`);
+};
+
 export const sealAvaContextualLanguage = (input: {
   stateRevision: string;
   contentRevision: string;
   entries: AvaLanguageEntry[];
 }): AvaContextualLanguage => {
   const entries = canonicalEntries(input.entries);
-  const issues = validateAvaLanguageEntries(entries);
-  if (issues.length) throw new Error(`Invalid Ava contextual language: ${issues.join("; ")}`);
+  validateLanguageEntries(entries);
   const body = {
     version: AVA_CONTEXTUAL_LANGUAGE_VERSION,
     stateRevision: input.stateRevision,
@@ -287,12 +351,38 @@ export const isAvaContextualLanguage = (
     !nonEmpty(candidate.digest)
   )
     return false;
-  const issues = validateAvaLanguageEntries(candidate.entries);
-  if (issues.length) return false;
+  try {
+    validateLanguageEntries(candidate.entries);
+  } catch {
+    return false;
+  }
   return contextualLanguageDigest({
     version: candidate.version,
     stateRevision: candidate.stateRevision,
     contentRevision: candidate.contentRevision,
     entries: candidate.entries as AvaLanguageEntry[],
   }) === candidate.digest;
+};
+
+export const validateContextualLanguage = (value: unknown): void => {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("Contextual language must be an object");
+  const candidate = value as Record<string, unknown>;
+  if (candidate.version !== AVA_CONTEXTUAL_LANGUAGE_VERSION)
+    throw new Error("Contextual language version is unsupported");
+  if (!nonEmpty(candidate.stateRevision))
+    throw new Error("Contextual language stateRevision is required");
+  if (!nonEmpty(candidate.contentRevision))
+    throw new Error("Contextual language contentRevision is required");
+  if (!nonEmpty(candidate.digest))
+    throw new Error("Contextual language digest is required");
+  validateLanguageEntries(candidate.entries);
+  const expected = contextualLanguageDigest({
+    version: candidate.version,
+    stateRevision: candidate.stateRevision,
+    contentRevision: candidate.contentRevision,
+    entries: candidate.entries as AvaLanguageEntry[],
+  });
+  if (expected !== candidate.digest)
+    throw new Error("Contextual language digest does not match its contents");
 };
