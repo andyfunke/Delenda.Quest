@@ -111,7 +111,7 @@ test -f app/ava/compiler.ts
 test -f app/ava/game-context.ts
 test -f app/ava/nexus.ts
 grep -q "export type AvaCompilerContext" app/ava/schema.ts
-grep -q "export const compileAvaCommand" app/ava/compiler.ts
+grep -Eq "export (const|function) compileAvaCommand" app/ava/compiler.ts
 grep -q "export const runAvaNexusLine" app/ava/nexus.ts
 grep -q "operationalObjectiveForProblemClass" app/campaign-substrate.ts
 validate_all
