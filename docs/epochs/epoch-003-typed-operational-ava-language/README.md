@@ -13,8 +13,8 @@ docket. It is ported onto the current `main` head; the stale handoff base
 | --- | --- | --- |
 | NODE-14 | owner and maneuver preflight | complete |
 | NODE-15 | typed operational projection and static vocabulary | complete |
-| NODE-16 | authored maneuver evidence projection | in progress |
-| NODE-17 | deterministic authored-reference indexing and lowering | pending |
+| NODE-16 | authored maneuver evidence projection | complete |
+| NODE-17 | deterministic authored-reference indexing and lowering | in progress |
 | NODE-18 | semantic rendering | pending |
 | NODE-19 | web, terminal, and native SSH parity | pending |
 | NODE-20 | exhaustive proof, documentation, and receipt | pending |

@@ -484,3 +484,22 @@ typecheck PASS; no deployment, push, D1, shadow, or HTTP SSH path.
 
 Next node handoff: project authored maneuver evidence with exact source text,
 source order, evidence kind, identity, and provenance.
+
+### AVA-LANGUAGE-003-N16 / authored maneuver evidence projection
+
+Base commit: `16ad7c0`
+
+Completed commit: `4a5a063`
+
+Purpose: Bind current disclosed maneuver labels, rationales, and presentations
+to stable maneuver identities and content-addressed evidence without widening
+the public state projection.
+
+Exact procedures executed: stable-ID join, source-order projection, exact
+evidence copy, provenance preservation, hidden-field exclusion, digest
+coverage, and no-mutation verification.
+
+Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
+
+Next node handoff: compile exact authored maneuver spans through the existing
+typed read-only route, with static ownership and availability safeguards.
