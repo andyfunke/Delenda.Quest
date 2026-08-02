@@ -294,3 +294,46 @@ present; the live `AvaDeclaredPriorityFocus` remains the canonical adapter.
 
 Next node handoff: verify objective language is projected only from disclosed
 current situation state and binds to a non-action entity.
+
+### AVA-LANGUAGE-002-N04 / disclosed objective projection
+
+Base commit: `be5236835a58571412bc23cd59ea6aad5751f5a8`
+
+Completed commit: `551f625225294e814fbfa64fa63b62de211a0072`
+
+Purpose: Bind objective and authored contextual language to the current
+disclosed situation without creating an executable objective entity or
+synthetic language when no current situation is persisted.
+
+Exact procedures executed:
+
+- Extended the existing non-action `campaign-synopsis` entity with goal and
+  operational-objective aliases.
+- Gated current-situation and authored entries on the current persisted day,
+  content version, and maneuver presentation.
+- Added hidden-field and absent-situation regression coverage.
+- Added the existing game-context bundle to the substrate test harness so the
+  projection test runs through the same entity owner as production.
+
+Changed files: `app/ava/game-context.ts`,
+`app/ava/contextual-language-projection.ts`, `scripts/test-substrate.sh`,
+`tests/ava-contextual-language.test.mjs`, and the Epoch 002 NODE-04 record.
+
+New semantic contracts: objective language is read-only, state-bound, and
+visible only when the current persisted situation exists; the entity carries
+no action payload.
+
+Tests added: non-action objective projection, static-only missing-situation
+projection, and hidden-field exclusion.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (224/224); `git diff --check` PASS.
+
+Non-goals preserved: no target-table duplication, no hidden adversary data, no
+state mutation, no deployment or GitHub push.
+
+Known limitations: the live semantic entity remains `campaign-synopsis`
+rather than creating the stale packet's absent `campaign-objective` ID.
+
+Next node handoff: make exact contextual matching and route lowering return
+stable instruction/clarification outcomes with contextual trace identity.
