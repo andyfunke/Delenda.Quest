@@ -12,7 +12,7 @@ current pushed `main` head; the handoff base `9973b8e` is not used.
 | Node | Contract | Status |
 | --- | --- | --- |
 | NODE-21 | owner preflight and boundary map | complete; no implementation commit |
-| NODE-22 | canonical calculus evidence | complete in implementation commit; receipt pending |
+| NODE-22 | canonical calculus evidence | sealed (`04927d6`; receipt `NODE-22.md`) |
 | NODE-23 | typed advice composition | pending |
 | NODE-24 | pairwise typed maneuver comparison | pending |
 | NODE-25 | typed operational relationships | pending |

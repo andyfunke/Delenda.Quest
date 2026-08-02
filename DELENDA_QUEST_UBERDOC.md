@@ -604,3 +604,27 @@ performed.
 
 Next authorized scope: richer typed advice composition, maneuver comparison,
 and multi-entity explanations in a subsequent epoch.
+
+### AVA-SEMANTICS-N22 / Expose canonical Ava calculus evidence
+
+Base commit: `a473e3d3720e3c0dfe0eb3c83db63db2144eab77`
+
+Completed commit: `04927d6`
+
+Purpose: Project the active disclosed cognitive decision and temporal authorities into a typed, read-only operational semantics contract.
+
+Exact procedures executed: inspected the live decision and temporal owners; added versioned operational contracts and canonical projections; wired the result through Nexus, terminal, and native SSH session-core surfaces; preserved command/directive boundaries; and added deterministic hidden-state and no-mutation checks.
+
+Changed files: `app/ava/operational-contracts.ts`, `app/ava/operational-calculus.ts`, `app/ava/operational-semantics.ts`, `app/ava/request-ir.ts`, `app/ava/terminal.ts`, `app/ava/nexus.ts`, `packages/terminal-core/src/session.ts`, `packages/ssh-gateway/src/session-core.ts`, `scripts/test-substrate.sh`, `tests/ava-operational-semantics.test.mjs`, `tests/ssh-gateway-session.test.mjs`, and the Epoch 004 records.
+
+New semantic contracts: `AvaOperationalSemanticResult` carries disclosed inputs, derived values, equations, rules, options, alternatives, uncertainties, provenance, explicit unavailable boundaries, read-only authority, and a deterministic digest. It exposes the active `delenda-cognitive-decision` and `ava-temporal-disclosed-projection` identities without reviving the quarantined legacy calculus.
+
+Tests added: deterministic calculus/advice evidence, temporal projection evidence, state-preservation checks, hidden-field checks, and native SSH semantic pass-through checks.
+
+Validation results: typecheck PASS; focused operational corpus 3/3 PASS; native SSH session tests 3/3 PASS; `git diff --check` PASS.
+
+Non-goals preserved: no fuzzy or inferred semantics, second parser, mutation path, RNG/seed/private state, sealed outcome, deployment, push, D1 write, shadow mutation, or HTTP SSH path.
+
+Known limitations: richer advice, pairwise comparisons, relationships, and terminal rendering remain the next authorized nodes.
+
+Next node handoff: NODE-23 / compose typed Ava advice through canonical calculus.
