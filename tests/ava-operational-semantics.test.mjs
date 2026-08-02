@@ -40,6 +40,27 @@ test("canonical decision evidence is deterministic and read-only", () => {
   assert.ok(left.operationalSemantics.calculus.equations.length >= 3);
   assert.ok(left.operationalSemantics.calculus.rules.length >= 1);
   assert.ok(left.operationalSemantics.calculus.optionEnvelope.length >= 2);
+  assert.equal(left.operationalSemantics.advice.kind, "TYPED_ADVICE");
+  assert.equal(
+    left.operationalSemantics.advice.recommendation.authority,
+    "COMPILED_DECISION_WINNER",
+  );
+  assert.equal(
+    left.operationalSemantics.advice.recommendation.optionId,
+    left.operationalSemantics.calculus.optionEnvelope.find(
+      (option) => option.availability === "AVAILABLE",
+    ).id,
+  );
+  assert.ok(left.operationalSemantics.advice.objective.problemClass);
+  assert.ok(left.operationalSemantics.advice.priorityAxes.length >= 1);
+  assert.equal(
+    left.operationalSemantics.advice.equations,
+    left.operationalSemantics.calculus.equations,
+  );
+  assert.equal(
+    left.operationalSemantics.advice.rules,
+    left.operationalSemantics.calculus.rules,
+  );
   assert.deepEqual(left.state, state);
   assert.equal(JSON.stringify(state), before);
   assert.doesNotMatch(

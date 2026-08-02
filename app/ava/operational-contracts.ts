@@ -132,11 +132,19 @@ export type AvaOperationalPriorityAxis = {
   source: "SEMANTIC_QUERY" | "CONTEXTUAL_CATALOG";
 };
 
+export type AvaOperationalRecommendation = {
+  optionId: string;
+  label?: string;
+  authority: "COMPILED_DECISION_WINNER";
+  provenance: readonly AvaOperationalProvenance[];
+};
+
 export type AvaOperationalAdvice = {
   kind: "TYPED_ADVICE";
   status: "AVAILABLE" | "PARTIAL" | "UNAVAILABLE";
   objective: AvaOperationalObjective;
   priorityAxes: readonly AvaOperationalPriorityAxis[];
+  recommendation: AvaOperationalRecommendation;
   operationalContext: {
     situationId: string;
     contentRevision: string;
@@ -148,6 +156,8 @@ export type AvaOperationalAdvice = {
   alternatives: readonly AvaOperationalAlternative[];
   uncertainties: readonly AvaOperationalUncertainty[];
   coupledOrders: readonly AvaOperationalCoupling[];
+  equations: readonly AvaOperationalEquation[];
+  rules: readonly AvaOperationalRule[];
   limitations: readonly AvaOperationalUnavailableEvidence[];
   calculusDigest?: string;
   digest: string;

@@ -31,6 +31,7 @@ import type {
   AvaOperationalUnavailableEvidence,
   AvaOperationalAdvice,
   AvaOperationalForecast,
+  AvaOperationalRecommendation,
 } from "./operational-contracts";
 
 const DOMAIN_PATH = "app/ava/cognitive-domain.ts::DELENDA_COGNITIVE_DOMAIN";
@@ -360,11 +361,25 @@ export const adviceFor = (input: {
     },
   ];
   const options = input.calculus.optionEnvelope;
+  const winner = input.guidance.decision.winnerId;
+  const winnerOption = options.find((option) => option.id === winner);
+  if (!winner || !winnerOption)
+    throw new Error("canonical advice omitted its disclosed decision winner");
+  const recommendation: AvaOperationalRecommendation = {
+    optionId: winner,
+    ...(winnerOption.label ? { label: winnerOption.label } : {}),
+    authority: "COMPILED_DECISION_WINNER",
+    provenance: [
+      provenance(DECISION_PATH, "winnerId", [winner]),
+      provenance(DECISION_PATH, "ranking", input.guidance.decision.ranking),
+    ],
+  };
   const body: Omit<AvaOperationalAdvice, "digest"> = {
     kind: "TYPED_ADVICE",
     status: "AVAILABLE",
     objective,
     priorityAxes: priorityAxesFor(input.query),
+    recommendation,
     operationalContext: {
       situationId: situation.id,
       contentRevision: CONTENT_PACK_VERSION,
@@ -376,10 +391,11 @@ export const adviceFor = (input: {
     alternatives: input.calculus.alternatives,
     uncertainties: input.calculus.uncertainties,
     coupledOrders: input.calculus.coupledOrders,
+    equations: input.calculus.equations,
+    rules: input.calculus.rules,
     limitations: input.calculus.unavailableEvidence,
     calculusDigest: input.calculus.digest,
   };
-  void input.guidance;
   void input.descriptors;
   return seal(body) as AvaOperationalAdvice;
 };
