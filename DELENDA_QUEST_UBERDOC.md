@@ -337,3 +337,46 @@ rather than creating the stale packet's absent `campaign-objective` ID.
 
 Next node handoff: make exact contextual matching and route lowering return
 stable instruction/clarification outcomes with contextual trace identity.
+
+### AVA-LANGUAGE-002-N05 / exact contextual matcher and route lowerer
+
+Base commit: `319bf6e44c7d111c81e3f852a364741e1a6717bb`
+
+Completed commit: `5d986696359946aac2319730a1817f7b3f4ca210`
+
+Purpose: Make declared contextual language exact, deterministic, typed, and
+traceable while preserving the existing compiler and request IR.
+
+Exact procedures executed:
+
+- Replaced contextual substring matching with exact normalized-surface
+  matching.
+- Added structured unavailable-destination clarification.
+- Changed contextual source/concept provenance and resolution IDs to declared
+  entry ownership.
+- Changed successful contextual trace rules to
+  `CONTEXTUAL_LANGUAGE:<entry-id>` and retained exact-index proof.
+- Extended the live corpus and negative near-neighbor tests.
+
+Changed files: `app/ava/contextual-language-compiler.ts`,
+`app/ava/compiler.ts`, `tests/ava-contextual-language.test.mjs`, and the Epoch
+002 NODE-05 record.
+
+New semantic contracts: contextual matches are exact after normalization;
+unavailable visible destinations clarify; contextual success cannot produce an
+unknown semantic subject.
+
+Tests added: packet corpus route assertions, trace identity, exact-index
+assertions, and near-neighbor exclusion.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (224/224); `git diff --check` PASS.
+
+Non-goals preserved: no fuzzy matching, embeddings, LLM calls, second parser,
+mutation, deployment, or GitHub push.
+
+Known limitations: the live matcher retains bounded legacy compiler guards
+before contextual matching so consequential prefixes cannot become advice.
+
+Next node handoff: prove all declared phrases through the real Nexus path and
+assert state, plan, action, and day immutability.
