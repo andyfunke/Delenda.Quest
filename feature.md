@@ -121,3 +121,43 @@ Epoch 002 retains the release boundary: no GitHub push, Cloudflare deploy,
 D1 write, shadow mutation, or HTTP SSH path was performed. Its complete
 execution evidence is under `docs/epochs/epoch-002-contextual-language-hardening/`
 and the root logbook.
+
+## Epoch 003 execution — typed operational Ava language
+
+Epoch 003 ports the attached NODE-14 through NODE-20 specification onto the
+verified current head `3d04095961a40c72363adfa2d546ff2ec0187b79`. It keeps the
+existing `StrategicDimension`, `campaign-synopsis`, `NARRATIVE_REFERENCE`,
+`EXPLAIN`, Nexus, terminal, and native SSH authorities. It does not create the
+stale priorities package, a second parser, a new instruction kind, or a second
+mutation path.
+
+| Node | Implementation commit | Receipt commit | Result |
+|---|---|---|---|
+| NODE-14 | — | — | owner/maneuver preflight complete; no implementation commit |
+| NODE-15 | `16ad7c0` | `18e37ea` | confirmed typed owners and static operational vocabulary |
+| NODE-16 | `4a5a063` | `cb72599` | stable current maneuver evidence projection |
+| NODE-17 | `ede0075` | `2251e34` | bounded exact authored-reference indexing and lowering |
+| NODE-18 | `2bec345` | `2b0a547` | typed evidence and truthful availability rendering |
+| NODE-19 | `f10f465` | pending | web, terminal, and native SSH parity proof |
+| NODE-20 | pending | pending | exhaustive generated proof, doctrine, gates, manifest, and receipt |
+
+The owner map confirms formation, reserve, route, and opening as typed,
+non-action entities. No concept is deferred in this epoch. Reserve retains only
+its existing disclosed scalar/calculation authority; the other three concepts
+render an explicit unavailable scalar boundary. Current maneuver evidence is
+joined by stable ID and preserves exact source text, section, order, and
+provenance. Static aliases retain precedence; authored collisions clarify;
+declared absent references clarify as unavailable; and all authored reads lower
+through existing `NARRATIVE_REFERENCE`/`EXPLAIN` semantics.
+
+The generated NODE-20 corpus covers every projected static alias and every
+accepted maneuver evidence entry across exact, uppercase, punctuation,
+hyphenation, whitespace normalization, collisions, ambiguity, availability,
+action-prefix, negation, hidden-state, rendering, and mutation boundaries.
+The focused substrate suite is green at 234/234 after the generated proof is
+included. Full repository gates and the SHA-256 manifest are recorded in the
+NODE-20 seal receipt.
+
+Epoch 003 retains the release boundary: no GitHub push, Cloudflare deployment,
+D1 write, shadow mutation, HTTP SSH path, secret movement, or destructive Git
+recovery is permitted within the epoch.

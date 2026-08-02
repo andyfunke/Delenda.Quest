@@ -188,3 +188,33 @@ visible revision, and never expose hidden adversary actuality.
 Cloudflare configuration remains production-owned. Validation and dry runs are
 permitted; deployment, shadow mutation, D1 replacement, and secret movement
 require an explicit release operation outside a patch epoch.
+
+## 20. Typed operational Ava language protocol
+
+Epoch 003 applies the doctrine to disclosed operational vocabulary and current
+maneuver evidence. It adds no semantic owner outside the existing typed
+application contracts.
+
+- Resolve one typed owner before adding language. Formation, reserve, route,
+  and opening are confirmed owners with static IDs `metric.formation`,
+  `metric.reserve`, `metric.route`, and `metric.opening`; all lower through the
+  existing `METRIC_EXPLANATION`/`EXPLAIN` path and remain non-actionable.
+- Allow only the owner-confirmed disclosed fields. Reserve may expose its
+  existing scalar and calculation rows; formation, route, and opening have no
+  scalar and must say so. Maneuver evidence may expose only stable ID, owner
+  label, exact rationale/presentation text, source section/path/order, and
+  provenance.
+- Static catalog ownership precedes authored indexing. Normalize lookup keys
+  deterministically, preserve exact source bytes, bound free authored spans to
+  2–8 tokens, permit the single-token exact typed-label exception, and permit
+  a full exact typed title only as a bounded long-title exception.
+- Exact authored references lower through `NARRATIVE_REFERENCE` to existing
+  read-only `EXPLAIN` with `campaign-synopsis` fallback. Collisions clarify,
+  absent declared evidence produces structured unavailability, and action-like
+  prefixes or negation never become actions.
+- Web, terminal, and native SSH are parity adapters over Nexus. Native SSH
+  uses the session core directly and never substitutes HTTP. Renderers show
+  evidence and availability, not hidden orders, sealed outcomes, or private
+  calculus.
+
+> Any high-information phrase from the current disclosed briefing, typed campaign ontology, declared conceptual catalog, or current maneuver evidence must either compile into a valid typed read-only Ava route or produce a narrow, truthful, evidence-bound clarification. It may never become an action merely because it resembles an authored maneuver, and it may never disappear into generic unrecognized fallback merely because it was expressed in ordinary language.

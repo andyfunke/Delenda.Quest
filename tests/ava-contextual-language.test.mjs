@@ -44,6 +44,14 @@ const contextFor = (state, surface = "web") => ({
   nowMs: 1_700_010_000_000,
 });
 
+const surfaceVariants = (phrase) => [
+  phrase,
+  phrase.toUpperCase(),
+  phrase.replaceAll(" ", "-"),
+  phrase.replace(/\s+/g, "   "),
+  phrase.includes(" ") ? phrase.replaceAll(" ", ", ") : `${phrase}!`,
+];
+
 test("the contextual contract is versioned, normalized, and content-addressed", () => {
   const state = game.initialState({ seed: 1729 });
   const before = structuredClone(state);
@@ -656,4 +664,196 @@ test("the expanded maneuver corpus preserves normalization, action precedence, a
     assert.deepEqual(result.state, before, raw);
     assert.doesNotMatch(result.text, /hiddenOrders|resolutionTicket|sealed outcome/i, raw);
   }
+});
+
+test("generated static catalog corpus preserves owners and read-only lowering", () => {
+  const state = game.initialState({ seed: 1729 });
+  const contextual = projection.buildAvaContextualLanguage(
+    state,
+    gameContext.avaEntitiesForState(state),
+  );
+  const staticEntries = contextual.entries.filter(
+    (entry) => entry.source === "STATIC_CATALOG",
+  );
+  assert.ok(staticEntries.length > 0);
+
+  for (const entry of staticEntries) {
+    for (const alias of entry.aliases) {
+      for (const variant of surfaceVariants(alias)) {
+        const result = compiler.compileAvaCommand(
+          variant,
+          compilerContext(state, contextual),
+        );
+        assert.equal(result.status, "compiled", `${entry.id}/${variant}`);
+        assert.equal(
+          result.instruction.contextual.entryId,
+          entry.id,
+          `${entry.id}/${variant}`,
+        );
+        assert.equal(result.instruction.contextual.route, entry.route);
+        assert.equal(result.instruction.contextual.entityId, entry.entityId);
+        assert.equal(result.instruction.contextual.topic, entry.topic);
+        assert.notEqual(result.semantic.subject.type, "UNKNOWN");
+        assert.equal(result.instruction.action, undefined);
+      }
+    }
+
+    const before = structuredClone(state);
+    const nexusResult = nexus.runAvaNexusLine(
+      entry.aliases[0],
+      contextFor(state, "web"),
+      state,
+      nexus.createAvaNexusSession(),
+    );
+    assert.equal(nexusResult.compile?.status, "compiled", entry.id);
+    assert.equal(
+      nexusResult.compile?.instruction.contextual.entryId,
+      entry.id,
+    );
+    assert.deepEqual(nexusResult.state, before, entry.id);
+  }
+});
+
+test("generated authored maneuver corpus preserves evidence identity and mutation safety", () => {
+  const state = game.initialState({ seed: 1729 });
+  const contextual = projection.buildAvaContextualLanguage(
+    state,
+    gameContext.avaEntitiesForState(state),
+  );
+  const records = projection.projectAvaAuthoredManeuverEvidence(state);
+  const authoredEntries = contextual.entries.filter(
+    (entry) => entry.source === "AUTHORED_BRIEF" && entry.maneuverId,
+  );
+  const authoredLanguageEntries = contextual.entries.filter(
+    (entry) => entry.source === "AUTHORED_BRIEF",
+  );
+  assert.ok(records.length > 0);
+  assert.ok(authoredEntries.length > 0);
+
+  for (const record of records) {
+    for (const [kind, sourceEvidence] of [
+      ["maneuver-label", record.labelEvidence],
+      ["maneuver-rationale", record.rationaleEvidence],
+      ["maneuver-presentation", record.presentationEvidence],
+    ]) {
+      if (!sourceEvidence) continue;
+      const matches = authoredEntries.filter(
+        (entry) =>
+          entry.maneuverId === record.maneuverId &&
+          entry.evidenceKind === kind,
+      );
+      // Static vocabulary owns any exact collision. Otherwise every typed
+      // label/presentation and every bounded rationale span is indexed. A
+      // rationale may be longer than the eight-token free-span bound, so its
+      // full source text is checked through the preserved projection record,
+      // while its accepted bounded spans are checked below.
+      if (kind !== "maneuver-rationale") {
+        const exactTypedMatch = matches.some((entry) =>
+          entry.aliases.some(
+            (alias) =>
+              language.normalizeAvaLanguageInput(alias) ===
+              language.normalizeAvaLanguageInput(sourceEvidence.phrase),
+          ),
+        );
+        const staticAlias = contextual.entries
+          .filter((entry) => entry.source === "STATIC_CATALOG")
+          .some((entry) =>
+            entry.aliases.some(
+              (alias) =>
+                language.normalizeAvaLanguageInput(alias) ===
+                language.normalizeAvaLanguageInput(sourceEvidence.phrase),
+            ),
+          );
+        assert.equal(
+          exactTypedMatch || staticAlias,
+          true,
+          `${record.maneuverId}/${kind}`,
+        );
+      }
+      assert.ok(matches.length, `${record.maneuverId}/${kind}`);
+      for (const entry of matches) {
+        const evidence = entry.evidence?.find(
+          (item) => item.section === kind,
+        );
+        assert.ok(evidence);
+        assert.ok(evidence.excerpt.includes(evidence.phrase));
+        assert.equal(entry.provenance?.length > 0, true);
+        for (const variant of surfaceVariants(entry.label)) {
+          const normalizedVariant = language.normalizeAvaLanguageInput(variant);
+          const identityCandidates = new Set(
+            authoredLanguageEntries
+              .filter((candidate) =>
+                candidate.aliases.some(
+                  (alias) =>
+                    language.normalizeAvaLanguageInput(alias) ===
+                    normalizedVariant,
+                ),
+              )
+              .map((candidate) => candidate.maneuverId),
+          );
+          const result = compiler.compileAvaCommand(
+            variant,
+            compilerContext(state, contextual),
+          );
+          if (identityCandidates.size > 1) {
+            assert.equal(result.status, "clarify", `${entry.id}/${variant}`);
+            assert.equal(result.failure, "ambiguous-target");
+            assert.equal(result.trace.exactIndexHit, true);
+          } else {
+            assert.equal(result.status, "compiled", `${entry.id}/${variant}`);
+            assert.equal(result.instruction.kind, "EXPLAIN");
+            assert.equal(result.instruction.contextual.route, "NARRATIVE_REFERENCE");
+            assert.equal(result.instruction.contextual.maneuverId, record.maneuverId);
+            assert.ok(
+              result.instruction.contextual.evidence?.some(
+                (item) => item.section === kind,
+              ),
+            );
+            assert.equal(result.trace.exactIndexHit, true);
+            assert.equal(result.trace.maneuverId, record.maneuverId);
+          }
+        }
+
+        const before = structuredClone(state);
+        const identityCandidates = new Set(
+          authoredLanguageEntries
+            .filter((candidate) =>
+              candidate.aliases.some(
+                (alias) =>
+                  language.normalizeAvaLanguageInput(alias) ===
+                  language.normalizeAvaLanguageInput(entry.label),
+              ),
+            )
+            .map((candidate) => candidate.maneuverId),
+        );
+        const nexusResult = nexus.runAvaNexusLine(
+          entry.label,
+          contextFor(state, "web"),
+          state,
+          nexus.createAvaNexusSession(),
+        );
+        if (identityCandidates.size > 1) {
+          assert.equal(nexusResult.compile?.status, "clarify", entry.id);
+          assert.equal(nexusResult.compile?.failure, "ambiguous-target");
+        } else {
+          assert.equal(nexusResult.compile?.status, "compiled", entry.id);
+          assert.equal(
+            nexusResult.compile?.instruction.contextual.maneuverId,
+            record.maneuverId,
+          );
+          assert.ok(
+            nexusResult.compile?.instruction.contextual.evidence?.some(
+              (item) => item.section === kind,
+            ),
+          );
+        }
+        assert.deepEqual(nexusResult.state, before, entry.id);
+      }
+    }
+  }
+
+  assert.doesNotMatch(
+    JSON.stringify(contextual),
+    /hiddenOrders|resolutionTicket|privateCalculus|sealedOutcome|successPressure/,
+  );
 });

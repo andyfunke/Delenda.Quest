@@ -1721,7 +1721,7 @@ export function compileAvaCommand(
       })(),
     };
   }
-  if (semantic.clarification)
+  if (semantic.clarification && !authoredManeuverReference)
     return applySemanticTrace(
       {
         status: "clarify",
