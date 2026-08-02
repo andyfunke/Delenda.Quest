@@ -83,8 +83,9 @@ test("forecast evidence preserves the active temporal owner and sealed boundary"
   assert.deepEqual(result.state, state);
 });
 
-test("the projection contract is directly callable without inventing a result", () => {
+test("the projection contract exposes only compiler-owned relationships", () => {
   const state = stateFor();
+  const before = JSON.stringify(state);
   const result = operational.projectAvaOperationalSemantics({
     state,
     query: {
@@ -103,7 +104,38 @@ test("the projection contract is directly callable without inventing a result", 
     },
     instruction: { kind: "EXPLAIN", entity: { id: "formation", kind: "metric", label: "Formation" }, facet: "meaning" },
   });
-  assert.equal(result, undefined);
+  assert.ok(result);
+  assert.equal(result.relationships.kind, "TYPED_OPERATIONAL_RELATIONSHIPS");
+  assert.equal(result.relationships.status, "AVAILABLE");
+  assert.ok(result.relationships.relationships.some((relationship) =>
+    relationship.sourceId === "formation" && relationship.targetId === "force-commitment",
+  ));
+  assert.ok(result.relationships.relationships.every((relationship) =>
+    relationship.direction === "SOURCE_TO_TARGET" && relationship.readOnly === true,
+  ));
+  assert.equal(JSON.stringify(state), before);
+});
+
+test("campaign synopsis relationships join the current maneuver docket by stable ID", () => {
+  const state = stateFor();
+  const result = operational.projectAvaOperationalRelationships({
+    state,
+    entityIds: ["campaign-synopsis"],
+  });
+  assert.equal(result.status, "AVAILABLE");
+  const current = result.relationships.filter((relationship) =>
+    relationship.relation === "CURRENT_VISIBLE_MANEUVER",
+  );
+  assert.equal(current.length, game.situationForState(state).maneuvers.length);
+  assert.ok(current.every((relationship) =>
+    relationship.relation === "CURRENT_VISIBLE_MANEUVER" &&
+    relationship.targetId.startsWith("maneuver:") &&
+    relationship.joinKey.startsWith("currentSituation.maneuvers["),
+  ));
+  assert.ok(result.relationships.some((relationship) =>
+    relationship.relation === "RELATED_CONCEPT" && relationship.targetId === "execution-confidence",
+  ));
+  assert.match(result.digest, /^[a-f0-9]{64}$/);
 });
 
 test("pairwise maneuver comparison exposes bounded evidence without a winner", () => {

@@ -6,6 +6,7 @@ import {
   adviceFor,
 } from "./operational-calculus";
 import { projectAvaManeuverComparison } from "./operational-comparison";
+import { projectAvaOperationalRelationships } from "./operational-relationships";
 import {
   AVA_OPERATIONAL_SEMANTICS_VERSION,
   type AvaOperationalProjectionInput,
@@ -89,10 +90,37 @@ export const projectAvaOperationalSemantics = (
     });
     if (comparison) parts.comparison = comparison;
   }
-  if (!parts.calculus && !parts.advice && !parts.forecast) return undefined;
+  if (input.query.operation === "EXPLAIN" && input.query.subject.entityIds.length) {
+    parts.relationships = projectAvaOperationalRelationships({
+      state: input.state,
+      entityIds: input.query.subject.entityIds,
+    });
+  }
+  if (
+    !parts.calculus &&
+    !parts.advice &&
+    !parts.forecast &&
+    !parts.comparison &&
+    !parts.relationships
+  )
+    return undefined;
+  const unavailableEvidence = [
+    ...(parts.comparison?.limitations ?? []),
+    ...(parts.relationships?.limitations ?? []),
+  ];
+  const status: AvaOperationalSemanticResult["status"] =
+    parts.comparison?.status === "AMBIGUOUS"
+      ? "AMBIGUOUS"
+      : parts.comparison?.status === "UNAVAILABLE" ||
+          parts.relationships?.status === "UNAVAILABLE"
+        ? "UNAVAILABLE"
+        : parts.comparison?.status === "NOT_COMPARABLE" ||
+            parts.relationships?.status === "NOT_PRESENT"
+          ? "PARTIAL"
+          : "AVAILABLE";
   const body: Omit<AvaOperationalSemanticResult, "digest"> = {
     version: AVA_OPERATIONAL_SEMANTICS_VERSION,
-    status: "AVAILABLE",
+    status,
     operation: input.query.operation,
     subject: input.query.subject,
     instructionKind: input.instruction.kind,
@@ -102,7 +130,7 @@ export const projectAvaOperationalSemantics = (
     mutation: false,
     ...parts,
     authoredEvidenceIds: authoredEvidenceIds(input),
-    unavailableEvidence: [],
+    unavailableEvidence,
   };
   return seal(body) as AvaOperationalSemanticResult;
 };
@@ -111,3 +139,4 @@ export type {
   AvaOperationalSemanticResult,
 } from "./operational-contracts";
 export { projectAvaManeuverComparison } from "./operational-comparison";
+export { projectAvaOperationalRelationships } from "./operational-relationships";
