@@ -5,6 +5,7 @@ import {
   forecastFor,
   adviceFor,
 } from "./operational-calculus";
+import { projectAvaManeuverComparison } from "./operational-comparison";
 import {
   AVA_OPERATIONAL_SEMANTICS_VERSION,
   type AvaOperationalProjectionInput,
@@ -79,6 +80,15 @@ export const projectAvaOperationalSemantics = (
     parts.calculus = forecast.calculus;
     parts.forecast = forecast.forecast;
   }
+  if (input.query.operation === "COMPARE") {
+    const comparison = projectAvaManeuverComparison({
+      state: input.state,
+      query: input.query,
+      trace: input.trace,
+      opportunityFraction: input.opportunityFraction,
+    });
+    if (comparison) parts.comparison = comparison;
+  }
   if (!parts.calculus && !parts.advice && !parts.forecast) return undefined;
   const body: Omit<AvaOperationalSemanticResult, "digest"> = {
     version: AVA_OPERATIONAL_SEMANTICS_VERSION,
@@ -100,3 +110,4 @@ export const projectAvaOperationalSemantics = (
 export type {
   AvaOperationalSemanticResult,
 } from "./operational-contracts";
+export { projectAvaManeuverComparison } from "./operational-comparison";

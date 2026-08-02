@@ -105,3 +105,46 @@ test("the projection contract is directly callable without inventing a result", 
   });
   assert.equal(result, undefined);
 });
+
+test("pairwise maneuver comparison exposes bounded evidence without a winner", () => {
+  const state = stateFor();
+  const before = JSON.stringify(state);
+  const left = run("compare M1 M2", state);
+  assert.equal(left.response.status, "OK", left.text);
+  assert.equal(left.operationalSemantics.comparison.kind, "PAIRWISE_MANEUVER_COMPARISON");
+  assert.equal(left.operationalSemantics.comparison.status, "AVAILABLE");
+  assert.match(left.operationalSemantics.comparison.left.id, /^maneuver:/);
+  assert.match(left.operationalSemantics.comparison.right.id, /^maneuver:/);
+  assert.notEqual(
+    left.operationalSemantics.comparison.left.id,
+    left.operationalSemantics.comparison.right.id,
+  );
+  const reversedQuery = {
+    ...left.compile.semantic,
+    subject: {
+      ...left.compile.semantic.subject,
+      entityIds: [...left.compile.semantic.subject.entityIds].reverse(),
+    },
+  };
+  const reversed = operational.projectAvaManeuverComparison({
+    state,
+    query: reversedQuery,
+  });
+  assert.equal(reversed.left.id, left.operationalSemantics.comparison.right.id);
+  assert.equal(reversed.right.id, left.operationalSemantics.comparison.left.id);
+  assert.deepEqual(
+    left.operationalSemantics.comparison.dimensions.map((dimension) => dimension.id),
+    reversed.dimensions.map((dimension) => dimension.id),
+  );
+  assert.equal("winner" in left.operationalSemantics.comparison, false);
+  assert.ok(left.operationalSemantics.comparison.dimensions.length >= 7);
+  assert.ok(left.operationalSemantics.comparison.dimensions.every((dimension) =>
+    ["COMPARABLE", "NOT_COMPARABLE", "UNAVAILABLE", "AMBIGUOUS"].includes(dimension.status),
+  ));
+  assert.deepEqual(left.state, state);
+  assert.equal(JSON.stringify(state), before);
+  assert.doesNotMatch(
+    JSON.stringify(left.operationalSemantics.comparison),
+    /"(?:campaignSeed|resolutionTicket|preparedOrders|resolutionHistory|adversaryLedger|rng)"\s*:/i,
+  );
+});
