@@ -797,8 +797,14 @@ const explainText = (
         .join("\n")
     : "No indexed dependencies.";
   const commandScope = concept?.control?.module;
+  const ownerValueUnavailable = ["formation", "route", "opening"].includes(
+    entity.id,
+  ) && value === undefined;
   return [
     `FIELD CONTEXT\n${entity.label}${value === undefined ? "" : `: ${typeof value === "number" ? value.toFixed(1) : String(value)}`}`,
+    ownerValueUnavailable
+      ? "AVAILABILITY\nNOT PRESENT IN THE CURRENT DISCLOSED STATE"
+      : null,
     `ANSWER\n${answer}`,
     facet === "calculus" ? calculationBlock : null,
     `CONTROL\n${control}`,
