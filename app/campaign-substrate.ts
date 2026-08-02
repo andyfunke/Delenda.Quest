@@ -131,6 +131,10 @@ const PROBLEM_TARGETS:Record<ProblemClass,string>={
   observation:"contact picture",
 };
 
+/** Public read-only projection of the authoritative problem target table. */
+export const operationalTargetForProblemClass = (problem: string) =>
+  PROBLEM_TARGETS[problem as ProblemClass] ?? "operational problem";
+
 const MANEUVER_ORDER_GRAMMAR:Record<string,Array<(sector:string,target:string)=>string>>={
   reinforce:[
     (sector,target)=>`Reinforce the ${target} at ${sector}`,

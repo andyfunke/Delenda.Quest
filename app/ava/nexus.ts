@@ -88,6 +88,7 @@ import {
 import { canonicalJson, cognitiveDigest } from "./cognitive-types";
 import { avaVisibleWorldRevision } from "./world-model";
 import { projectAvaDisclosedState } from "./projection";
+import { buildAvaContextualLanguage } from "./contextual-language-projection";
 
 type DirectiveChannel = Extract<
   Channel,
@@ -331,7 +332,11 @@ const compileVisibleAvaContext = (
       entity.action?.kind !== "directive" ||
       visibleChoiceIds.has(entity.action.choiceId),
   );
-  return { state: next, entities };
+  return {
+    state: next,
+    entities,
+    language: buildAvaContextualLanguage(next, entities),
+  };
 };
 
 const responseText = (
@@ -2894,6 +2899,7 @@ export const runAvaNexusLine = (
           opportunityFraction,
         ),
         shellEditor: session.terminal.shell.editor?.program,
+        language: visible.language,
       });
   if (compile?.status === "clarify") {
     const nextSession = {
@@ -2914,6 +2920,7 @@ export const runAvaNexusLine = (
         compileAvaCommand("help", {
         currentModule: session.currentModule,
         entities: visible.entities,
+        language: visible.language,
         }).semantic!,
       trace: compile.trace,
       expectedStateSeal,
@@ -2941,6 +2948,7 @@ export const runAvaNexusLine = (
       : compileAvaCommand("help", {
           currentModule: session.currentModule,
           entities: visible.entities,
+          language: visible.language,
         }).semantic!;
   const mode =
     instruction.kind === "STORYTELLER"

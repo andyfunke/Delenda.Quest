@@ -386,6 +386,49 @@ const REPORT_TOPICS = new Set<AvaReportTopic>([
   "opportunities",
   "service-record",
 ]);
+const CONTEXTUAL_ROUTES = new Set([
+  "PRIORITY_FOCUS",
+  "STRATEGIC_ADVICE",
+  "METRIC_EXPLANATION",
+  "REPORT",
+  "OBJECTIVE_EXPLANATION",
+  "NARRATIVE_REFERENCE",
+]);
+const CONTEXTUAL_SOURCES = new Set([
+  "STATIC_CATALOG",
+  "CURRENT_SITUATION",
+  "CURRENT_METRIC",
+  "CURRENT_ACTION",
+  "AUTHORED_BRIEF",
+]);
+const CONTEXTUAL_FACETS = new Set([
+  "meaning",
+  "effects",
+  "levers",
+  "calculus",
+]);
+const CONTEXTUAL_SECTIONS = new Set([
+  "headline",
+  "briefing",
+  "question",
+  "standing-order",
+  "maneuver-label",
+  "maneuver-rationale",
+]);
+const STRATEGIC_DIMENSIONS = new Set([
+  "production_integrity",
+  "supply_integrity",
+  "veteran_preservation",
+  "force_preservation",
+  "territorial_control",
+  "civil_stability",
+  "treasury_preservation",
+  "diplomatic_autonomy",
+  "intelligence_advantage",
+  "infrastructure_preservation",
+  "initiative",
+  "long_term_capacity",
+]);
 const SHELL_COMMANDS = new Set<AvaShellCommandName>([
   "REJECT",
   "PIPELINE",
@@ -888,6 +931,61 @@ function isAvaShellInstruction(
     : value.stages === undefined);
 }
 
+const isAvaContextualBinding = (value: unknown): boolean => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(
+      value,
+      ["route", "entryId", "label", "source"],
+      ["facet", "topic", "entityId", "priorityAxes", "evidence"],
+    ) ||
+    typeof value.route !== "string" ||
+    !CONTEXTUAL_ROUTES.has(value.route) ||
+    !isNonEmptyString(value.entryId) ||
+    !isNonEmptyString(value.label) ||
+    typeof value.source !== "string" ||
+    !CONTEXTUAL_SOURCES.has(value.source)
+  )
+    return false;
+  if (
+    value.facet !== undefined &&
+    (typeof value.facet !== "string" || !CONTEXTUAL_FACETS.has(value.facet))
+  )
+    return false;
+  if (
+    value.topic !== undefined &&
+    (typeof value.topic !== "string" || !REPORT_TOPICS.has(value.topic as AvaReportTopic))
+  )
+    return false;
+  if (value.entityId !== undefined && !isNonEmptyString(value.entityId))
+    return false;
+  if (value.priorityAxes !== undefined) {
+    if (
+      !isStringArray(value.priorityAxes) ||
+      !value.priorityAxes.length ||
+      value.priorityAxes.some((axis) => !STRATEGIC_DIMENSIONS.has(axis)) ||
+      !unique(value.priorityAxes)
+    )
+      return false;
+  }
+  if (value.evidence !== undefined) {
+    if (!Array.isArray(value.evidence)) return false;
+    for (const item of value.evidence) {
+      if (
+        !isRecord(item) ||
+        !hasExactKeys(item, ["section", "phrase", "excerpt"]) ||
+        typeof item.section !== "string" ||
+        !CONTEXTUAL_SECTIONS.has(item.section) ||
+        !isNonEmptyString(item.phrase) ||
+        !isNonEmptyString(item.excerpt) ||
+        item.excerpt.length > 280
+      )
+        return false;
+    }
+  }
+  return true;
+};
+
 export type AvaInstructionValidation =
   | { ok: true; instruction: AvaInstruction }
   | { ok: false; issues: string[] };
@@ -911,7 +1009,6 @@ export const validateAvaInstruction = (
     "GREETING",
     "ORDERS",
     "STATUS",
-    "ADVISE",
     "SHOW_PLAN",
     "ISSUE_PLAN",
     "CLEAR",
@@ -934,6 +1031,11 @@ export const validateAvaInstruction = (
       : instructionFailure(`${value.kind} contains an unexpected payload`);
 
   switch (value.kind) {
+    case "ADVISE":
+      return hasExactKeys(value, ["kind"], ["contextual"]) &&
+        (value.contextual === undefined || isAvaContextualBinding(value.contextual))
+        ? { ok: true, instruction: value as AvaInstruction }
+        : instructionFailure("ADVISE contextual binding is malformed");
     case "HELP":
       return hasExactKeys(value, ["kind"], ["subject"]) &&
         (value.subject === undefined || isNonEmptyString(value.subject))
@@ -961,7 +1063,7 @@ export const validateAvaInstruction = (
         ? { ok: true, instruction: value as AvaInstruction }
         : instructionFailure("LIST scope is unknown");
     case "REPORT":
-      return hasExactKeys(value, ["kind", "topic"], ["days", "scope", "canonical"]) &&
+      return hasExactKeys(value, ["kind", "topic"], ["days", "scope", "canonical", "contextual"]) &&
         typeof value.topic === "string" &&
         REPORT_TOPICS.has(value.topic as AvaReportTopic) &&
         (value.days === undefined ||
@@ -974,16 +1076,18 @@ export const validateAvaInstruction = (
           (typeof value.scope === "string" &&
             MODULES.has(value.scope as AvaModule))) &&
         (value.canonical === undefined ||
-          (value.canonical === true && value.topic === "daily-brief"))
+          (value.canonical === true && value.topic === "daily-brief")) &&
+        (value.contextual === undefined || isAvaContextualBinding(value.contextual))
         ? { ok: true, instruction: value as AvaInstruction }
         : instructionFailure("REPORT fields are malformed");
     case "EXPLAIN":
-      return hasExactKeys(value, ["kind", "entity", "facet"]) &&
+      return hasExactKeys(value, ["kind", "entity", "facet"], ["contextual"]) &&
         isAvaEntity(value.entity) &&
         (value.facet === "meaning" ||
           value.facet === "effects" ||
           value.facet === "levers" ||
           value.facet === "calculus")
+        && (value.contextual === undefined || isAvaContextualBinding(value.contextual))
         ? { ok: true, instruction: value as unknown as AvaInstruction }
         : instructionFailure("EXPLAIN requires a typed entity and facet");
     case "OPEN":

@@ -33,6 +33,12 @@ export const AVA_METRICS: AvaEntity[] = [
   metric("legitimacy", "Legitimacy", ["public support", "governability"]),
   metric("resistance", "Resistance", ["domestic resistance", "noncompliance"]),
   metric("front", "Campaign Front", ["front line", "ground movement"]),
+  metric("reserve", "Replacement Reserve", ["reserves", "replacement reserve"]),
+  metric("formation", "Formation", ["formations"]),
+  metric("position", "Current Position", ["front position", "current position"]),
+  metric("route", "Operational Route", ["routes", "supply route"]),
+  metric("opening", "Operational Opening", ["the opening", "breakthrough opening"]),
+  metric("pressure", "Battlefield Pressure", ["front pressure", "battlefield pressure"]),
   metric("desertion", "Desertion", ["net flight", "deserters"]),
   metric("doctrine", "Doctrine", ["insight", "insight points"]),
   metric("intelligence", "Intelligence", [
@@ -138,8 +144,16 @@ export const avaEntitiesForState = (
     label: fact.id.replaceAll("_", " "),
     parentId: fact.sectorId ?? undefined,
   }));
+  const campaignSynopsis: AvaEntity = {
+    id: "campaign-synopsis",
+    kind: "mission",
+    label: "Campaign Objective",
+    aliases: ["campaign synopsis", "current objective", situation.headline],
+    parentId: "main",
+  };
   return [
     ...AVA_METRICS,
+    campaignSynopsis,
     ...modules,
     ...missions,
     ...actors,

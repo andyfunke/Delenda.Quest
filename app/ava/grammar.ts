@@ -20,6 +20,7 @@ import {
   type GrammarSpec,
   stableUtteranceHash,
 } from "./grammar-compiler";
+import { compileDeclaredPriorityFocus } from "./contextual-language-priorities";
 export {
   compileAgencyBundle,
   compileCompiledAgencyBundle,
@@ -1871,7 +1872,10 @@ export const genericSemanticQuery = (
         ? { group: "MAIN", domains: ["MAIN"], excludedDomains: [] }
         : { domains: [], excludedDomains: [] },
     timeframe: "CURRENT_DOCKET",
-    criteria: ["OVERALL_VALUE"],
+    criteria:
+      instruction.kind === "ADVISE" && instruction.contextual?.priorityAxes?.length
+        ? compileDeclaredPriorityFocus(instruction.contextual.priorityAxes).criteria
+        : ["OVERALL_VALUE"],
     polarity: "AFFIRMATIVE",
     requestedDetail:
       instruction.kind === "EXPLAIN" && instruction.facet === "calculus"

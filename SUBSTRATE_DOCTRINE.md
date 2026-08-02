@@ -155,3 +155,36 @@ Before implementing a new game channel, input modality, generated-content system
 7. The parity tests across existing surfaces.
 
 If any answer is “the client handles it,” stop and extract the missing application contract.
+
+## 19. Patch epochs are supergit receipts
+
+Patch work is organized as `docs/epochs/<epoch>/nodes/`, with one node file per
+bounded execution unit. The root `feature.md` is the compatibility ledger for
+proposed work against the current repository. `DELENDA_QUEST_UBERDOC.md` is the
+append-only execution logbook; it records node identity, command, result, and
+integrity evidence. These files extend this doctrine; they do not replace it.
+
+Each sealed epoch records:
+
+1. The exact base commit and expected branch.
+2. The node and file ownership boundary.
+3. Focused tests, full gates, and `git diff --check` results.
+4. The completed commit, tree identity, and SHA-256 source manifest when the
+   seal is available.
+5. Explicit non-goals, especially production deployment, hidden-state access,
+   destructive git recovery, and alternate mutation authorities.
+
+“Supergit” means ordinary Git plus these human-readable, content-addressed
+receipts. It is not a second version-control system. Never rewrite an epoch
+receipt to conceal a failed attempt; append a correction and preserve the
+original command/result pair.
+
+Patch nodes may compose several small modules, but no node may create an
+unbounded implementation file or a second parser. New language must lower into
+an existing typed instruction and pass the existing request validator. Public
+contextual language must be derived from the disclosed projection, carry its
+visible revision, and never expose hidden adversary actuality.
+
+Cloudflare configuration remains production-owned. Validation and dry runs are
+permitted; deployment, shadow mutation, D1 replacement, and secret movement
+require an explicit release operation outside a patch epoch.

@@ -16,6 +16,10 @@ import {
   resolveOrdinalDocketReference,
   type SemanticCompilation,
 } from "./grammar";
+import {
+  contextualFailurePrompt,
+  matchAvaContextualLanguage,
+} from "./contextual-language-compiler";
 export {
   AVA_CAMPAIGN_ADVICE_GRAMMAR,
   AVA_CAMPAIGN_LANGUAGE_CORPUS,
@@ -900,7 +904,10 @@ const isNegatedConsequentialInput = (input: string) =>
   /\b(?:do not|dont|never|not|stop)\b(?:\s+[a-z0-9]+){0,4}\s+\b(?:stage|staging|prepare|preparing|select|selecting|choose|choosing|unstage|unstaging|remove|removing|issue|issuing|commit|committing|execute|executing|confirm|confirming|resolve|resolving|end|ending|close|closing|internalize|internalizing|learn|learning|respond|responding|exploit|exploiting|clear|clearing)\b/.test(
     input,
   ) ||
-  /\b(?:do not|dont|never|not|stop)\s+(?:resolve|end|close)\b/.test(input);
+  /\b(?:do not|dont|never|not|stop)\s+(?:resolve|end|close)\b/.test(input) ||
+  /\b(?:do not|dont|never|not|stop)\b(?:\s+[a-z0-9]+){0,4}\s+\b(?:advance|press forward|gain territory|take territory|hold territory)\b/.test(
+    input,
+  );
 
 const reportTopic = (
   input: string,
@@ -1549,6 +1556,53 @@ export function compileAvaCommand(
         },
       },
     );
+  const contextual = matchAvaContextualLanguage(raw, context);
+  if (contextual?.status === "ambiguous")
+    return applySemanticTrace(
+      {
+        status: "clarify",
+        failure: "ambiguous-target",
+        prompt: contextualFailurePrompt(contextual.candidates),
+        semantic: semantic.query,
+        trace: trace("contextual-ambiguity", raw, [], semantic),
+      },
+      raw,
+      semantic,
+    );
+  if (contextual?.status === "compiled") {
+    const value = contextual.value;
+    const entity = value.entity ? [value.entity] : [];
+    const contextualSemantic: SemanticCompilation = {
+      query: value.semantic,
+      concepts: [
+        {
+          kind: "CONTEXTUAL_LANGUAGE",
+          canonical: value.match.entry.id,
+          source: value.match.alias,
+        },
+      ],
+      contextualResolutions: [
+        `Contextual route ${value.match.entry.route} resolved through ${value.match.entry.id}.`,
+      ],
+      grammarProvenance: [
+        "CONTEXTUAL_LANGUAGE",
+        `SOURCE:${value.match.entry.source}`,
+        `ROUTE:${value.match.entry.route}`,
+      ],
+      exactIndexHit: true,
+    };
+    return {
+      status: "compiled",
+      instruction: value.instruction,
+      semantic: value.semantic,
+      trace: trace(
+        `contextual-${value.match.entry.route.toLowerCase()}`,
+        raw,
+        entity,
+        contextualSemantic,
+      ),
+    };
+  }
   if (semantic.clarification)
     return applySemanticTrace(
       {

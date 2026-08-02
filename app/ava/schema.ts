@@ -1,3 +1,8 @@
+import type {
+  AvaContextualBinding,
+  AvaContextualLanguage,
+} from "./contextual-language";
+
 export type AvaModule =
   | "campaign"
   | "national"
@@ -421,7 +426,7 @@ export type AvaInstruction =
   | { kind: "ORDERS" }
   | { kind: "HELP"; subject?: string }
   | { kind: "STATUS" }
-  | { kind: "ADVISE" }
+  | { kind: "ADVISE"; contextual?: AvaContextualBinding }
   | { kind: "SEMANTIC"; query: AvaSemanticQuery }
   | { kind: "SHELL"; shell: AvaShellInstruction }
   | { kind: "LIST"; scope?: string }
@@ -431,11 +436,13 @@ export type AvaInstruction =
       days?: number;
       scope?: AvaModule | "current";
       canonical?: true;
+      contextual?: AvaContextualBinding;
     }
   | {
       kind: "EXPLAIN";
       entity: AvaEntity;
       facet: "meaning" | "effects" | "levers" | "calculus";
+      contextual?: AvaContextualBinding;
     }
   | { kind: "OPEN"; module: AvaModule }
   | { kind: "SELECT"; entity: AvaEntity }
@@ -524,6 +531,7 @@ export type AvaCompilerContext = {
   openApplet?: string | null;
   shellFileReferences?: string[];
   shellEditor?: "vim" | "nano";
+  language?: AvaContextualLanguage;
 };
 
 export type AvaCommandHelp = {

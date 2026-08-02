@@ -7,6 +7,10 @@ import {
   situationForState,
   type GameState,
 } from "../game";
+import {
+  operationalObjectiveForProblemClass,
+  operationalTargetForProblemClass,
+} from "../campaign-substrate";
 import { CONCEPTS, calculationFor } from "../concepts";
 import { compileConvergence } from "../convergence";
 import { buildAvaReport } from "./reports";
@@ -46,6 +50,7 @@ import {
   canonicalDailyBriefing,
   summarizedDailyBriefing,
 } from "./campaign-narrative";
+import { compileDeclaredPriorityFocus } from "./contextual-language-priorities";
 import { projectAvaEnvelope } from "./projection";
 import { avaVisibleWorldRevision } from "./world-model";
 import type { AvaDarkNetContext } from "./darknet";
@@ -64,6 +69,7 @@ import type {
   AvaDiscourseState,
   AvaSemanticQuery,
 } from "./schema";
+import type { AvaContextualBinding } from "./contextual-language";
 import { formatPublicRating, publicCognitiveRating } from "./public-rating";
 
 export { completeAvaInput } from "./completion";
@@ -688,6 +694,7 @@ const metricValue = (state: GameState, id: string) =>
     legitimacy: state.legitimacy,
     resistance: state.resistance,
     front: state.front,
+    reserve: state.reserves,
     desertion: projectAvaEnvelope(state).personnel.netDesertion,
     doctrine: state.doctrine,
     intelligence: state.intelligence,
@@ -711,7 +718,13 @@ const conceptIdForEntity = (id: string) =>
     equipment: "equipment-coverage",
     supply: "munitions",
     network: "command-network",
-    front: "pressure",
+    front: "front-movement",
+    position: "position",
+    pressure: "pressure",
+    reserve: "reserve",
+    formation: "formation",
+    route: "route",
+    opening: "opening",
   })[id] ?? id;
 
 const familyLabel = (familyId?: string) =>
@@ -795,6 +808,70 @@ const explainText = (
     .filter(Boolean)
     .join("\n\n");
 };
+
+const contextualSourceLabel = (source: AvaContextualBinding["source"]) =>
+  source.replaceAll("_", " ");
+
+const contextualEvidenceText = (binding: AvaContextualBinding) => {
+  const evidence = binding.evidence ?? [];
+  const status =
+    binding.source === "AUTHORED_BRIEF"
+      ? "AUTHORED LANGUAGE // NO INDEPENDENT MECHANIC ASSERTED"
+      : binding.source === "CURRENT_ACTION"
+        ? "CURRENT ACTION LABEL // NO ORDER ISSUED"
+        : "DECLARED CONTEXT // READ-ONLY";
+  return [
+    "BRIEFING REFERENCE",
+    `DECLARED PHRASE\n${binding.label}`,
+    `SOURCE\n${contextualSourceLabel(binding.source)}`,
+    ...evidence.map(
+      (item) =>
+        `SOURCE SECTION: ${item.section}\nEXACT EXCERPT: ${item.excerpt}`,
+    ),
+    `STATUS\n${status}`,
+    "GRAMMAR\n> report daily brief\n> explain campaign objective",
+  ].join("\n\n");
+};
+
+const contextualExplainText = (
+  state: GameState,
+  entity: AvaEntity,
+  facet: "meaning" | "effects" | "levers" | "calculus",
+  binding?: AvaContextualBinding,
+) => {
+  if (!binding) return explainText(state, entity, facet);
+  if (binding.route === "NARRATIVE_REFERENCE")
+    return contextualEvidenceText(binding);
+  if (binding.route === "OBJECTIVE_EXPLANATION") {
+    const situation = situationForState(state);
+    const objective = operationalObjectiveForProblemClass(situation.problemClass);
+    const target = operationalTargetForProblemClass(situation.problemClass);
+    return [
+      `OBJECTIVE / ${objective}`,
+      `SECTOR\n${situation.sector}`,
+      `OPERATIONAL TARGET\n${target}`,
+      `PROBLEM CLASS\n${situation.problemClass}`,
+      `COMMANDER QUESTION\n${situation.question}`,
+      `STANDING ORDER\n${situation.standingOrder}`,
+      `VISIBLE MANEUVERS\n${Object.values(situation.maneuverPresentations)
+        .map((presentation) => `${presentation.label}\n${presentation.rationale}`)
+        .join("\n\n")}`,
+      "BOUNDARY\nThis is the current disclosed objective projection. It does not disclose hidden adversary actuality or authorize an order.",
+      "GRAMMAR\n> missions\n> report daily brief\n> what should I do",
+    ].join("\n\n");
+  }
+  return [
+    `CONTEXTUAL LANGUAGE / ${binding.label}`,
+    `ROUTE\n${binding.route}`,
+    `SOURCE\n${contextualSourceLabel(binding.source)}`,
+    explainText(state, entity, facet),
+  ].join("\n\n");
+};
+
+const contextualReportPrefix = (binding?: AvaContextualBinding) =>
+  binding
+    ? `CONTEXTUAL REPORT / ${binding.label}\nROUTE: ${binding.route}\nSOURCE: ${contextualSourceLabel(binding.source)}`
+    : "";
 
 function executeAvaInstruction(
   state: GameState,
@@ -1094,7 +1171,11 @@ function executeAvaInstruction(
     );
   }
   if (instruction.kind === "ADVISE") {
-    const openEndedCampaignQuestion = interaction === "open-ended";
+    const openEndedCampaignQuestion =
+      interaction === "open-ended" || !!instruction.contextual;
+    const contextualPriority = compileDeclaredPriorityFocus(
+      instruction.contextual?.priorityAxes ?? [],
+    );
     const answer = answerSemanticQuery(
       state,
       {
@@ -1108,7 +1189,7 @@ function executeAvaInstruction(
           excludedDomains: [],
         },
         timeframe: "CURRENT_DOCKET",
-        criteria: ["OVERALL_VALUE"],
+        criteria: contextualPriority.criteria,
         polarity: "AFFIRMATIVE",
         requestedDetail: "JUDGMENT",
         perspective: "PLAYER",
@@ -1125,7 +1206,10 @@ function executeAvaInstruction(
     return finalize(
       state,
       { ...session, discourse: answer.discourse },
-      withHeader(state, answer.text),
+      withHeader(
+        state,
+        `${instruction.contextual ? `PRIORITY FOCUS / ${instruction.contextual.label}\nAXES: ${contextualPriority.label}\nSOURCE: ${contextualSourceLabel(instruction.contextual.source)}\n\n` : ""}${answer.text}`,
+      ),
       {
         answerPlan: answer.answerPlan,
         proofGraph: answer.proofGraph,
@@ -1146,9 +1230,9 @@ function executeAvaInstruction(
         session,
         withHeader(
           state,
-          instruction.canonical
-            ? canonicalDailyBriefing(state)
-            : summarizedDailyBriefing(state, session.voiceCursor),
+          `${contextualReportPrefix(instruction.contextual)}${instruction.contextual ? "\n\n" : ""}${instruction.canonical
+              ? canonicalDailyBriefing(state)
+              : summarizedDailyBriefing(state, session.voiceCursor)}`,
         ),
         { report },
       );
@@ -1175,7 +1259,7 @@ function executeAvaInstruction(
       next,
       withHeader(
         state,
-        `${reportText(report, session.detail)}\n\nFILE\n${path}\nUse: download ${path}`,
+        `${contextualReportPrefix(instruction.contextual)}${instruction.contextual ? "\n\n" : ""}${reportText(report, session.detail)}\n\nFILE\n${path}\nUse: download ${path}`,
       ),
       { report },
     );
@@ -1237,7 +1321,12 @@ function executeAvaInstruction(
       session,
       withHeader(
         state,
-        explainText(state, instruction.entity, instruction.facet),
+        contextualExplainText(
+          state,
+          instruction.entity,
+          instruction.facet,
+          instruction.contextual,
+        ),
       ),
     );
   }
