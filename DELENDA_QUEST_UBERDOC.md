@@ -254,3 +254,43 @@ and `territory` axis names.
 
 Next node handoff: verify the live strategic-dimension lowering remains
 deterministic and bounded.
+
+### AVA-LANGUAGE-002-N03 / declared priority lowering
+
+Base commit: `088714ef8b94e7cc7036b0f78769553e15002c7d`
+
+Completed commit: `a897139d5ab66a7ee482e4a47edddf38cc187e1b`
+
+Purpose: Harden contextual priority lowering against malformed or unbounded
+axis declarations while retaining the current strategic evaluator authority.
+
+Exact procedures executed:
+
+- Added runtime validation for empty, duplicate, unknown, and overlong axis
+  declarations.
+- Preserved deterministic canonical order and criteria derivation.
+- Accepted the declared surface as a stable lowerer input without using it as
+  a second parser or mechanic source.
+- Re-exported the current lowerer and validator through `app/ava/compiler.ts`.
+
+Changed files: `app/ava/contextual-language-priorities.ts`,
+`app/ava/compiler.ts`, `tests/ava-contextual-language.test.mjs`, and the Epoch
+002 NODE-03 record.
+
+New semantic contracts: contextual priority declarations are bounded to four
+known unique `StrategicDimension` axes and lower to existing evaluation
+criteria.
+
+Tests added: deterministic lowering and bounded-axis rejection tests.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (223/223); `git diff --check` PASS.
+
+Non-goals preserved: no stale priorities package, no invented `attack` or
+`territory` dimensions, no state mutation, no deployment or GitHub push.
+
+Known limitations: the stale packet's `CompiledPriorityIntent` shape is not
+present; the live `AvaDeclaredPriorityFocus` remains the canonical adapter.
+
+Next node handoff: verify objective language is projected only from disclosed
+current situation state and binds to a non-action entity.
