@@ -628,3 +628,27 @@ Non-goals preserved: no fuzzy or inferred semantics, second parser, mutation pat
 Known limitations: richer advice, pairwise comparisons, relationships, and terminal rendering remain the next authorized nodes.
 
 Next node handoff: NODE-23 / compose typed Ava advice through canonical calculus.
+
+### AVA-SEMANTICS-N23 / Compose typed Ava advice through canonical calculus
+
+Base commit: `42e8f02`
+
+Completed commit: `0656460`
+
+Purpose: Compose a typed, read-only advice result from the active canonical calculus, the persisted situation, and the semantic query’s declared priorities.
+
+Exact procedures executed: bound the recommendation to the disclosed `decision.winnerId` and ranking; exposed objective, target, sector, situation bands, priority axes, visible inputs, alternatives, uncertainties, equations, rules, and unavailable coupled-order evidence; rejected a missing canonical winner; and added deterministic state-preservation and hidden-field assertions.
+
+Changed files: `app/ava/operational-contracts.ts`, `app/ava/operational-calculus.ts`, `tests/ava-operational-semantics.test.mjs`, and the NODE-23 records.
+
+New semantic contracts: `AvaOperationalAdvice.recommendation` is authoritative only as a disclosed compiled winner, while equations and rules remain exact references to the canonical calculus.
+
+Tests added: recommendation authority, objective/priority composition, calculus-reference identity, no-mutation, and hidden-field checks.
+
+Validation results: typecheck PASS; complete substrate corpus 237/237 PASS; `git diff --check` PASS.
+
+Non-goals preserved: no pairwise scoring or winner invention, second parser/calculus, fuzzy or inferred relation, prepared order, mutation route, private/random/sealed state, push, deployment, D1 write, shadow mutation, or HTTP SSH path.
+
+Known limitations: pairwise comparison, relationship projection, and shared rendering are the next authorized nodes.
+
+Next node handoff: NODE-24 / compile typed Ava maneuver comparisons.
