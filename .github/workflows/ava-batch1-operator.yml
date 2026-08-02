@@ -28,6 +28,6 @@ jobs:
         run: npm run install:ci
       - name: Execute NODE-00 through NODE-06
         run: |
-          gzip -dc .github/ava-batch1/operator.sh.gz > /tmp/ava-batch1-operator.sh
+          cat .github/ava-batch1/operator.part* > /tmp/ava-batch1-operator.sh
           chmod +x /tmp/ava-batch1-operator.sh
           /tmp/ava-batch1-operator.sh

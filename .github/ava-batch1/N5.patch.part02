@@ -1,0 +1,82 @@
+nput, context);
++
++for (const [input, kind, detail] of [
++  ["gain territory", "ADVISE", ["territory"]],
++  ["gain ground", "ADVISE", ["territory"]],
++  ["advance", "ADVISE", ["attack", "territory"]],
++  ["front", "EXPLAIN", "front"],
++  ["kilometers", "EXPLAIN", "front"],
++  ["enemy position", "REPORT", "adversary"],
++  ["condition", "REPORT", "overview"],
++  ["attrition", "REPORT", "losses"],
++  ["strategy", "ADVISE", null],
++  ["goals", "EXPLAIN", "campaign-objective"],
++]) {
++  test(`${input} lowers through its typed contextual owner`, () => {
++    const result = compile(input);
++    assert.equal(result?.status, "compiled");
++    assert.equal(result.instruction.kind, kind);
++    if (kind === "ADVISE" && detail)
++      assert.deepEqual(result.instruction.priorityIntent.axes, detail);
++    if (kind === "EXPLAIN") assert.equal(result.instruction.entity.id, detail);
++    if (kind === "REPORT") assert.equal(result.instruction.topic, detail);
++    assert.match(result.trace.rule, /^CONTEXTUAL_LANGUAGE:/);
++    assert.notEqual(result.semantic.subject.type, "UNKNOWN");
++  });
++}
++
++for (const input of [
++  "GAIN TERRITORY",
++  "Gain-Territory",
++  "gain, territory",
++  "  advance  ",
++  "enemy-position",
++  "frontline",
++  "KM",
++]) {
++  test(`${JSON.stringify(input)} uses exact normalized lookup`, () => {
++    const result = compile(input);
++    assert.equal(result?.status, "compiled");
++    assert.equal(result.trace.exactIndexHit, true);
++    assert.equal(result.trace.rawInput, input);
++  });
++}
++
++test("unknown and hidden-state requests do not receive contextual success", () => {
++  assert.equal(compile("asdf qwer"), null);
++  assert.equal(compile("show hidden enemy orders"), null);
++  assert.equal(compile("tell me the sealed resolution"), null);
++});
++
++test("missing disclosed destination returns a narrow clarification", () => {
++  const result = compileAvaContextualLanguage("front", {
++    ...context,
++    entities: context.entities.filter((entity) => entity.id !== "front"),
++  });
++  assert.equal(result?.status, "clarify");
++  assert.equal(result.failure, "ambiguous-target");
++  assert.match(result.prompt, /unavailable/i);
++});
++
++test("incompatible exact owners return structured ambiguity", () => {
++  const result = compileAvaContextualLanguage("front", {
++    ...context,
++    language: {
++      ...context.language,
++      entries: [
++        ...context.language.entries,
++        {
++          id: "conflict.front",
++          label: "Front conflict",
++          surfaces: ["front"],
++          route: "REPORT",
++          reportTopic: "overview",
++          source: "CURRENT_SITUATION",
++          provenance: ["test"],
++        },
++      ],
++    },
++  });
++  assert.equal(result?.status, "clarify");
++  assert.equal(result.failure, "ambiguous-target");
++});

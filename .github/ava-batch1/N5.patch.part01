@@ -1,0 +1,90 @@
+nguageSurface(surface) === normalized,
++    ),
++  );
++  if (candidates.length === 0) return null;
++
++  const destinations = new Map<string, AvaLanguageEntry[]>();
++  for (const candidate of candidates) {
++    const signature = destinationSignature(candidate);
++    destinations.set(signature, [
++      ...(destinations.get(signature) ?? []),
++      candidate,
++    ]);
++  }
++  const deterministic = [...candidates].sort(
++    (left, right) =>
++      sourcePriority[left.source] - sourcePriority[right.source] ||
++      left.id.localeCompare(right.id),
++  );
++  const representative = deterministic[0]!;
++  if (destinations.size > 1)
++    return clarify(
++      raw,
++      normalized,
++      representative,
++      context,
++      `The phrase ${JSON.stringify(raw.trim())} has multiple incompatible contextual owners.`,
++    );
++
++  return lowerContextualEntry(raw, normalized, representative, context);
++};
+diff --git a/scripts/test-ava.sh b/scripts/test-ava.sh
+index 820e548..ac06367 100755
+--- a/scripts/test-ava.sh
++++ b/scripts/test-ava.sh
+@@ -17,7 +17,8 @@ CONTEXTUAL_LANGUAGE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-langua
+ CONTEXTUAL_CATALOG_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-catalog.XXXXXX.mjs")"
+ PRIORITIES_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-priorities-contextual.XXXXXX.mjs")"
+ CONTEXTUAL_PROJECTION_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-projection.XXXXXX.mjs")"
+-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE" "$PRIORITIES_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE"' EXIT
++CONTEXTUAL_COMPILER_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-compiler.XXXXXX.mjs")"
++trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE" "$PRIORITIES_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE" "$CONTEXTUAL_COMPILER_BUNDLE"' EXIT
+ 
+ node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
+@@ -33,12 +34,14 @@ node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=nod
+ node_modules/.bin/esbuild app/ava/contextual-language-catalog.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_CATALOG_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild packages/priorities-library/src/index.ts --bundle --platform=node --format=esm --outfile="$PRIORITIES_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/contextual-language-projection.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_PROJECTION_BUNDLE" >/dev/null
+-DELENDA_INTRUSION_LIBRARY_BUNDLE="file://$INTRUSION_LIBRARY_BUNDLE" node --test tests/intrusion-library.test.mjs
++node_modules/.bin/esbuild app/ava/contextual-language-compiler.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_COMPILER_BUNDLE" >/dev/null
++node --test tests/intrusion-library.test.mjs
+ DELENDA_AVA_INLINE_TOKENS_BUNDLE="file://$INLINE_TOKENS_BUNDLE" node --test tests/ava-inline-tokens.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" node --test tests/ava-contextual-language-contracts.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" DELENDA_AVA_CONTEXTUAL_CATALOG_BUNDLE="file://$CONTEXTUAL_CATALOG_BUNDLE" node --test tests/ava-contextual-language-catalog.test.mjs
+ DELENDA_PRIORITIES_BUNDLE="file://$PRIORITIES_BUNDLE" node --test tests/priorities-contextual-intent.test.mjs
+ DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE="file://$CONTEXTUAL_PROJECTION_BUNDLE" DELENDA_AVA_GAME_BUNDLE="file://$GAME_BUNDLE" DELENDA_AVA_CONTEXT_BUNDLE="file://$CONTEXT_BUNDLE" node --test tests/ava-contextual-language-projection.test.mjs
++DELENDA_AVA_CONTEXTUAL_COMPILER_BUNDLE="file://$CONTEXTUAL_COMPILER_BUNDLE" DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE="file://$CONTEXTUAL_PROJECTION_BUNDLE" DELENDA_AVA_GAME_BUNDLE="file://$GAME_BUNDLE" DELENDA_AVA_CONTEXT_BUNDLE="file://$CONTEXT_BUNDLE" node --test tests/ava-contextual-language-compiler.test.mjs
+ DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+ DELENDA_AVA_CHAT_EXPORT_BUNDLE="file://$CHAT_EXPORT_BUNDLE" node --test tests/ava-chat-export.test.mjs
+ DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
+diff --git a/tests/ava-contextual-language-compiler.test.mjs b/tests/ava-contextual-language-compiler.test.mjs
+new file mode 100644
+index 0000000..b06a21a
+--- /dev/null
++++ b/tests/ava-contextual-language-compiler.test.mjs
+@@ -0,0 +1,105 @@
++import assert from "node:assert/strict";
++import test from "node:test";
++
++const projectionBundle = process.env.DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE;
++const compilerBundle = process.env.DELENDA_AVA_CONTEXTUAL_COMPILER_BUNDLE;
++const gameBundle = process.env.DELENDA_AVA_GAME_BUNDLE;
++const contextBundle = process.env.DELENDA_AVA_CONTEXT_BUNDLE;
++if (!projectionBundle || !compilerBundle || !gameBundle || !contextBundle)
++  throw new Error("contextual compiler test bundles are required");
++
++const { buildAvaContextualLanguage } = await import(projectionBundle);
++const { compileAvaContextualLanguage } = await import(compilerBundle);
++const { initialState } = await import(gameBundle);
++const { avaEntitiesForState } = await import(contextBundle);
++
++const state = initialState({ seed: 1729 });
++const entities = avaEntitiesForState(state);
++const context = {
++  currentModule: "campaign",
++  entities,
++  language: buildAvaContextualLanguage(state, entities),
++};
++
++const compile = (input) => compileAvaContextualLanguage(i

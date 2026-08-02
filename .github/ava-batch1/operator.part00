@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+git config user.name "Delenda Quest Operator"
+git config user.email "actions@users.noreply.github.com"
+REPO_API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+
+gh_api() {
+  local method="$1" endpoint="$2" payload="${3:-}"
+  if [[ -n "$payload" ]]; then
+    curl --fail-with-body -sS -X "$method" \
+      -H "Authorization: Bearer ${GH_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      -H "Content-Type: application/json" \
+      --data-binary "@$payload" "${REPO_API}${endpoint}"
+  else
+    curl --fail-with-body -sS -X "$method" \
+      -H "Authorization: Bearer ${GH_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "${REPO_API}${endpoint}"
+  fi
+}
+
+create_remote_commit() {
+  local parent="$1" message="$2"
+  shift 2
+  local base_tree entries path mode blob_sha tree_sha commit_sha
+  base_tree="$(gh_api GET "/git/commits/${parent}" | jq -r .tree.sha)"
+  entries='[]'
+  for path in "$@"; do
+    if [[ -e "$path" ]]; then
+      mode="$(git ls-files -s -- "$path" | awk 'NR==1 {print $1}')"
+      [[ -n "$mode" ]] || mode=100644
+      base64 -w0 -- "$path" > /tmp/blob-content.b64
+      jq -Rs '{content:.,encoding:"base64"}' /tmp/blob-content.b64 > /tmp/blob.json
+      blob_sha="$(gh_api POST "/git/blobs" /tmp/blob.json | jq -r .sha)"
+      entries="$(jq -c --arg path "$path" --arg mode "$mode" --arg sha "$blob_sha" '. + [{path:$path,mode:$mode,type:"blob",sha:$sha}]' <<<"$entries")"
+    else
+      entries="$(jq -c --arg path "$path" '. + [{path:$path,mode:"100644",type:"blob",sha:null}]' <<<"$entries")"
+    fi
+  done
+  jq -n --arg base_tree "$base_tree" --argjson tree "$entries" '{base_tree:$base_tree,tree:$tree}' > /tmp/tree.json
+  tree_sha="$(gh_api POST "/git/trees" /tmp/tree.json | jq -r .sha)"
+  jq -n --arg message "$message" --arg tree "$tree_sha" --arg parent "$parent" '{message:$message,tree:$tree,parents:[$parent]}' > /tmp/commit.json
+  commit_sha="$(gh_api POST "/git/commits" /tmp/commit.json | jq -r .sha)"
+  printf "%s" "$commit_sha"
+}
+
+verify_manifest() {
+  local expected_file="$1"
+  git diff --cached --name-only | sort > /tmp/actual-manifest
+  sort "$expected_file" > /tmp/expected-manifest
+  diff -u /tmp/expected-manifest /tmp/actual-manifest
+}
+
+validate_all() {
+  bash scripts/test-ava.sh
+  npm test
+  npm run typecheck
+  npm run build
+  npm run build:ssh-gateway
+  npm run cloudflare:types
+  npm run cloudflare:validate
+  npm run lint
+  git diff --check
+  git diff --cached --check
+  git diff --exit-code
+}
+
+append_receipt() {
+  local node="$1" title="$2" base="$3" completed="$4" purpose="$5" changed="$6" contracts="$7" tests="$8" limitations="$9" next="${10}"
+  if [[ ! -f DELENDA_QUEST_UBERDOC.md ]]; then
+    printf '# DELENDA QUEST UBERDOC\n\nAppend-only implementation journal.\n' > DELENDA_QUEST_UBERDOC.md
+  fi
+  cat >> DELENDA_QUEST_UBERDOC.md <<EOF
+
+### AVA-LANGUAGE-N${node} / ${title}
+
+Base commit: ${base}
+
+Completed commit: ${completed}
+
+Purpose: ${purpose}
+
+Exact procedures executed: Applied the sealed node patch against the live repository owner, ran focused Ava validation, npm test, typecheck, web build, native SSH gateway build, Cloudflare type and dry-run validation, lint, and Git diff checks, then created the completed implementation commit through the GitHub object API.
+
+Changed files: ${changed}
+
+New semantic contracts: ${contracts}
+
+Tests added: ${tests}
+
+Validation results: All focused and full repository gates passed on GitHub Actions before the completed commit was recorded.
+
+Non-goals preserved: No deployment, production modification, shadow-worker modification, HTTP substitution for SSH, hidden-state disclosure, LLM matching, or state mutation.
+
+Known limitations: ${limitations}
+
+Next node handoff: ${next}
+EOF
+}
+
+echo "NODE-00 repository and ownership lock"
+git rev-parse --show-toplevel
+git status --short --branch
+git log -12 --oneline
+test -z "$(git status --short)"
+test -f app/ava/schema.ts
+test -f app/ava/compiler.ts
+test -f app/ava/game-context.ts
+test -f app/ava/nexus.ts
+grep -q "export type AvaCompilerContext" app/ava/schema.ts
+grep -q "export const compileAvaCommand" app/ava/compiler.ts
+grep -q "export const runAvaNexusLine" app/ava/nexus.ts
+grep -q "operationalObjectiveForProblemClass" app/campaign-substrate.ts
+validate_all
+
+remote_parent="${GITHUB_SHA}"
+
+echo "NODE-01 Define Ava contextual language boundary"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+git apply --index --whitespace=error-all ".github/ava-batch1/N1.patch"
+cat > /tmp/N1.manifest <<'EOF'
+app/ava/compiler.ts
+app/ava/contextual-language.ts
+app/ava/schema.ts
+packages/priorities-library/src/schema.ts
+scripts/test-ava.sh
+tests/ava-contextual-language-contracts.test.mjs
+EOF
+verify_manifest /tmp/N1.manifest
+validate_all
+git commit -m "Define Ava contextual language boundary"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Define Ava contextual language boundary" "app/ava/compiler.ts" "app/ava/contextual-language.ts" "app/ava/schema.ts" "packages/priorities-library/src/schema.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-contracts.test.mjs")"
+append_receipt "1" "Define Ava contextual language boundary" "$remote_parent" "$completed_remote" "Establish the pure contextual-language contract and runtime validation boundary." "app/ava/compiler.ts, app/ava/contextual-language.ts, app/ava/schema.ts, packages/priorities-library/src/schema.ts, scripts/test-ava.sh, tests/ava-contextual-language-contracts.test.mjs" "Typed contextual-language contracts, optional compiler projection, and priority-intent-bearing read-only advice." "ava-contextual-language-contracts.test.mjs" "Static catalog and command behavior remain deferred." "NODE-02: deterministic normalization, digesting, collision validation, and static catalog."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAG

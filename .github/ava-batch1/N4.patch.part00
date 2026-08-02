@@ -1,0 +1,142 @@
+diff --git a/app/ava/contextual-language-projection.ts b/app/ava/contextual-language-projection.ts
+new file mode 100644
+index 0000000..d106f7d
+--- /dev/null
++++ b/app/ava/contextual-language-projection.ts
+@@ -0,0 +1,80 @@
++import { operationalObjectiveForProblemClass } from "../campaign-substrate";
++import type { GameState } from "../game";
++import { cognitiveDigest } from "./cognitive-types";
++import { AVA_STATIC_LANGUAGE_CATALOG } from "./contextual-language-catalog";
++import {
++  AVA_CONTEXTUAL_LANGUAGE_VERSION,
++  stableLanguageDigest,
++  validateContextualLanguage,
++  type AvaContextualLanguage,
++  type AvaLanguageEntry,
++} from "./contextual-language";
++import { avaRequestStateSeal } from "./request-ir";
++import type { AvaEntity } from "./schema";
++
++const objectiveSurfaces = Object.freeze([
++  "goal",
++  "goals",
++  "objective",
++  "objectives",
++  "operational objective",
++  "command objective",
++  "what is the goal",
++  "what are our goals",
++]);
++
++export const buildAvaContextualLanguage = (
++  state: GameState,
++  entities: readonly AvaEntity[],
++): AvaContextualLanguage => {
++  const situation =
++    state.currentSituation?.day === state.day ? state.currentSituation : null;
++  const objective = situation
++    ? operationalObjectiveForProblemClass(situation.problemClass)
++    : null;
++  const hasObjectiveEntity = entities.some(
++    (entity) => entity.id === "campaign-objective" && !entity.action,
++  );
++  const dynamicEntries: AvaLanguageEntry[] = [];
++
++  if (situation && objective && hasObjectiveEntity)
++    dynamicEntries.push({
++      id: "objective.current",
++      label: objective,
++      surfaces: objectiveSurfaces,
++      route: "OBJECTIVE_EXPLANATION",
++      entityId: "campaign-objective",
++      facet: "meaning",
++      source: "CURRENT_SITUATION",
++      provenance: [
++        "currentSituation.problemClass",
++        "operationalObjectiveForProblemClass",
++      ],
++    });
++
++  const entries = [...AVA_STATIC_LANGUAGE_CATALOG, ...dynamicEntries];
++  const stateRevision = avaRequestStateSeal(state);
++  const contentRevision = cognitiveDigest({
++    contentPackVersion: state.contentPackVersion,
++    day: situation?.day ?? null,
++    blueprintId: situation?.blueprintId ?? null,
++    problemClass: situation?.problemClass ?? null,
++    sector: situation?.sector ?? null,
++    objective,
++  });
++  const digest = stableLanguageDigest({
++    version: AVA_CONTEXTUAL_LANGUAGE_VERSION,
++    stateRevision,
++    contentRevision,
++    entries,
++  });
++  const language: AvaContextualLanguage = {
++    version: AVA_CONTEXTUAL_LANGUAGE_VERSION,
++    stateRevision,
++    contentRevision,
++    entries,
++    digest,
++  };
++  validateContextualLanguage(language);
++  return language;
++};
+diff --git a/app/ava/game-context.ts b/app/ava/game-context.ts
+index 036fbb2..1565344 100644
+--- a/app/ava/game-context.ts
++++ b/app/ava/game-context.ts
+@@ -1,4 +1,5 @@
+ import { GameState, situationForState } from "../game";
++import { operationalObjectiveForProblemClass } from "../campaign-substrate";
+ import { compileConvergence } from "../convergence";
+ import type { AvaEntity } from "./schema";
+ import { enumerateAvaActions } from "./runtime";
+@@ -153,6 +154,26 @@ export const avaEntitiesForState = (
+       aliases: [situation.sector, situation.problemClass],
+       parentId: "main",
+     },
++    ...(state.currentSituation?.day === state.day
++      ? [
++          {
++            id: "campaign-objective",
++            kind: "mission" as const,
++            label: operationalObjectiveForProblemClass(
++              state.currentSituation.problemClass,
++            ),
++            aliases: [
++              "goal",
++              "goals",
++              "objective",
++              "objectives",
++              "operational objective",
++              "command objective",
++            ],
++            parentId: "main",
++          },
++        ]
++      : []),
+     ...actionEntities,
+   ];
+ };
+diff --git a/scripts/test-ava.sh b/scripts/test-ava.sh
+index 9bfe2ee..820e548 100755
+--- a/scripts/test-ava.sh
++++ b/scripts/test-ava.sh
+@@ -16,7 +16,8 @@ INLINE_TOKENS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-inline-tokens.XXXXXX.mj
+ CONTEXTUAL_LANGUAGE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-language.XXXXXX.mjs")"
+ CONTEXTUAL_CATALOG_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-catalog.XXXXXX.mjs")"
+ PRIORITIES_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-priorities-contextual.XXXXXX.mjs")"
+-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE" "$PRIORITIES_BUNDLE"' EXIT
++CONTEXTUAL_PROJECTION_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-projection.XXXXXX.mjs")"
++trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE" "$PRIORITIES_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE"' EXIT
+ 
+ node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
+@@ -31,11 +32,13 @@ node_modules/.bin/esbuild app/ava/inline-tokens.ts --bundle --platform=node --fo
+ node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_LANGUAGE_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/contextual-language-catalog.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_CATALOG_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild packages/priorities-library/src/index.ts --bundle --platform=node --format=esm --outfile="$PRIORITIES_BUNDLE" >/dev/null
++node_modules/.bin/esbuild app/ava

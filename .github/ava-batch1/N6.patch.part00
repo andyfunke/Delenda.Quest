@@ -1,0 +1,130 @@
+diff --git a/app/ava/compiler.ts b/app/ava/compiler.ts
+index f3e71f4..9a4691b 100644
+--- a/app/ava/compiler.ts
++++ b/app/ava/compiler.ts
+@@ -8,6 +8,7 @@ import type {
+   AvaModule,
+   AvaReportTopic,
+ } from "./schema";
++import { compileAvaContextualLanguage } from "./contextual-language-compiler";
+ import {
+   compileSemanticQuery,
+   genericSemanticQuery,
+@@ -46,7 +47,7 @@ export type {
+   GrammarSpec,
+ } from "./grammar";
+ export { AVA_COMMAND_HELP } from "./schema";
+-export { compileAvaContextualLanguage } from "./contextual-language-compiler";
++export { compileAvaContextualLanguage };
+ export {
+   validateContextualLanguage,
+   validateLanguageEntries,
+@@ -1141,13 +1142,6 @@ function compileLegacyCommand(
+       ) || undefined;
+     return compiled(input, "help", { kind: "HELP", subject });
+   }
+-  if (/^(condition|phase|field condition|current condition)$/.test(input))
+-    return compiled(input, "condition-report", {
+-      kind: "REPORT",
+-      topic: "overview",
+-      scope: "current",
+-    });
+-
+   if (
+     /^confirm(?: [a-z0-9]+)*$/.test(input) ||
+     /^(yes|yes issue it|yes do it)$/.test(input)
+@@ -1554,6 +1548,8 @@ export function compileAvaCommand(
+         },
+       },
+     );
++  const contextual = compileAvaContextualLanguage(raw, context);
++  if (contextual) return contextual;
+   if (semantic.clarification)
+     return applySemanticTrace(
+       {
+diff --git a/app/ava/nexus.ts b/app/ava/nexus.ts
+index 05fc8bd..a4bc4e4 100644
+--- a/app/ava/nexus.ts
++++ b/app/ava/nexus.ts
+@@ -25,6 +25,7 @@ import {
+   isAvaConfirmationInput,
+ } from "./compiler";
+ import { genericSemanticQuery } from "./grammar";
++import { buildAvaContextualLanguage } from "./contextual-language-projection";
+ import { avaEntitiesForState } from "./game-context";
+ import type {
+   AvaCompileResult,
+@@ -2881,20 +2882,22 @@ export const runAvaNexusLine = (
+     state,
+     opportunityFraction,
+   );
++  const compilerContext = {
++    currentModule: session.currentModule,
++    entities: visible.entities,
++    discourse: session.terminal.discourse,
++    language: buildAvaContextualLanguage(visible.state, visible.entities),
++    shellFileReferences: avaShellFileReferences(
++      visible.state,
++      session.terminal.shell,
++      opportunityFraction,
++    ),
++    shellEditor: session.terminal.shell.editor?.program,
++  };
+   const docketInstruction = exactDocketInstruction(raw, input);
+   const compile = docketInstruction
+     ? null
+-    : compileAvaCommand(raw, {
+-        currentModule: session.currentModule,
+-        entities: visible.entities,
+-        discourse: session.terminal.discourse,
+-        shellFileReferences: avaShellFileReferences(
+-          visible.state,
+-          session.terminal.shell,
+-          opportunityFraction,
+-        ),
+-        shellEditor: session.terminal.shell.editor?.program,
+-      });
++    : compileAvaCommand(raw, compilerContext);
+   if (compile?.status === "clarify") {
+     const nextSession = {
+       ...session,
+@@ -2911,10 +2914,7 @@ export const runAvaNexusLine = (
+       instruction: { kind: "HELP" },
+       semantic:
+         compile.semantic ??
+-        compileAvaCommand("help", {
+-        currentModule: session.currentModule,
+-        entities: visible.entities,
+-        }).semantic!,
++        compileAvaCommand("help", compilerContext).semantic!,
+       trace: compile.trace,
+       expectedStateSeal,
+     });
+@@ -2933,15 +2933,8 @@ export const runAvaNexusLine = (
+     compile?.status === "compiled"
+       ? compile.semantic
+       : docketInstruction
+-        ? genericSemanticQuery(docketInstruction, {
+-            currentModule: session.currentModule,
+-            entities: visible.entities,
+-            discourse: session.terminal.discourse,
+-          })
+-      : compileAvaCommand("help", {
+-          currentModule: session.currentModule,
+-          entities: visible.entities,
+-        }).semantic!;
++        ? genericSemanticQuery(docketInstruction, compilerContext)
++      : compileAvaCommand("help", compilerContext).semantic!;
+   const mode =
+     instruction.kind === "STORYTELLER"
+       ? "storyteller"
+diff --git a/scripts/test-substrate.sh b/scripts/test-substrate.sh
+index 1a30593..d2ed9fd 100755
+--- a/scripts/test-substrate.sh
++++ b/scripts/test-substrate.sh
+@@ -66,4 +66,4 @@ DELENDA_AVA_RUNTIME_BUNDLE="file://$AVA_RUNTIME_BUNDLE" \
+ DELENDA_AVA_PROJECTION_BUNDLE="file://$AVA_PROJECTION_BUNDLE" \
+ DELENDA_EMAIL_NEXUS_BUNDLE="file://$EMAIL_NEXUS_BUNDLE" \
+ DELENDA_CREDENTIAL_BUNDLE="file://$CREDENTIAL_BUNDLE" \
+-node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/credential.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs
++node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/credential.test.mjs tests/ava-nexus.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs
