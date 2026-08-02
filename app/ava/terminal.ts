@@ -55,6 +55,7 @@ import { projectAvaEnvelope } from "./projection";
 import { avaVisibleWorldRevision } from "./world-model";
 import type { AvaDarkNetContext } from "./darknet";
 import type { CanonicalProofGraph } from "./proof-graph";
+import type { AvaOperationalSemanticResult } from "./operational-contracts";
 import type {
   AvaCognitiveCausalGuidance,
   AvaCognitiveConstraintGuidance,
@@ -113,6 +114,7 @@ export type AvaTerminalResult = {
   };
   answerPlan?: AvaAnswerPlan;
   proofGraph?: CanonicalProofGraph;
+  operationalSemantics?: AvaOperationalSemanticResult;
   trace?: {
     compiler?: AvaCompilerTrace;
     semantic?: AvaSemanticQuery;

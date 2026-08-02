@@ -47,6 +47,10 @@ test("native OpenSSH gateway retains canonical Nexus receipt and proof parity", 
   assert.equal(throughGateway.publicResult.status, direct.response.status);
   assert.equal(throughGateway.publicResult.text, direct.text);
   assert.deepEqual(
+    throughGateway.publicResult.operationalSemantics,
+    direct.operationalSemantics,
+  );
+  assert.deepEqual(
     throughGateway.publicResult.cognitiveAttestation.cognitiveActivation,
     direct.cognitiveActivation,
   );
@@ -74,7 +78,7 @@ test("native OpenSSH gateway retains canonical Nexus receipt and proof parity", 
   );
   assert.deepEqual(
     Object.keys(throughGateway.publicResult).sort(),
-    ["cognitiveAttestation", "status", "text"],
+    ["cognitiveAttestation", "operationalSemantics", "status", "text"],
   );
   assert.deepEqual(
     Object.keys(throughGateway.publicResult.cognitiveAttestation).sort(),

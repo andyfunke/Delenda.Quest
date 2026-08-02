@@ -24,6 +24,7 @@ import type {
 import { semanticQueriesEqual } from "./grammar-compiler";
 import { genericSemanticQuery } from "./grammar";
 import type { CanonicalProofGraph } from "./proof-graph";
+import type { AvaOperationalSemanticResult } from "./operational-contracts";
 import type { CognitiveAuthority } from "./cognitive-types";
 import type {
   CognitiveOperatorSpec,
@@ -187,6 +188,7 @@ export type AvaResponseEnvelope = {
   response: SemanticResponse<unknown>;
   proofGraph: CanonicalProofGraph;
   cognitiveActivation?: AvaCognitiveActivationReceipt;
+  operationalSemantics?: AvaOperationalSemanticResult;
   presentation: AvaEnvelopePresentation;
 };
 

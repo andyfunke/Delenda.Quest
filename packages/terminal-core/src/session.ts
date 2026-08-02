@@ -6,6 +6,7 @@ import type {
 import type { ParserDiscourse } from "../../../app/substrate/command-parser";
 import type { CanonicalProofGraph } from "../../../app/ava/proof-graph";
 import type { AvaCognitiveActivationReceipt } from "../../../app/ava/request-ir";
+import type { AvaOperationalSemanticResult } from "../../../app/ava/operational-contracts";
 import {
   createAvaNexusSession,
   runAvaNexusLine,
@@ -41,6 +42,7 @@ export const runTerminalLine = (
   text: string;
   proofGraph: CanonicalProofGraph;
   cognitiveActivation?: AvaCognitiveActivationReceipt;
+  operationalSemantics?: AvaOperationalSemanticResult;
 } => {
   const result = runAvaNexusLine(line, ctx, state, session);
   return {
@@ -55,6 +57,7 @@ export const runTerminalLine = (
     text: result.text,
     proofGraph: result.proofGraph,
     cognitiveActivation: result.cognitiveActivation,
+    operationalSemantics: result.operationalSemantics,
   };
 };
 

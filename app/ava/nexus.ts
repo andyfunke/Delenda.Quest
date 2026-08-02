@@ -89,6 +89,8 @@ import { canonicalJson, cognitiveDigest } from "./cognitive-types";
 import { avaVisibleWorldRevision } from "./world-model";
 import { projectAvaDisclosedState } from "./projection";
 import { buildAvaContextualLanguage } from "./contextual-language-projection";
+import { projectAvaOperationalSemantics } from "./operational-semantics";
+import type { AvaOperationalSemanticResult } from "./operational-contracts";
 
 type DirectiveChannel = Extract<
   Channel,
@@ -252,6 +254,7 @@ export type AvaNexusResult = {
   terminalResult?: AvaTerminalResult;
   proofGraph: CanonicalProofGraph;
   cognitiveActivation?: AvaCognitiveActivationReceipt;
+  operationalSemantics?: AvaOperationalSemanticResult;
 };
 
 export type AvaKernelResult = AvaNexusResult;
@@ -457,6 +460,9 @@ const oldAvaResponse = (
     answerPlan: result.answerPlan,
     report: result.report,
     navigate: result.navigate,
+    ...(result.operationalSemantics
+      ? { operationalSemantics: result.operationalSemantics }
+      : {}),
   },
   rendering: {
     compact: instruction.kind,
@@ -678,6 +684,7 @@ const withEnvelope = (
       response: result.response,
       proofGraph,
       cognitiveActivation: cognition?.cognitiveActivation,
+      operationalSemantics: result.operationalSemantics,
       presentation: terminalPresentation(
         result.text,
         retainedTerminalResult,
@@ -732,6 +739,9 @@ const resultFromTerminal = (
   response: oldAvaResponse(state, terminalResult, instruction),
   text: terminalResult.text,
   terminalResult,
+  ...(terminalResult.operationalSemantics
+    ? { operationalSemantics: terminalResult.operationalSemantics }
+    : {}),
 });
 
 const isConsequentialInstruction = (instruction: AvaInstruction) =>
@@ -2087,6 +2097,41 @@ const executeInstructionRequest = (
         authorityIssue,
         "The executed effect was rejected at the Nexus authority boundary.",
       );
+  }
+  if (!terminalResult.executed) {
+    try {
+      const operationalSemantics = projectAvaOperationalSemantics({
+        state,
+        opportunityFraction,
+        query: request.semantic,
+        instruction,
+        trace: request.trace,
+        cognitiveGuidance,
+        cognitiveForecast,
+      });
+      if (operationalSemantics)
+        terminalResult = {
+          ...terminalResult,
+          operationalSemantics,
+        };
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          message: "Ava operational semantic projection rejected",
+          error: error instanceof Error ? error.message : "Unknown projection error",
+          operation: request.semantic.operation,
+        }),
+      );
+      return retainCognition(
+        responseFailure(
+          state,
+          session,
+          "REJECTED",
+          "OPERATIONAL_SEMANTIC_PROJECTION_REJECTED",
+          "Ava could not expose a typed read-only semantic result. Campaign state was not changed.",
+        ),
+      );
+    }
   }
   return retainCognition(
     resultFromTerminal(

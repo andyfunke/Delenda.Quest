@@ -4,6 +4,7 @@ import {
   type AvaNexusSession,
 } from "../../../app/ava/nexus";
 import type { AvaCognitiveActivationReceipt } from "../../../app/ava/request-ir";
+import type { AvaOperationalSemanticResult } from "../../../app/ava/operational-contracts";
 import {
   canonicalJson,
   cognitiveDigest,
@@ -24,6 +25,7 @@ export type NativeSshGatewayCognitiveAttestation = {
 export type NativeSshGatewayPublicResult = {
   status: SemanticResponse<unknown>["status"];
   text: string;
+  operationalSemantics?: AvaOperationalSemanticResult;
   cognitiveAttestation?: NativeSshGatewayCognitiveAttestation;
   archiveRequest?: {
     operation: "search" | "maps" | "photos" | "open" | "cite" | "save" | "analog";
@@ -202,6 +204,9 @@ export const executeNativeSshGatewayLine = (input: {
     publicResult: Object.freeze({
       status: result.response.status,
       text: result.text,
+      ...(result.operationalSemantics
+        ? { operationalSemantics: result.operationalSemantics }
+        : {}),
       ...(result.envelope.presentation.archiveRequest
         ? { archiveRequest: result.envelope.presentation.archiveRequest }
         : {}),
