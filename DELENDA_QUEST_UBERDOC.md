@@ -216,3 +216,41 @@ authorities.
 
 Next node handoff: extend the declared catalog with the packet's missing
 read-only aliases and verify collision-free deterministic ownership.
+
+### AVA-LANGUAGE-002-N02 / deterministic contextual catalog
+
+Base commit: `98d23f6b6c34a52a70a429868241328d8e81d772`
+
+Completed commit: `c1c87cf8209f010f7d17b38d5cf847a24d47abc4`
+
+Purpose: Expand the finite contextual vocabulary so the declared packet
+surfaces resolve through one static owner while preserving current-main
+ontology and priority authorities.
+
+Exact procedures executed:
+
+- Added territory/ground and advance/breakthrough aliases.
+- Added front/frontline/kilometer/distance aliases.
+- Added adversary, condition, objective, and strategic-advice aliases.
+- Added collision and digest-change regression coverage.
+
+Changed files: `app/ava/contextual-language-catalog.ts`,
+`tests/ava-contextual-language.test.mjs`, and the Epoch 002 NODE-02 record.
+
+New semantic contracts: normalized static surfaces have exactly one owner;
+catalog changes alter the content-addressed contextual language digest.
+
+Tests added: static owner map and digest mutation proof.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (222/222); `git diff --check` PASS.
+
+Non-goals preserved: no new parser, no client-local dictionaries, no mutation
+routes, no stale `PriorityAxis` package, no deployment or GitHub push.
+
+Known limitations: `advance` lowers to the live `initiative` plus
+`territorial_control` dimensions rather than the absent handoff-only `attack`
+and `territory` axis names.
+
+Next node handoff: verify the live strategic-dimension lowering remains
+deterministic and bounded.
