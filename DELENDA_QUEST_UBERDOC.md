@@ -564,3 +564,26 @@ ref was changed.
 Next node handoff: exhaustive generated corpus proof, canonical doctrine and
 feature-ledger documentation, full repository gates, manifest, and final
 receipt.
+
+### AVA-LANGUAGE-003-N20 / exhaustive typed operational Ava proof
+
+Base commit: `85cfe3b`
+
+Completed commit: `c41dc9b`
+
+Command/result: generated static and authored corpus tests, then ran `npm
+test`, `npm run typecheck`, `npm run build:ssh-gateway`, `npm run
+cloudflare:types`, `npm run cloudflare:validate`, `npm run lint`, and `git
+diff --check`. All gates passed: substrate 234/234, full repository suites
+green, Cloudflare types/dry-run green, and lint 0 errors with 23 warnings.
+
+Integrity: static owners retained precedence; current maneuver evidence kept
+stable identity, exact source, section, order, and provenance; same-identity
+phrases merged evidence; distinct identities clarified; absent declared
+references were unavailable rather than generic; and web/terminal/native SSH
+reads remained non-mutating. The native SSH path was the session core, not
+HTTP. The SHA-256 source manifest is generated and verified in the following
+seal commit.
+
+Release boundary: no GitHub push, Cloudflare deployment, D1 write, shadow
+mutation, secret movement, HTTP SSH path, or destructive Git recovery.
