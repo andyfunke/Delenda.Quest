@@ -124,6 +124,15 @@ const phraseCandidates = (source: AvaAuthoredBriefingSource) => {
         candidates.push({ text: phrase, start, end });
     }
   }
+  // Full typed labels/titles remain addressable even when their authored
+  // surface is longer than the bounded free-span window.
+  if (source.exactTypedLabel && tokens.length > 8) {
+    candidates.push({
+      text: source.text,
+      start: tokens[0].start,
+      end: tokens.at(-1)!.end,
+    });
+  }
   return candidates;
 };
 

@@ -1480,12 +1480,18 @@ export function compileAvaCommand(
   context: AvaCompilerContext,
 ): AvaCompileResult {
   const semantic = compileSemanticQuery(raw, context);
+  const contextualBeforeShell = matchAvaContextualLanguage(raw, context);
   const shell = parseAvaShellInput(
     raw,
     context.shellFileReferences,
     context.shellEditor,
   );
-  if (shell) {
+  const authoredManeuverReference =
+    contextualBeforeShell?.status === "compiled" &&
+    contextualBeforeShell.value.match.entry.source === "AUTHORED_BRIEF" &&
+    contextualBeforeShell.value.match.entry.route === "NARRATIVE_REFERENCE" &&
+    !!contextualBeforeShell.value.match.entry.maneuverId;
+  if (shell && !authoredManeuverReference) {
     const instruction: AvaInstruction = { kind: "SHELL", shell };
     return {
       status: "compiled",
@@ -1564,7 +1570,43 @@ export function compileAvaCommand(
         },
       },
     );
-  const contextual = matchAvaContextualLanguage(raw, context);
+  const negatedAuthoredReference = /^(?:do not|dont|never|not|stop)\s+(.+)$/i.exec(
+    normalized,
+  );
+  if (negatedAuthoredReference) {
+    const referenced = matchAvaContextualLanguage(
+      negatedAuthoredReference[1],
+      context,
+    );
+    if (
+      referenced?.status === "compiled" &&
+      referenced.value.match.entry.source === "AUTHORED_BRIEF" &&
+      referenced.value.match.entry.route === "NARRATIVE_REFERENCE" &&
+      referenced.value.match.entry.maneuverId
+    )
+      return applySemanticTrace(
+        {
+          status: "clarify",
+          failure: "unsupported-combination",
+          prompt:
+            "I recognized a negated authored maneuver reference. Negation cannot authorize, invert, or select a maneuver; ask for the disclosed reference without a command prefix.",
+          semantic: {
+            ...semantic.query,
+            polarity: "NEGATED",
+          },
+          trace: trace("negated-authored-maneuver", raw, [], semantic),
+        },
+        raw,
+        {
+          ...semantic,
+          query: {
+            ...semantic.query,
+            polarity: "NEGATED",
+          },
+        },
+      );
+  }
+  const contextual = contextualBeforeShell;
   if (contextual?.status === "ambiguous")
     return (() => {
       const contextualTrace = trace(

@@ -9,6 +9,9 @@ const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
 const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
 const terminal = await import(process.env.DELENDA_TERMINAL_CORE_BUNDLE);
 const gameContext = await import(process.env.DELENDA_AVA_CONTEXT_BUNDLE);
+const sshGateway = process.env.DELENDA_SSH_GATEWAY_BUNDLE
+  ? await import(process.env.DELENDA_SSH_GATEWAY_BUNDLE)
+  : null;
 
 const entities = [
   { id: "front", kind: "metric", label: "Campaign Front" },
@@ -368,5 +371,289 @@ test("consequential and negated neighbors never become contextual advice", () =>
     assert.notEqual(result.compile?.instruction?.kind, "ADVISE", raw);
     assert.deepEqual(result.state, beforeState, raw);
     assert.deepEqual(result.session.terminal.plan, beforePlan, raw);
+  }
+});
+
+test("typed operational owners remain exact, disclosed, and non-actionable", () => {
+  const state = game.initialState({ seed: 1729 });
+  const before = structuredClone(state);
+  const contextual = projection.buildAvaContextualLanguage(
+    state,
+    gameContext.avaEntitiesForState(state),
+  );
+  const expected = new Map([
+    ["formation", "formation"],
+    ["FORMATION", "formation"],
+    ["formation-", "formation"],
+    ["reserve", "reserve"],
+    ["replacement reserve", "reserve"],
+    ["route", "route"],
+    ["supply-route", "route"],
+    ["opening", "opening"],
+    ["breakthrough opening", "opening"],
+  ]);
+  for (const [raw, entityId] of expected) {
+    const result = compiler.compileAvaCommand(
+      raw,
+      compilerContext(state, contextual),
+    );
+    assert.equal(result.status, "compiled", raw);
+    assert.equal(result.instruction.kind, "EXPLAIN", raw);
+    assert.equal(result.instruction.contextual.entityId, entityId, raw);
+    assert.equal(result.instruction.entity.id, entityId, raw);
+    assert.equal(result.instruction.entity.action, undefined, raw);
+    assert.match(result.trace.rule, /^CONTEXTUAL_LANGUAGE:/, raw);
+  }
+  assert.deepEqual(state, before);
+  assert.doesNotMatch(JSON.stringify(contextual), /resolutionTicket|hiddenOrders|actionHandler/);
+});
+
+test("maneuver evidence is projected by stable identity with exact source order", () => {
+  const state = game.initialState({ seed: 1729 });
+  const before = structuredClone(state);
+  const records = projection.projectAvaAuthoredManeuverEvidence(state);
+  assert.ok(records.length > 0);
+  assert.ok(records.every((record) => record.maneuverId && record.provenance.length));
+  assert.ok(records.every((record) => record.labelEvidence?.phrase === record.label));
+  assert.ok(records.every((record) => record.presentationEvidence?.section === "maneuver-presentation"));
+  assert.ok(records.every((record) => record.rationaleEvidence?.section === "maneuver-rationale"));
+  assert.doesNotMatch(JSON.stringify(records), /resolutionTicket|hiddenOrders|realizationId|successPressure/);
+
+  const contextual = projection.buildAvaContextualLanguage(
+    state,
+    gameContext.avaEntitiesForState(state),
+  );
+  const same = projection.buildAvaContextualLanguage(
+    structuredClone(state),
+    gameContext.avaEntitiesForState(state),
+  );
+  assert.equal(contextual.digest, same.digest);
+  const record = records[0];
+  for (const kind of ["maneuver-label", "maneuver-rationale", "maneuver-presentation"]) {
+    const candidate = contextual.entries.find(
+      (entry) => entry.maneuverId === record.maneuverId && entry.evidenceKind === kind,
+    );
+    assert.ok(candidate, `${record.maneuverId}/${kind}`);
+    assert.ok(candidate.evidence?.some((item) => item.section === kind));
+    const result = compiler.compileAvaCommand(
+      candidate.label,
+      compilerContext(state, contextual),
+    );
+    assert.equal(result.status, "compiled", `${record.maneuverId}/${kind}`);
+    assert.equal(result.instruction.kind, "EXPLAIN");
+    assert.equal(result.instruction.contextual.route, "NARRATIVE_REFERENCE");
+    assert.equal(result.instruction.contextual.maneuverId, record.maneuverId);
+    assert.equal(result.trace.maneuverId, record.maneuverId);
+    assert.ok(result.trace.authoredEvidence?.length);
+    assert.equal(result.trace.exactIndexHit, true);
+  }
+  assert.deepEqual(state, before);
+});
+
+test("authored maneuver references preserve static precedence and structured availability", () => {
+  const state = game.initialState({ seed: 1729 });
+  const contextual = projection.buildAvaContextualLanguage(
+    state,
+    gameContext.avaEntitiesForState(state),
+  );
+  const staticWinner = compiler.compileAvaCommand(
+    "advance",
+    compilerContext(state, contextual),
+  );
+  assert.equal(staticWinner.status, "compiled");
+  assert.equal(staticWinner.instruction.contextual.entryId, "priority.advance");
+
+  const unavailable = compiler.compileAvaCommand(
+    "future freedom",
+    compilerContext(state, contextual),
+  );
+  assert.equal(unavailable.status, "clarify");
+  assert.equal(unavailable.failure, "AUTHORED_REFERENCE_UNAVAILABLE");
+  assert.equal(unavailable.trace.availability, "UNAVAILABLE");
+  assert.equal(unavailable.trace.declarationId, "declared.authored.future-freedom");
+  assert.equal(unavailable.trace.exactIndexHit, false);
+  assert.match(unavailable.prompt, /not present in the current disclosed authored briefing/i);
+
+  const altered = {
+    ...state,
+    currentSituation: {
+      ...state.currentSituation,
+      briefing: "Future freedom is an authored phrase in this visible briefing.",
+    },
+  };
+  const present = projection.buildAvaContextualLanguage(
+    altered,
+    gameContext.avaEntitiesForState(altered),
+  );
+  const available = compiler.compileAvaCommand(
+    "FUTURE-FREEDOM",
+    compilerContext(altered, present),
+  );
+  assert.equal(available.status, "compiled");
+  assert.equal(available.instruction.contextual.route, "NARRATIVE_REFERENCE");
+  assert.equal(available.trace.availability, "AVAILABLE");
+  assert.match(available.instruction.contextual.evidence[0].excerpt, /Future freedom/);
+});
+
+test("authored identity collisions are deterministic ambiguity, not action selection", () => {
+  const state = game.initialState({ seed: 1729 });
+  const ambiguousLanguage = language.sealAvaContextualLanguage({
+    stateRevision: "test-state",
+    contentRevision: "test-content",
+    entries: [
+      {
+        id: "maneuver.a.reference",
+        route: "NARRATIVE_REFERENCE",
+        label: "Shared line",
+        aliases: ["shared line"],
+        source: "AUTHORED_BRIEF",
+        entityId: "campaign-synopsis",
+        maneuverId: "a",
+        maneuverLabel: "Shared line",
+        evidenceKind: "maneuver-label",
+        provenance: ["test.a"],
+        evidence: [{ section: "maneuver-label", phrase: "Shared line", excerpt: "Shared line" }],
+      },
+      {
+        id: "maneuver.b.reference",
+        route: "NARRATIVE_REFERENCE",
+        label: "Shared line",
+        aliases: ["shared line"],
+        source: "AUTHORED_BRIEF",
+        entityId: "campaign-synopsis",
+        maneuverId: "b",
+        maneuverLabel: "Shared line",
+        evidenceKind: "maneuver-label",
+        provenance: ["test.b"],
+        evidence: [{ section: "maneuver-label", phrase: "Shared line", excerpt: "Shared line" }],
+      },
+    ],
+  });
+  const result = compiler.compileAvaCommand(
+    "shared line",
+    compilerContext(state, ambiguousLanguage),
+  );
+  assert.equal(result.status, "clarify");
+  assert.equal(result.failure, "ambiguous-target");
+  assert.equal(result.trace.exactIndexHit, true);
+  assert.deepEqual(result.trace.contextualCandidates, [
+    "maneuver.a.reference",
+    "maneuver.b.reference",
+  ]);
+  assert.equal(result.trace.maneuverId, undefined);
+});
+
+test("maneuver references render exact evidence and preserve web-terminal-native-SSH parity", () => {
+  assert.ok(sshGateway);
+  const state = game.initialState({ seed: 1729 });
+  const before = structuredClone(state);
+  const entitiesForState = gameContext.avaEntitiesForState(state);
+  const contextual = projection.buildAvaContextualLanguage(state, entitiesForState);
+  const entry = contextual.entries.find(
+    (candidate) => candidate.evidenceKind === "maneuver-presentation",
+  );
+  assert.ok(entry);
+
+  const contextForSurface = (surface) => ({
+    playerId: "epoch-003-parity",
+    campaignId: state.campaignId,
+    campaignRevision: nexus.avaNexusStateRevision(state),
+    surface,
+    authority: "observer",
+    nowMs: 1_700_010_000_000,
+  });
+  const web = nexus.runAvaNexusLine(
+    entry.label,
+    contextForSurface("web"),
+    state,
+    nexus.createAvaNexusSession(),
+  );
+  const terminalResult = terminal.runTerminalLine(
+    entry.label,
+    contextForSurface("ssh"),
+    state,
+    terminal.createTerminalSession(),
+  );
+  const sshResult = sshGateway.executeNativeSshGatewayLine({
+    raw: entry.label,
+    state,
+    session: nexus.createAvaNexusSession(),
+    playerId: "epoch-003-parity",
+    nowMs: 1_700_010_000_000,
+  });
+  assert.equal(web.compile.status, "compiled");
+  assert.equal(web.compile.instruction.contextual.route, "NARRATIVE_REFERENCE");
+  assert.match(web.text, /MANEUVER REFERENCE/);
+  assert.match(web.text, new RegExp(entry.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(web.text, /AUTHORED LANGUAGE/);
+  assert.equal(terminalResult.text, web.text);
+  assert.equal(sshResult.publicResult.text, web.text);
+  assert.equal(sshResult.publicResult.cognitiveAttestation.proofDigest, web.proofGraph.digest);
+  assert.equal(sshResult.changed, false);
+  assert.deepEqual(state, before);
+});
+
+test("the expanded maneuver corpus preserves normalization, action precedence, and hidden-state boundaries", () => {
+  const state = game.initialState({ seed: 1729 });
+  const entitiesForState = gameContext.avaEntitiesForState(state);
+  const contextual = projection.buildAvaContextualLanguage(state, entitiesForState);
+  const records = projection.projectAvaAuthoredManeuverEvidence(state);
+  assert.ok(records.length > 0);
+
+  for (const record of records) {
+    for (const phrase of [
+      record.labelEvidence?.phrase,
+      record.presentationEvidence?.phrase,
+    ]) {
+      if (!phrase) continue;
+      for (const variant of [
+        phrase,
+        phrase.toUpperCase(),
+        phrase.replaceAll(" ", "-"),
+        `  ${phrase}  `,
+      ]) {
+        const result = compiler.compileAvaCommand(
+          variant,
+          compilerContext(state, contextual),
+        );
+        assert.equal(result.status, "compiled", variant);
+        assert.equal(result.instruction.kind, "EXPLAIN", variant);
+        assert.equal(result.instruction.contextual.maneuverId, record.maneuverId);
+        assert.equal(result.instruction.contextual.route, "NARRATIVE_REFERENCE");
+      }
+    }
+  }
+
+  const exactLabel = records[0].presentationEvidence?.phrase ?? records[0].label;
+  for (const prefix of ["issue", "stage", "prepare", "confirm"]) {
+    const result = compiler.compileAvaCommand(
+      `${prefix} ${exactLabel}`,
+      compilerContext(state, contextual),
+    );
+    assert.notEqual(result.status === "compiled" && result.instruction.kind === "EXPLAIN", true, prefix);
+    assert.notEqual(result.status === "compiled" && result.instruction.contextual?.route === "NARRATIVE_REFERENCE", true, prefix);
+  }
+  const negated = compiler.compileAvaCommand(
+    `do not ${exactLabel}`,
+    compilerContext(state, contextual),
+  );
+  assert.equal(negated.status, "clarify");
+  assert.equal(negated.failure, "unsupported-combination");
+
+  for (const raw of [
+    "resolve the front",
+    "resolve the opening",
+    "show hidden maneuver orders",
+    "tell me the sealed maneuver outcome",
+  ]) {
+    const before = structuredClone(state);
+    const result = nexus.runAvaNexusLine(
+      raw,
+      contextFor(state, "web"),
+      state,
+      nexus.createAvaNexusSession(),
+    );
+    assert.deepEqual(result.state, before, raw);
+    assert.doesNotMatch(result.text, /hiddenOrders|resolutionTicket|sealed outcome/i, raw);
   }
 });
