@@ -17,7 +17,7 @@ current pushed `main` head; the handoff base `9973b8e` is not used.
 | NODE-24 | pairwise typed maneuver comparison | sealed (`17dac16`; receipt `NODE-24.md`) |
 | NODE-25 | typed operational relationships | sealed (`6275e2d`; receipt `NODE-25.md`) |
 | NODE-26 | canonical semantic rendering | sealed (`d021d9b`; receipt `NODE-26.md`) |
-| NODE-27 | final parity, generated proof, and epoch seal | pending |
+| NODE-27 | final parity, generated proof, and epoch seal | proof implementation complete; final gates pending |
 
 ## Authorities
 

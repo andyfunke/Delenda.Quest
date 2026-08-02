@@ -162,3 +162,33 @@ seal update.
 Epoch 003 retains the release boundary: no GitHub push, Cloudflare deployment,
 D1 write, shadow mutation, HTTP SSH path, secret movement, or destructive Git
 recovery is permitted within the epoch.
+
+## Epoch 004 execution — composed operational Ava semantics
+
+Epoch 004 ports the attached NODE-21 through NODE-27 handoff onto the verified
+Epoch 003 remote head `a473e3d`. The stale `9973b8e` base, quarantined legacy
+calculus, second parser, generic graph, hidden state, private RNG, sealed
+outcomes, and mutation routes remain excluded.
+
+| Node | Implementation commit | Receipt commit | Result |
+|---|---|---|---|
+| NODE-21 | — | — | owner preflight and boundary map |
+| NODE-22 | `04927d6` | `42e8f02` | canonical disclosed calculus evidence |
+| NODE-23 | `0656460` | `57def89` | typed advice composed through canonical calculus |
+| NODE-24 | `17dac16` | `6ada48a` | bounded pairwise maneuver comparison |
+| NODE-25 | `6275e2d` | `73dc226` | compiler-owned operational relationships |
+| NODE-26 | `d021d9b` | `a6c3d12` | one semantic renderer and three-surface parity |
+| NODE-27 | pending | pending | generated proof, final gates, manifest, and epoch seal |
+
+NODE-22 exposes the active disclosed decision and temporal authorities. NODE-23
+composes the winner, objective, priorities, alternatives, equations, rules,
+uncertainties, and limitations. NODE-24 compares stable current maneuver IDs
+without selecting a winner. NODE-25 emits only `CONCEPTS.related[]` and
+`currentSituation.maneuvers[]` joins. NODE-26 renders all of those typed models
+through the existing Nexus for browser, terminal, and native SSH parity.
+
+The generated proof covers every canonical concept relation, every current
+maneuver pair, advice aliases, guarded action-like neighbors, unavailable
+relationship bounds, hidden-field exclusion, no-mutation behavior, and
+surface-parity contracts. Final gate and manifest results will be appended by
+the NODE-27 seal receipt.

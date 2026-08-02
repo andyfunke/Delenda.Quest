@@ -218,3 +218,40 @@ application contracts.
   calculus.
 
 > Any high-information phrase from the current disclosed briefing, typed campaign ontology, declared conceptual catalog, or current maneuver evidence must either compile into a valid typed read-only Ava route or produce a narrow, truthful, evidence-bound clarification. It may never become an action merely because it resembles an authored maneuver, and it may never disappear into generic unrecognized fallback merely because it was expressed in ordinary language.
+
+## 21. Composed operational Ava semantics protocol
+
+Epoch 004 extends the typed operational language with one versioned semantic
+model: `ava-operational-semantics/v1`. The model is a read-only projection over
+existing authorities, not a new calculus, parser, graph, or mutation channel.
+
+- Canonical calculus evidence comes from the active cognitive decision and
+  temporal routes. It may disclose typed inputs, derived values, equations,
+  rules, options, alternatives, intervals, provenance, and explicit unavailable
+  boundaries. It must exclude hidden inputs, private RNG/seed material, sealed
+  tickets, prepared orders, and sealed outcomes.
+- Advice composition may name only the compiled decision winner and the
+  disclosed objective, priority axes, visible options, alternatives,
+  uncertainties, equations, rules, and limitations. A recommendation is not a
+  prepared or issued order.
+- Pairwise maneuver comparison is evidence-shaped, bounded, and stable-ID
+  based. Its dimensions are individually statused; intervals remain intervals;
+  and its verdict may describe a tradeoff or insufficient evidence but may not
+  select a winner or invent a score.
+- Operational relationships have exactly two owners: `CONCEPTS[source].related[]`
+  for directed concept edges and `currentSituation.maneuvers[]` for the
+  campaign synopsis’s current maneuver joins. Generic graph inference and prose
+  association are prohibited. Bounds fail closed without truncation.
+- Rendering is a projection of the semantic model. Browser/Nexus,
+  terminal-core, and native SSH consume the same result and renderer through
+  `runAvaNexusLine`; native SSH remains direct session-core execution and never
+  becomes an HTTP proxy.
+- Every composed result carries a visible state/content revision and digest.
+  Generated corpus tests must cover aliases, current maneuver pairs, relation
+  ownership, ambiguity/unavailability, mutation neighbors, hidden-field
+  exclusion, and all supported surfaces.
+
+The Epoch 004 release boundary remains local-only: no GitHub push, Cloudflare
+deployment, D1 write, shadow mutation, secret movement, or destructive Git
+recovery occurs inside the epoch. Cloudflare checks are types and dry-run
+validation only.
