@@ -424,3 +424,43 @@ workspace; release validation is local and dry-run only.
 
 Next node handoff: run the full repository gates, generate the epoch source
 manifest, and seal the local epoch receipt.
+
+### EPOCH-002-SEAL / contextual language hardening
+
+Base commit: `adfeebb02c22089b2f916e546f53567b6adacbba`
+
+Completed seal commit: `4bad3c0c0fc6b2928ea35f40b1526e6031e772f9`
+
+Seal tree: `e63490ad878ed062de278ab082df3be16a310475`
+
+Purpose: Close the attached next batch as a current-main adaptation with
+bounded contextual language, exact typed lowering, Nexus mutation proof, and
+content-addressed execution evidence.
+
+Exact procedures executed:
+
+- Reconciled the stale handoff base and package assumptions against the live
+  repository and preserved current authorities instead of rewinding.
+- Sealed Nodes 01–06 in order; each node has a dedicated record, focused
+  validation, implementation commit, and append-only receipt commit.
+- Ran `npm test`, typecheck, application build, native SSH gateway build,
+  Cloudflare type generation/check, local Wrangler dry run, lint, and
+  `git diff --check`.
+- Generated and verified
+  `docs/epochs/epoch-002-contextual-language-hardening/integrity/source-manifest.sha256`.
+
+Final validation: full repository suite PASS; contextual substrate PASS
+(226/226); typecheck PASS; build PASS; SSH build PASS; Cloudflare types and
+dry run PASS; lint PASS with 0 errors and 23 warnings; diff check PASS.
+
+Manifest digest:
+`08127d66b393c49deeae303731a45ba316297721f2826871546d83358742fd23`.
+
+Release boundary: no `git push`, Cloudflare deployment, D1 write, shadow
+mutation, HTTP SSH path, or destructive Git recovery was performed. GitHub
+connectivity was read-only for reconciliation; Cloudflare authentication was
+unavailable, so only local validation and dry run were executed.
+
+Result: Epoch 002 is locally sealed and the worktree is clean. The next
+authorized action, if desired, is an explicit release/push operation outside
+this patch epoch.
