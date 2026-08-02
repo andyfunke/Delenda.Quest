@@ -306,3 +306,67 @@ test("web and native terminal surfaces preserve the same contextual read", () =>
   assert.equal(ssh.proofGraph.digest, web.proofGraph.digest);
   assert.deepEqual(ssh.state, state);
 });
+
+test("the real Nexus routes the complete contextual corpus without mutation", () => {
+  const expected = new Map([
+    ["gain territory", ["ADVISE", "PRIORITY_FOCUS", undefined, undefined]],
+    ["advance", ["ADVISE", "PRIORITY_FOCUS", undefined, undefined]],
+    ["front", ["EXPLAIN", "METRIC_EXPLANATION", undefined, "front"]],
+    ["kilometers", ["EXPLAIN", "METRIC_EXPLANATION", undefined, "front"]],
+    ["KM", ["EXPLAIN", "METRIC_EXPLANATION", undefined, "front"]],
+    ["enemy position", ["REPORT", "REPORT", "adversary", undefined]],
+    ["condition", ["REPORT", "REPORT", "overview", undefined]],
+    ["attrition", ["REPORT", "REPORT", "losses", undefined]],
+    ["goals", ["EXPLAIN", "OBJECTIVE_EXPLANATION", undefined, "campaign-synopsis"]],
+    ["strategy", ["ADVISE", "STRATEGIC_ADVICE", undefined, undefined]],
+  ]);
+  for (const [raw, [kind, route, topic, entityId]] of expected) {
+    const state = game.initialState({ seed: 1729 });
+    const beforeState = structuredClone(state);
+    const session = nexus.createAvaNexusSession();
+    const beforePlan = structuredClone(session.terminal.plan);
+    const result = nexus.runAvaNexusLine(
+      raw,
+      contextFor(state, "web"),
+      state,
+      session,
+    );
+    assert.equal(result.compile?.status, "compiled", raw);
+    assert.equal(result.compile.instruction.kind, kind, raw);
+    assert.equal(result.compile.instruction.contextual.route, route, raw);
+    assert.equal(result.compile.instruction.topic, topic, raw);
+    assert.equal(result.compile.instruction.entity?.id, entityId, raw);
+    assert.match(result.compile.trace.rule, /^CONTEXTUAL_LANGUAGE:/, raw);
+    assert.deepEqual(result.state, beforeState, raw);
+    assert.deepEqual(result.session.terminal.plan, beforePlan, raw);
+    assert.equal(result.state.day, beforeState.day, raw);
+    assert.equal(result.state.actions, beforeState.actions, raw);
+    assert.deepEqual(result.state.decisions, beforeState.decisions, raw);
+    assert.deepEqual(result.state.preparedOrders, beforeState.preparedOrders, raw);
+  }
+});
+
+test("consequential and negated neighbors never become contextual advice", () => {
+  for (const raw of [
+    "stage advance",
+    "prepare gain territory",
+    "issue advance",
+    "do not advance",
+    "confirm advance",
+    "resolve the front",
+  ]) {
+    const state = game.initialState({ seed: 1729 });
+    const beforeState = structuredClone(state);
+    const session = nexus.createAvaNexusSession();
+    const beforePlan = structuredClone(session.terminal.plan);
+    const result = nexus.runAvaNexusLine(
+      raw,
+      contextFor(state, "web"),
+      state,
+      session,
+    );
+    assert.notEqual(result.compile?.instruction?.kind, "ADVISE", raw);
+    assert.deepEqual(result.state, beforeState, raw);
+    assert.deepEqual(result.session.terminal.plan, beforePlan, raw);
+  }
+});
