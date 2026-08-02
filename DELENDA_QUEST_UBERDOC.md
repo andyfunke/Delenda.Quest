@@ -700,3 +700,27 @@ Non-goals preserved: no generic graph, prose/inferred relation, hidden-state rel
 Known limitations: shared presentation and cross-surface parity are the next authorized nodes.
 
 Next node handoff: NODE-26 / render composed operational semantics.
+
+### AVA-SEMANTICS-N26 / Render composed Ava operational semantics
+
+Base commit: `73dc226`
+
+Completed commit: `d021d9b`
+
+Purpose: Render the composed operational semantic model through one canonical presentation boundary and preserve browser/Nexus, terminal-core, and native SSH parity.
+
+Exact procedures executed: added a typed renderer for advice, forecast, comparison, relationships, limitations, revisions, and digest; appended it after existing realized answers; updated terminal/result presentation fields; and exercised advice, forecast, comparison, and explanation through all three surfaces.
+
+Changed files: `app/ava/operational-render.ts`, `app/ava/nexus.ts`, `app/ava/operational-semantics.ts`, `tests/ava-operational-semantics.test.mjs`, and the NODE-26 records.
+
+New semantic contracts: `renderAvaOperationalSemantics` is the sole text projection for `AvaOperationalSemanticResult`; pairwise output explicitly states no winner and relationship output states declared relations only.
+
+Tests added: renderer coverage, hidden/private field checks, no-winner checks, and browser/terminal/native SSH byte-parity over four read operations.
+
+Validation results: typecheck PASS; focused operational corpus 7/7 PASS; `git diff --check` PASS.
+
+Non-goals preserved: no surface-specific semantic reconstruction, second parser, inferred relation, sealed outcome, mutation route, push, deployment, D1 write, shadow mutation, or HTTP SSH path.
+
+Known limitations: generated proof corpus and final repository seal remain NODE-27.
+
+Next node handoff: NODE-27 / prove composed advice and operational comparison coverage.
