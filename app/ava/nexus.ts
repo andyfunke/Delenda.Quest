@@ -2112,7 +2112,7 @@ const executeInstructionRequest = (
   if (!terminalResult.executed) {
     try {
       const operationalSemantics = projectAvaOperationalSemantics({
-        state,
+        state: cognitive ? projectAvaDisclosedState(state) : state,
         opportunityFraction,
         query: request.semantic,
         instruction,

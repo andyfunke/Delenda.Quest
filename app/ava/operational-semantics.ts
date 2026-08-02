@@ -42,7 +42,14 @@ const readOnlyInstruction = new Set([
 
 const authoredEvidenceIds = (input: AvaOperationalProjectionInput) => [
   ...new Set([
-    ...(input.trace?.contextualResolutions ?? []),
+    // Generic semantic composition can carry explanatory contextual prose
+    // (for example, an unscoped forecast's active-docket default).  That is
+    // grammar provenance, not authored evidence, and must not change the
+    // semantic digest relative to the equivalent typed request.  Exact
+    // contextual-language routes use stable catalog IDs here.
+    ...(input.trace?.exactIndexHit
+      ? (input.trace.contextualResolutions ?? [])
+      : []),
     ...(input.trace?.authoredEvidence ?? []).map(
       (evidence) => `${evidence.section}:${evidence.sourceOrder ?? "na"}:${evidence.phrase}`,
     ),

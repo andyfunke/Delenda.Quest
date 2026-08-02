@@ -139,13 +139,13 @@ test("the built activation route traverses every active engine through web and t
     cookie: "delenda_guest_session=00000000-0000-4000-8000-000000000001",
   };
   const expectedActivation = {
-    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "21f5704a48e3f0dcaaba759ab5c448f5ffefdf4e6a78d77a64afd7200fe5f7d0" },
+    decision: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_ROBUST_DECISION", textDigest: "e44981478b54ea5a497e8fb43f37a17b5bd3c592efe37a201abe3a664b26fff2" },
     directive: { authority: "READ_ONLY", families: ["DECISION", "REALIZATION"], signal: "COMPILED_DIRECTIVE_DECISION", textDigest: "8b84b49b6d0aff37f36835c8307c6d3a18c965bdc92a7209477cff95c7e99b19" },
-    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "b529d66bba623bbc5d7e0249661bb17d98cfd035b29052809dd9e523d71f0cbf" },
+    forecast: { authority: "READ_ONLY", families: ["REALIZATION", "TEMPORAL"], signal: "COMPILED_TEMPORAL_PROJECTION", textDigest: "6e8f2abe9c395d745ad37bcf99118366a95968bb5d5da8753bfa2ec60ed3ab6b" },
     constraint: { authority: "READ_ONLY", families: ["CONSTRAINT", "REALIZATION"], signal: "COMPILED_PRECONDITION_RESULT", textDigest: "60b13ace278e96aac9946f8b74a28fef466c6f8579d7683392b3574535e7aa37" },
     planning: { authority: "PLAN_ONLY", families: ["PLANNING", "REALIZATION"], signal: "PLAN_ONLY_CONFIRMATION_READY", textDigest: "061b0ba228856554ecf32ed0a0f00d0138cf4ff90c5927c4377a165ae3921d82" },
-    causal: { authority: "READ_ONLY", families: ["CAUSAL", "REALIZATION"], signal: "OBSERVATIONAL_CAUSAL_DIAGNOSIS", textDigest: "3e07acfeb8c657cc252a8b49449d994237b408cb60aab3fd9b18eca7f2ec6aac" },
-    epistemic: { authority: "READ_ONLY", families: ["EPISTEMIC", "REALIZATION"], signal: "SINGLE_RECORD_EVIDENCE_BOUND", textDigest: "ccd2ba2ee4fc1c3a4680d3a138307c3b3d6be273070d4b6e5a4cb109a31896c6" },
+    causal: { authority: "READ_ONLY", families: ["CAUSAL", "REALIZATION"], signal: "OBSERVATIONAL_CAUSAL_DIAGNOSIS", textDigest: "51311e35f3c66a3b9cf59d37dd0e6d39755e29903b11842a5f04c9f413d33d78" },
+    epistemic: { authority: "READ_ONLY", families: ["EPISTEMIC", "REALIZATION"], signal: "SINGLE_RECORD_EVIDENCE_BOUND", textDigest: "bde33c3b411f2fb92755787d8f1fe5c2b248e43c26c461344b8b5927665c7aa9" },
   };
   for (const [probe, expectation] of Object.entries(expectedActivation)) {
     const payloads = [];
