@@ -47,9 +47,28 @@ const humanLabel = (axis: StrategicDimension) =>
     .map((word) => word[0]?.toUpperCase() + word.slice(1))
     .join(" ");
 
+const AXES = new Set<StrategicDimension>(ORDER);
+
+export const validateDeclaredPriorityAxes = (
+  axes: readonly StrategicDimension[],
+): void => {
+  if (!Array.isArray(axes) || axes.length === 0)
+    throw new Error("Declared priority focus requires at least one axis");
+  if (axes.length > 4)
+    throw new Error("Declared priority focus cannot contain more than four axes");
+  if (new Set(axes).size !== axes.length)
+    throw new Error("Declared priority focus cannot contain duplicate axes");
+  if (axes.some((axis) => !AXES.has(axis)))
+    throw new Error("Declared priority focus contains an unknown axis");
+};
+
 export const compileDeclaredPriorityFocus = (
   axes: readonly StrategicDimension[],
+  _surface?: string,
 ): AvaDeclaredPriorityFocus => {
+  // Empty axes are retained as the existing non-contextual advice fallback;
+  // contextual PRIORITY_FOCUS entries are validated before reaching here.
+  if (axes.length) validateDeclaredPriorityAxes(axes);
   const ordered = ORDER.filter((axis) => axes.includes(axis));
   if (!ordered.length)
     return {

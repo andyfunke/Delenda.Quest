@@ -25,6 +25,10 @@ export {
   validateLanguageEntries,
 } from "./contextual-language";
 export {
+  compileDeclaredPriorityFocus,
+  validateDeclaredPriorityAxes,
+} from "./contextual-language-priorities";
+export {
   AVA_CAMPAIGN_ADVICE_GRAMMAR,
   AVA_CAMPAIGN_LANGUAGE_CORPUS,
   AVA_CLASSIC_CAPABILITY_REGISTRY,

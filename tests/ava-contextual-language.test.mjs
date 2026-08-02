@@ -152,6 +152,39 @@ test("the static catalog owns the packet's declared read-only vocabulary", () =>
   );
 });
 
+test("declared priority lowering is bounded and deterministic", () => {
+  const state = game.initialState({ seed: 1729 });
+  const focus = compiler.compileDeclaredPriorityFocus(
+    ["initiative", "territorial_control"],
+    "advance",
+  );
+  assert.deepEqual(focus.axes, ["territorial_control", "initiative"]);
+  assert.ok(focus.criteria.length > 0);
+  assert.deepEqual(
+    focus,
+    compiler.compileDeclaredPriorityFocus(
+      ["initiative", "territorial_control"],
+      "advance",
+    ),
+  );
+  assert.throws(() => compiler.validateDeclaredPriorityAxes([]));
+  assert.throws(() => compiler.validateDeclaredPriorityAxes([
+    "initiative",
+    "initiative",
+  ]));
+  assert.throws(() => compiler.validateDeclaredPriorityAxes([
+    "initiative",
+    "territorial_control",
+    "force_preservation",
+    "supply_integrity",
+    "production_integrity",
+  ]));
+  assert.doesNotThrow(() => projection.buildAvaContextualLanguage(
+    state,
+    entities,
+  ));
+});
+
 test("declared contextual aliases lower to existing typed instruction kinds", () => {
   const state = game.initialState({ seed: 1729 });
   const contextual = projection.buildAvaContextualLanguage(state, entities);
