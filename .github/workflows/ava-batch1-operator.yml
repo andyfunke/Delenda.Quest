@@ -8,28 +8,26 @@ permissions:
   contents: write
 
 jobs:
-  snapshot:
+  execute:
     if: github.head_ref == 'automation/ava-batch1'
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      BRANCH: automation/ava-batch1
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: automation/ava-batch1
           fetch-depth: 0
-      - name: Repository preflight
-        run: |
-          set -euo pipefail
-          git rev-parse --show-toplevel
-          git status --short --branch
-          git log -12 --oneline
-          test -z "$(git status --short)"
-      - name: Package repository snapshot
-        run: |
-          set -euo pipefail
-          tar --exclude=.git -czf /tmp/delenda-quest-source.tgz .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: delenda-quest-source
-          path: /tmp/delenda-quest-source.tgz
-          if-no-files-found: error
-          retention-days: 1
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm run install:ci
+      - name: Execute NODE-00 through NODE-06
+        run: |
+          gzip -dc .github/ava-batch1/operator.sh.gz > /tmp/ava-batch1-operator.sh
+          chmod +x /tmp/ava-batch1-operator.sh
+          /tmp/ava-batch1-operator.sh

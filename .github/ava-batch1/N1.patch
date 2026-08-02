@@ -1,0 +1,310 @@
+diff --git a/app/ava/compiler.ts b/app/ava/compiler.ts
+index 1f963b7..d093e3c 100644
+--- a/app/ava/compiler.ts
++++ b/app/ava/compiler.ts
+@@ -46,6 +46,10 @@ export type {
+   GrammarSpec,
+ } from "./grammar";
+ export { AVA_COMMAND_HELP } from "./schema";
++export {
++  validateContextualLanguage,
++  validateLanguageEntries,
++} from "./contextual-language";
+ 
+ const filler = new Set([
+   "a",
+diff --git a/app/ava/contextual-language.ts b/app/ava/contextual-language.ts
+new file mode 100644
+index 0000000..ff640c8
+--- /dev/null
++++ b/app/ava/contextual-language.ts
+@@ -0,0 +1,127 @@
++import type { PriorityAxis } from "../../packages/priorities-library/src/schema";
++import type { AvaReportTopic } from "./schema";
++
++export const AVA_CONTEXTUAL_LANGUAGE_VERSION =
++  "ava-contextual-language/v1" as const;
++
++export const AVA_LANGUAGE_ROUTES = [
++  "PRIORITY_FOCUS",
++  "STRATEGIC_ADVICE",
++  "METRIC_EXPLANATION",
++  "REPORT",
++  "OBJECTIVE_EXPLANATION",
++  "NARRATIVE_REFERENCE",
++] as const;
++
++export const AVA_LANGUAGE_SOURCES = [
++  "STATIC_CATALOG",
++  "CURRENT_SITUATION",
++  "CURRENT_METRIC",
++  "CURRENT_ACTION",
++  "AUTHORED_BRIEF",
++] as const;
++
++export type AvaLanguageRoute = (typeof AVA_LANGUAGE_ROUTES)[number];
++export type AvaLanguageSource = (typeof AVA_LANGUAGE_SOURCES)[number];
++export type AvaLanguageFacet = "meaning" | "effects" | "levers" | "calculus";
++export type AvaNarrativeSection =
++  | "headline"
++  | "briefing"
++  | "question"
++  | "standing-order"
++  | "maneuver-label"
++  | "maneuver-rationale";
++
++export type AvaLanguageEvidence = {
++  section: AvaNarrativeSection;
++  excerpt: string;
++};
++
++export type AvaLanguageEntry = {
++  id: string;
++  label: string;
++  surfaces: readonly string[];
++  route: AvaLanguageRoute;
++  entityId?: string;
++  reportTopic?: AvaReportTopic;
++  facet?: AvaLanguageFacet;
++  priorityAxes?: readonly PriorityAxis[];
++  source: AvaLanguageSource;
++  provenance: readonly string[];
++  evidence?: readonly AvaLanguageEvidence[];
++};
++
++export type AvaContextualLanguage = {
++  version: typeof AVA_CONTEXTUAL_LANGUAGE_VERSION;
++  stateRevision: string;
++  contentRevision: string;
++  entries: readonly AvaLanguageEntry[];
++  digest: string;
++};
++
++const nonEmpty = (value: unknown): value is string =>
++  typeof value === "string" && value.trim().length > 0;
++
++const routeSet = new Set<string>(AVA_LANGUAGE_ROUTES);
++const sourceSet = new Set<string>(AVA_LANGUAGE_SOURCES);
++
++export const validateLanguageEntries = (
++  entries: readonly AvaLanguageEntry[],
++): void => {
++  if (!Array.isArray(entries))
++    throw new Error("contextual language entries must be an array");
++  for (const entry of entries) {
++    if (!nonEmpty(entry.id)) throw new Error("contextual language entry id is required");
++    if (!nonEmpty(entry.label))
++      throw new Error(`${entry.id}: contextual language label is required`);
++    if (!Array.isArray(entry.surfaces) || entry.surfaces.length === 0)
++      throw new Error(`${entry.id}: at least one contextual surface is required`);
++    if (entry.surfaces.some((surface) => !nonEmpty(surface)))
++      throw new Error(`${entry.id}: contextual surfaces must be non-empty`);
++    if (!routeSet.has(entry.route))
++      throw new Error(`${entry.id}: invalid contextual language route ${String(entry.route)}`);
++    if (!sourceSet.has(entry.source))
++      throw new Error(`${entry.id}: invalid contextual language source ${String(entry.source)}`);
++    if (!Array.isArray(entry.provenance) || entry.provenance.length === 0)
++      throw new Error(`${entry.id}: contextual language provenance is required`);
++    if (entry.provenance.some((value) => !nonEmpty(value)))
++      throw new Error(`${entry.id}: contextual language provenance must be non-empty`);
++
++    if (
++      entry.route === "PRIORITY_FOCUS" &&
++      (!entry.priorityAxes ||
++        entry.priorityAxes.length === 0 ||
++        entry.priorityAxes.length > 4)
++    )
++      throw new Error(`${entry.id}: PRIORITY_FOCUS requires one to four axes`);
++    if (entry.route === "REPORT" && !nonEmpty(entry.reportTopic))
++      throw new Error(`${entry.id}: REPORT requires reportTopic`);
++    if (
++      (entry.route === "METRIC_EXPLANATION" ||
++        entry.route === "OBJECTIVE_EXPLANATION") &&
++      !nonEmpty(entry.entityId)
++    )
++      throw new Error(`${entry.id}: ${entry.route} requires entityId`);
++    if (
++      entry.route === "NARRATIVE_REFERENCE" &&
++      (!entry.evidence || entry.evidence.length === 0)
++    )
++      throw new Error(`${entry.id}: NARRATIVE_REFERENCE requires evidence`);
++  }
++};
++
++export const validateContextualLanguage = (
++  language: AvaContextualLanguage,
++): void => {
++  if (!language || typeof language !== "object")
++    throw new Error("contextual language projection is required");
++  if (language.version !== AVA_CONTEXTUAL_LANGUAGE_VERSION)
++    throw new Error(`invalid contextual language version ${String(language.version)}`);
++  if (!nonEmpty(language.stateRevision))
++    throw new Error("contextual language stateRevision is required");
++  if (!nonEmpty(language.contentRevision))
++    throw new Error("contextual language contentRevision is required");
++  if (!nonEmpty(language.digest))
++    throw new Error("contextual language digest is required");
++  validateLanguageEntries(language.entries);
++};
+diff --git a/app/ava/schema.ts b/app/ava/schema.ts
+index 86d51b3..366099c 100644
+--- a/app/ava/schema.ts
++++ b/app/ava/schema.ts
+@@ -1,3 +1,6 @@
++import type { AvaContextualLanguage } from "./contextual-language";
++import type { CompiledPriorityIntent } from "../../packages/priorities-library/src/schema";
++
+ export type AvaModule =
+   | "campaign"
+   | "national"
+@@ -421,7 +424,7 @@ export type AvaInstruction =
+   | { kind: "ORDERS" }
+   | { kind: "HELP"; subject?: string }
+   | { kind: "STATUS" }
+-  | { kind: "ADVISE" }
++  | { kind: "ADVISE"; priorityIntent?: CompiledPriorityIntent }
+   | { kind: "SEMANTIC"; query: AvaSemanticQuery }
+   | { kind: "SHELL"; shell: AvaShellInstruction }
+   | { kind: "LIST"; scope?: string }
+@@ -524,6 +527,7 @@ export type AvaCompilerContext = {
+   openApplet?: string | null;
+   shellFileReferences?: string[];
+   shellEditor?: "vim" | "nano";
++  language?: AvaContextualLanguage;
+ };
+ 
+ export type AvaCommandHelp = {
+diff --git a/packages/priorities-library/src/schema.ts b/packages/priorities-library/src/schema.ts
+new file mode 100644
+index 0000000..ae03dde
+--- /dev/null
++++ b/packages/priorities-library/src/schema.ts
+@@ -0,0 +1,24 @@
++export const PRIORITY_SCHEMA_VERSION = "delenda-priority/v1" as const;
++
++export type PriorityAxis = "attack" | "territory";
++
++export type PrioritySignal = {
++  axis: PriorityAxis;
++  surface: string;
++};
++
++export type PriorityChord = {
++  id: string;
++  axes: readonly PriorityAxis[];
++};
++
++export type CompiledPriorityIntent = {
++  schemaVersion: typeof PRIORITY_SCHEMA_VERSION;
++  normalizedInput: string;
++  requested: true;
++  axes: readonly PriorityAxis[];
++  orderedAxes: readonly PriorityAxis[];
++  signals: readonly PrioritySignal[];
++  chord: PriorityChord | null;
++  ignoredNegation: boolean;
++};
+diff --git a/scripts/test-ava.sh b/scripts/test-ava.sh
+index 435f720..8f41774 100755
+--- a/scripts/test-ava.sh
++++ b/scripts/test-ava.sh
+@@ -13,7 +13,8 @@ INTERFACE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-interface.XXXXXX.mjs")"
+ CHAT_EXPORT_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-chat-export.XXXXXX.mjs")"
+ INTRUSION_LIBRARY_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-intrusion-library.XXXXXX.mjs")"
+ INLINE_TOKENS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-inline-tokens.XXXXXX.mjs")"
+-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE"' EXIT
++CONTEXTUAL_LANGUAGE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-language.XXXXXX.mjs")"
++trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE"' EXIT
+ 
+ node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
+@@ -25,8 +26,10 @@ node_modules/.bin/esbuild app/ava/interface-intent.ts --bundle --platform=node -
+ node_modules/.bin/esbuild app/ava/chat-export.ts --bundle --platform=node --format=esm --outfile="$CHAT_EXPORT_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild packages/intrusion-library/src/index.ts --bundle --platform=node --format=esm --outfile="$INTRUSION_LIBRARY_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/inline-tokens.ts --bundle --platform=node --format=esm --outfile="$INLINE_TOKENS_BUNDLE" >/dev/null
++node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_LANGUAGE_BUNDLE" >/dev/null
+ DELENDA_INTRUSION_LIBRARY_BUNDLE="file://$INTRUSION_LIBRARY_BUNDLE" node --test tests/intrusion-library.test.mjs
+ DELENDA_AVA_INLINE_TOKENS_BUNDLE="file://$INLINE_TOKENS_BUNDLE" node --test tests/ava-inline-tokens.test.mjs
++DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" node --test tests/ava-contextual-language-contracts.test.mjs
+ DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+ DELENDA_AVA_CHAT_EXPORT_BUNDLE="file://$CHAT_EXPORT_BUNDLE" node --test tests/ava-chat-export.test.mjs
+ DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
+diff --git a/tests/ava-contextual-language-contracts.test.mjs b/tests/ava-contextual-language-contracts.test.mjs
+new file mode 100644
+index 0000000..35b9c00
+--- /dev/null
++++ b/tests/ava-contextual-language-contracts.test.mjs
+@@ -0,0 +1,73 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++
++const languageModule = await import(
++  process.env.DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE
++);
++
++const {
++  AVA_CONTEXTUAL_LANGUAGE_VERSION,
++  validateContextualLanguage,
++  validateLanguageEntries,
++} = languageModule;
++
++const entry = (overrides = {}) => ({
++  id: "metric.front",
++  label: "Front",
++  surfaces: ["front"],
++  route: "METRIC_EXPLANATION",
++  entityId: "front",
++  facet: "meaning",
++  source: "STATIC_CATALOG",
++  provenance: ["test"],
++  ...overrides,
++});
++
++const projection = (overrides = {}) => ({
++  version: AVA_CONTEXTUAL_LANGUAGE_VERSION,
++  stateRevision: "state-1",
++  contentRevision: "content-1",
++  entries: [entry()],
++  digest: "digest-1",
++  ...overrides,
++});
++
++test("contextual language contract accepts valid entries and projections", () => {
++  assert.doesNotThrow(() => validateLanguageEntries([entry()]));
++  assert.doesNotThrow(() => validateContextualLanguage(projection()));
++});
++
++test("contextual language contract rejects malformed entries", () => {
++  assert.throws(() => validateLanguageEntries([entry({ id: "" })]), /id/i);
++  assert.throws(() => validateLanguageEntries([entry({ label: "" })]), /label/i);
++  assert.throws(() => validateLanguageEntries([entry({ surfaces: [] })]), /surface/i);
++  assert.throws(() => validateLanguageEntries([entry({ route: "NOPE" })]), /route/i);
++  assert.throws(() => validateLanguageEntries([entry({ source: "NOPE" })]), /source/i);
++  assert.throws(
++    () =>
++      validateLanguageEntries([
++        entry({ route: "PRIORITY_FOCUS", entityId: undefined }),
++      ]),
++    /axes/i,
++  );
++  assert.throws(
++    () => validateLanguageEntries([entry({ route: "REPORT", reportTopic: undefined })]),
++    /reportTopic/i,
++  );
++  assert.throws(
++    () => validateLanguageEntries([entry({ entityId: undefined })]),
++    /entityId/i,
++  );
++  assert.throws(
++    () =>
++      validateLanguageEntries([
++        entry({ route: "NARRATIVE_REFERENCE", entityId: undefined }),
++      ]),
++    /evidence/i,
++  );
++});
++
++test("contextual language contract rejects missing revisions", () => {
++  assert.throws(() => validateContextualLanguage(projection({ stateRevision: "" })), /stateRevision/);
++  assert.throws(() => validateContextualLanguage(projection({ contentRevision: "" })), /contentRevision/);
++});

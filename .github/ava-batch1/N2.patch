@@ -1,0 +1,440 @@
+diff --git a/app/ava/contextual-language-catalog.ts b/app/ava/contextual-language-catalog.ts
+new file mode 100644
+index 0000000..ba67417
+--- /dev/null
++++ b/app/ava/contextual-language-catalog.ts
+@@ -0,0 +1,163 @@
++import type { AvaLanguageEntry } from "./contextual-language";
++import { validateLanguageEntries } from "./contextual-language";
++
++const staticEntry = (
++  entry: Omit<AvaLanguageEntry, "source" | "provenance">,
++): AvaLanguageEntry => ({
++  ...entry,
++  source: "STATIC_CATALOG",
++  provenance: ["app/ava/contextual-language-catalog.ts"],
++});
++
++export const AVA_STATIC_LANGUAGE_CATALOG: readonly AvaLanguageEntry[] =
++  Object.freeze([
++    staticEntry({
++      id: "priority.territory",
++      label: "Territorial focus",
++      surfaces: [
++        "gain territory",
++        "gain ground",
++        "take ground",
++        "secure territory",
++        "move the front",
++        "push the front",
++      ],
++      route: "PRIORITY_FOCUS",
++      priorityAxes: ["territory"],
++    }),
++    staticEntry({
++      id: "priority.advance",
++      label: "Advance",
++      surfaces: ["advance", "advancing", "break through", "breakthrough"],
++      route: "PRIORITY_FOCUS",
++      priorityAxes: ["attack", "territory"],
++    }),
++    staticEntry({
++      id: "metric.front-movement",
++      label: "Campaign front movement",
++      surfaces: [
++        "front",
++        "front line",
++        "frontline",
++        "ground movement",
++        "ground gained",
++        "kilometer",
++        "kilometers",
++        "km",
++        "distance gained",
++        "how far did we move",
++      ],
++      route: "METRIC_EXPLANATION",
++      entityId: "front",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.supply",
++      label: "Supply",
++      surfaces: ["supply"],
++      route: "METRIC_EXPLANATION",
++      entityId: "supply",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.communications",
++      label: "Communications",
++      surfaces: ["communications"],
++      route: "METRIC_EXPLANATION",
++      entityId: "network",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.intelligence",
++      label: "Intelligence",
++      surfaces: ["intelligence"],
++      route: "METRIC_EXPLANATION",
++      entityId: "intelligence",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.readiness",
++      label: "Readiness",
++      surfaces: ["readiness"],
++      route: "METRIC_EXPLANATION",
++      entityId: "readiness",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.force",
++      label: "Effective force",
++      surfaces: ["force"],
++      route: "METRIC_EXPLANATION",
++      entityId: "armed",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.position",
++      label: "Current position",
++      surfaces: ["position"],
++      route: "METRIC_EXPLANATION",
++      entityId: "front",
++      facet: "meaning",
++    }),
++    staticEntry({
++      id: "metric.pressure",
++      label: "Front pressure",
++      surfaces: ["pressure"],
++      route: "METRIC_EXPLANATION",
++      entityId: "front",
++      facet: "effects",
++    }),
++    staticEntry({
++      id: "report.adversary",
++      label: "Adversary position",
++      surfaces: [
++        "enemy position",
++        "enemy positions",
++        "enemy line",
++        "enemy deployment",
++        "where is the enemy",
++        "where are they",
++        "opposing position",
++        "adversary position",
++      ],
++      route: "REPORT",
++      reportTopic: "adversary",
++    }),
++    staticEntry({
++      id: "report.overview",
++      label: "Current condition",
++      surfaces: [
++        "condition",
++        "field condition",
++        "current condition",
++        "situation",
++        "strategic condition",
++        "state of the front",
++      ],
++      route: "REPORT",
++      reportTopic: "overview",
++    }),
++    staticEntry({
++      id: "report.losses",
++      label: "Losses",
++      surfaces: ["attrition", "losses", "casualties"],
++      route: "REPORT",
++      reportTopic: "losses",
++    }),
++    staticEntry({
++      id: "advice.strategy",
++      label: "Strategic advice",
++      surfaces: [
++        "strategy",
++        "strategic plan",
++        "strategic approach",
++        "course of action",
++        "way forward",
++        "how do we win",
++        "what is our strategy",
++      ],
++      route: "STRATEGIC_ADVICE",
++    }),
++  ]);
++
++validateLanguageEntries(AVA_STATIC_LANGUAGE_CATALOG);
+diff --git a/app/ava/contextual-language.ts b/app/ava/contextual-language.ts
+index ff640c8..eb2c522 100644
+--- a/app/ava/contextual-language.ts
++++ b/app/ava/contextual-language.ts
+@@ -1,5 +1,6 @@
+ import type { PriorityAxis } from "../../packages/priorities-library/src/schema";
+ import type { AvaReportTopic } from "./schema";
++import { cognitiveDigest } from "./cognitive-types";
+ 
+ export const AVA_CONTEXTUAL_LANGUAGE_VERSION =
+   "ava-contextual-language/v1" as const;
+@@ -65,6 +66,65 @@ const nonEmpty = (value: unknown): value is string =>
+ const routeSet = new Set<string>(AVA_LANGUAGE_ROUTES);
+ const sourceSet = new Set<string>(AVA_LANGUAGE_SOURCES);
+ 
++export const normalizeAvaLanguageSurface = (raw: string): string =>
++  raw
++    .normalize("NFKC")
++    .toLowerCase()
++    .replace(/[’‘]/g, "'")
++    .replace(/[^\p{L}\p{N}']+/gu, " ")
++    .trim()
++    .replace(/\s+/g, " ");
++
++const entryDestinationSignature = (entry: AvaLanguageEntry) =>
++  JSON.stringify({
++    route: entry.route,
++    entityId: entry.entityId ?? null,
++    reportTopic: entry.reportTopic ?? null,
++    facet: entry.facet ?? null,
++    priorityAxes: entry.priorityAxes ? [...entry.priorityAxes] : null,
++  });
++
++export const stableLanguageDigest = (input: {
++  version: AvaContextualLanguage["version"];
++  stateRevision: string;
++  contentRevision: string;
++  entries: readonly AvaLanguageEntry[];
++}): string => {
++  const entries = input.entries
++    .map((entry) => ({
++      ...entry,
++      surfaces: [...entry.surfaces].sort((left, right) => {
++        const normalized = normalizeAvaLanguageSurface(left).localeCompare(
++          normalizeAvaLanguageSurface(right),
++        );
++        return normalized || left.localeCompare(right);
++      }),
++      priorityAxes: entry.priorityAxes ? [...entry.priorityAxes] : undefined,
++      provenance: [...entry.provenance],
++      evidence: entry.evidence?.map((evidence) => ({ ...evidence })),
++    }))
++    .sort((left, right) => {
++      const leftSurface = normalizeAvaLanguageSurface(left.surfaces[0] ?? "");
++      const rightSurface = normalizeAvaLanguageSurface(right.surfaces[0] ?? "");
++      return (
++        left.id.localeCompare(right.id) ||
++        leftSurface.localeCompare(rightSurface) ||
++        left.route.localeCompare(right.route) ||
++        (left.entityId ?? "").localeCompare(right.entityId ?? "") ||
++        (left.reportTopic ?? "").localeCompare(right.reportTopic ?? "") ||
++        (left.priorityAxes ?? []).join(">").localeCompare(
++          (right.priorityAxes ?? []).join(">"),
++        )
++      );
++    });
++  return cognitiveDigest({
++    version: input.version,
++    stateRevision: input.stateRevision,
++    contentRevision: input.contentRevision,
++    entries,
++  });
++};
++
+ export const validateLanguageEntries = (
+   entries: readonly AvaLanguageEntry[],
+ ): void => {
+@@ -108,6 +168,21 @@ export const validateLanguageEntries = (
+     )
+       throw new Error(`${entry.id}: NARRATIVE_REFERENCE requires evidence`);
+   }
++
++  const owners = new Map<string, Set<string>>();
++  for (const entry of entries) {
++    for (const surface of entry.surfaces) {
++      const normalized = normalizeAvaLanguageSurface(surface);
++      const signatures = owners.get(normalized) ?? new Set<string>();
++      signatures.add(entryDestinationSignature(entry));
++      owners.set(normalized, signatures);
++    }
++  }
++  for (const [surface, signatures] of owners)
++    if (signatures.size > 1)
++      throw new Error(
++        `incompatible contextual surface collision for ${JSON.stringify(surface)}`,
++      );
+ };
+ 
+ export const validateContextualLanguage = (
+diff --git a/scripts/test-ava.sh b/scripts/test-ava.sh
+index 8f41774..6f9835c 100755
+--- a/scripts/test-ava.sh
++++ b/scripts/test-ava.sh
+@@ -14,7 +14,8 @@ CHAT_EXPORT_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-chat-export.XXXXXX.mjs")"
+ INTRUSION_LIBRARY_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-intrusion-library.XXXXXX.mjs")"
+ INLINE_TOKENS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-inline-tokens.XXXXXX.mjs")"
+ CONTEXTUAL_LANGUAGE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-language.XXXXXX.mjs")"
+-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE"' EXIT
++CONTEXTUAL_CATALOG_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-catalog.XXXXXX.mjs")"
++trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE"' EXIT
+ 
+ node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
+@@ -27,9 +28,11 @@ node_modules/.bin/esbuild app/ava/chat-export.ts --bundle --platform=node --form
+ node_modules/.bin/esbuild packages/intrusion-library/src/index.ts --bundle --platform=node --format=esm --outfile="$INTRUSION_LIBRARY_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/inline-tokens.ts --bundle --platform=node --format=esm --outfile="$INLINE_TOKENS_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_LANGUAGE_BUNDLE" >/dev/null
++node_modules/.bin/esbuild app/ava/contextual-language-catalog.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_CATALOG_BUNDLE" >/dev/null
+ DELENDA_INTRUSION_LIBRARY_BUNDLE="file://$INTRUSION_LIBRARY_BUNDLE" node --test tests/intrusion-library.test.mjs
+ DELENDA_AVA_INLINE_TOKENS_BUNDLE="file://$INLINE_TOKENS_BUNDLE" node --test tests/ava-inline-tokens.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" node --test tests/ava-contextual-language-contracts.test.mjs
++DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" DELENDA_AVA_CONTEXTUAL_CATALOG_BUNDLE="file://$CONTEXTUAL_CATALOG_BUNDLE" node --test tests/ava-contextual-language-catalog.test.mjs
+ DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+ DELENDA_AVA_CHAT_EXPORT_BUNDLE="file://$CHAT_EXPORT_BUNDLE" node --test tests/ava-chat-export.test.mjs
+ DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
+diff --git a/tests/ava-contextual-language-catalog.test.mjs b/tests/ava-contextual-language-catalog.test.mjs
+new file mode 100644
+index 0000000..0acff39
+--- /dev/null
++++ b/tests/ava-contextual-language-catalog.test.mjs
+@@ -0,0 +1,140 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++
++const language = await import(process.env.DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE);
++const catalogModule = await import(process.env.DELENDA_AVA_CONTEXTUAL_CATALOG_BUNDLE);
++
++const {
++  normalizeAvaLanguageSurface,
++  stableLanguageDigest,
++  validateLanguageEntries,
++} = language;
++const { AVA_STATIC_LANGUAGE_CATALOG } = catalogModule;
++
++const expected = new Map([
++  ["gain territory", "priority.territory"],
++  ["gain ground", "priority.territory"],
++  ["take ground", "priority.territory"],
++  ["secure territory", "priority.territory"],
++  ["move the front", "priority.territory"],
++  ["push the front", "priority.territory"],
++  ["advance", "priority.advance"],
++  ["advancing", "priority.advance"],
++  ["break through", "priority.advance"],
++  ["breakthrough", "priority.advance"],
++  ["front", "metric.front-movement"],
++  ["front line", "metric.front-movement"],
++  ["frontline", "metric.front-movement"],
++  ["ground movement", "metric.front-movement"],
++  ["ground gained", "metric.front-movement"],
++  ["kilometer", "metric.front-movement"],
++  ["kilometers", "metric.front-movement"],
++  ["km", "metric.front-movement"],
++  ["distance gained", "metric.front-movement"],
++  ["how far did we move", "metric.front-movement"],
++  ["supply", "metric.supply"],
++  ["communications", "metric.communications"],
++  ["intelligence", "metric.intelligence"],
++  ["readiness", "metric.readiness"],
++  ["force", "metric.force"],
++  ["position", "metric.position"],
++  ["pressure", "metric.pressure"],
++  ["enemy position", "report.adversary"],
++  ["enemy positions", "report.adversary"],
++  ["enemy line", "report.adversary"],
++  ["enemy deployment", "report.adversary"],
++  ["where is the enemy", "report.adversary"],
++  ["where are they", "report.adversary"],
++  ["opposing position", "report.adversary"],
++  ["adversary position", "report.adversary"],
++  ["condition", "report.overview"],
++  ["field condition", "report.overview"],
++  ["current condition", "report.overview"],
++  ["situation", "report.overview"],
++  ["strategic condition", "report.overview"],
++  ["state of the front", "report.overview"],
++  ["attrition", "report.losses"],
++  ["losses", "report.losses"],
++  ["casualties", "report.losses"],
++  ["strategy", "advice.strategy"],
++  ["strategic plan", "advice.strategy"],
++  ["strategic approach", "advice.strategy"],
++  ["course of action", "advice.strategy"],
++  ["way forward", "advice.strategy"],
++  ["how do we win", "advice.strategy"],
++  ["what is our strategy", "advice.strategy"],
++]);
++
++const resolve = (surface) =>
++  AVA_STATIC_LANGUAGE_CATALOG.find((entry) =>
++    entry.surfaces.some(
++      (candidate) =>
++        normalizeAvaLanguageSurface(candidate) ===
++        normalizeAvaLanguageSurface(surface),
++    ),
++  );
++
++test("contextual normalization is deterministic and punctuation bounded", () => {
++  assert.equal(normalizeAvaLanguageSurface("GAIN TERRITORY"), "gain territory");
++  assert.equal(normalizeAvaLanguageSurface("Gain-Territory"), "gain territory");
++  assert.equal(normalizeAvaLanguageSurface("gain, territory"), "gain territory");
++  assert.equal(normalizeAvaLanguageSurface("  advance  "), "advance");
++  assert.equal(normalizeAvaLanguageSurface("enemy-position"), "enemy position");
++  assert.equal(normalizeAvaLanguageSurface("KM"), "km");
++});
++
++test("static catalog owns every declared surface", () => {
++  assert.equal(
++    AVA_STATIC_LANGUAGE_CATALOG.flatMap((entry) => entry.surfaces).length,
++    expected.size,
++  );
++  for (const [surface, entryId] of expected)
++    assert.equal(resolve(surface)?.id, entryId, surface);
++  assert.equal(resolve("enemy position")?.id, "report.adversary");
++  assert.equal(resolve("position")?.id, "metric.position");
++  assert.equal(resolve("condition")?.id, "report.overview");
++  assert.equal(resolve("advance")?.id, "priority.advance");
++  assert.equal(resolve("front")?.id, "metric.front-movement");
++  assert.equal(resolve("strategy")?.id, "advice.strategy");
++});
++
++test("catalog collision validation accepts equivalent owners and rejects conflicts", () => {
++  const front = resolve("front");
++  assert.ok(front);
++  assert.doesNotThrow(() => validateLanguageEntries([front, { ...front, id: "front-copy" }]));
++  assert.throws(
++    () =>
++      validateLanguageEntries([
++        front,
++        {
++          ...front,
++          id: "front-conflict",
++          route: "REPORT",
++          entityId: undefined,
++          reportTopic: "overview",
++        },
++      ]),
++    /collision/i,
++  );
++});
++
++test("language digest is stable and changes with semantic content", () => {
++  const input = {
++    version: "ava-contextual-language/v1",
++    stateRevision: "state-1",
++    contentRevision: "content-1",
++    entries: AVA_STATIC_LANGUAGE_CATALOG,
++  };
++  const first = stableLanguageDigest(input);
++  const second = stableLanguageDigest({ ...input, entries: [...input.entries].reverse() });
++  assert.equal(first, second);
++  assert.notEqual(
++    first,
++    stableLanguageDigest({
++      ...input,
++      entries: input.entries.map((entry, index) =>
++        index === 0 ? { ...entry, label: `${entry.label} changed` } : entry,
++      ),
++    }),
++  );
++});
