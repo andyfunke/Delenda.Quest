@@ -820,6 +820,27 @@ const contextualSourceLabel = (source: AvaContextualBinding["source"]) =>
 
 const contextualEvidenceText = (binding: AvaContextualBinding) => {
   const evidence = binding.evidence ?? [];
+  if (binding.maneuverId) {
+    return [
+      "MANEUVER REFERENCE",
+      `MATCHED PHRASE\n${binding.label}`,
+      `MANEUVER ID\n${binding.maneuverId}`,
+      `MANEUVER LABEL\n${binding.maneuverLabel ?? binding.label}`,
+      `EVIDENCE KIND\n${binding.evidenceKind ?? "authored-reference"}`,
+      `SOURCE\n${contextualSourceLabel(binding.source)}`,
+      ...evidence.flatMap((item) => [
+        `SOURCE SECTION: ${item.section}`,
+        `EXACT EXCERPT: ${item.excerpt}`,
+      ]),
+      binding.provenance?.length
+        ? `PROVENANCE\n${binding.provenance.join("\n")}`
+        : null,
+      "STATUS\nAUTHORED LANGUAGE",
+      "GRAMMAR\n> report daily brief\n> explain campaign objective",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   const status =
     binding.source === "AUTHORED_BRIEF"
       ? "AUTHORED LANGUAGE // NO INDEPENDENT MECHANIC ASSERTED"
