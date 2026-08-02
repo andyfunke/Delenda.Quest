@@ -1,5 +1,4 @@
-_parent" "Compile and lower contextual Ava language" "app/ava/compiler.ts" "app/ava/contextual-language-compiler.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-compiler.test.mjs")"
-append_receipt "5" "Compile and lower contextual Ava language" "$remote_parent" "$completed_remote" "Compile exact contextual matches into existing ADVISE, REPORT, and EXPLAIN semantics." "app/ava/compiler.ts, app/ava/contextual-language-compiler.ts, scripts/test-ava.sh, tests/ava-contextual-language-compiler.test.mjs" "Exact index matching, deterministic source precedence, structured ambiguity, typed lowering, and trace provenance." "ava-contextual-language-compiler.test.mjs" "No fuzzy matching, LLM inference, authored-reference activation, or mutation path." "NODE-06: inject the projection at the Nexus compiler boundary and prove the vertical slice."
+g, LLM inference, authored-reference activation, or mutation path." "NODE-06: inject the projection at the Nexus compiler boundary and prove the vertical slice."
 git add DELENDA_QUEST_UBERDOC.md
 git commit -m "Record AVA-LANGUAGE-N5 receipt"
 receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N5 receipt" "DELENDA_QUEST_UBERDOC.md")"

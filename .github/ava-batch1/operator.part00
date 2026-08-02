@@ -111,7 +111,7 @@ test -f app/ava/compiler.ts
 test -f app/ava/game-context.ts
 test -f app/ava/nexus.ts
 grep -q "export type AvaCompilerContext" app/ava/schema.ts
-grep -Eq "export (const|function) compileAvaCommand" app/ava/compiler.ts
+grep -q "export const compileAvaCommand" app/ava/compiler.ts
 grep -q "export const runAvaNexusLine" app/ava/nexus.ts
 grep -q "operationalObjectiveForProblemClass" app/campaign-substrate.ts
 validate_all
@@ -121,7 +121,22 @@ remote_parent="${GITHUB_SHA}"
 echo "NODE-01 Define Ava contextual language boundary"
 test -z "$(git status --short)"
 base_local="$(git rev-parse HEAD)"
-git apply --index --whitespace=error-all ".github/ava-batch1/N1.patch"
+cp .github/ava-batch1/N1.patch /tmp/N1.patch
+python - <<'PATCH'
+from pathlib import Path
+p = Path("/tmp/N1.patch")
+s = p.read_text()
+s = s.replace(
+    '+import type { PriorityAxis } from "../../packages/priorities-library/src/schema";\n+import type { AvaReportTopic } from "./schema";\n',
+    '+type PriorityAxis = import("../../packages/priorities-library/src/schema").PriorityAxis;\n+type AvaReportTopic = import("./schema").AvaReportTopic;\n',
+)
+s = s.replace(
+    '+import type { AvaContextualLanguage } from "./contextual-language";\n+import type { CompiledPriorityIntent } from "../../packages/priorities-library/src/schema";\n',
+    '+type AvaContextualLanguage = import("./contextual-language").AvaContextualLanguage;\n+type CompiledPriorityIntent = import("../../packages/priorities-library/src/schema").CompiledPriorityIntent;\n',
+)
+p.write_text(s)
+PATCH
+git apply --index --whitespace=error-all "/tmp/N1.patch"
 cat > /tmp/N1.manifest <<'EOF'
 app/ava/compiler.ts
 app/ava/contextual-language.ts
@@ -137,4 +152,6 @@ test -z "$(git status --short)"
 completed_remote="$(create_remote_commit "$remote_parent" "Define Ava contextual language boundary" "app/ava/compiler.ts" "app/ava/contextual-language.ts" "app/ava/schema.ts" "packages/priorities-library/src/schema.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-contracts.test.mjs")"
 append_receipt "1" "Define Ava contextual language boundary" "$remote_parent" "$completed_remote" "Establish the pure contextual-language contract and runtime validation boundary." "app/ava/compiler.ts, app/ava/contextual-language.ts, app/ava/schema.ts, packages/priorities-library/src/schema.ts, scripts/test-ava.sh, tests/ava-contextual-language-contracts.test.mjs" "Typed contextual-language contracts, optional compiler projection, and priority-intent-bearing read-only advice." "ava-contextual-language-contracts.test.mjs" "Static catalog and command behavior remain deferred." "NODE-02: deterministic normalization, digesting, collision validation, and static catalog."
 git add DELENDA_QUEST_UBERDOC.md
-git commit -m "Record AVA-LANGUAG
+git commit -m "Record AVA-LANGUAGE-N1 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N1 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent

@@ -1,12 +1,21 @@
-E-N1 receipt"
-receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N1 receipt" "DELENDA_QUEST_UBERDOC.md")"
-remote_parent="$receipt_remote"
+="$receipt_remote"
 test -z "$(git status --short)"
 
 echo "NODE-02 Declare Ava contextual language catalog"
 test -z "$(git status --short)"
 base_local="$(git rev-parse HEAD)"
-git apply --index --whitespace=error-all ".github/ava-batch1/N2.patch"
+cp .github/ava-batch1/N2.patch /tmp/N2.patch
+python - <<'PATCH'
+from pathlib import Path
+p = Path("/tmp/N2.patch")
+s = p.read_text()
+s = s.replace(
+    ' import type { PriorityAxis } from "../../packages/priorities-library/src/schema";\n import type { AvaReportTopic } from "./schema";\n',
+    ' type PriorityAxis = import("../../packages/priorities-library/src/schema").PriorityAxis;\n type AvaReportTopic = import("./schema").AvaReportTopic;\n',
+)
+p.write_text(s)
+PATCH
+git apply --index --whitespace=error-all "/tmp/N2.patch"
 cat > /tmp/N2.manifest <<'EOF'
 app/ava/contextual-language-catalog.ts
 app/ava/contextual-language.ts
@@ -87,28 +96,4 @@ validate_all
 git commit -m "Compile and lower contextual Ava language"
 test -z "$(git status --short)"
 completed_remote="$(create_remote_commit "$remote_parent" "Compile and lower contextual Ava language" "app/ava/compiler.ts" "app/ava/contextual-language-compiler.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-compiler.test.mjs")"
-append_receipt "5" "Compile and lower contextual Ava language" "$remote_parent" "$completed_remote" "Compile exact contextual matches into existing ADVISE, REPORT, and EXPLAIN semantics." "app/ava/compiler.ts, app/ava/contextual-language-compiler.ts, scripts/test-ava.sh, tests/ava-contextual-language-compiler.test.mjs" "Exact index matching, deterministic source precedence, structured ambiguity, typed lowering, and trace provenance." "ava-contextual-language-compiler.test.mjs" "No fuzzy matching, LLM inference, authored-reference activation, or mutation path." "NODE-06: inject the projection at the Nexus compiler boundary and prove the vertical slice."
-git add DELENDA_QUEST_UBERDOC.md
-git commit -m "Record AVA-LANGUAGE-N5 receipt"
-receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N5 receipt" "DELENDA_QUEST_UBERDOC.md")"
-remote_parent="$receipt_remote"
-test -z "$(git status --short)"
-
-echo "NODE-06 Wire contextual language through Ava Nexus"
-test -z "$(git status --short)"
-base_local="$(git rev-parse HEAD)"
-cat .github/ava-batch1/N6.patch.part* > "/tmp/N6.patch"
-git apply --index --whitespace=error-all "/tmp/N6.patch"
-cat > /tmp/N6.manifest <<'EOF'
-app/ava/compiler.ts
-app/ava/nexus.ts
-scripts/test-substrate.sh
-tests/ava-contextual-language-live.test.mjs
-tests/ava-contextual-language-mutation.test.mjs
-EOF
-verify_manifest /tmp/N6.manifest
-bash scripts/test-substrate.sh
-validate_all
-git commit -m "Wire contextual language through Ava Nexus"
-test -z "$(git status --short)"
-completed_remote="$(create_remote_commit "$remote
+append_receipt "5" "Compile and lower contextual Ava language" "$remote_parent" "$completed_remote" "Compile exact contextual matches into existing ADVISE, REPORT, and EXPLAIN semantics." "app/ava/compiler.ts, app/ava/contextual-language-compiler.ts, scripts/test-ava.sh, tests/ava-contextual-language-compiler.test.mjs" "Exact index matching, deterministic source precedence, structured ambiguity, typed lowering, and trace provenance." "ava-contextual-language-compiler.test.mjs" "No fuzzy matchin
