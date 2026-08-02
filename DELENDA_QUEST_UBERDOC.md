@@ -503,3 +503,23 @@ Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
 
 Next node handoff: compile exact authored maneuver spans through the existing
 typed read-only route, with static ownership and availability safeguards.
+
+### AVA-LANGUAGE-003-N17 / authored reference indexing and lowering
+
+Base commit: `4a5a063`
+
+Completed commit: `ede0075`
+
+Purpose: Compile exact current maneuver language into typed, evidence-bound
+read routes while preserving static ownership, ambiguity, and truthful
+unavailability.
+
+Exact procedures executed: bounded span indexing, repository normalization,
+static precedence, same-identity merge, identity collision clarification,
+declared unavailable reference handling, trace enrichment, request validation,
+and consequential-neighbor safeguards.
+
+Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
+
+Next node handoff: render expanded evidence and explicit availability through
+the canonical terminal/Nexus presentation.
