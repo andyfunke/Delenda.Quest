@@ -414,6 +414,12 @@ const CONTEXTUAL_SECTIONS = new Set([
   "standing-order",
   "maneuver-label",
   "maneuver-rationale",
+  "maneuver-presentation",
+]);
+const CONTEXTUAL_EVIDENCE_KINDS = new Set([
+  "maneuver-label",
+  "maneuver-rationale",
+  "maneuver-presentation",
 ]);
 const STRATEGIC_DIMENSIONS = new Set([
   "production_integrity",
@@ -937,7 +943,17 @@ const isAvaContextualBinding = (value: unknown): boolean => {
     !hasExactKeys(
       value,
       ["route", "entryId", "label", "source"],
-      ["facet", "topic", "entityId", "priorityAxes", "evidence"],
+      [
+        "facet",
+        "topic",
+        "entityId",
+        "priorityAxes",
+        "evidence",
+        "maneuverId",
+        "maneuverLabel",
+        "evidenceKind",
+        "provenance",
+      ],
     ) ||
     typeof value.route !== "string" ||
     !CONTEXTUAL_ROUTES.has(value.route) ||
@@ -959,6 +975,29 @@ const isAvaContextualBinding = (value: unknown): boolean => {
     return false;
   if (value.entityId !== undefined && !isNonEmptyString(value.entityId))
     return false;
+  if (value.maneuverId !== undefined && !isNonEmptyString(value.maneuverId))
+    return false;
+  if (
+    value.maneuverLabel !== undefined &&
+    !isNonEmptyString(value.maneuverLabel)
+  )
+    return false;
+  if (
+    value.evidenceKind !== undefined &&
+    (!CONTEXTUAL_EVIDENCE_KINDS.has(String(value.evidenceKind)) ||
+      value.route !== "NARRATIVE_REFERENCE" ||
+      value.source !== "AUTHORED_BRIEF" ||
+      !isNonEmptyString(value.maneuverId) ||
+      !isNonEmptyString(value.maneuverLabel))
+  )
+    return false;
+  if (
+    value.provenance !== undefined &&
+    (!isStringArray(value.provenance) ||
+      !value.provenance.length ||
+      value.provenance.some((item) => !item.trim()))
+  )
+    return false;
   if (value.priorityAxes !== undefined) {
     if (
       !isStringArray(value.priorityAxes) ||
@@ -973,12 +1012,22 @@ const isAvaContextualBinding = (value: unknown): boolean => {
     for (const item of value.evidence) {
       if (
         !isRecord(item) ||
-        !hasExactKeys(item, ["section", "phrase", "excerpt"]) ||
+        !hasExactKeys(
+          item,
+          ["section", "phrase", "excerpt"],
+          ["sourcePath", "sourceOrder"],
+        ) ||
         typeof item.section !== "string" ||
         !CONTEXTUAL_SECTIONS.has(item.section) ||
         !isNonEmptyString(item.phrase) ||
         !isNonEmptyString(item.excerpt) ||
-        item.excerpt.length > 280
+        item.excerpt.length > 280 ||
+        (item.sourcePath !== undefined &&
+          !isNonEmptyString(item.sourcePath)) ||
+        (item.sourceOrder !== undefined &&
+          (!Number.isInteger(item.sourceOrder) ||
+            typeof item.sourceOrder !== "number" ||
+            item.sourceOrder < 0))
       )
         return false;
     }

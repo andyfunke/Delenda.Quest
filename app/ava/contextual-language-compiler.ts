@@ -16,8 +16,7 @@ import type {
   AvaEntity,
   AvaInstruction,
 } from "./schema";
-
-const CONSEQUENTIAL_HEAD = /^(?:stage|unstage|issue|commit|confirm|resolve|end|close|internalize|learn|respond|exploit|clear|select|prepare|choose)\b/;
+import { authoredReferenceDeclarationFor } from "./contextual-language-references";
 
 export type AvaContextualMatch = {
   entry: AvaLanguageEntry;
@@ -38,10 +37,38 @@ export type AvaContextualCompilationResult =
   | {
       status: "unavailable";
       normalizedInput: string;
-      entry: AvaLanguageEntry;
+      entry?: AvaLanguageEntry;
       entityId?: string;
+      declarationId?: string;
+      availability: "UNAVAILABLE";
     }
   | null;
+
+const evidenceKindOrder = new Map([
+  ["maneuver-label", 0],
+  ["maneuver-presentation", 1],
+  ["maneuver-rationale", 2],
+]);
+
+const mergeSameManeuverIdentity = (
+  entries: readonly AvaLanguageEntry[],
+): AvaLanguageEntry => {
+  const ordered = [...entries].sort(
+    (left, right) =>
+      (evidenceKindOrder.get(left.evidenceKind ?? "") ?? 9) -
+        (evidenceKindOrder.get(right.evidenceKind ?? "") ?? 9) ||
+      left.id.localeCompare(right.id),
+  );
+  const first = ordered[0];
+  return {
+    ...first,
+    aliases: [...new Set(ordered.flatMap((entry) => entry.aliases))],
+    evidence: ordered.flatMap((entry) => entry.evidence ?? []),
+    provenance: [
+      ...new Set(ordered.flatMap((entry) => entry.provenance ?? [])),
+    ],
+  };
+};
 
 export const matchAvaContextualLanguage = (
   raw: string,
@@ -49,7 +76,7 @@ export const matchAvaContextualLanguage = (
 ): AvaContextualCompilationResult => {
   if (!context.language || !isAvaContextualLanguage(context.language)) return null;
   const normalizedInput = normalizeAvaLanguageInput(raw);
-  if (!normalizedInput || CONSEQUENTIAL_HEAD.test(normalizedInput)) return null;
+  if (!normalizedInput) return null;
   const candidates = context.language.entries.flatMap((entry) =>
     entry.aliases.flatMap((alias) => {
       const normalizedAlias = normalizeAvaLanguageInput(alias);
@@ -64,7 +91,17 @@ export const matchAvaContextualLanguage = (
       ];
     }),
   );
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    const declaration = authoredReferenceDeclarationFor(raw);
+    return declaration
+      ? {
+          status: "unavailable",
+          normalizedInput,
+          declarationId: declaration.id,
+          availability: "UNAVAILABLE",
+        }
+      : null;
+  }
   const longest = Math.max(...candidates.map((candidate) => candidate.tokenCount));
   const top = candidates
     .filter((candidate) => candidate.tokenCount === longest)
@@ -72,51 +109,64 @@ export const matchAvaContextualLanguage = (
   const distinctEntries = [
     ...new Map(top.map((candidate) => [candidate.entry.id, candidate.entry])).values(),
   ];
-  if (distinctEntries.length > 1)
+  const maneuverIdentities = new Set(
+    distinctEntries.map((entry) => entry.maneuverId ?? entry.id),
+  );
+  if (maneuverIdentities.size > 1)
     return { status: "ambiguous", normalizedInput, candidates: distinctEntries };
-  const selected = top[0];
-  const entity = selected.entry.entityId
-    ? context.entities.find((candidate) => candidate.id === selected.entry.entityId)
+  const selectedEntry =
+    maneuverIdentities.size === 1 && distinctEntries.length > 1
+      ? mergeSameManeuverIdentity(distinctEntries)
+      : distinctEntries[0];
+  const selected =
+    top.find((candidate) => candidate.entry.id === selectedEntry.id) ?? top[0];
+  const entity = selectedEntry.entityId
+    ? context.entities.find((candidate) => candidate.id === selectedEntry.entityId)
     : undefined;
   if (
-    (selected.entry.route === "METRIC_EXPLANATION" ||
-      selected.entry.route === "OBJECTIVE_EXPLANATION" ||
-      selected.entry.route === "NARRATIVE_REFERENCE") &&
+    (selectedEntry.route === "METRIC_EXPLANATION" ||
+      selectedEntry.route === "OBJECTIVE_EXPLANATION" ||
+      selectedEntry.route === "NARRATIVE_REFERENCE") &&
     !entity
   )
     return {
       status: "unavailable",
       normalizedInput,
-      entry: selected.entry,
-      entityId: selected.entry.entityId,
+      entry: selectedEntry,
+      entityId: selectedEntry.entityId,
+      availability: "UNAVAILABLE",
     };
-  const priority = compileDeclaredPriorityFocus(selected.entry.priorityAxes ?? []);
+  const priority = compileDeclaredPriorityFocus(selectedEntry.priorityAxes ?? []);
   const contextual: AvaContextualBinding = {
-    route: selected.entry.route,
-    entryId: selected.entry.id,
-    label: selected.entry.label,
-    source: selected.entry.source,
-    facet: selected.entry.facet,
-    topic: selected.entry.topic,
-    entityId: selected.entry.entityId,
+    route: selectedEntry.route,
+    entryId: selectedEntry.id,
+    label: selectedEntry.label,
+    source: selectedEntry.source,
+    facet: selectedEntry.facet,
+    topic: selectedEntry.topic,
+    entityId: selectedEntry.entityId,
     priorityAxes: priority.axes.length ? priority.axes : undefined,
-    evidence: selected.entry.evidence,
+    evidence: selectedEntry.evidence,
+    maneuverId: selectedEntry.maneuverId,
+    maneuverLabel: selectedEntry.maneuverLabel,
+    evidenceKind: selectedEntry.evidenceKind,
+    provenance: selectedEntry.provenance,
   };
   const instruction: AvaInstruction =
-    selected.entry.route === "PRIORITY_FOCUS" ||
-    selected.entry.route === "STRATEGIC_ADVICE"
+    selectedEntry.route === "PRIORITY_FOCUS" ||
+    selectedEntry.route === "STRATEGIC_ADVICE"
       ? { kind: "ADVISE", contextual }
-      : selected.entry.route === "REPORT"
+      : selectedEntry.route === "REPORT"
         ? {
             kind: "REPORT",
-            topic: selected.entry.topic ?? "overview",
+            topic: selectedEntry.topic ?? "overview",
             scope: "current",
             contextual,
           }
         : {
             kind: "EXPLAIN",
             entity: entity!,
-            facet: selected.entry.facet ?? "meaning",
+            facet: selectedEntry.facet ?? "meaning",
             contextual,
           };
   return {
@@ -125,7 +175,7 @@ export const matchAvaContextualLanguage = (
       instruction,
       semantic: genericSemanticQuery(instruction, context),
       match: {
-        entry: selected.entry,
+        entry: selectedEntry,
         alias: selected.alias,
         normalizedInput,
       },

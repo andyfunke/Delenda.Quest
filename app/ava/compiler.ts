@@ -1566,34 +1566,74 @@ export function compileAvaCommand(
     );
   const contextual = matchAvaContextualLanguage(raw, context);
   if (contextual?.status === "ambiguous")
-    return applySemanticTrace(
-      {
-        status: "clarify",
-        failure: "ambiguous-target",
+    return (() => {
+      const contextualTrace = trace(
+        "CONTEXTUAL_LANGUAGE:AMBIGUOUS",
+        raw,
+        [],
+        semantic,
+      );
+      return {
+        status: "clarify" as const,
+        failure: "ambiguous-target" as const,
         prompt: contextualFailurePrompt(contextual.candidates),
         semantic: semantic.query,
-        trace: trace("CONTEXTUAL_LANGUAGE:AMBIGUOUS", raw, [], semantic),
-      },
-      raw,
-      semantic,
-    );
+        trace: {
+          ...contextualTrace,
+          contextualResolutions: contextual.candidates.map(
+            (candidate) => candidate.id,
+          ),
+          recognizedConcepts: contextual.candidates.map((candidate) => ({
+            kind: "CONTEXTUAL_LANGUAGE",
+            canonical: candidate.id,
+            source: candidate.source,
+          })),
+          authoredEvidence: contextual.candidates.flatMap(
+            (candidate) => candidate.evidence ?? [],
+          ),
+          contextualCandidates: contextual.candidates.map(
+            (candidate) => candidate.id,
+          ),
+          exactIndexHit: true,
+        },
+      };
+    })();
   if (contextual?.status === "unavailable")
-    return applySemanticTrace(
-      {
-        status: "clarify",
-        failure: "missing-target",
-        prompt: `The declared contextual reading '${contextual.entry.label}' is unavailable in the current visible context. Ask about a currently disclosed entity or report.`,
+    return (() => {
+      const entry = contextual.entry;
+      const declarationId = contextual.declarationId;
+      const rule = `CONTEXTUAL_LANGUAGE:UNAVAILABLE:${
+        declarationId ?? entry?.id ?? "DECLARATION"
+      }`;
+      const contextualTrace = trace(rule, raw, [], semantic);
+      return {
+        status: "clarify" as const,
+        failure: "AUTHORED_REFERENCE_UNAVAILABLE" as const,
+        prompt: entry
+          ? `The declared contextual reading '${entry.label}' is not present in the current disclosed authored briefing.`
+          : "The declared authored phrase is not present in the current disclosed authored briefing.",
         semantic: semantic.query,
-        trace: trace(
-          `CONTEXTUAL_LANGUAGE:UNAVAILABLE:${contextual.entry.id}`,
-          raw,
-          [],
-          semantic,
-        ),
-      },
-      raw,
-      semantic,
-    );
+        trace: {
+          ...contextualTrace,
+          contextualResolutions: entry ? [entry.id] : [],
+          recognizedConcepts: entry
+            ? [
+                {
+                  kind: "CONTEXTUAL_LANGUAGE",
+                  canonical: entry.id,
+                  source: entry.source,
+                },
+              ]
+            : [],
+          authoredEvidence: entry?.evidence ?? [],
+          maneuverId: entry?.maneuverId,
+          evidenceKind: entry?.evidenceKind,
+          availability: "UNAVAILABLE" as const,
+          declarationId,
+          exactIndexHit: !!entry,
+        },
+      };
+    })();
   if (contextual?.status === "compiled") {
     const value = contextual.value;
     const entity = value.entity ? [value.entity] : [];
@@ -1631,6 +1671,10 @@ export function compileAvaCommand(
           ...contextualTrace,
           normalizedInput: value.match.normalizedInput,
           normalizedTokens: value.match.normalizedInput.split(" "),
+          authoredEvidence: value.match.entry.evidence,
+          maneuverId: value.match.entry.maneuverId,
+          evidenceKind: value.match.entry.evidenceKind,
+          availability: "AVAILABLE" as const,
         };
       })(),
     };

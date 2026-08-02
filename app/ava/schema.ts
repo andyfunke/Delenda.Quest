@@ -1,6 +1,8 @@
 import type {
   AvaContextualBinding,
   AvaContextualLanguage,
+  AvaLanguageEvidence,
+  AvaManeuverEvidenceKind,
 } from "./contextual-language";
 
 export type AvaModule =
@@ -478,7 +480,8 @@ export type AvaFailureCode =
   | "missing-target"
   | "ambiguous-target"
   | "unsupported-combination"
-  | "unsupported-command-operator";
+  | "unsupported-command-operator"
+  | "AUTHORED_REFERENCE_UNAVAILABLE";
 
 export type AvaCompilerTrace = {
   rule: string;
@@ -505,6 +508,12 @@ export type AvaCompilerTrace = {
   }>;
   entityKinds: AvaEntityKind[];
   unresolvedTokenCount: number;
+  authoredEvidence?: AvaLanguageEvidence[];
+  maneuverId?: string;
+  evidenceKind?: AvaManeuverEvidenceKind;
+  availability?: "AVAILABLE" | "UNAVAILABLE";
+  declarationId?: string;
+  contextualCandidates?: string[];
 };
 
 export type AvaCompileResult =
