@@ -380,3 +380,47 @@ before contextual matching so consequential prefixes cannot become advice.
 
 Next node handoff: prove all declared phrases through the real Nexus path and
 assert state, plan, action, and day immutability.
+
+### AVA-LANGUAGE-002-N06 / Nexus vertical slice and mutation proof
+
+Base commit: `da8077826356704eb48a81ccfdd9ca00e41ca1ed`
+
+Completed commit: `3617a1a9da947e88164a3dabd5ce539905a32b46`
+
+Purpose: Prove the complete declared contextual corpus through the existing
+Nexus compiler boundary and prove that contextual reads cannot mutate game or
+terminal planning state.
+
+Exact procedures executed:
+
+- Exercised territory/advance advice, front and kilometer explanations,
+  adversary/condition/loss reports, objective explanation, and strategy advice
+  through `runAvaNexusLine`.
+- Asserted typed instruction kinds, routes, topics, entities, and stable
+  `CONTEXTUAL_LANGUAGE:<entry-id>` traces for every corpus phrase.
+- Snapshotted state, actions, day, decisions, prepared orders, and terminal
+  plan for every read and required deep equality after compilation.
+- Exercised consequential prefixes, negation, confirmation, and front
+  resolution neighbors to ensure they cannot lower into contextual advice.
+
+Changed files: `tests/ava-contextual-language.test.mjs` and the Epoch 002
+NODE-06 record.
+
+New semantic contracts: the real Nexus is the single contextual route;
+contextual reads are typed, exact, state-bound, and non-mutating across web,
+terminal, and SSH parity paths.
+
+Tests added: live corpus vertical slice and consequential/negated neighbor
+regression tests.
+
+Validation results: `npm run typecheck` PASS; `bash scripts/test-substrate.sh`
+PASS (226/226); `git diff --check` PASS.
+
+Non-goals preserved: no browser or adapter parser, no HTTP SSH path, no D1 or
+shadow mutation, no deployment, and no GitHub push.
+
+Known limitations: Cloudflare authentication remains unavailable in this
+workspace; release validation is local and dry-run only.
+
+Next node handoff: run the full repository gates, generate the epoch source
+manifest, and seal the local epoch receipt.
