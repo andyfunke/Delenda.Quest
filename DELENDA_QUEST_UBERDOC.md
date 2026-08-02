@@ -676,3 +676,27 @@ Non-goals preserved: no replacement parser/calculus, inferred relation, pairwise
 Known limitations: compiler-owned relationships and shared rendering remain the next authorized nodes.
 
 Next node handoff: NODE-25 / project typed operational relationships.
+
+### AVA-SEMANTICS-N25 / Project typed Ava operational relationships
+
+Base commit: `6ada48a`
+
+Completed commit: `6275e2d`
+
+Purpose: Project only the repository’s two confirmed operational relationship owners into a bounded, directed, read-only model.
+
+Exact procedures executed: read `CONCEPTS[source].related[]` in source order; joined `campaign-synopsis` to `currentSituation.maneuvers[]` by stable ID; added join keys, visible revision, provenance, explicit bounds, and unavailable evidence; attached the model to read-only `EXPLAIN`; and added direct owner/digest/state-preservation tests.
+
+Changed files: `app/ava/operational-relationships.ts`, `app/ava/operational-semantics.ts`, `tests/ava-operational-semantics.test.mjs`, and the NODE-25 records.
+
+New semantic contracts: `AvaOperationalRelationships` contains only `RELATED_CONCEPT` and `CURRENT_VISIBLE_MANEUVER` edges, with `SOURCE_TO_TARGET` direction, `readOnly: true`, bounds, and a digest.
+
+Tests added: concept-edge ownership, campaign-synopsis maneuver joins, direction/join-key checks, deterministic digest coverage, and no-mutation checks.
+
+Validation results: typecheck PASS; focused operational corpus 5/5 PASS; complete substrate corpus 239/239 PASS; `git diff --check` PASS.
+
+Non-goals preserved: no generic graph, prose/inferred relation, hidden-state relation, second parser, mutation path, push, deployment, D1 write, shadow mutation, or HTTP SSH path.
+
+Known limitations: shared presentation and cross-surface parity are the next authorized nodes.
+
+Next node handoff: NODE-26 / render composed operational semantics.

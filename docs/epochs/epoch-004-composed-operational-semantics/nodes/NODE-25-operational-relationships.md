@@ -2,7 +2,7 @@
 
 Status: implementation complete; immutable receipt follows the implementation commit.
 
-Implementation commit: pending
+Implementation commit: `6275e2d`
 
 Contract:
 

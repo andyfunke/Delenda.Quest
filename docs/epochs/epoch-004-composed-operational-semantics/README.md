@@ -15,7 +15,7 @@ current pushed `main` head; the handoff base `9973b8e` is not used.
 | NODE-22 | canonical calculus evidence | sealed (`04927d6`; receipt `NODE-22.md`) |
 | NODE-23 | typed advice composition | sealed (`0656460`; receipt `NODE-23.md`) |
 | NODE-24 | pairwise typed maneuver comparison | sealed (`17dac16`; receipt `NODE-24.md`) |
-| NODE-25 | typed operational relationships | implementation complete; receipt pending |
+| NODE-25 | typed operational relationships | sealed (`6275e2d`; receipt `NODE-25.md`) |
 | NODE-26 | canonical semantic rendering | pending |
 | NODE-27 | final parity, generated proof, and epoch seal | pending |
 
