@@ -28,12 +28,35 @@ export type AvaNarrativeSection =
   | "question"
   | "standing-order"
   | "maneuver-label"
-  | "maneuver-rationale";
+  | "maneuver-rationale"
+  | "maneuver-presentation";
+
+export const AVA_MANEUVER_EVIDENCE_KINDS = [
+  "maneuver-label",
+  "maneuver-rationale",
+  "maneuver-presentation",
+] as const;
+
+export type AvaManeuverEvidenceKind =
+  (typeof AVA_MANEUVER_EVIDENCE_KINDS)[number];
 
 export type AvaLanguageEvidence = {
   section: AvaNarrativeSection;
   phrase: string;
   excerpt: string;
+  /** Exact source path in the disclosed owner, when available. */
+  sourcePath?: string;
+  /** Stable source order; it is intentionally not canonicalized by sorting. */
+  sourceOrder?: number;
+};
+
+export type AvaAuthoredManeuverEvidence = {
+  maneuverId: string;
+  label: string;
+  labelEvidence?: AvaLanguageEvidence;
+  rationaleEvidence?: AvaLanguageEvidence;
+  presentationEvidence?: AvaLanguageEvidence;
+  provenance: readonly string[];
 };
 
 export type AvaLanguageEntry = {
@@ -48,6 +71,9 @@ export type AvaLanguageEntry = {
   priorityAxes?: StrategicDimension[];
   provenance?: string[];
   evidence?: AvaLanguageEvidence[];
+  maneuverId?: string;
+  maneuverLabel?: string;
+  evidenceKind?: AvaManeuverEvidenceKind;
 };
 
 export type AvaContextualLanguage = {
@@ -68,6 +94,10 @@ export type AvaContextualBinding = {
   entityId?: string;
   priorityAxes?: StrategicDimension[];
   evidence?: AvaLanguageEvidence[];
+  maneuverId?: string;
+  maneuverLabel?: string;
+  evidenceKind?: AvaManeuverEvidenceKind;
+  provenance?: string[];
 };
 
 const ROUTES = new Set<AvaLanguageRoute>([
@@ -98,7 +128,11 @@ const SECTIONS = new Set<AvaNarrativeSection>([
   "standing-order",
   "maneuver-label",
   "maneuver-rationale",
+  "maneuver-presentation",
 ]);
+const MANEUVER_EVIDENCE_KINDS = new Set<AvaManeuverEvidenceKind>(
+  AVA_MANEUVER_EVIDENCE_KINDS,
+);
 const DIMENSIONS = new Set<StrategicDimension>([
   "production_integrity",
   "supply_integrity",
@@ -116,6 +150,8 @@ const DIMENSIONS = new Set<StrategicDimension>([
 
 const nonEmpty = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
+
+const stableUnique = <T>(values: readonly T[]) => [...new Set(values)];
 
 /**
  * Normalize only declared contextual-language surfaces. The general Ava
@@ -144,14 +180,14 @@ const canonicalEntry = (entry: AvaLanguageEntry): AvaLanguageEntry => ({
   priorityAxes: entry.priorityAxes?.length
     ? [...new Set(entry.priorityAxes)].sort()
     : undefined,
-  provenance: entry.provenance?.length
-    ? [...new Set(entry.provenance)].sort()
-    : [`${entry.source}:${entry.id}`],
-  evidence: entry.evidence?.map((item) => ({ ...item })).sort((left, right) =>
-    `${left.section}:${left.phrase}`.localeCompare(
-      `${right.section}:${right.phrase}`,
-    ),
+  provenance: stableUnique(
+    entry.provenance?.length
+      ? entry.provenance
+      : [`${entry.source}:${entry.id}`],
   ),
+  // Evidence order is semantic source order. Sorting it would erase a
+  // deterministic authored-order change from the content seal.
+  evidence: entry.evidence?.map((item) => ({ ...item })),
 });
 
 const canonicalEntries = (entries: AvaLanguageEntry[]) =>
@@ -180,7 +216,15 @@ export const validateAvaLanguageEntries = (
   const issues: string[] = [];
   if (!Array.isArray(entries)) return ["entries must be an array"];
   const ids = new Set<string>();
-  const aliases = new Map<string, string>();
+  const aliases = new Map<
+    string,
+    {
+      id: string;
+      source: AvaLanguageSource;
+      route: AvaLanguageRoute;
+      maneuverId?: string;
+    }
+  >();
   entries.forEach((value, index) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       issues.push(`entry ${index} must be an object`);
@@ -196,6 +240,9 @@ export const validateAvaLanguageEntries = (
       "priorityAxes",
       "provenance",
       "evidence",
+      "maneuverId",
+      "maneuverLabel",
+      "evidenceKind",
     ];
     if (Object.keys(entry).some((key) => !allowed.includes(key)))
       issues.push(`entry ${index} contains unknown fields`);
@@ -203,6 +250,19 @@ export const validateAvaLanguageEntries = (
       issues.push(`entry ${index} id must be unique and non-empty`);
     else ids.add(entry.id);
     if (!nonEmpty(entry.label)) issues.push(`entry ${index} label is required`);
+    if (entry.maneuverId !== undefined && !nonEmpty(entry.maneuverId))
+      issues.push(`entry ${index} maneuverId must be non-empty when present`);
+    if (entry.maneuverLabel !== undefined && !nonEmpty(entry.maneuverLabel))
+      issues.push(`entry ${index} maneuverLabel must be non-empty when present`);
+    if (
+      entry.evidenceKind !== undefined &&
+      (!MANEUVER_EVIDENCE_KINDS.has(
+        entry.evidenceKind as AvaManeuverEvidenceKind,
+      ) || !nonEmpty(entry.maneuverId))
+    )
+      issues.push(
+        `entry ${index} evidenceKind requires a known kind and maneuverId`,
+      );
     if (!ROUTES.has(entry.route as AvaLanguageRoute))
       issues.push(`entry ${index} route is unknown`);
     if (!SOURCES.has(entry.source as AvaLanguageSource))
@@ -238,9 +298,22 @@ export const validateAvaLanguageEntries = (
         issues.push(`entry ${index} aliases must be unique after normalization`);
       normalizedAliases.forEach((alias) => {
         const owner = aliases.get(alias);
-        if (owner && owner !== entry.id)
-          issues.push(`alias '${alias}' collides between ${owner} and ${entry.id}`);
-        else aliases.set(alias, entry.id as string);
+        if (owner && owner.id !== entry.id) {
+          const authoredManeuverCollision =
+            owner.source === "AUTHORED_BRIEF" &&
+            entry.source === "AUTHORED_BRIEF" &&
+            owner.route === "NARRATIVE_REFERENCE" &&
+            entry.route === "NARRATIVE_REFERENCE";
+          if (!authoredManeuverCollision)
+            issues.push(`alias '${alias}' collides between ${owner.id} and ${entry.id}`);
+        } else {
+          aliases.set(alias, {
+            id: entry.id as string,
+            source: entry.source as AvaLanguageSource,
+            route: entry.route as AvaLanguageRoute,
+            maneuverId: entry.maneuverId as string | undefined,
+          });
+        }
       });
     }
     if (entry.priorityAxes !== undefined) {
@@ -264,12 +337,24 @@ export const validateAvaLanguageEntries = (
           const evidence = item as Record<string, unknown>;
           if (
             Object.keys(evidence).some(
-              (key) => !["section", "phrase", "excerpt"].includes(key),
+              (key) =>
+                ![
+                  "section",
+                  "phrase",
+                  "excerpt",
+                  "sourcePath",
+                  "sourceOrder",
+                ].includes(key),
             ) ||
             !SECTIONS.has(evidence.section as AvaNarrativeSection) ||
             !nonEmpty(evidence.phrase) ||
             !nonEmpty(evidence.excerpt) ||
-            String(evidence.excerpt).length > 280
+            String(evidence.excerpt).length > 280 ||
+            (evidence.sourcePath !== undefined &&
+              !nonEmpty(evidence.sourcePath)) ||
+            (evidence.sourceOrder !== undefined &&
+              (!Number.isInteger(evidence.sourceOrder) ||
+                Number(evidence.sourceOrder) < 0))
           )
             issues.push(`entry ${index} evidence ${evidenceIndex} is malformed`);
         });
@@ -311,6 +396,10 @@ export const validateLanguageEntries = (entries: unknown): void => {
         (!Array.isArray(entry.evidence) || entry.evidence.length === 0)
       )
         issues.push(`entry ${index} evidence is required for narrative references`);
+      if (entry.evidenceKind !== undefined && route !== "NARRATIVE_REFERENCE")
+        issues.push(`entry ${index} maneuver evidence must use NARRATIVE_REFERENCE`);
+      if (entry.evidenceKind !== undefined && !nonEmpty(entry.maneuverLabel))
+        issues.push(`entry ${index} maneuver evidence requires maneuverLabel`);
       if (
         entry.provenance !== undefined &&
         Array.isArray(entry.provenance) &&

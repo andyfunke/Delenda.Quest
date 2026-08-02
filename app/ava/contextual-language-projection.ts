@@ -3,13 +3,15 @@ import {
   operationalObjectiveForProblemClass,
   operationalTargetForProblemClass,
 } from "../campaign-substrate";
-import { situationForState, type GameState } from "../game";
+import { maneuverById, situationForState, type GameState } from "../game";
 import { projectAvaDisclosedState } from "./projection";
 import { avaVisibleWorldRevision } from "./world-model";
 import {
   sealAvaContextualLanguage,
   normalizeAvaLanguageInput,
+  type AvaAuthoredManeuverEvidence,
   type AvaLanguageEntry,
+  type AvaLanguageEvidence,
   type AvaNarrativeSection,
 } from "./contextual-language";
 import { AVA_CONTEXTUAL_CATALOG } from "./contextual-language-catalog";
@@ -22,8 +24,101 @@ import type { AvaEntity } from "./schema";
 const sectionText = (
   section: AvaNarrativeSection,
   text: string | undefined,
+  sourcePath: string,
+  sourceOrder: number,
 ): AvaAuthoredBriefingSource | null =>
-  text?.trim() ? { section, text } : null;
+  text?.trim()
+    ? {
+        section,
+        text,
+        sourcePath,
+        sourceOrder,
+        provenance: [sourcePath],
+      }
+    : null;
+
+const evidence = (
+  section: AvaLanguageEvidence["section"],
+  phrase: string | undefined,
+  sourcePath: string,
+  sourceOrder: number,
+): AvaLanguageEvidence | undefined =>
+  phrase?.trim()
+    ? {
+        section,
+        phrase,
+        excerpt: phrase,
+        sourcePath,
+        sourceOrder,
+      }
+    : undefined;
+
+/**
+ * Project only the disclosed maneuver docket. The returned record deliberately
+ * has no action handler, resolution ticket, outcome, risk, cost, seed, or
+ * private calculus field.
+ */
+export const projectAvaAuthoredManeuverEvidence = (
+  state: GameState,
+): AvaAuthoredManeuverEvidence[] => {
+  const disclosed = projectAvaDisclosedState(state);
+  const situation =
+    disclosed.currentSituation?.day === disclosed.day &&
+    disclosed.currentSituation.contentPackVersion === CONTENT_PACK_VERSION &&
+    disclosed.currentSituation.maneuverPresentations
+      ? disclosed.currentSituation
+      : null;
+  if (!situation) return [];
+
+  return situation.maneuvers.flatMap((maneuverId, index) => {
+    const presentation = situation.maneuverPresentations[maneuverId];
+    const owner = maneuverById(maneuverId);
+    const label = owner?.label ?? presentation?.label;
+    if (!label) return [];
+
+    const labelPath = owner
+      ? `app/game.ts::MANEUVERS[${maneuverId}].label`
+      : `currentSituation.maneuverPresentations.${maneuverId}.label`;
+    const presentationPath = `currentSituation.maneuverPresentations.${maneuverId}.label`;
+    const rationalePath = `currentSituation.maneuverPresentations.${maneuverId}.rationale`;
+    const labelEvidence = evidence(
+      "maneuver-label",
+      label,
+      labelPath,
+      index * 3,
+    );
+    const rationaleEvidence = evidence(
+      "maneuver-rationale",
+      presentation?.rationale,
+      rationalePath,
+      index * 3 + 2,
+    );
+    const presentationEvidence = evidence(
+      "maneuver-presentation",
+      presentation?.label,
+      presentationPath,
+      index * 3 + 1,
+    );
+    return [
+      {
+        maneuverId,
+        label,
+        labelEvidence,
+        rationaleEvidence,
+        presentationEvidence,
+        provenance: [
+          ...(labelEvidence?.sourcePath ? [labelEvidence.sourcePath] : []),
+          ...(presentationEvidence?.sourcePath
+            ? [presentationEvidence.sourcePath]
+            : []),
+          ...(rationaleEvidence?.sourcePath
+            ? [rationaleEvidence.sourcePath]
+            : []),
+        ],
+      },
+    ];
+  });
+};
 
 const dynamicSituationEntries = (
   state: GameState,
@@ -54,31 +149,6 @@ const dynamicSituationEntries = (
       facet: "meaning",
     });
   }
-  for (const [maneuverId, presentation] of Object.entries(
-    situation.maneuverPresentations,
-  )) {
-    const normalized = normalizeAvaLanguageInput(presentation.label);
-    if (!normalized || staticAliases.has(normalized)) continue;
-    add({
-      id: `current-action.${maneuverId}`,
-      route: "NARRATIVE_REFERENCE",
-      label: presentation.label,
-      aliases: [presentation.label],
-      source: "CURRENT_ACTION",
-      entityId: synopsis?.id,
-      facet: "meaning",
-      evidence: [
-        {
-          section: "maneuver-label",
-          phrase: presentation.label,
-          excerpt: `${presentation.label} — ${presentation.rationale}`.slice(
-            0,
-            280,
-          ),
-        },
-      ],
-    });
-  }
   return entries;
 };
 
@@ -93,17 +163,61 @@ export const buildAvaContextualLanguage = (
     disclosed.currentSituation.maneuverPresentations
       ? disclosed.currentSituation
       : null;
+  const maneuverEvidence = projectAvaAuthoredManeuverEvidence(disclosed);
   const sources = situation
     ? [
-        sectionText("headline", situation.headline),
-        sectionText("briefing", situation.briefing),
-        sectionText("question", situation.question),
-        sectionText("standing-order", situation.standingOrder),
-        ...Object.values(situation.maneuverPresentations).flatMap(
-          (presentation) => [
-            sectionText("maneuver-label", presentation.label),
-            sectionText("maneuver-rationale", presentation.rationale),
-          ],
+        sectionText(
+          "headline",
+          situation.headline,
+          "currentSituation.headline",
+          0,
+        ),
+        sectionText(
+          "briefing",
+          situation.briefing,
+          "currentSituation.briefing",
+          1,
+        ),
+        sectionText(
+          "question",
+          situation.question,
+          "currentSituation.question",
+          2,
+        ),
+        sectionText(
+          "standing-order",
+          situation.standingOrder,
+          "currentSituation.standingOrder",
+          3,
+        ),
+        ...maneuverEvidence.flatMap((record, index) =>
+          [
+            record.labelEvidence,
+            record.presentationEvidence,
+            record.rationaleEvidence,
+          ].flatMap((item) =>
+            item
+              ? [
+                  {
+                    section: item.section,
+                    text: item.phrase,
+                    sourcePath: item.sourcePath,
+                    sourceOrder: item.sourceOrder ?? 4 + index,
+                    maneuverId: record.maneuverId,
+                    evidenceKind:
+                      item.section === "maneuver-label"
+                        ? ("maneuver-label" as const)
+                        : item.section === "maneuver-rationale"
+                          ? ("maneuver-rationale" as const)
+                          : ("maneuver-presentation" as const),
+                    maneuverLabel: record.label,
+                    provenance: record.provenance,
+                    exactTypedLabel:
+                      item.section !== "maneuver-rationale",
+                  },
+                ]
+              : [],
+          ),
         ),
       ].filter((source): source is AvaAuthoredBriefingSource => !!source)
     : [];
