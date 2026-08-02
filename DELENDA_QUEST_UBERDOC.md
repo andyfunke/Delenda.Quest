@@ -464,3 +464,23 @@ unavailable, so only local validation and dry run were executed.
 Result: Epoch 002 is locally sealed and the worktree is clean. The next
 authorized action, if desired, is an explicit release/push operation outside
 this patch epoch.
+
+### AVA-LANGUAGE-003-N15 / typed operational owner boundary
+
+Base commit: `3d04095961a40c72363adfa2d546ff2ec0187b79`
+
+Completed commit: `16ad7c0`
+
+Purpose: Begin Epoch 003 by confirming one disclosed, non-action owner for
+formation, reserve, route, and opening and recording the stable current
+maneuver join without creating a second semantic route.
+
+Exact procedures executed: owner inspection, current-state disclosure check,
+static route/facet check, action-field check, stable maneuver identity check,
+and native SSH session-core availability check.
+
+Validation: focused Ava baseline PASS; substrate corpus PASS (231/231);
+typecheck PASS; no deployment, push, D1, shadow, or HTTP SSH path.
+
+Next node handoff: project authored maneuver evidence with exact source text,
+source order, evidence kind, identity, and provenance.

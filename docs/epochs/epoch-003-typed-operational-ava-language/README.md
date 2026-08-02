@@ -12,8 +12,8 @@ docket. It is ported onto the current `main` head; the stale handoff base
 | Node | Contract | Status |
 | --- | --- | --- |
 | NODE-14 | owner and maneuver preflight | complete |
-| NODE-15 | typed operational projection and static vocabulary | in progress |
-| NODE-16 | authored maneuver evidence projection | pending |
+| NODE-15 | typed operational projection and static vocabulary | complete |
+| NODE-16 | authored maneuver evidence projection | in progress |
 | NODE-17 | deterministic authored-reference indexing and lowering | pending |
 | NODE-18 | semantic rendering | pending |
 | NODE-19 | web, terminal, and native SSH parity | pending |
@@ -34,4 +34,3 @@ D1, mutate the shadow environment, or use HTTP as an SSH substitute.
 - Canonical execution: `app/ava/nexus.ts`
 - Terminal and SSH adapters: `packages/terminal-core` and
   `packages/ssh-gateway/src/session-core.ts`
-
