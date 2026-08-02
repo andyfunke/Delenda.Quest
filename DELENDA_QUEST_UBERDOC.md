@@ -652,3 +652,27 @@ Non-goals preserved: no pairwise scoring or winner invention, second parser/calc
 Known limitations: pairwise comparison, relationship projection, and shared rendering are the next authorized nodes.
 
 Next node handoff: NODE-24 / compile typed Ava maneuver comparisons.
+
+### AVA-SEMANTICS-N24 / Compile typed Ava maneuver comparisons
+
+Base commit: `57def89`
+
+Completed commit: `17dac16`
+
+Purpose: Compile a bounded, read-only comparison between two visible current maneuvers using stable identities and existing game/projection authorities.
+
+Exact procedures executed: joined stable maneuver IDs to the current situation and presentation; projected execution confidence through `explainManeuverChance`; compared only actual maneuver fields; reused pure action and envelope projection for disclosed ground movement; retained interval uncertainty and explicit unavailable evidence; and added orientation/no-winner/state-preservation/hidden-field checks.
+
+Changed files: `app/ava/operational-comparison.ts`, `app/ava/operational-semantics.ts`, `tests/ava-operational-semantics.test.mjs`, and the NODE-24 records.
+
+New semantic contracts: `AvaOperationalComparison` exposes stable identities, shared context, seven bounded dimensions, explicit statuses, evidence-shaped verdicts, provenance, limitations, and a digest, with no winner or score field.
+
+Tests added: current-handle comparison, direct reversed identity comparison, dimension-status coverage, no-winner, state-preservation, and hidden/private field checks.
+
+Validation results: typecheck PASS; complete substrate corpus 238/238 PASS; `git diff --check` PASS.
+
+Non-goals preserved: no replacement parser/calculus, inferred relation, pairwise winner, sealed outcome, private resolution ticket/RNG, mutation route, push, deployment, D1 write, shadow mutation, or HTTP SSH path.
+
+Known limitations: compiler-owned relationships and shared rendering remain the next authorized nodes.
+
+Next node handoff: NODE-25 / project typed operational relationships.
