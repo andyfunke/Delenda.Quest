@@ -92,3 +92,32 @@ The epoch source manifest uses SHA-256 over tracked implementation, test,
 doctrine, feature, and epoch files, excluding the manifest itself and the
 append-only logbook. The final commit and tree are reported alongside the
 manifest digest in the seal receipt.
+
+## Epoch 002 execution — contextual language hardening
+
+The attached next-batch packet was executed against the sealed current
+baseline, not its stale `9973b8e` assumption. The live repository has no
+`packages/priorities-library`; the implementation therefore remains split
+across the existing contextual modules and lowers into the current
+`StrategicDimension`, `campaign-synopsis`, typed request IR, and Nexus owners.
+
+| Node | Implementation commit | Receipt commit | Result |
+|---|---|---|---|
+| NODE-01 | `2feb3af` | `98d23f6` | contract validation and NFKC surface normalization |
+| NODE-02 | `c1c87cf` | `088714e` | deterministic contextual aliases and ownership map |
+| NODE-03 | `a897139` | `be52368` | bounded strategic-dimension priority lowering |
+| NODE-04 | `551f625` | `319bf6e` | disclosed, non-actionable objective projection |
+| NODE-05 | `5d98669` | `da80778` | exact matcher, typed route lowering, stable traces |
+| NODE-06 | `3617a1a` | `18cbf41` | live Nexus corpus and mutation safeguards |
+
+The complete corpus is exact after normalization and routes through existing
+`ADVISE`, `REPORT`, and `EXPLAIN` instructions. The focused substrate gate is
+226/226 and includes web/native terminal/SSH parity, hidden-field exclusion,
+unavailable-destination clarification, and consequential/negated neighbor
+guards. The full repository gate, typecheck, build, SSH build, Cloudflare
+types/dry run, and lint also pass.
+
+Epoch 002 retains the release boundary: no GitHub push, Cloudflare deploy,
+D1 write, shadow mutation, or HTTP SSH path was performed. Its complete
+execution evidence is under `docs/epochs/epoch-002-contextual-language-hardening/`
+and the root logbook.

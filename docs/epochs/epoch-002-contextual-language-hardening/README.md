@@ -22,11 +22,11 @@ typed request IR, Nexus, and native SSH/terminal adapters.
 |---|---|---|
 | NODE-00 | repository and ownership lock | complete, no commit |
 | NODE-01 | contract validation and contextual surface normalization | sealed |
-| NODE-02 | deterministic catalog vocabulary and aliases | pending |
-| NODE-03 | current strategic-dimension lowering | pending |
-| NODE-04 | disclosed objective projection | pending |
-| NODE-05 | exact matcher, route lowering, and trace identity | pending |
-| NODE-06 | live Nexus corpus and mutation safeguards | pending |
+| NODE-02 | deterministic catalog vocabulary and aliases | sealed |
+| NODE-03 | current strategic-dimension lowering | sealed |
+| NODE-04 | disclosed objective projection | sealed |
+| NODE-05 | exact matcher, route lowering, and trace identity | sealed |
+| NODE-06 | live Nexus corpus and mutation safeguards | sealed |
 
 Each sealed node appends one receipt to the root logbook. The final seal will
 include focused and full gates plus a source manifest for this epoch.
