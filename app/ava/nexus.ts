@@ -90,6 +90,7 @@ import { avaVisibleWorldRevision } from "./world-model";
 import { projectAvaDisclosedState } from "./projection";
 import { buildAvaContextualLanguage } from "./contextual-language-projection";
 import { projectAvaOperationalSemantics } from "./operational-semantics";
+import { renderAvaOperationalSemantics } from "./operational-render";
 import type { AvaOperationalSemanticResult } from "./operational-contracts";
 
 type DirectiveChannel = Extract<
@@ -582,7 +583,7 @@ const withEnvelope = (
     terminalResult?: AvaTerminalResult;
   } = {},
 ): AvaNexusResult => {
-  const realizedText = realizeAvaPresentation(
+  const realizedBaseText = realizeAvaPresentation(
     result.state,
     result.text,
     result.session.realizationMode,
@@ -598,9 +599,19 @@ const withEnvelope = (
         request.instruction.canonical === true,
     },
   );
+  const realizedText = result.operationalSemantics
+    ? `${realizedBaseText}\n\n${renderAvaOperationalSemantics(result.operationalSemantics)}`
+    : realizedBaseText;
   result = {
     ...result,
     text: realizedText,
+    response: {
+      ...result.response,
+      rendering: { ...result.response.rendering, brief: realizedText },
+    },
+    ...(result.terminalResult
+      ? { terminalResult: { ...result.terminalResult, text: realizedText } }
+      : {}),
     session: {
       ...result.session,
       terminal: { ...result.session.terminal, lastText: realizedText },

@@ -140,3 +140,4 @@ export type {
 } from "./operational-contracts";
 export { projectAvaManeuverComparison } from "./operational-comparison";
 export { projectAvaOperationalRelationships } from "./operational-relationships";
+export { renderAvaOperationalSemantics } from "./operational-render";

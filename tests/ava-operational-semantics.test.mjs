@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 const operational = await import(process.env.DELENDA_AVA_OPERATIONAL_BUNDLE);
 const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
 const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
+const terminal = await import(process.env.DELENDA_TERMINAL_CORE_BUNDLE);
+const sshGateway = await import(process.env.DELENDA_SSH_GATEWAY_BUNDLE);
 
 const stateFor = (seed = 708) =>
   game.initialState({ seed, theater: "lowland" });
@@ -63,6 +65,8 @@ test("canonical decision evidence is deterministic and read-only", () => {
   );
   assert.deepEqual(left.state, state);
   assert.equal(JSON.stringify(state), before);
+  assert.match(left.text, /JUDGMENT \/ TYPED ADVICE/);
+  assert.match(left.text, /RECOMMENDATION:/);
   assert.doesNotMatch(
     JSON.stringify(left.operationalSemantics),
     /"(?:resolutionTicket|campaignSeed|preparedOrders|resolutionHistory|adversaryLedger|rng)"\s*:/i,
@@ -114,6 +118,7 @@ test("the projection contract exposes only compiler-owned relationships", () => 
     relationship.direction === "SOURCE_TO_TARGET" && relationship.readOnly === true,
   ));
   assert.equal(JSON.stringify(state), before);
+  assert.match(result.digest, /^[a-f0-9]{64}$/);
 });
 
 test("campaign synopsis relationships join the current maneuver docket by stable ID", () => {
@@ -136,6 +141,62 @@ test("campaign synopsis relationships join the current maneuver docket by stable
     relationship.relation === "RELATED_CONCEPT" && relationship.targetId === "execution-confidence",
   ));
   assert.match(result.digest, /^[a-f0-9]{64}$/);
+});
+
+test("the renderer is one semantic model for advice, comparison, and relationships", () => {
+  const state = stateFor();
+  const advice = run("advise", state);
+  const comparison = run("compare M1 M2", state);
+  const explanation = operational.projectAvaOperationalSemantics({
+    state,
+    query: {
+      operation: "EXPLAIN",
+      subject: { type: "METRIC", entityIds: ["formation"] },
+      scope: { group: "MAIN", domains: ["MAIN"], excludedDomains: [] },
+      timeframe: "CURRENT_DAY",
+      criteria: [],
+      polarity: "AFFIRMATIVE",
+      requestedDetail: "REASONS",
+      perspective: "PLAYER",
+      outputForm: "TERMINAL",
+      overlays: [],
+      confidence: 1,
+      sourceSpans: {},
+    },
+    instruction: { kind: "EXPLAIN", entity: { id: "formation", kind: "metric", label: "Formation" }, facet: "meaning" },
+  });
+  assert.match(advice.text, /SEMANTIC RECEIPT:/);
+  assert.match(comparison.text, /MANEUVER COMPARISON \/ BOUNDED EVIDENCE/);
+  assert.match(
+    operational.renderAvaOperationalSemantics(explanation),
+    /OPERATIONAL RELATIONSHIPS \/ DECLARED EDGES/,
+  );
+  assert.doesNotMatch(advice.text, /resolutionTicket|campaignSeed|preparedOrders/i);
+  assert.doesNotMatch(comparison.text, /winner\s*:/i);
+});
+
+test("browser, terminal, and native SSH consume one rendered semantic model", () => {
+  const state = stateFor();
+  for (const line of ["advise", "forecast M1", "compare M1 M2", "formation"]) {
+    const browser = run(line, state, "web");
+    const terminalResult = terminal.runTerminalLine(
+      line,
+      contextFor(state, "terminal"),
+      state,
+      terminal.createTerminalSession(),
+    );
+    const sshResult = sshGateway.executeNativeSshGatewayLine({
+      raw: line,
+      state,
+      session: nexus.createAvaNexusSession(),
+      playerId: "operational-ssh@example.com",
+      nowMs: 1_700_000_000_000,
+    });
+    assert.deepEqual(terminalResult.operationalSemantics, browser.operationalSemantics, line);
+    assert.deepEqual(sshResult.publicResult.operationalSemantics, browser.operationalSemantics, line);
+    assert.equal(terminalResult.text, browser.text, line);
+    assert.equal(sshResult.publicResult.text, browser.text, line);
+  }
 });
 
 test("pairwise maneuver comparison exposes bounded evidence without a winner", () => {
