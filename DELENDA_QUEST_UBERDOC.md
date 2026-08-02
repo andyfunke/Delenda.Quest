@@ -523,3 +523,21 @@ Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
 
 Next node handoff: render expanded evidence and explicit availability through
 the canonical terminal/Nexus presentation.
+
+### AVA-LANGUAGE-003-N18 / typed operational rendering
+
+Base commit: `2251e34`
+
+Completed commit: `2bec345`
+
+Purpose: Present exact authored maneuver evidence and truthful typed
+operational availability through the existing terminal renderer.
+
+Exact procedures executed: typed missing-value rendering, maneuver reference
+heading/identity/kind/provenance output, exact excerpt preservation, and
+authored-language status boundary.
+
+Validation: substrate corpus PASS (231/231); typecheck PASS; diff check PASS.
+
+Next node handoff: verify canonical web, terminal, and native SSH semantic and
+proof parity without adapter-local parsers.
