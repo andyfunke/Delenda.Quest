@@ -1,0 +1,13 @@
+{
+  "version": "content-judge-prompt/v1",
+  "medium": "ava",
+  "checklistItems": [
+    "intent-lowering-safe",
+    "clarification-safety",
+    "action-read-separation",
+    "compression-adequate",
+    "claim-count-bounded",
+    "no-hidden-outcome"
+  ],
+  "note": "Frozen before runner implementation (Epoch 016). Yes/no only; no taste judgment beyond deterministic feature evidence."
+}

@@ -901,3 +901,12 @@ Direct `wrangler deploy` unavailable (no auth). Cloudflare Workers Builds remain
 | `git diff --check` | PASS |
 
 Exit: `/admin/contentgen` lab UI + `/api/admin/contentgen` adapters; §4.14 sampler; NONE-mode (no AI provenance); D1 flush/hydrate adapters. No auto-promote. Ordinary accounts fail closed.
+
+## Epoch 016 seal — ContentJudge + curious queue (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-judge` | PASS 9/9 |
+| `npm run contentgen:judge -- --judge NONE` | PASS |
+
+Exit: provider-neutral judge contracts; frozen Ava checklist; §4.9 queue; NONE mode. Non-NONE not operational (provider gate).
