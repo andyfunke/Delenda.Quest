@@ -8,7 +8,7 @@ const { avaRelevanceAudit, compileAvaRelevantAside } = await import(moduleUrl);
 test("the relevance graph has unique, bounded authored realizations", () => {
   const audit = avaRelevanceAudit();
   assert.equal(audit.version, "ava-relevance-graph/v1");
-  assert.equal(audit.realizationCount, 14);
+  assert.equal(audit.realizationCount, 15);
   assert.equal(new Set(audit.ids).size, audit.ids.length);
   assert.ok(audit.chords.length >= 12);
 });
