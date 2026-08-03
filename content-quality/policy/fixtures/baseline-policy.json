@@ -1,0 +1,85 @@
+{
+  "version": "contentgen-policy-candidate/v1",
+  "medium": "ava",
+  "corpusVersion": "ava-taste/v2-calibrated",
+  "config": {
+    "version": "trainer-config/v1",
+    "featureOrder": "codepoint-ascending-feature-ids",
+    "weightInitialization": "zeros",
+    "iterations": 500,
+    "learningRate": {
+      "numerator": 0.2,
+      "denominatorBase": 1,
+      "denominatorSlope": 0.01
+    },
+    "l2PenaltyLambda": 0.0001,
+    "groupKey": "recipeLineage|chordFamily|productionFamily",
+    "split": {
+      "train": 0.7,
+      "calibration": 0.15,
+      "heldOut": 0.15
+    },
+    "trainOrder": "codepoint-ascending-candidate-ids",
+    "arithmetic": "ieee754-doubles-stream-order"
+  },
+  "configHash": "4ce4da0d1c7d92d84e18127dab7c4d068ad814046937c0510da99ba7a46d9d1d",
+  "featureIds": [
+    "causal-structure",
+    "claim-count",
+    "compression",
+    "concrete-abstract-ratio",
+    "continuity-evidence",
+    "duplicate-distance",
+    "ava:action-read-separation",
+    "ava:clarification-safety",
+    "ava:intent-lowering"
+  ],
+  "means": [
+    0.5,
+    0.4375,
+    0.21875,
+    0.5,
+    0.6,
+    0.5,
+    0.9,
+    0.5,
+    0.625
+  ],
+  "variances": [
+    0.3,
+    0.10825317547305482,
+    0.08172935519138762,
+    0.19999999999999998,
+    1,
+    1,
+    1,
+    1,
+    0.30310889132455354
+  ],
+  "intercept": 0.029479664602714544,
+  "weights": [
+    0.05316300046840552,
+    0.6813597018747168,
+    2.112089682497217,
+    3.5311297238386383,
+    0,
+    0,
+    0,
+    0,
+    0.6813597018747168
+  ],
+  "thresholds": {
+    "ava": 0.05
+  },
+  "splitCounts": {
+    "train": 4,
+    "calibration": 1,
+    "heldOut": 2,
+    "groups": {
+      "train": 4,
+      "calibration": 1,
+      "heldOut": 2
+    }
+  },
+  "policyHash": "b607a4bc87f373611060a3e05782c2294491de843c091c8de99e99ec86305024"
+}

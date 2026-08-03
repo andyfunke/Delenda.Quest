@@ -1,0 +1,155 @@
+{
+  "version": "campaign-pacing-tables/v1",
+  "rows": [
+    {
+      "day": 1,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 2,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 3,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 4,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 5,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 6,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 7,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 8,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 9,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 10,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 11,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 12,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 13,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 14,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 15,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 16,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 17,
+      "occurrencePpm": 0,
+      "docDensity": 0
+    },
+    {
+      "day": 18,
+      "occurrencePpm": 89616,
+      "docDensity": 0.09
+    },
+    {
+      "day": 19,
+      "occurrencePpm": 160111,
+      "docDensity": 0.16
+    },
+    {
+      "day": 20,
+      "occurrencePpm": 215564,
+      "docDensity": 0.216
+    },
+    {
+      "day": 21,
+      "occurrencePpm": 259185,
+      "docDensity": 0.259
+    },
+    {
+      "day": 22,
+      "occurrencePpm": 293498,
+      "docDensity": 0.293
+    },
+    {
+      "day": 23,
+      "occurrencePpm": 320490,
+      "docDensity": 0.32
+    },
+    {
+      "day": 24,
+      "occurrencePpm": 341723,
+      "docDensity": 0.342
+    },
+    {
+      "day": 25,
+      "occurrencePpm": 358425,
+      "docDensity": 0.358
+    },
+    {
+      "day": 26,
+      "occurrencePpm": 371563,
+      "docDensity": 0.372
+    },
+    {
+      "day": 27,
+      "occurrencePpm": 381898,
+      "docDensity": 0.382
+    },
+    {
+      "day": 28,
+      "occurrencePpm": 390028,
+      "docDensity": 0.39
+    },
+    {
+      "day": 29,
+      "occurrencePpm": 396423,
+      "docDensity": 0.396
+    },
+    {
+      "day": 30,
+      "occurrencePpm": 401454,
+      "docDensity": 0.401
+    }
+  ]
+}

@@ -6,6 +6,9 @@ import {
   evaluateGate as evaluateSubstrateGate,
   type SubstrateGate,
 } from "./substrate/gates";
+import { hashInt, stableHash } from "./substrate/hash";
+
+export { stableHash };
 
 export type Theater = "lowland" | "ridge" | "industrial" | "river";
 export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
@@ -109,8 +112,6 @@ export const CONTENT_PACK_VERSION="campaign-substrate-v5";
 const CALCULUS_VERSION="campaign-substrate-v3";
 
 const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
-const hashInt=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
-export const stableHash=(text:string)=>hashInt(text)/4294967295;
 export const deterministicRoll=(ticket:string,maneuverId:string)=>stableHash(`${ticket}:${maneuverId}`);
 const dailyManeuverDocket=(state:CampaignStateView,template:SituationTemplate)=>
   [...template.maneuvers]

@@ -919,3 +919,22 @@ Exit: provider-neutral judge contracts; frozen Ava checklist; §4.9 queue; NONE 
 | `npm run contentgen:train` / `contentgen:evaluate` | PASS |
 
 Exit: trainer (§4.5), independent evaluator, PROPOSED prism mining, audit-slot helper.
+
+## Epoch 018 seal — policy promotion verifier (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-policy` | PASS 3/3 |
+| `npm run contentgen:verify-policy` | PASS on promoted v1 manifest |
+
+Exit: promotion gate (§4.9), Git-versioned `quality-policy.v1.json`, mutation fail-closed.
+
+## Epoch 019 seal — campaign metastratum + pacing tables (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run campaign:precompute-tables` | PASS |
+| `npm run validate:campaign-tables` | PASS |
+| `npm run test:campaign-metastratum-contracts` | PASS 5/5 |
+
+Exit: §4.10 types, ContentLink, TerminalRisk registry metadata, three checked-in ppm tables, restore defaults, stableHash consolidation.
