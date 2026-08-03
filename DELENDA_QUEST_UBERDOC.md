@@ -870,3 +870,13 @@ Epoch 008 IDs preserved; held-out excluded from retrieval; novelty thresholds §
 | `npx tsc --noEmit` | PASS |
 
 Migration `0015_contentgen_review.sql` on existing D1 binding only. Exports use opaque receipt IDs.
+
+## Release — epochs 009–014 to main / Workers Builds (2026-08-03)
+
+| Action | Result |
+|---|---|
+| Merge `cursor/epoch-010-014-contentgen-88d3` → `main` | PASS (`9bbf606`) |
+| `git push origin main` | PASS — triggers Cloudflare Workers Builds (`npm run build` + `npx wrangler deploy`) |
+| Direct `wrangler deploy` from this agent | SKIPPED — no Wrangler/Cloudflare API auth in environment |
+
+Production path remains Workers Builds on `main` / `delenda.quest`. Migration `0015_contentgen_review.sql` ships with the Worker; apply to production D1 via the usual Wrangler/migrations path owned by the deploy pipeline.
