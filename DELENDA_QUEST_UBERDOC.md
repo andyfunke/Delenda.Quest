@@ -947,3 +947,11 @@ Exit: §4.10 types, ContentLink, TerminalRisk registry metadata, three checked-i
 | `npm run validate:campaign-itineraries -- --seeds 10000` | PASS |
 
 §4.12(i) scheduler; R05 three completed Romantic instances; strict heat alternation.
+
+## Epoch 021 seal — multi-day operations (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:campaign-operations` | PASS 5/5 |
+
+ActiveOperation lifecycle, MainThreadPrompt union, legacy one-day migration path.

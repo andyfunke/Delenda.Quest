@@ -41,6 +41,7 @@
     "test:campaign-metastratum-contracts": "node --experimental-strip-types --test tests/campaign-metastratum.test.mjs",
     "test:campaign-metastratum": "node --experimental-strip-types --test tests/campaign-scheduler.test.mjs tests/campaign-metastratum.test.mjs",
     "validate:campaign-itineraries": "node --experimental-strip-types scripts/validate-campaign-itineraries.mjs",
+    "test:campaign-operations": "node --experimental-strip-types --test tests/campaign-operations.test.mjs",
     "cloudflare:validate": "npm run typecheck && npm run build && npm run cloudflare:types:check && npm run cloudflare:dry-run",
     "simulate:balance": "bash scripts/simulate-campaign-balance.sh",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/cloudflare-plumbing.test.mjs && bash scripts/test-rules.sh && bash scripts/test-ava.sh && bash scripts/test-substrate.sh",
