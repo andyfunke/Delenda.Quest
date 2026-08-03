@@ -228,3 +228,11 @@ Per kickoff: do not improvise pinned values, owned-files, nodes, or validators.
 Operator must place the authoritative `updated_epoch.md` in the repository (or
 attach it to a fresh session) before Epoch 009 can be rerun. Do not advance to
 Epoch 010 until Epoch 009 Exit criteria pass.
+
+## Epoch 009 execution — campaign/Contentgen preflight
+
+Operator cleared the spurious `fd4b783` / sealed epoch-6 base stop. Epoch 009
+completed locally under `docs/epochs/epoch-009-campaign-contentgen-preflight/`
+with an append-only Epoch 008 pushed-state amendment, 30-entry immutability
+manifest, authority map, R01–R41 ledger, prose/turnover inventory, and
+`npm run validate:epoch-009`. Focused gates PASS. No runtime `app/**` edits.

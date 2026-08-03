@@ -797,3 +797,19 @@ Node identity: `docs/epochs/epoch-009-campaign-contentgen-preflight/nodes/NODE-0
 | `git diff --check` | PASS |
 
 Stop: specification base `fd4b783` missing (§0.5). Later Epoch 009 nodes not started. Live tips recorded: `origin/main`=`a0c62de`, `origin/codex/epoch-006`=`b950015`. Operator must amend or restore the base before NODE-00 clears. No push, deploy, secret, or D1 change.
+
+## Epoch 009 seal — historical repair and compatibility freeze (2026-08-03)
+
+Node identity: `docs/epochs/epoch-009-campaign-contentgen-preflight/` (NODE-00…06)
+
+Operator clearance: ignore sealed `codex/epoch-006` / `fd4b783` header artifact; execute against live `main` containing Epoch 008 `0e4daf7`.
+
+| Command | Result |
+|---|---|
+| `npm run test:ava-content-quality` | PASS 4/4 |
+| `npm run test:ava-content-quality-epoch-008` | PASS 3/3 |
+| `npm run typecheck` | PASS |
+| `npm run validate:epoch-009` | PASS (9 epoch-008 files; 30 protected entries) |
+| `git diff --check` | PASS |
+
+Exit artifacts: Epoch 008 append-only amendment; immutability manifest; authority map; R01–R41 + §1.2 requirement trace; prose/turnover inventory (automatic client-driven claim/redeem present; no server cron). No runtime source changes. No production deploy.

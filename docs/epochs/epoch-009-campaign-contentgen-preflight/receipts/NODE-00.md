@@ -85,3 +85,9 @@ Later Epoch 009 nodes (008 historical node records, pushed-state amendment,
 prose inventory, immutability manifest, R01–R41 ledger, `validate:epoch-009`)
 were not started. Operator must amend `updated_epoch.md` with a resolvable
 base commit (or restore `fd4b783`) before NODE-00 can clear.
+
+## Append — operator clearance (2026-08-03)
+
+Operator instruction: forget sealed epoch-6 / `fd4b783` as a non-binding
+artifact; execute Epoch 009 normally against live `main` containing
+`0e4daf7`. NODE-00 stop cleared. Subsequent nodes proceeded.
