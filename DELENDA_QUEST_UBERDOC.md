@@ -955,3 +955,29 @@ Exit: §4.10 types, ContentLink, TerminalRisk registry metadata, three checked-i
 | `npm run test:campaign-operations` | PASS 5/5 |
 
 ActiveOperation lifecycle, MainThreadPrompt union, legacy one-day migration path.
+
+## Epoch 022 seal — Routine/manoeuvre pack (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack routine-maneuver-v1` | PASS |
+| `npm run validate:epoch-009` | PASS |
+
+32 routine spines (4 theaters × 8 problems); 56 maneuver frames (7×8); promoted manifest.
+
+## Epoch 023 seal — Romantic pack (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack romantic-v1` | PASS |
+
+12 arcs + 4 always-eligible fallbacks; both heats; phase minima from gates.
+
+## Epoch 024 seal — Escalatory/Doomsday (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack escalatory-doomsday-v1` | PASS |
+| `npm run validate:doomsday-probability` | PASS |
+
+Sealed occurrence/terminal tickets; declared bounds; six Doomsday families.

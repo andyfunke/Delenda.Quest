@@ -8,3 +8,12 @@ export {
   oppositeHeat,
 } from "./scheduler.mjs";
 export { validateItinerary, validateItinerarySuite } from "./validate.mjs";
+export {
+  assertDeclaredBounds,
+  eventOccurs,
+  occurrenceTicket,
+  resolveDoomsdayEvent,
+  stateSeal,
+  terminalProbabilityPpm,
+  terminalTicket,
+} from "./doomsday.mjs";

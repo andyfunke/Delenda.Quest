@@ -1,0 +1,741 @@
+{
+  "version": "escalatory-standard/v1",
+  "events": [
+    {
+      "id": "escalatory-standard-01",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-01 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-01 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-01"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-02",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-02 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-02 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-02"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "2"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-03",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-03 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-03 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-03"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "3"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-04",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-04 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-04 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-04"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "4"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-05",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-05 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-05 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-05"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "5"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-06",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-06 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-06 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-06"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "6"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-07",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-07 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-07 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-07"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "7"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-08",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-08 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-08 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-08"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "8"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-09",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-09 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-09 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-09"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "9"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-10",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-10 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-10 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-10"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "10"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-11",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-11 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-11 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-11"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "11"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-12",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-12 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-12 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-12"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "12"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-13",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-13 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-13 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-13"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "13"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-14",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-14 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-14 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-14"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "14"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-15",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-15 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-15 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-15"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "15"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-standard-16",
+      "tier": "escalatory",
+      "intensity": "standard",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "interdict",
+        "breach"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-standard-16 hot escalation without terminal claim.",
+        "medium": "escalatory-standard-16 medium escalation without terminal claim."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-standard-16"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "standard"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "16"
+          ]
+        }
+      }
+    }
+  ]
+}

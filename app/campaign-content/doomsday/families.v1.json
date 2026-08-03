@@ -1,0 +1,455 @@
+{
+  "version": "doomsday-pack/v1",
+  "families": [
+    {
+      "id": "doomsday-command-blackout",
+      "family": "command-blackout",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 80000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 80000,
+        "maxSum": 280000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-command-blackout-nonterminal",
+        "nearMiss": "doomsday-command-blackout-near-miss",
+        "terminal": "doomsday-command-blackout-terminal"
+      },
+      "terminalClosure": "defeat",
+      "prose": {
+        "hot": "doomsday-command-blackout hot realization — ominous language is not law.",
+        "medium": "doomsday-command-blackout medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-command-blackout"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "command-blackout"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "doomsday-reserve-annihilation",
+      "family": "reserve-annihilation",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 90000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 90000,
+        "maxSum": 290000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-reserve-annihilation-nonterminal",
+        "nearMiss": "doomsday-reserve-annihilation-near-miss",
+        "terminal": "doomsday-reserve-annihilation-terminal"
+      },
+      "terminalClosure": "scenario-specific",
+      "prose": {
+        "hot": "doomsday-reserve-annihilation hot realization — ominous language is not law.",
+        "medium": "doomsday-reserve-annihilation medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-reserve-annihilation"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "reserve-annihilation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "doomsday-corridor-collapse",
+      "family": "corridor-collapse",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 100000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 100000,
+        "maxSum": 300000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-corridor-collapse-nonterminal",
+        "nearMiss": "doomsday-corridor-collapse-near-miss",
+        "terminal": "doomsday-corridor-collapse-terminal"
+      },
+      "terminalClosure": "defeat",
+      "prose": {
+        "hot": "doomsday-corridor-collapse hot realization — ominous language is not law.",
+        "medium": "doomsday-corridor-collapse medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-corridor-collapse"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "corridor-collapse"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "doomsday-industrial-firestorm",
+      "family": "industrial-firestorm",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 110000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 110000,
+        "maxSum": 310000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-industrial-firestorm-nonterminal",
+        "nearMiss": "doomsday-industrial-firestorm-near-miss",
+        "terminal": "doomsday-industrial-firestorm-terminal"
+      },
+      "terminalClosure": "scenario-specific",
+      "prose": {
+        "hot": "doomsday-industrial-firestorm hot realization — ominous language is not law.",
+        "medium": "doomsday-industrial-firestorm medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-industrial-firestorm"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "industrial-firestorm"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "doomsday-river-breach-cascade",
+      "family": "river-breach-cascade",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 120000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 120000,
+        "maxSum": 320000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-river-breach-cascade-nonterminal",
+        "nearMiss": "doomsday-river-breach-cascade-near-miss",
+        "terminal": "doomsday-river-breach-cascade-terminal"
+      },
+      "terminalClosure": "defeat",
+      "prose": {
+        "hot": "doomsday-river-breach-cascade hot realization — ominous language is not law.",
+        "medium": "doomsday-river-breach-cascade medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-river-breach-cascade"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "river-breach-cascade"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "id": "doomsday-legitimacy-rupture",
+      "family": "legitimacy-rupture",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "doomsday",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "network",
+        "abandon"
+      ],
+      "baseTerminalPpm": 130000,
+      "allowedStatePressure": {
+        "kind": "declared-linear",
+        "axes": [
+          "frontPressure",
+          "legitimacyDebt"
+        ],
+        "minPpm": 0,
+        "maxPpm": 200000
+      },
+      "boundProof": {
+        "minSum": 130000,
+        "maxSum": 330000,
+        "clamp": [
+          50000,
+          450000
+        ]
+      },
+      "outcomes": {
+        "nonterminal": "doomsday-legitimacy-rupture-nonterminal",
+        "nearMiss": "doomsday-legitimacy-rupture-near-miss",
+        "terminal": "doomsday-legitimacy-rupture-terminal"
+      },
+      "terminalClosure": "scenario-specific",
+      "prose": {
+        "hot": "doomsday-legitimacy-rupture hot realization — ominous language is not law.",
+        "medium": "doomsday-legitimacy-rupture medium realization — sealed roll only decides terminality.",
+        "nonterminal": "The formation continues under debt.",
+        "nearMiss": "The seal holds; the map does not celebrate.",
+        "terminal": "Typed scenario closure; not inferred from adjectives."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "doomsday-legitimacy-rupture"
+      },
+      "slotDomains": {
+        "family": {
+          "values": [
+            "legitimacy-rupture"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "outcome": {
+          "values": [
+            "nonterminal",
+            "near-miss",
+            "terminal"
+          ]
+        }
+      }
+    }
+  ]
+}

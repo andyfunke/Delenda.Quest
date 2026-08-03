@@ -1,0 +1,557 @@
+{
+  "version": "escalatory-maximum/v1",
+  "events": [
+    {
+      "id": "escalatory-maximum-01",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-01 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-01 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-01"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-02",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-02 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-02 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-02"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "2"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-03",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-03 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-03 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-03"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "3"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-04",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-04 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-04 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-04"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "4"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-05",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-05 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-05 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-05"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "5"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-06",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-06 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-06 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-06"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "6"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-07",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-07 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-07 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-07"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "7"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-08",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-08 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-08 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-08"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "8"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-09",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-09 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-09 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-09"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "9"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-10",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-10 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-10 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-10"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "10"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-11",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-11 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-11 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-11"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "11"
+          ]
+        }
+      }
+    },
+    {
+      "id": "escalatory-maximum-12",
+      "tier": "escalatory",
+      "intensity": "maximum",
+      "terminalRisk": "none",
+      "heatPaths": [
+        "hot",
+        "medium"
+      ],
+      "mechanicIds": [
+        "exploit",
+        "network"
+      ],
+      "baseTerminalPpm": null,
+      "prose": {
+        "hot": "escalatory-maximum-12 maximum hot path; nonterminal.",
+        "medium": "escalatory-maximum-12 maximum medium path; nonterminal."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "escalatory-maximum-12"
+      },
+      "slotDomains": {
+        "intensity": {
+          "values": [
+            "maximum"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "index": {
+          "values": [
+            "12"
+          ]
+        }
+      }
+    }
+  ]
+}

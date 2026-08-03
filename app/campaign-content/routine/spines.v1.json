@@ -1,0 +1,2533 @@
+{
+  "version": "routine-pack/v1",
+  "spines": [
+    {
+      "id": "routine-industrial-assault",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "assault",
+      "geometry": "crossings",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:assault"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // assault",
+        "briefing": "Semantic spine routine-industrial-assault binds crossings to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-assault"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-command",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "command",
+      "geometry": "reserve-release",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:command"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // command",
+        "briefing": "Semantic spine routine-industrial-command binds reserve-release to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-command"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "command"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-counterstroke",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "counterstroke",
+      "geometry": "command-rupture",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:counterstroke"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // counterstroke",
+        "briefing": "Semantic spine routine-industrial-counterstroke binds command-rupture to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-counterstroke"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "counterstroke"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-crossing",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "crossing",
+      "geometry": "supply-sacrifice",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:crossing"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // crossing",
+        "briefing": "Semantic spine routine-industrial-crossing binds supply-sacrifice to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-crossing"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "crossing"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-exploitation",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "exploitation",
+      "geometry": "exposed-recovery",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:exploitation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // exploitation",
+        "briefing": "Semantic spine routine-industrial-exploitation binds exposed-recovery to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-exploitation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "exploitation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-force-preservation",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "force-preservation",
+      "geometry": "counterstroke",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:force-preservation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // force-preservation",
+        "briefing": "Semantic spine routine-industrial-force-preservation binds counterstroke to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-force-preservation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "force-preservation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-logistics",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "logistics",
+      "geometry": "deliberate-abandonment",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:logistics"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // logistics",
+        "briefing": "Semantic spine routine-industrial-logistics binds deliberate-abandonment to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-logistics"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "logistics"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-industrial-observation",
+      "medium": "campaign-brief",
+      "theater": "industrial",
+      "problemClass": "observation",
+      "geometry": "terminal-concentration",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:industrial",
+        "problem:observation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "industrial // observation",
+        "briefing": "Semantic spine routine-industrial-observation binds terminal-concentration to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-industrial-observation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "industrial"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "observation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-assault",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "assault",
+      "geometry": "crossings",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:assault"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // assault",
+        "briefing": "Semantic spine routine-lowland-assault binds crossings to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-assault"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-command",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "command",
+      "geometry": "reserve-release",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:command"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // command",
+        "briefing": "Semantic spine routine-lowland-command binds reserve-release to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-command"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "command"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-counterstroke",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "counterstroke",
+      "geometry": "command-rupture",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:counterstroke"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // counterstroke",
+        "briefing": "Semantic spine routine-lowland-counterstroke binds command-rupture to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-counterstroke"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "counterstroke"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-crossing",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "crossing",
+      "geometry": "supply-sacrifice",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:crossing"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // crossing",
+        "briefing": "Semantic spine routine-lowland-crossing binds supply-sacrifice to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-crossing"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "crossing"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-exploitation",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "exploitation",
+      "geometry": "exposed-recovery",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:exploitation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // exploitation",
+        "briefing": "Semantic spine routine-lowland-exploitation binds exposed-recovery to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-exploitation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "exploitation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-force-preservation",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "force-preservation",
+      "geometry": "counterstroke",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:force-preservation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // force-preservation",
+        "briefing": "Semantic spine routine-lowland-force-preservation binds counterstroke to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-force-preservation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "force-preservation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-logistics",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "logistics",
+      "geometry": "deliberate-abandonment",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:logistics"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // logistics",
+        "briefing": "Semantic spine routine-lowland-logistics binds deliberate-abandonment to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-logistics"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "logistics"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-lowland-observation",
+      "medium": "campaign-brief",
+      "theater": "lowland",
+      "problemClass": "observation",
+      "geometry": "terminal-concentration",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:lowland",
+        "problem:observation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "lowland // observation",
+        "briefing": "Semantic spine routine-lowland-observation binds terminal-concentration to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-lowland-observation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "lowland"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "observation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-assault",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "assault",
+      "geometry": "crossings",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:assault"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // assault",
+        "briefing": "Semantic spine routine-ridge-assault binds crossings to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-assault"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-command",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "command",
+      "geometry": "reserve-release",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:command"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // command",
+        "briefing": "Semantic spine routine-ridge-command binds reserve-release to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-command"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "command"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-counterstroke",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "counterstroke",
+      "geometry": "command-rupture",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:counterstroke"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // counterstroke",
+        "briefing": "Semantic spine routine-ridge-counterstroke binds command-rupture to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-counterstroke"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "counterstroke"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-crossing",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "crossing",
+      "geometry": "supply-sacrifice",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:crossing"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // crossing",
+        "briefing": "Semantic spine routine-ridge-crossing binds supply-sacrifice to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-crossing"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "crossing"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-exploitation",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "exploitation",
+      "geometry": "exposed-recovery",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:exploitation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // exploitation",
+        "briefing": "Semantic spine routine-ridge-exploitation binds exposed-recovery to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-exploitation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "exploitation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-force-preservation",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "force-preservation",
+      "geometry": "counterstroke",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:force-preservation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // force-preservation",
+        "briefing": "Semantic spine routine-ridge-force-preservation binds counterstroke to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-force-preservation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "force-preservation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-logistics",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "logistics",
+      "geometry": "deliberate-abandonment",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:logistics"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // logistics",
+        "briefing": "Semantic spine routine-ridge-logistics binds deliberate-abandonment to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-logistics"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "logistics"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-ridge-observation",
+      "medium": "campaign-brief",
+      "theater": "ridge",
+      "problemClass": "observation",
+      "geometry": "terminal-concentration",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:ridge",
+        "problem:observation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "ridge // observation",
+        "briefing": "Semantic spine routine-ridge-observation binds terminal-concentration to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-ridge-observation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "ridge"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "observation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-assault",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "assault",
+      "geometry": "crossings",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:assault"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // assault",
+        "briefing": "Semantic spine routine-river-assault binds crossings to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-assault"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-command",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "command",
+      "geometry": "reserve-release",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:command"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // command",
+        "briefing": "Semantic spine routine-river-command binds reserve-release to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-command"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "command"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-counterstroke",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "counterstroke",
+      "geometry": "command-rupture",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:counterstroke"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // counterstroke",
+        "briefing": "Semantic spine routine-river-counterstroke binds command-rupture to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-counterstroke"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "counterstroke"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-crossing",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "crossing",
+      "geometry": "supply-sacrifice",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:crossing"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // crossing",
+        "briefing": "Semantic spine routine-river-crossing binds supply-sacrifice to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-crossing"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "crossing"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-exploitation",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "exploitation",
+      "geometry": "exposed-recovery",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:exploitation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // exploitation",
+        "briefing": "Semantic spine routine-river-exploitation binds exposed-recovery to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-exploitation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "exploitation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-force-preservation",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "force-preservation",
+      "geometry": "counterstroke",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:force-preservation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // force-preservation",
+        "briefing": "Semantic spine routine-river-force-preservation binds counterstroke to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-force-preservation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "force-preservation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-logistics",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "logistics",
+      "geometry": "deliberate-abandonment",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:logistics"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // logistics",
+        "briefing": "Semantic spine routine-river-logistics binds deliberate-abandonment to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-logistics"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "logistics"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    },
+    {
+      "id": "routine-river-observation",
+      "medium": "campaign-brief",
+      "theater": "river",
+      "problemClass": "observation",
+      "geometry": "terminal-concentration",
+      "heatCoverage": [
+        "hot",
+        "medium"
+      ],
+      "register": "operational-brief",
+      "requiredClaims": [
+        "theater:river",
+        "problem:observation"
+      ],
+      "forbiddenClaims": [
+        "hidden-outcome",
+        "undeclared-mechanic"
+      ],
+      "mechanicIds": [
+        "reinforce",
+        "interdict",
+        "route"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "pressure",
+          "supply"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "pressure": 1000000,
+          "supply": 1000000
+        }
+      },
+      "rhetoricalShapes": [
+        "observation-reversal",
+        "cost-ledger",
+        "geometric-imperative"
+      ],
+      "imageFamilies": [
+        "wire",
+        "relay",
+        "ford"
+      ],
+      "prose": {
+        "headline": "river // observation",
+        "briefing": "Semantic spine routine-river-observation binds terminal-concentration to existing mechanics without inventing actors.",
+        "question": "Which declared mechanic absorbs the cost?"
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "routine-river-observation"
+      },
+      "cooldownDays": 5,
+      "slotDomains": {
+        "theater": {
+          "values": [
+            "river"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "observation"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        }
+      }
+    }
+  ]
+}
