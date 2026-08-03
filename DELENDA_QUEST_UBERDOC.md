@@ -880,3 +880,14 @@ Migration `0015_contentgen_review.sql` on existing D1 binding only. Exports use 
 | Direct `wrangler deploy` from this agent | SKIPPED — no Wrangler/Cloudflare API auth in environment |
 
 Production path remains Workers Builds on `main` / `delenda.quest`. Migration `0015_contentgen_review.sql` ships with the Worker; apply to production D1 via the usual Wrangler/migrations path owned by the deploy pipeline.
+
+## Release follow-up — Production contract gate (2026-08-03)
+
+`main` @ `9bbf606`/`363a603` pushed successfully. GitHub Actions:
+
+| Workflow | Result |
+|---|---|
+| Production contract | FAIL — pre-existing `ava-relevance-engine` expected 14 realizations, live graph has 15 |
+| Deploy SSH gateway | FAIL — pre-existing Ava Nexus assertion drift (FIELD NOTE / COMPARE capability) |
+
+Direct `wrangler deploy` unavailable (no auth). Cloudflare Workers Builds remains the hosting deploy path for `main`. Follow-up commit updates realizationCount expectation to 15.
