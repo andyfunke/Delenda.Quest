@@ -63,6 +63,7 @@ deleted.
 | `PL-EMAIL-005` | [Campaign certificate and LinkedIn delivery](./PL-EMAIL-005-certification-delivery.md) | `PARKED` | Outbound provider; DELENDA.QUEST LinkedIn Page/provider setup |
 | `PL-EMAIL-006` | [Deliverability, consent, and mail operations](./PL-EMAIL-006-mail-operations.md) | `PARKED` | Bounce/complaint webhooks, DNS policy, provider operational access |
 | `PL-HACK-001` | [Diegetic intrusion operations](./PL-HACK-001-diegetic-intrusion.md) | `PARKED` | Additional incident families, graphical parity, Nexus action authority |
+| `PL-AVA-001` | [Ava content quality decompiler](./PL-AVA-001-content-quality-decompiler.md) | `PARKED` | Internal corpus, deterministic evaluation tooling, optional LLM adjudicator |
 
 ## Dependency order
 
@@ -114,3 +115,7 @@ Do not recycle an ID. Do not mark an epoch `ACTIVE` based only on source tests.
   `packages/intrusion-library`. The package boundary is active internal
   architecture; additional incident families, graphical parity, and every
   campaign-changing effect remain parked under `PL-HACK-001`.
+- 2026-08-02: Parked `PL-AVA-001` for deterministic enumeration, decompilation,
+  retrieval, weak supervision, and constrained LLM adjudication of Ava's
+  grammar-generated content. No production content promotion is authorized by
+  this plan.
