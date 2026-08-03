@@ -1,6 +1,8 @@
 # Epoch 009 — Historical repair, preflight, and compatibility freeze
 
-Status: **COMPLETE** (local; not pushed or deployed)
+Status: **COMPLETE** — pushed on
+`cursor/epoch-009-campaign-contentgen-preflight-88d3` (PR #8); not production
+deployed
 
 Authority: `updated_epoch.md` Part 6 Epoch 009; contracts consumed §4.16.
 

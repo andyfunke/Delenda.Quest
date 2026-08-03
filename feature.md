@@ -236,3 +236,7 @@ completed locally under `docs/epochs/epoch-009-campaign-contentgen-preflight/`
 with an append-only Epoch 008 pushed-state amendment, 30-entry immutability
 manifest, authority map, R01–R41 ledger, prose/turnover inventory, and
 `npm run validate:epoch-009`. Focused gates PASS. No runtime `app/**` edits.
+
+Epoch 009 delivery: branch
+`cursor/epoch-009-campaign-contentgen-preflight-88d3` pushed; draft PR #8
+https://github.com/andyfunke/Delenda.Quest/pull/8. Not production deployed.

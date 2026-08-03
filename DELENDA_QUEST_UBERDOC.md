@@ -813,3 +813,12 @@ Operator clearance: ignore sealed `codex/epoch-006` / `fd4b783` header artifact;
 | `git diff --check` | PASS |
 
 Exit artifacts: Epoch 008 append-only amendment; immutability manifest; authority map; R01–R41 + §1.2 requirement trace; prose/turnover inventory (automatic client-driven claim/redeem present; no server cron). No runtime source changes. No production deploy.
+
+## Epoch 009 — push / PR delivery (2026-08-03)
+
+| Command / action | Result |
+|---|---|
+| `git push -u origin cursor/epoch-009-campaign-contentgen-preflight-88d3` | PASS — remote branch tracks seal tip |
+| Draft PR #8 vs `main` | https://github.com/andyfunke/Delenda.Quest/pull/8 OPEN (draft) |
+
+Documentation updated to record pushed branch + PR identity. Production deploy still not authorized. Epoch 010 not started.
