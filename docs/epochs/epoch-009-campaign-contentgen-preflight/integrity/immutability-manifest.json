@@ -1,0 +1,210 @@
+{
+  "version": "immutability-manifest/v1",
+  "epoch": "009",
+  "baseCommit": "a0c62de2bb8cca028dd25f99995f0a2abfbaa055",
+  "epoch008Commit": "0e4daf7266cd1e3f365adc47a4983f76779633e5",
+  "generatedNote": "Hashes are NFC UTF-8 SHA-256. ast-initializer hashes cover the TypeScript initializer text span only.",
+  "entries": [
+    {
+      "path": "app/epoch-006-content.ts",
+      "hashType": "whole-file",
+      "sha256": "22b657fc0e8a71c3c3d40b652b63bc1612305d7b3417c4175d6b9493ab57926b",
+      "bytes": 5473
+    },
+    {
+      "path": "app/sub-mission-content.ts",
+      "hashType": "whole-file",
+      "sha256": "f4ba8c53c49c59a3b70fc2f3e81bd1408825216f579b77949367b79688f3cffa",
+      "bytes": 53473
+    },
+    {
+      "path": "app/concepts.ts",
+      "hashType": "whole-file",
+      "sha256": "57b9b3a3f0c684c70a3e3aa0fbc3b8e14a3a52ce66fefde7bb971f7d34593ce2",
+      "bytes": 38388
+    },
+    {
+      "path": "app/main-situation-content.ts",
+      "hashType": "whole-file",
+      "sha256": "65d7a09acbc98add7919fa7b1fffbc4eaab5beb94e7817748595b63c9d75d6cd",
+      "bytes": 45358
+    },
+    {
+      "path": "app/opportunity-corpus.ts",
+      "hashType": "whole-file",
+      "sha256": "a847d06958bdee967e82263f1967fb8f076bd10acd02e58e86e586083a28c758",
+      "bytes": 41444
+    },
+    {
+      "path": "app/opportunity-flavor.ts",
+      "hashType": "whole-file",
+      "sha256": "2382053358e3818fe80895e7ddcbede81f63be433d85a4e1224f4f163f8c15d1",
+      "bytes": 28571
+    },
+    {
+      "path": "app/campaign-event-expansion.ts",
+      "hashType": "whole-file",
+      "sha256": "b21b3c4a71ec940cd85b14d8912b579adf9a5044088815af13ad61f0d64d0434",
+      "bytes": 13202
+    },
+    {
+      "path": "app/directive-expansion.ts",
+      "hashType": "whole-file",
+      "sha256": "d2a11b82b443d516a08a98eb8d8ad4e765da234229beedf6a846ae5b61b5ecd6",
+      "bytes": 37590
+    },
+    {
+      "path": "app/war-dispatch.ts",
+      "hashType": "whole-file",
+      "sha256": "b85007b843d7bde95f9cef5d10d07efde2cb8b492acb91bc2ddee181e645b33f",
+      "bytes": 9775
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "STATE_ARCHETYPES",
+      "hashType": "ast-initializer",
+      "sha256": "2d09233f295e6089dc8420f6e9d219858bb1a21af0b5c69db9aeb2084c194949",
+      "initializerBytes": 2710
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "ADVERSARY_PERSONALITIES",
+      "hashType": "ast-initializer",
+      "sha256": "e3a211e576873bf665fac2c2cfc5669e30e86094a4ef7b705c38d6588bb9ac0c",
+      "initializerBytes": 1595
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "THEATERS",
+      "hashType": "ast-initializer",
+      "sha256": "c5a325b715d3857efa6cd853971794477c43db354f835cc2edea0fcd3c6e5c8c",
+      "initializerBytes": 1147
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "CAMPAIGN_PHASES",
+      "hashType": "ast-initializer",
+      "sha256": "55e5106949f5220810510d726378a9ed3d5f61941fd0836478c682feef41a64e",
+      "initializerBytes": 2034
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "CAMPAIGN_EVENTS",
+      "hashType": "ast-initializer",
+      "sha256": "8ff6bd685e5ab926227560e9300988d788c6ccc4df7492481ae1ff98e5b524d5",
+      "initializerBytes": 12632
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "FAMILIES",
+      "hashType": "ast-initializer",
+      "sha256": "771b6c5478419933241498087f4e405a4f732f023a704dcfb18bce449c7606b9",
+      "initializerBytes": 64163
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "MANEUVERS",
+      "hashType": "ast-initializer",
+      "sha256": "5d5ad80b4f6a04649adae0cd63fe5a2916a953a121269230cb241092b22b0c23",
+      "initializerBytes": 3469
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "LEGACY_SITUATIONS",
+      "hashType": "ast-initializer",
+      "sha256": "9dac07c8baa020035004d1baadc4385548ac4abed8f2d40fd043d1ae4a1f7a6e",
+      "initializerBytes": 8718
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "DOCTRINES",
+      "hashType": "ast-initializer",
+      "sha256": "033e63d7d38b50999c92a61e36fce9c9bc490ae48a2506a95e4b44fc34bcda23",
+      "initializerBytes": 9573
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "LEGACY_OPPORTUNITY_TEMPLATES",
+      "hashType": "ast-initializer",
+      "sha256": "65b3abfa5f0832a382649f00bdaed5fc70c63917bac12308a26730f7cafca245",
+      "initializerBytes": 6093
+    },
+    {
+      "path": "app/game.ts",
+      "exportName": "OPPORTUNITY_TEMPLATES",
+      "hashType": "ast-initializer",
+      "sha256": "a3ec0fde0ced1f6a0165cbbaabefab0aa348320a0fa98863b193c41764244209",
+      "initializerBytes": 1737
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "GENERIC_SITUATION_TEMPLATES",
+      "hashType": "ast-initializer",
+      "sha256": "a9effd5b06e02274aabcdeda87d0ab43e8c19f0851d62fd6e528c35e4dfd7323",
+      "initializerBytes": 2374
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "BLUEPRINT_RULES",
+      "hashType": "ast-initializer",
+      "sha256": "99e1cec7029d0556dac32fb51ea480d593f128d53cfa8a48cda23e02d3ec3407",
+      "initializerBytes": 5093
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "FACT_CATALOG",
+      "hashType": "ast-initializer",
+      "sha256": "cf97b5b93fd7c74601d8d1f00a574bcd35fff18ffa851a8684740cafdbb3e31a",
+      "initializerBytes": 3508
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "THEATER_SECTORS",
+      "hashType": "ast-initializer",
+      "sha256": "dae7fb2e01e1ea1e3ff06b9932c239f0e4f8dd730e8e9b2efa7460bf02f274d8",
+      "initializerBytes": 6885
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "MANEUVER_ORDER_GRAMMAR",
+      "hashType": "ast-initializer",
+      "sha256": "f42543660970d927f76aeee6b1f8720dca5cf71bd811813bafd8803f88c82c4a",
+      "initializerBytes": 1569
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "MANEUVER_RATIONALES",
+      "hashType": "ast-initializer",
+      "sha256": "cb90c7ee210dd5922f3cda47fc52c870d29ec0c0720c5e772f9617a615f5ae28",
+      "initializerBytes": 2185
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "MANEUVER_ORDER_QUALIFIERS",
+      "hashType": "ast-initializer",
+      "sha256": "782316473486e0407598da45e66cafea57b34798e768d20a6315450160bac1fe",
+      "initializerBytes": 405
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "MANEUVER_AFTERMATH",
+      "hashType": "ast-initializer",
+      "sha256": "8c210309b1adbdab5e161db4f0615f80ae65cd9a7de5f34d42554e63482667b2",
+      "initializerBytes": 757
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "OPERATIONAL_OBJECTIVES",
+      "hashType": "ast-initializer",
+      "sha256": "13bc21fc69857513ae09630624174d1eda22159f966091b6b8200ef34f01cb7a",
+      "initializerBytes": 307
+    },
+    {
+      "path": "app/campaign-substrate.ts",
+      "exportName": "PROBLEM_TARGETS",
+      "hashType": "ast-initializer",
+      "sha256": "14bb8418f2d736e3bf6228ad0cdfc944525125746586aa499de4532987ba24aa",
+      "initializerBytes": 243
+    }
+  ]
+}

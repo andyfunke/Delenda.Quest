@@ -1,0 +1,53 @@
+{
+  "contractVersion": "contentgen-contract/v1",
+  "id": "bad.contradiction",
+  "version": "1.0.0",
+  "medium": "ava",
+  "chord": {
+    "tensionId": "exposure-under-observation",
+    "intentClass": "inspect",
+    "actorRoles": [
+      "commander",
+      "staff"
+    ],
+    "temporalShape": "instant",
+    "pressureShape": "exposure",
+    "evidenceShape": "observed",
+    "consequenceShape": "cost"
+  },
+  "spineId": "ava-inspect",
+  "mechanicRefs": [
+    "network"
+  ],
+  "slots": [
+    {
+      "id": "sector",
+      "valueType": "string",
+      "required": true
+    }
+  ],
+  "requiredClaims": [
+    "hidden-enemy-intent"
+  ],
+  "forbiddenClaims": [
+    "hidden-enemy-intent"
+  ],
+  "registerProfileId": "ava-cold",
+  "equivalenceClasses": [
+    {
+      "id": "sector-name",
+      "slotId": "sector",
+      "representatives": [
+        "kesh"
+      ],
+      "cardinality": 4
+    }
+  ],
+  "projection": {
+    "medium": "ava",
+    "intentLowering": "REPORT",
+    "clarificationSafety": true,
+    "actionReadSeparation": true,
+    "forbiddenIntentOwnership": true
+  }
+}

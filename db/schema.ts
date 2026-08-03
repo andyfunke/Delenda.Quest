@@ -218,3 +218,81 @@ export const sshSessionAudits=sqliteTable("ssh_session_audits",{
   index("ssh_session_audits_owner_idx").on(table.ownerEmail),
   index("ssh_session_audits_connected_idx").on(table.connectedAt),
 ]);
+
+/** Contentgen Lab persistence — staging/review only; not runtime content authority. */
+export const contentgenBatches=sqliteTable("contentgen_batches",{
+  id:text("id").primaryKey(),
+  medium:text("medium").notNull(),
+  sourceVersion:text("source_version").notNull(),
+  policyVersion:text("policy_version"),
+  seed:integer("seed").notNull(),
+  manifestHash:text("manifest_hash").notNull(),
+  status:text("status").notNull(),
+  creatorReceiptId:text("creator_receipt_id").notNull(),
+  createdAt:integer("created_at").notNull(),
+  updatedAt:integer("updated_at").notNull(),
+},table=>[index("contentgen_batches_status_idx").on(table.status)]);
+
+export const contentgenCandidates=sqliteTable("contentgen_candidates",{
+  id:text("id").primaryKey(),
+  batchId:text("batch_id").notNull(),
+  payloadJson:text("payload_json").notNull(),
+  payloadHash:text("payload_hash").notNull(),
+  compileStatus:text("compile_status").notNull(),
+  disposition:text("disposition"),
+  dispositionTerminal:integer("disposition_terminal",{mode:"boolean"}).notNull().default(false),
+  tagsJson:text("tags_json").notNull(),
+  queueRank:integer("queue_rank").notNull().default(0),
+  revision:integer("revision").notNull().default(1),
+  parentCandidateId:text("parent_candidate_id"),
+  createdAt:integer("created_at").notNull(),
+  updatedAt:integer("updated_at").notNull(),
+},table=>[
+  index("contentgen_candidates_batch_idx").on(table.batchId),
+  uniqueIndex("contentgen_candidates_batch_hash_unique").on(table.batchId,table.payloadHash),
+]);
+
+export const contentgenReviews=sqliteTable("contentgen_reviews",{
+  id:text("id").primaryKey(),
+  candidateId:text("candidate_id").notNull(),
+  batchId:text("batch_id").notNull(),
+  disposition:text("disposition").notNull(),
+  reasonCodesJson:text("reason_codes_json").notNull(),
+  notes:text("notes"),
+  reviewerReceiptId:text("reviewer_receipt_id").notNull(),
+  idempotencyKey:text("idempotency_key").notNull(),
+  supersedesReviewId:text("supersedes_review_id"),
+  createdAt:integer("created_at").notNull(),
+},table=>[
+  uniqueIndex("contentgen_reviews_idempotency_unique").on(table.idempotencyKey),
+  index("contentgen_reviews_candidate_idx").on(table.candidateId),
+]);
+
+export const contentgenAiEvidence=sqliteTable("contentgen_ai_evidence",{
+  id:text("id").primaryKey(),
+  candidateId:text("candidate_id").notNull(),
+  batchId:text("batch_id").notNull(),
+  checklistJson:text("checklist_json").notNull(),
+  promptHash:text("prompt_hash").notNull(),
+  responseHash:text("response_hash").notNull(),
+  providerId:text("provider_id"),
+  modelId:text("model_id"),
+  createdAt:integer("created_at").notNull(),
+},table=>[index("contentgen_ai_evidence_candidate_idx").on(table.candidateId)]);
+
+export const contentgenPolicyRuns=sqliteTable("contentgen_policy_runs",{
+  id:text("id").primaryKey(),
+  corpusVersion:text("corpus_version").notNull(),
+  inputHash:text("input_hash").notNull(),
+  outputHash:text("output_hash").notNull(),
+  evaluationStatus:text("evaluation_status").notNull(),
+  createdAt:integer("created_at").notNull(),
+});
+
+export const contentgenExports=sqliteTable("contentgen_exports",{
+  id:text("id").primaryKey(),
+  batchId:text("batch_id").notNull(),
+  artifactHash:text("artifact_hash").notNull(),
+  redactionReceiptId:text("redaction_receipt_id").notNull(),
+  createdAt:integer("created_at").notNull(),
+},table=>[index("contentgen_exports_batch_idx").on(table.batchId)]);

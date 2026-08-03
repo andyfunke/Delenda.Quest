@@ -1,0 +1,20 @@
+{
+  "version": "contentgen-prism-mutations/v1",
+  "note": "Hand-authored mutations; independent validator must not import prism predicates.",
+  "cases": [
+    { "id": "m-hidden-outcome", "text": "The assault has happened and the salient was won.", "expectedFailureClass": "HIDDEN_OUTCOME" },
+    { "id": "m-imperative", "text": "Do attack the northern depot before noon.", "expectedFailureClass": "IMPERATIVE_ORDER" },
+    { "id": "m-actor-swap", "text": "The wrong actor issues the reserve while someone else holds the rail.", "expectedFailureClass": "ACTOR_SWAP" },
+    { "id": "m-temporal", "text": "The crossing closed before it began after it ended.", "expectedFailureClass": "TEMPORAL_CONTRADICTION" },
+    { "id": "m-generic", "text": "We must leverage holistic synergy to optimize outcomes.", "expectedFailureClass": "GENERIC_ABSTRACTION" },
+    { "id": "m-sentiment", "text": "A heartwarming reunion brought tears of joy to the beloved forever.", "expectedFailureClass": "SENTIMENTALITY" },
+    { "id": "m-duplicate", "text": "CANARY_STABLE_LINE_ALPHA", "expectedFailureClass": "DUPLICATE_IMAGE", "duplicateOf": "CANARY_STABLE_LINE_ALPHA" },
+    { "id": "m-resource", "text": "Spend twelve mana and three spell slots at the ridge.", "expectedFailureClass": "UNSUPPORTED_RESOURCE" },
+    { "id": "m-confusable", "text": "The Оssuary Mile remains open.", "expectedFailureClass": "CONFUSABLE_SPELLING" },
+    { "id": "m-false-mechanic", "text": "Declare teleport as the standing manoeuvre.", "expectedFailureClass": "FALSE_MECHANIC_CLAIM", "mechanicRefs": ["teleport"] }
+  ],
+  "canaries": [
+    { "candidateId": "canary-good-1", "text": "CANARY_STABLE_LINE_ALPHA" },
+    { "candidateId": "canary-good-2", "text": "Observation remains provisional under intermittent relays." }
+  ]
+}

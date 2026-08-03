@@ -1,0 +1,78 @@
+{
+  "$id": "contentgen-contract/v1/grammar-recipe",
+  "title": "GrammarRecipe",
+  "type": "object",
+  "required": [
+    "contractVersion",
+    "id",
+    "version",
+    "medium",
+    "chord",
+    "spineId",
+    "mechanicRefs",
+    "slots",
+    "requiredClaims",
+    "forbiddenClaims",
+    "registerProfileId",
+    "equivalenceClasses"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "contractVersion": {
+      "const": "contentgen-contract/v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "medium": {
+      "enum": [
+        "ava",
+        "campaign-brief",
+        "maneuver-procedure",
+        "romantic-arc",
+        "execution-scene"
+      ]
+    },
+    "chord": {
+      "type": "object"
+    },
+    "spineId": {
+      "type": "string"
+    },
+    "mechanicRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "slots": {
+      "type": "array"
+    },
+    "requiredClaims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbiddenClaims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "registerProfileId": {
+      "type": "string"
+    },
+    "equivalenceClasses": {
+      "type": "array"
+    },
+    "projection": {
+      "type": "object"
+    }
+  }
+}

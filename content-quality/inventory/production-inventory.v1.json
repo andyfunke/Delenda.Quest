@@ -1,0 +1,60 @@
+{
+  "version": "contentgen-inventory/v1",
+  "note": "Explicit production inventory matching Epoch 009 prose inventory. Regex-only discovery is not accepted as complete.",
+  "productions": [
+    {
+      "id": "ava-relevance-realizations",
+      "medium": "ava",
+      "owner": "app/ava/relevance-engine.ts",
+      "adapter": "ava-relevance",
+      "slotDomains": { "realization": { "cardinality": "source-enumerated" } }
+    },
+    {
+      "id": "game-legacy-situations",
+      "medium": "campaign-brief",
+      "owner": "app/game.ts",
+      "adapter": "legacy-situations",
+      "slotDomains": { "situationId": { "cardinality": "source-enumerated" } }
+    },
+    {
+      "id": "campaign-generic-situations",
+      "medium": "campaign-brief",
+      "owner": "app/campaign-substrate.ts",
+      "adapter": "generic-situations",
+      "slotDomains": { "situationId": { "cardinality": "source-enumerated" } }
+    },
+    {
+      "id": "maneuver-presentations",
+      "medium": "maneuver-procedure",
+      "owner": "app/campaign-substrate.ts",
+      "adapter": "maneuver-presentations",
+      "slotDomains": {
+        "mechanicId": {
+          "values": ["reinforce", "interdict", "route", "abandon", "exploit", "breach", "network"]
+        }
+      }
+    },
+    {
+      "id": "sub-mission-frames",
+      "medium": "romantic-arc",
+      "owner": "app/sub-mission-content.ts",
+      "adapter": "sub-mission-frames",
+      "slotDomains": { "frameId": { "cardinality": "source-enumerated" } },
+      "note": "Sub-mission frames are inventoried as narrative-adjacent productions; Romantic arc spines arrive in Epoch 023."
+    },
+    {
+      "id": "war-dispatch-reports",
+      "medium": "execution-scene",
+      "owner": "app/war-dispatch.ts",
+      "adapter": "war-dispatch",
+      "slotDomains": { "tone": { "values": ["grim", "measured", "severe"] } }
+    },
+    {
+      "id": "resolution-record-schema",
+      "medium": "execution-scene",
+      "owner": "app/game.ts",
+      "adapter": "resolution-record",
+      "slotDomains": { "schemaVersion": { "values": [1] } }
+    }
+  ]
+}

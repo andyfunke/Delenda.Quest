@@ -782,3 +782,91 @@ sources; and Cloudflare validation is local types/check/dry-run only.
 
 Next node handoff: begin any future epoch with a fresh owner-first preflight;
 no further NODE-27 implementation is authorized by this receipt.
+
+## Epoch 009 / NODE-00 — preflight stop (2026-08-03)
+
+Node identity: `docs/epochs/epoch-009-campaign-contentgen-preflight/nodes/NODE-00-preflight.md`
+
+| Command | Result |
+|---|---|
+| `git cat-file -t fd4b783` | FAIL — `fatal: Not a valid object name fd4b783` |
+| `git merge-base --is-ancestor 0e4daf7266cd1e3f365adc47a4983f76779633e5 origin/main` | PASS |
+| `npm run test:ava-content-quality` | PASS 4/4 |
+| `npm run test:ava-content-quality-epoch-008` | PASS 3/3 |
+| `npm run typecheck` | PASS |
+| `git diff --check` | PASS |
+
+Stop: specification base `fd4b783` missing (§0.5). Later Epoch 009 nodes not started. Live tips recorded: `origin/main`=`a0c62de`, `origin/codex/epoch-006`=`b950015`. Operator must amend or restore the base before NODE-00 clears. No push, deploy, secret, or D1 change.
+
+## Epoch 009 seal — historical repair and compatibility freeze (2026-08-03)
+
+Node identity: `docs/epochs/epoch-009-campaign-contentgen-preflight/` (NODE-00…06)
+
+Operator clearance: ignore sealed `codex/epoch-006` / `fd4b783` header artifact; execute against live `main` containing Epoch 008 `0e4daf7`.
+
+| Command | Result |
+|---|---|
+| `npm run test:ava-content-quality` | PASS 4/4 |
+| `npm run test:ava-content-quality-epoch-008` | PASS 3/3 |
+| `npm run typecheck` | PASS |
+| `npm run validate:epoch-009` | PASS (9 epoch-008 files; 30 protected entries) |
+| `git diff --check` | PASS |
+
+Exit artifacts: Epoch 008 append-only amendment; immutability manifest; authority map; R01–R41 + §1.2 requirement trace; prose/turnover inventory (automatic client-driven claim/redeem present; no server cron). No runtime source changes. No production deploy.
+
+## Epoch 009 — push / PR delivery (2026-08-03)
+
+| Command / action | Result |
+|---|---|
+| `git push -u origin cursor/epoch-009-campaign-contentgen-preflight-88d3` | PASS — remote branch tracks seal tip |
+| Draft PR #8 vs `main` | https://github.com/andyfunke/Delenda.Quest/pull/8 OPEN (draft) |
+
+Documentation updated to record pushed branch + PR identity. Production deploy still not authorized. Epoch 010 not started.
+
+## Epoch 010 seal — Contentgen doctrine and chord contracts (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-contracts` | PASS 9/9 |
+| `npx tsc --noEmit` | PASS |
+| `git diff --check` | PASS |
+
+Exit: `contentgen-contract/v1` in `packages/contentgen-contracts/`; `SUBSTRATE_DOCTRINE.md` §21; schemas/fixtures under `content-quality/`. No campaign content generated. No second doctrine file.
+
+## Epoch 011 seal — cross-medium enumeration (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:enumerate -- --seed 7` | PASS 68 candidates / 0 failures |
+| `npm run validate:contentgen-enumerate` | PASS byteIdentical=true |
+| `npm run test:ava-content-quality` | PASS 4/4 |
+
+Inventory fixture names Epoch 009 producers. Ava legacy CLI preserved via adapter.
+
+## Epoch 012 seal — decompiler matrix and hard prisms (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:decompile` | PASS feature matrix + prism verdicts + blast report |
+| `npm run contentgen:prisms` | PASS |
+| `npm run validate:contentgen-prisms` | PASS 10/10 mutation fixtures |
+
+P0–P4 per §4.4; dual authority lints A/B share no helpers beyond schemas.
+
+## Epoch 013 seal — corpus and deterministic RAG (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:corpus` | PASS versioned corpus + lineage + index |
+| `npm run test:contentgen-corpus` | PASS 7/7 |
+
+Epoch 008 IDs preserved; held-out excluded from retrieval; novelty thresholds §4.9.
+
+## Epoch 014 seal — review persistence and admin mutation (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-service` | PASS 8/8 |
+| `npx tsc --noEmit` | PASS |
+
+Migration `0015_contentgen_review.sql` on existing D1 binding only. Exports use opaque receipt IDs.

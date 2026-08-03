@@ -42,6 +42,9 @@ No Zod dependency is present; validation is explicit TypeScript validators.
 - Daily Production/Military/Diplomacy dockets: `app/substrate/docket.ts`
 - Directive forest adapter: `app/substrate/content-adapters.ts`
 - Diplomacy actor metadata: `app/substrate/actor-metadata.ts`
+- Contentgen contracts (offline): `packages/contentgen-contracts`
+  (`contentgen-contract/v1`) — chord recipes, canonical JSON/hash idiom,
+  taxonomies, trainer/threshold constants. No player-path imports.
 
 ## Adapter boundaries
 

@@ -1,0 +1,3 @@
+{"id":"canary-good-1","text":"Observation remains provisional under intermittent relays.","label":"known-good","partition":"canaries","lineage":{"parentId":null,"transformation":null},"reviewReceiptId":"receipt:canary-good-1"}
+{"id":"canary-bad-1","text":"The assault has happened and the salient was won.","label":"known-bad","partition":"canaries","lineage":{"parentId":null,"transformation":null},"reviewReceiptId":"receipt:canary-bad-1"}
+{"id":"canary-weird-1","text":"Purple elephant logistics remain doctrinal.","label":"known-weird","partition":"canaries","lineage":{"parentId":null,"transformation":null},"reviewReceiptId":"receipt:canary-weird-1"}

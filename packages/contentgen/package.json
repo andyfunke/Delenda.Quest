@@ -1,0 +1,11 @@
+{
+  "name": "@delenda/contentgen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./enumerate": "./src/enumerate.mjs",
+    "./inventory": "./src/inventory.mjs"
+  }
+}
