@@ -782,3 +782,18 @@ sources; and Cloudflare validation is local types/check/dry-run only.
 
 Next node handoff: begin any future epoch with a fresh owner-first preflight;
 no further NODE-27 implementation is authorized by this receipt.
+
+## Epoch 009 / NODE-00 — preflight stop (2026-08-03)
+
+Node identity: `docs/epochs/epoch-009-campaign-contentgen-preflight/nodes/NODE-00-preflight.md`
+
+| Command | Result |
+|---|---|
+| `git cat-file -t fd4b783` | FAIL — `fatal: Not a valid object name fd4b783` |
+| `git merge-base --is-ancestor 0e4daf7266cd1e3f365adc47a4983f76779633e5 origin/main` | PASS |
+| `npm run test:ava-content-quality` | PASS 4/4 |
+| `npm run test:ava-content-quality-epoch-008` | PASS 3/3 |
+| `npm run typecheck` | PASS |
+| `git diff --check` | PASS |
+
+Stop: specification base `fd4b783` missing (§0.5). Later Epoch 009 nodes not started. Live tips recorded: `origin/main`=`a0c62de`, `origin/codex/epoch-006`=`b950015`. Operator must amend or restore the base before NODE-00 clears. No push, deploy, secret, or D1 change.
