@@ -861,3 +861,12 @@ P0–P4 per §4.4; dual authority lints A/B share no helpers beyond schemas.
 | `npm run test:contentgen-corpus` | PASS 7/7 |
 
 Epoch 008 IDs preserved; held-out excluded from retrieval; novelty thresholds §4.9.
+
+## Epoch 014 seal — review persistence and admin mutation (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-service` | PASS 8/8 |
+| `npx tsc --noEmit` | PASS |
+
+Migration `0015_contentgen_review.sql` on existing D1 binding only. Exports use opaque receipt IDs.

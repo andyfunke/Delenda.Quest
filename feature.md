@@ -262,3 +262,8 @@ independent authority lints, and mutation-fixture validator (10/10).
 
 Extended Epoch 008 corpus into alive/dead partitions with lineage ledger,
 deterministic retrieval/novelty, and `contentgen:corpus` CLI. Tests 7/7.
+
+## Epoch 014 — Contentgen review service
+
+Added D1 migration 0015 (contentgen_* tables), `db/contentgen.ts` admin review
+service, and `test:contentgen-service` (8/8 fail-closed cases). No second D1.
