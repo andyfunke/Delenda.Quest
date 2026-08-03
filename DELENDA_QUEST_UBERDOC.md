@@ -822,3 +822,13 @@ Exit artifacts: Epoch 008 append-only amendment; immutability manifest; authorit
 | Draft PR #8 vs `main` | https://github.com/andyfunke/Delenda.Quest/pull/8 OPEN (draft) |
 
 Documentation updated to record pushed branch + PR identity. Production deploy still not authorized. Epoch 010 not started.
+
+## Epoch 010 seal — Contentgen doctrine and chord contracts (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-contracts` | PASS 9/9 |
+| `npx tsc --noEmit` | PASS |
+| `git diff --check` | PASS |
+
+Exit: `contentgen-contract/v1` in `packages/contentgen-contracts/`; `SUBSTRATE_DOCTRINE.md` §21; schemas/fixtures under `content-quality/`. No campaign content generated. No second doctrine file.

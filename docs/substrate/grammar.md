@@ -194,3 +194,16 @@ to zero.
 
 `OK`, `PREPARED`, `EXECUTED`, `REJECTED`, `EXPIRED`, `ALREADY_EXECUTED`,
 `STATE_CHANGED`, `CONFIRMATION_REQUIRED`, `AMBIGUOUS`, `NOT_FOUND`, `FORBIDDEN`
+
+## Contentgen chord metagrammar (`contentgen-contract/v1`)
+
+Offline Contentgen contracts live in `packages/contentgen-contracts/`. They do
+not extend the player command surface. Media:
+
+`ava`, `campaign-brief`, `maneuver-procedure`, `romantic-arc`, `execution-scene`
+
+A reviewable unit is a `GrammarRecipe` with `SharedChord`, slots, mechanic
+refs, required/forbidden claims, register profile, and equivalence classes.
+Bound realizations are deterministic instances of promoted recipes. Quality
+scores never create intent or mechanics. JSON Schemas:
+`content-quality/contracts/`.

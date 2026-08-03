@@ -1,0 +1,55 @@
+{
+  "contractVersion": "contentgen-contract/v1",
+  "id": "bad.cross-medium",
+  "version": "1.0.0",
+  "medium": "campaign-brief",
+  "chord": {
+    "tensionId": "exposure-under-observation",
+    "intentClass": "inspect",
+    "actorRoles": [
+      "commander",
+      "staff"
+    ],
+    "temporalShape": "instant",
+    "pressureShape": "exposure",
+    "evidenceShape": "observed",
+    "consequenceShape": "cost"
+  },
+  "spineId": "situation-brief",
+  "mechanicRefs": [
+    "reinforce",
+    "abandon"
+  ],
+  "slots": [
+    {
+      "id": "sector",
+      "valueType": "string",
+      "required": true
+    }
+  ],
+  "requiredClaims": [
+    "network-state-disclosed"
+  ],
+  "forbiddenClaims": [
+    "hidden-enemy-intent"
+  ],
+  "registerProfileId": "ava-cold",
+  "equivalenceClasses": [
+    {
+      "id": "sector-name",
+      "slotId": "sector",
+      "representatives": [
+        "kesh"
+      ],
+      "cardinality": 4
+    }
+  ],
+  "projection": {
+    "medium": "campaign-brief",
+    "theaterId": "lowland",
+    "problemClass": "logistics",
+    "phaseId": "contact",
+    "situationTemplateId": "kesh",
+    "intentLowering": "REPORT"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@delenda/contentgen-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./canonical": "./src/canonical.ts",
+    "./hash": "./src/hash.ts",
+    "./types": "./src/types.ts",
+    "./constants": "./src/constants.ts",
+    "./projections": "./src/projections.ts",
+    "./validate": "./src/validate.ts"
+  }
+}

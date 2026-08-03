@@ -265,3 +265,32 @@ contextual resolution IDs to the semantic digest. This keeps typed requests,
 text requests, browser/Nexus, terminal-core, and native SSH on one semantic
 identity while preserving the disclosure boundary. The activation route's
 text-digest fixtures were updated to the canonical rendered semantic output.
+
+## 21. Contentgen compiler law
+
+Contentgen is the offline, authenticated compiler for Ava and narrative grammar
+candidates. It does not own campaign state, day resolution, intent, or player
+commands. Contract package: `packages/contentgen-contracts`
+(`contentgen-contract/v1`). No second `Doctrine.md` is authoritative.
+
+1. **Enumerate offline.** Bound grammar recipes before prose. Player paths
+   perform verified lookup, deterministic binding, and rendering only.
+2. **Semantic before prose.** Every candidate declares medium, shared chord,
+   mechanic references, required/forbidden claims, and register profile before
+   text is authenticated.
+3. **Hard gates precede taste.** Deterministic exclusion prisms fail closed.
+   Learned scores never override hard authority evidence.
+4. **Authenticated labels only.** A batch closes only when every candidate —
+   including revision children — has a legal authenticated disposition.
+5. **Learning limits.** Training changes sampling and ranking after independent
+   evaluation and explicit promotion. It cannot create mechanics, intent,
+   outcomes, actors, or commands.
+6. **Cross-medium transfer.** Shared feature weights transfer only shared
+   features. Medium residuals and forbidden-transfer features keep Ava safety
+   and narrative taste from collapsing into one score.
+7. **Promotion.** Runtime content enters through Git-versioned promoted
+   manifests only. Unreviewed D1 rows and model output are never production
+   content authority.
+8. **Discovery protection.** Players and ordinary APIs cannot inspect the
+   latent catalog, future itinerary, quality corpus, labels, model evidence,
+   seeds, or terminal tickets.

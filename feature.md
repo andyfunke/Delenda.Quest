@@ -240,3 +240,9 @@ manifest, authority map, R01–R41 ledger, prose/turnover inventory, and
 Epoch 009 delivery: branch
 `cursor/epoch-009-campaign-contentgen-preflight-88d3` pushed; draft PR #8
 https://github.com/andyfunke/Delenda.Quest/pull/8. Not production deployed.
+
+## Epoch 010 — Contentgen contracts
+
+Added `packages/contentgen-contracts` (`contentgen-contract/v1`), doctrine §21,
+substrate grammar/architecture notes, and `npm run test:contentgen-contracts`
+(9/9). Quality layer cannot own intent or mechanics.
