@@ -197,3 +197,34 @@ native SSH build, Wrangler types check, Cloudflare dry-run, lint (0 errors;
 23 pre-existing warnings), `git diff --check`, and the SHA-256 manifest
 verification all pass. The final local worktree is clean and `origin/main`
 remains unchanged; no push or deployment was performed.
+
+## Epoch 009 stop — missing authority referent
+
+| Field | Value |
+|---|---|
+| Session | Cursor kickoff Epoch 009–027 superepoch, one-epoch rule |
+| Intended epoch | `009` — Historical repair, preflight, and compatibility freeze |
+| Status | **STOPPED** before any epoch node execution |
+| Stop kind | Missing referent (kickoff hard rule) |
+| Missing authority | `updated_epoch.md` (Parts 0–7; Part 6 for Epoch 009) |
+| Workspace facts | File absent from `/workspace`, Git history, and `origin/main` tree |
+| Dependency present | `docs/epochs/epoch-008-ava-quality-infrastructure/` (local; not pushed) |
+| Files changed for this stop | This ledger append only |
+| Runtime / owned-file work | None — owned-files boundary unknown without Part 6 |
+| Push / deploy / secrets / D1 | Not performed (kickoff forbids) |
+| Successor agent | Not deployed — Epoch 009 Exit criteria unmet; no create-agent tool available |
+
+### Reading-order attempt
+
+1. `AGENTS.md` — present
+2. `SUBSTRATE_DOCTRINE.md` — present
+3. `updated_epoch.md` — **absent**; cannot read Parts 0–5, Epoch 009 Part 6, or Part 7
+4. `docs/parking-lot/README.md` — present; no Epoch 009/contentgen parking-lot overlap authorized for activation
+5. Epoch 009 dependency receipts — Epoch 008 receipts present locally; cannot verify against Part 6 dependency list without the spec
+
+### Halt decision
+
+Per kickoff: do not improvise pinned values, owned-files, nodes, or validators.
+Operator must place the authoritative `updated_epoch.md` in the repository (or
+attach it to a fresh session) before Epoch 009 can be rerun. Do not advance to
+Epoch 010 until Epoch 009 Exit criteria pass.
