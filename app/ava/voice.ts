@@ -232,7 +232,12 @@ export const voiceAvaResponse = (
   text: string,
   cue: AvaVoiceCue = { topic: "overview" },
 ) => {
-  if (/^FIELD NOTE(?:\s*\/{1,2}|\n)/.test(text.trimStart())) return text;
+  const existing = text.match(/^(FIELD NOTE\s*\/{1,2}\s*[^\n]+)\n[^\n]*(\n\n|$)([\s\S]*)/i);
+  const relevant = compileAvaRelevantAside(cue.utterance, cue.variant ?? 0);
+  if (existing) {
+    if (!relevant) return text;
+    return `${existing[1]}\n${relevant.line}\n\n${existing[3]}`;
+  }
   const opening = responseOpening(state, cue);
   return `FIELD NOTE / ${opening.label}\n${opening.line}\n\n${text}`;
 };

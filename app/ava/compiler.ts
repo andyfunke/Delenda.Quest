@@ -1435,7 +1435,7 @@ const shouldUseSemanticInstruction = (
   const explicitHandleComparison =
     query.operation === "COMPARE" &&
     /\b[mdnxp]\d+\b/i.test(input) &&
-    (query.subject.entityIds.length > 0 || query.subject.type === "CAMPAIGN_CHOICE");
+    query.subject.type === "CAMPAIGN_CHOICE";
   const mixedActionComparison =
     query.operation === "COMPARE" &&
     new Set(
@@ -1494,6 +1494,14 @@ export function compileAvaCommand(
       ...compiled(hardInput, "hard-help", { kind: "HELP" }),
       trace: trace("HARD_FAMILY:HELP", raw),
     };
+  const explicitManeuverHandles = [...hardInput.matchAll(/\b(m\d+)\b/g)]
+    .map((match) => context.entities.find((entity) => entity.handle?.toLowerCase() === match[1]))
+    .filter((entity): entity is AvaEntity => entity?.kind === "maneuver");
+  if (/^compare\b/.test(hardInput) && explicitManeuverHandles.length === 2)
+    return compiled(hardInput, "compare-explicit-handles", {
+      kind: "COMPARE",
+      entities: [explicitManeuverHandles[0], explicitManeuverHandles[1]],
+    }, [explicitManeuverHandles[0], explicitManeuverHandles[1]]);
   const semantic = compileSemanticQuery(raw, context);
   const contextualBeforeShell = matchAvaContextualLanguage(raw, context);
   const shell = parseAvaShellInput(

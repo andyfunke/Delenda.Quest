@@ -602,19 +602,28 @@ const withEnvelope = (
   const realizedText = result.operationalSemantics
     ? `${realizedBaseText}\n\n${renderAvaOperationalSemantics(result.operationalSemantics)}`
     : realizedBaseText;
+  const voicedText = voiceAvaResponse(
+    result.state,
+    realizedText,
+    {
+      utterance:
+        request.kind === "instruction" ? request.rawInput : undefined,
+      variant: result.session.terminal.voiceCursor,
+    },
+  );
   result = {
     ...result,
-    text: realizedText,
+    text: voicedText,
     response: {
       ...result.response,
-      rendering: { ...result.response.rendering, brief: realizedText },
+      rendering: { ...result.response.rendering, brief: voicedText },
     },
     ...(result.terminalResult
-      ? { terminalResult: { ...result.terminalResult, text: realizedText } }
+      ? { terminalResult: { ...result.terminalResult, text: voicedText } }
       : {}),
     session: {
       ...result.session,
-      terminal: { ...result.session.terminal, lastText: realizedText },
+      terminal: { ...result.session.terminal, lastText: voicedText },
     },
   };
   const { cognition, ...publicResult } = result;
