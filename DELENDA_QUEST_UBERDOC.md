@@ -910,3 +910,12 @@ Exit: `/admin/contentgen` lab UI + `/api/admin/contentgen` adapters; §4.14 samp
 | `npm run contentgen:judge -- --judge NONE` | PASS |
 
 Exit: provider-neutral judge contracts; frozen Ava checklist; §4.9 queue; NONE mode. Non-NONE not operational (provider gate).
+
+## Epoch 017 seal — deterministic self-training (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-train` | PASS 6/6 |
+| `npm run contentgen:train` / `contentgen:evaluate` | PASS |
+
+Exit: trainer (§4.5), independent evaluator, PROPOSED prism mining, audit-slot helper.
