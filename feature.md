@@ -246,3 +246,9 @@ https://github.com/andyfunke/Delenda.Quest/pull/8. Not production deployed.
 Added `packages/contentgen-contracts` (`contentgen-contract/v1`), doctrine §21,
 substrate grammar/architecture notes, and `npm run test:contentgen-contracts`
 (9/9). Quality layer cannot own intent or mechanics.
+
+## Epoch 011 — cross-medium enumeration
+
+Added `packages/contentgen` enumerator, explicit production inventory, CLI
+`contentgen:enumerate`, and independent byte-identity validator. 68 candidates
+at seed 7; Ava content-quality adapter preserved.
