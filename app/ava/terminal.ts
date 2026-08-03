@@ -1879,6 +1879,7 @@ export function runAvaInstruction(
       {
         ...voiceCueForInstruction(instruction, result, session),
         variant: session.voiceCursor,
+        utterance: compilerTrace?.rawInput,
       },
     );
   return {

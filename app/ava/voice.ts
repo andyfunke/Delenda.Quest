@@ -6,6 +6,7 @@ import {
 } from "../game";
 import type { AvaReportTopic } from "./schema";
 import { projectAvaEnvelope } from "./projection";
+import { compileAvaRelevantAside } from "./relevance-engine";
 
 export type AvaVoiceMode =
   | "identity"
@@ -24,6 +25,8 @@ export type AvaVoiceCue = {
   label?: string;
   mode?: AvaVoiceMode;
   variant?: number;
+  /** Original player surface; used only for bounded, non-authoritative realization. */
+  utterance?: string;
 };
 
 export type AvaRealizationMode = "concise" | "storyteller";
@@ -117,6 +120,16 @@ const choose = (lines: readonly string[], variant = 0) =>
 
 const responseOpening = (state: GameState, cue: AvaVoiceCue) => {
   const variant = cue.variant ?? 0;
+  const relevant = compileAvaRelevantAside(cue.utterance, variant);
+  if (relevant)
+    return {
+      label:
+        cue.label ??
+        (cue.mode
+          ? cue.mode.toUpperCase()
+          : (cue.topic ?? "overview").replaceAll("-", " ").toUpperCase()),
+      line: relevant.line,
+    };
   switch (cue.mode) {
     case "identity":
       return {
