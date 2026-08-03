@@ -257,3 +257,8 @@ at seed 7; Ava content-quality adapter preserved.
 
 Added P0–P4 decompiler, 13 exclusion prisms with blast-radius reports, dual
 independent authority lints, and mutation-fixture validator (10/10).
+
+## Epoch 013 — corpus / RAG
+
+Extended Epoch 008 corpus into alive/dead partitions with lineage ledger,
+deterministic retrieval/novelty, and `contentgen:corpus` CLI. Tests 7/7.
