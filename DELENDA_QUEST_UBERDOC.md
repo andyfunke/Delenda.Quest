@@ -938,3 +938,12 @@ Exit: promotion gate (§4.9), Git-versioned `quality-policy.v1.json`, mutation f
 | `npm run test:campaign-metastratum-contracts` | PASS 5/5 |
 
 Exit: §4.10 types, ContentLink, TerminalRisk registry metadata, three checked-in ppm tables, restore defaults, stableHash consolidation.
+
+## Epoch 020 seal — narrative itinerary / scheduler (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:campaign-metastratum` | PASS |
+| `npm run validate:campaign-itineraries -- --seeds 10000` | PASS |
+
+§4.12(i) scheduler; R05 three completed Romantic instances; strict heat alternation.
