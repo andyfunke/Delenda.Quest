@@ -1783,7 +1783,7 @@ const executeInstructionRequest = (
       },
       rendering: {
         compact: "FIELD COMPARISON",
-        brief: `FIELD COMPARISON\n${operands.join(" → ")}\n\nThe fields are preserved in the order requested. No numeric ranking was applied because this comparison cell has no authoritative value provider.`,
+        brief: `${operands.join(" → ")}\n\nThe fields are preserved in the order requested. No numeric ranking was applied because this comparison cell has no authoritative value provider.`,
       },
       campaignRevision: revisionOf(state),
     };
