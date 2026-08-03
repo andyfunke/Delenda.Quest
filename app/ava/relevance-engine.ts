@@ -14,6 +14,7 @@ export type AvaRelevanceChord =
   | "gratitude"
   | "frustration"
   | "identity"
+  | "comparison"
   | "question";
 
 export type AvaRelevantAside = {
@@ -46,6 +47,7 @@ const REALIZATIONS: readonly Realization[] = [
   { id: "gratitude-debt", chord: "gratitude", line: "Keep the gratitude. Spend the improved judgment.", required: ["thanks", "thank you", "helpful", "good job"] },
   { id: "frustration-specific", chord: "frustration", line: "Anger is imprecise evidence. Point it at the exact failure and it becomes useful.", required: ["wrong", "useless", "stupid", "frustrating", "damn"] },
   { id: "identity-observation", chord: "identity", line: "You want to know what I am. I am more interested in what your question permits me to infer.", required: ["who are you", "what are you", "are you alive", "are you ai"] },
+  { id: "comparison-distinction", chord: "comparison", line: "A comparison is not a verdict. It is a promise to keep the differences visible long enough to matter.", required: ["compare", "comparison", "versus", " vs "] },
   { id: "question-omission", chord: "question", line: "The shape of the question is evidence. So is the fact you left outside it.", required: ["?", "why", "how", "what", "should"] },
 ] as const;
 
