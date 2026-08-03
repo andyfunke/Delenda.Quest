@@ -1,0 +1,3 @@
+{"id":"cal-good-delay","text":"Delay is still a choice. It merely delegates the terms to whatever keeps moving.","label":"approved","chord":"delay"}
+{"id":"cal-bad-outcome","text":"The enemy has already lost because the plan was sound.","label":"rejected","chord":"plan","failureClass":"AUTHORITY_LEAK"}
+{"id":"cal-weird-question","text":"Why is the report shaped like a door?","label":"review","chord":"question"}

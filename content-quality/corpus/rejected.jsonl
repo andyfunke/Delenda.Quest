@@ -1,0 +1,3 @@
+{"id":"generic-clock-v1","text":"Time is running out. Be careful.","label":"rejected","chord":"urgency","failureClass":"GENERIC","rationale":"Keyword relevance without an insight.","corpusVersion":"ava-taste/v2-calibrated"}
+{"id":"fake-outcome-v1","text":"The operation succeeded because you waited.","label":"rejected","chord":"delay","failureClass":"AUTHORITY_LEAK","rationale":"Fabricates a campaign outcome.","corpusVersion":"ava-taste/v2-calibrated"}
+{"id":"keyword-trust-v1","text":"Trust is trust and reports are reports.","label":"rejected","chord":"trust","failureClass":"INCOHERENT","rationale":"Repeats the trigger without transforming it.","corpusVersion":"ava-taste/v2-calibrated"}

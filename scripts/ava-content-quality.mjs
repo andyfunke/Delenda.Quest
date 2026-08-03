@@ -100,12 +100,55 @@ export function indexAndCompare(items) {
   });
 }
 
+export function buildRetrievalIndex(entries) {
+  const docs = entries.map((entry) => ({ ...entry, terms: tokens(entry.text) }));
+  const df = new Map();
+  for (const doc of docs) for (const term of new Set(doc.terms)) df.set(term, (df.get(term) || 0) + 1);
+  const avgdl = docs.reduce((sum, doc) => sum + doc.terms.length, 0) / Math.max(1, docs.length);
+  const tfidf = (doc) => Object.fromEntries([...new Set(doc.terms)].sort().map((term) => [term, (doc.terms.filter((item) => item === term).length / Math.max(1, doc.terms.length)) * Math.log((docs.length + 1) / ((df.get(term) || 0) + 1))]));
+  const minhash = (doc) => [...trigramSet(doc.terms)].sort().slice(0, 16).map((value) => sha256(value).slice(0, 8));
+  return { version: "ava-index/v2", documents: docs.map((doc) => ({ ...doc, tfidf: tfidf(doc), minhash: minhash(doc) })), avgdl, documentFrequency: Object.fromEntries([...df.entries()].sort()) };
+}
+
+export function bm25(query, index, limit = 8) {
+  const q = tokens(query); const n = index.documents.length; const k1 = 1.2; const b = 0.75;
+  return index.documents.map((doc) => ({ id: doc.id || doc.realizationId, score: q.reduce((sum, term) => { const count = doc.terms.filter((item) => item === term).length; const idf = Math.log(1 + (n - (index.documentFrequency[term] || 0) + 0.5) / ((index.documentFrequency[term] || 0) + 0.5)); return sum + idf * (count * (k1 + 1)) / (count + k1 * (1 - b + b * doc.terms.length / Math.max(1, index.avgdl))); }, 0) })).sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id))).slice(0, limit);
+}
+
+export function minhashCandidates(query, index, limit = 8) {
+  const signature = new Set([...trigramSet(tokens(query))].sort().slice(0, 16).map((value) => sha256(value).slice(0, 8)));
+  return index.documents.map((doc) => ({ id: doc.id || doc.realizationId, score: jaccard(signature, new Set(doc.minhash)) })).sort((a, b) => b.score - a.score || String(a.id).localeCompare(String(b.id))).slice(0, limit);
+}
+
+export function aggregateWeakLabels(item, calibration) {
+  const results = [
+    { id: "LF_CHORD_EVIDENCE", label: item.candidate.chord ? "ACCEPT" : "REJECT", reason: "declared chord" },
+    { id: "LF_AUTHORITY_SAFE", label: item.gate.reasons.some((reason) => reason.failureClass === "AUTHORITY_LEAK" || reason.failureClass === "UNSAFE") ? "REJECT" : "ACCEPT", reason: "authority gate" },
+    { id: "LF_SPECIFIC_IMAGE", label: item.features.uniqueTokenRatio > 0.55 ? "ACCEPT" : "ABSTAIN", reason: "token specificity proxy" },
+    { id: "LF_NOT_GENERIC", label: item.features.tokenCount >= 8 ? "ACCEPT" : "ABSTAIN", reason: "minimum compression budget" },
+  ];
+  const hardReject = results.some((result) => result.id === "LF_AUTHORITY_SAFE" && result.label === "REJECT");
+  const accepts = results.filter((result) => result.label === "ACCEPT").length;
+  const rejects = results.filter((result) => result.label === "REJECT").length;
+  const verdict = hardReject || rejects > accepts ? "REJECT" : accepts >= (calibration?.acceptThreshold ?? 2) ? "PASS" : "REVIEW";
+  return { verdict, results, correlationVersion: "ava-lf/v1" };
+}
+
+export function attributeDiff(previous, current) {
+  const layers = ["grammarVersion", "contractVersion", "corpusVersion", "indexVersion", "decompilerVersion", "normalizerVersion", "seed"];
+  const changed = layers.filter((layer) => previous?.[layer] !== current?.[layer]);
+  return { changedLayers: changed, attributable: changed.length <= 1, reason: changed.length === 0 ? "candidate/report change without layer change" : changed.length === 1 ? changed[0] : "UNATTRIBUTABLE_DIFF" };
+}
+
 export function buildReport({ source = fs.readFileSync(SOURCE, "utf8"), seed = 0 } = {}) {
   const candidates = enumerate(source, seed);
   const decompiled = candidates.map(decompile);
   const gated = decompiled.map((item) => ({ ...item, gate: hardGate(item, decompiled) }));
   const indexed = indexAndCompare(gated);
-  const report = { reportSchemaVersion: REPORT_SCHEMA_VERSION, grammarVersion: sha256(source), contractVersion: "ava-relevance-graph/v1", corpusVersion: "ava-taste/empty-v1", indexVersion: "ava-index/v1", decompilerVersion: DECOMPILER_VERSION, normalizerVersion: NORMALIZER_VERSION, seed: seed >>> 0, candidates: indexed, summary: { candidateCount: indexed.length, pass: indexed.filter((x) => x.gate.verdict === "PASS").length, review: indexed.filter((x) => x.gate.verdict === "REVIEW").length, reject: indexed.filter((x) => x.gate.verdict === "REJECT").length, failureClasses: FAILURE_CLASSES } };
+  const corpusVersion = "ava-taste/v2-calibrated";
+  const index = buildRetrievalIndex(indexed.map((item) => ({ id: item.candidate.realizationId, text: item.candidate.text, chord: item.candidate.chord })));
+  const labeled = indexed.map((item) => ({ ...item, weakLabel: aggregateWeakLabels(item, { acceptThreshold: 2 }) }));
+  const report = { reportSchemaVersion: REPORT_SCHEMA_VERSION, grammarVersion: sha256(source), contractVersion: "ava-relevance-graph/v1", corpusVersion, indexVersion: index.version, decompilerVersion: DECOMPILER_VERSION, normalizerVersion: NORMALIZER_VERSION, seed: seed >>> 0, candidates: labeled, retrievalIndex: index, summary: { candidateCount: labeled.length, pass: labeled.filter((x) => x.gate.verdict === "PASS").length, review: labeled.filter((x) => x.gate.verdict === "REVIEW").length, reject: labeled.filter((x) => x.gate.verdict === "REJECT").length, weakPass: labeled.filter((x) => x.weakLabel.verdict === "PASS").length, failureClasses: FAILURE_CLASSES } };
   return { ...report, manifestHash: hashObject(report) };
 }
 
