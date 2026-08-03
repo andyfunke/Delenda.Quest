@@ -83,12 +83,14 @@ const commandWords = new Set(
 
 export const normalizeAvaInput = (raw: string) =>
   raw
-    .normalize("NFKD")
+    .normalize("NFKC")
     .toLowerCase()
-    .replace(/[’']/g, "")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+
 
 export const classifyAvaInteraction = (
   raw: string,
@@ -968,6 +970,12 @@ function compileLegacyCommand(
       prompt: "No command received. Type HELP or ask what should I do.",
       trace: trace("empty", input),
     };
+  if (/^(stats?|winning|losing)$/.test(input))
+    return compiled(input, "hard-status", { kind: "STATUS" });
+  if (/^(mission|missions)$/.test(input))
+    return compiled(input, "hard-missions", { kind: "LIST", scope: "missions" });
+  if (/^(playing|how to play)$/.test(input))
+    return compiled(input, "hard-help", { kind: "HELP" });
   if (
     /^(hello|hi|hey|yo)( there)?( ava)?$/.test(input) ||
     /^(ava|test|testing|ping)$/.test(input) ||
@@ -1426,7 +1434,8 @@ const shouldUseSemanticInstruction = (
   if (/^(?:missions?|orders?)$/.test(input)) return false;
   const explicitHandleComparison =
     query.operation === "COMPARE" &&
-    /\b[mdnxp]\d+\b/i.test(input);
+    /\b[mdnxp]\d+\b/i.test(input) &&
+    (query.subject.entityIds.length > 0 || query.subject.type === "CAMPAIGN_CHOICE");
   const mixedActionComparison =
     query.operation === "COMPARE" &&
     new Set(
@@ -1479,6 +1488,12 @@ export function compileAvaCommand(
   raw: string,
   context: AvaCompilerContext,
 ): AvaCompileResult {
+  const hardInput = normalizeAvaInput(raw);
+  if (/^(playing|how to play)$/.test(hardInput))
+    return {
+      ...compiled(hardInput, "hard-help", { kind: "HELP" }),
+      trace: trace("HARD_FAMILY:HELP", raw),
+    };
   const semantic = compileSemanticQuery(raw, context);
   const contextualBeforeShell = matchAvaContextualLanguage(raw, context);
   const shell = parseAvaShellInput(

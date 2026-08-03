@@ -13,6 +13,27 @@ const entities=[
 const context={currentModule:"campaign",entities,selected:null};
 const instruction=raw=>{const result=mod.compileAvaCommand(raw,context);assert.equal(result.status,"compiled",JSON.stringify(result));return result.instruction};
 
+test("hard read families compile without mutation",()=>{
+  for(const [phrase,operation] of [["stats","SUMMARIZE"],["mission","LIST"],["winning","SUMMARIZE"],["losing","SUMMARIZE"],["playing","EXPLAIN"],["how to play","EXPLAIN"]]){
+    const result=mod.compileAvaCommand(phrase,context);
+    assert.equal(result.status,"compiled",phrase);
+    assert.equal(result.semantic.operation,operation,phrase);
+    assert.notEqual(result.instruction.kind,"STAGE",phrase);
+    assert.notEqual(result.instruction.kind,"ISSUE",phrase);
+  }
+});
+
+test("M/P/N shorthand pairs compile symmetrically as read-only metric comparisons",()=>{
+  for(const [left,right] of [["m","p"],["m1","p"],["m","p1"],["m1","p1"],["n","p"],["n1","p1"]]){
+    for(const phrase of [`compare ${left} ${right}`,`compare ${right} ${left}`]){
+      const result=mod.compileAvaCommand(phrase,context);
+      assert.equal(result.status,"compiled",phrase);
+      assert.equal(result.semantic.operation,"COMPARE",phrase);
+      assert.deepEqual(result.semantic.metricOperands.length,2,phrase);
+    }
+  }
+});
+
 test("godmode random-event language compiles to one explicit intent",()=>{
   for(const phrase of [
     "random event",

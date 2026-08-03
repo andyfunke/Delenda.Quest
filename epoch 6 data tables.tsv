@@ -1,0 +1,88 @@
+table	id	family	alias	canonicalOperation	canonicalDepartment	readOnly	ambiguityRule	notes
+GRAMMAR_PRODUCTION	G001	STATUS	stats	STATUS		true	unique	stats -> STATUS
+GRAMMAR_PRODUCTION	G002	MISSIONS	mission	MISSIONS		true	unique	mission -> MISSIONS
+GRAMMAR_PRODUCTION	G003	STATUS	winning	STATUS		true	unique	winning -> STATUS
+GRAMMAR_PRODUCTION	G004	STATUS	losing	STATUS		true	unique	losing -> STATUS
+GRAMMAR_PRODUCTION	G005	HELP	playing	HELP		true	unique	playing -> HELP
+GRAMMAR_PRODUCTION	G006	HELP	how to play	HELP		true	unique	how to play -> HELP
+GRAMMAR_PRODUCTION	G007	NAVIGATE	navigate <department>			true	department required	navigation only
+GRAMMAR_PRODUCTION	G008	ADVISE	advise <category> <category>	ADVISE		true	two valid refs	read-only
+GRAMMAR_PRODUCTION	G009	COMPARE	compare <category> <category>	COMPARE		true	two valid refs	read-only
+GRAMMAR_PRODUCTION	G010	SHOW_DOCKET	list <category> <category>	SHOW_DOCKET		true	valid refs	read-only
+GRAMMAR_PRODUCTION	G011	STATUS	stats <category> <category>	STATUS		true	valid refs	read-only
+GRAMMAR_PRODUCTION	G012	COMPARE	<category> <category>	COMPARE		true	only if aliases unique	shorthand m p is conditional
+LEXICON	L001	status	stats	STATUS		true	unique	default scope
+LEXICON	L002	status	status	STATUS		true	unique	default scope
+LEXICON	L003	status	current position	STATUS		true	unique	default scope
+LEXICON	L004	status	what is going on	STATUS		true	unique	default scope
+LEXICON	L005	mission	mission	MISSIONS		true	unique	default scope
+LEXICON	L006	mission	missions	MISSIONS		true	unique	default scope
+LEXICON	L007	outcome	winning	STATUS		true	unique	outcome scope
+LEXICON	L008	outcome	losing	STATUS		true	unique	outcome scope
+LEXICON	L009	play	playing	HELP		true	unique	help scope
+LEXICON	L010	play	how to play	HELP		true	unique	help scope
+LEXICON	L011	navigation	navigate production		PRODUCTION	true	unique	page navigation
+LEXICON	L012	navigation	navigate military		MILITARY	true	unique	page navigation
+LEXICON	L013	navigation	navigate diplomacy		DIPLOMACY	true	unique	page navigation
+LEXICON	L014	advise	advise	ADVISE		true	valid targets if supplied	read-only
+LEXICON	L015	compare	compare	COMPARE		true	exactly two targets	read-only
+LEXICON	L016	compare	versus	COMPARE		true	exactly two targets	read-only
+LEXICON	L017	compare	vs	COMPARE		true	exactly two targets	read-only
+LEXICON	L018	list	list	SHOW_DOCKET		true	valid scope	read-only
+LEXICON	L019	list	show	SHOW_DOCKET		true	valid scope	read-only
+LEXICON	L020	list	options	SHOW_DOCKET		true	valid scope	read-only
+LEXICON	L021	category	production		PRODUCTION	true	unique	full name
+LEXICON	L022	category	prod		PRODUCTION	true	unique	alias
+LEXICON	L023	category	military		MILITARY	true	unique	full name
+LEXICON	L024	category	mil		MILITARY	true	unique	alias
+LEXICON	L025	category	diplomacy		DIPLOMACY	true	unique	full name
+LEXICON	L026	category	diplo		DIPLOMACY	true	unique	alias
+LEXICON	L027	category	network		NETWORK	true	unique	full name
+LEXICON	L028	category	campaign		CAMPAIGN	true	unique	full name
+CATEGORY_ALIAS	C001	MILITARY	m		MILITARY	true	unique only if current schema permits	shorthand M
+CATEGORY_ALIAS	C002	PRODUCTION	p		PRODUCTION	true	unique only if current schema permits	shorthand P
+CATEGORY_ALIAS	C003	NETWORK	n		NETWORK	true	unique only if current schema permits	shorthand N
+CATEGORY_ALIAS	C004	MILITARY	m{ordinal}		MILITARY	true	ordinal exists	M1/M2...
+CATEGORY_ALIAS	C005	PRODUCTION	p{ordinal}		PRODUCTION	true	ordinal exists	P1/P2...
+CATEGORY_ALIAS	C006	NETWORK	n{ordinal}		NETWORK	true	ordinal exists	N1/N2...
+COMPARE_CASE	P001	MILITARY+PRODUCTION	M P	COMPARE		true	both refs valid	forward
+COMPARE_CASE	P002	MILITARY+PRODUCTION	M1 P	COMPARE		true	both refs valid	mixed
+COMPARE_CASE	P003	MILITARY+PRODUCTION	M P1	COMPARE		true	both refs valid	mixed
+COMPARE_CASE	P004	MILITARY+PRODUCTION	M1 P1	COMPARE		true	both refs valid	numbered
+COMPARE_CASE	P005	NETWORK+PRODUCTION	N P	COMPARE		true	both refs valid	forward
+COMPARE_CASE	P006	NETWORK+PRODUCTION	N1 P	COMPARE		true	both refs valid	mixed
+COMPARE_CASE	P007	NETWORK+PRODUCTION	N P1	COMPARE		true	both refs valid	mixed
+COMPARE_CASE	P008	NETWORK+PRODUCTION	N1 P1	COMPARE		true	both refs valid	numbered
+COMPARE_CASE	P009	MILITARY+MILITARY	M1 M2	COMPARE		true	both ordinals exist	same family
+COMPARE_CASE	P010	PRODUCTION+PRODUCTION	P1 P2	COMPARE		true	both ordinals exist	same family
+COLOR_TOKEN	T001	CATEGORY	campaign		CAMPAIGN	true	unique	ink + [C]
+COLOR_TOKEN	T002	CATEGORY	production		PRODUCTION	true	unique	amber + [P]
+COLOR_TOKEN	T003	CATEGORY	military		MILITARY	true	unique	red + [M]
+COLOR_TOKEN	T004	CATEGORY	diplomacy		DIPLOMACY	true	unique	cyan + [D]
+COLOR_TOKEN	T005	CATEGORY	network		NETWORK	true	unique	violet/cyan + [N]
+COLOR_TOKEN	T006	OPERATION	advise	ADVISE		true	unique	amber + operation marker
+COLOR_TOKEN	T007	OPERATION	compare	COMPARE		true	unique	cyan + operation marker
+COLOR_TOKEN	T008	OPERATION	list	SHOW_DOCKET		true	unique	cyan + operation marker
+COLOR_TOKEN	T009	STATUS	winning	STATUS		true	unique	green + explicit label
+COLOR_TOKEN	T010	STATUS	losing	STATUS		true	unique	red + explicit label
+COLOR_TOKEN	T011	STATUS	ambiguous			true	unique	amber + warning marker
+COLOR_TOKEN	T012	STATUS	rejected			true	unique	red + rejection marker
+COLOR_TOKEN	T013	STATUS	confirmed			true	unique	green + receipt marker
+CONTENT_REQUIREMENT	R001	PRODUCTION	headlines		PRODUCTION	true	count>=8	factory/rail/fuel diction
+CONTENT_REQUIREMENT	R002	PRODUCTION	dispatches		PRODUCTION	true	count>=8	logistics story
+CONTENT_REQUIREMENT	R003	PRODUCTION	pressure-states		PRODUCTION	true	count>=6	LOW..RECOVERY
+CONTENT_REQUIREMENT	R004	PRODUCTION	fact-bundles		PRODUCTION	true	count>=6	disclosed facts
+CONTENT_REQUIREMENT	R005	PRODUCTION	continuity-hooks		PRODUCTION	true	count>=6	day continuity
+CONTENT_REQUIREMENT	R006	PRODUCTION	examples		PRODUCTION	true	count>=36	6 states x 6
+CONTENT_REQUIREMENT	R007	MILITARY	headlines		MILITARY	true	count>=8	front/reserve/readiness diction
+CONTENT_REQUIREMENT	R008	MILITARY	dispatches		MILITARY	true	count>=8	operational story
+CONTENT_REQUIREMENT	R009	MILITARY	pressure-states		MILITARY	true	count>=6	LOW..RECOVERY
+CONTENT_REQUIREMENT	R010	MILITARY	fact-bundles		MILITARY	true	count>=6	disclosed facts
+CONTENT_REQUIREMENT	R011	MILITARY	continuity-hooks		MILITARY	true	count>=6	day continuity
+CONTENT_REQUIREMENT	R012	MILITARY	examples		MILITARY	true	count>=36	6 states x 6
+CONTENT_REQUIREMENT	R013	DIPLOMACY	headlines		DIPLOMACY	true	count>=8	actor/envoy diction
+CONTENT_REQUIREMENT	R014	DIPLOMACY	dispatches		DIPLOMACY	true	count>=8	relational story
+CONTENT_REQUIREMENT	R015	DIPLOMACY	pressure-states		DIPLOMACY	true	count>=6	LOW..RECOVERY
+CONTENT_REQUIREMENT	R016	DIPLOMACY	fact-bundles		DIPLOMACY	true	count>=6	disclosed facts
+CONTENT_REQUIREMENT	R017	DIPLOMACY	continuity-hooks		DIPLOMACY	true	count>=6	day continuity
+CONTENT_REQUIREMENT	R018	DIPLOMACY	examples		DIPLOMACY	true	count>=36	6 states x 6

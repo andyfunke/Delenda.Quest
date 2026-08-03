@@ -3,6 +3,11 @@ export type AvaActionHandleFamily = "M" | "D" | "N" | "P" | "X" | "T" | "Z";
 export type AvaInlineToken =
   | { kind: "text"; value: string }
   | {
+      kind: "category";
+      value: string;
+      category: "campaign" | "production" | "military" | "diplomacy" | "network";
+    }
+  | {
       kind: "action-handle";
       value: string;
       handle: string;
@@ -16,7 +21,7 @@ export type AvaInlineToken =
     };
 
 const inlineToken =
-  /\[(?:M|D|N|P|X|T|Z)\d+\]|\b(?:M|D|N|P|X|T|Z)\d+\b|\b(?:HIGH|MEDIUM|LOW)\s+\d{1,3}\/100\b/g;
+  /\[(?:M|D|N|P|X|T|Z)\d+\]|\b(?:M|D|N|P|X|T|Z)\d+\b|\b(?:HIGH|MEDIUM|LOW)\s+\d{1,3}\/100\b|\b(?:campaign|production|prod|military|mil|diplomacy|diplo|network|intel|intelligence)\b/gi;
 const handleToken = /^\[?([MDNPXTZ])(\d+)\]?$/;
 const ratingToken = /^(HIGH|MEDIUM|LOW)\s+(\d{1,3})\/100$/;
 
@@ -35,7 +40,15 @@ export const tokenizeAvaInline = (value: string): AvaInlineToken[] => {
     const matched = match[0];
     const handle = matched.match(handleToken);
     const rating = matched.match(ratingToken);
-    if (handle) {
+    const category = matched.toLowerCase();
+    const categoryName = category === "prod" ? "production" : category === "mil" ? "military" : category === "diplo" ? "diplomacy" : category === "intel" ? "network" : category;
+    if (["campaign", "production", "military", "diplomacy", "network"].includes(categoryName)) {
+      tokens.push({
+        kind: "category",
+        value: matched,
+        category: categoryName as "campaign" | "production" | "military" | "diplomacy" | "network",
+      });
+    } else if (handle) {
       tokens.push({
         kind: "action-handle",
         value: matched,

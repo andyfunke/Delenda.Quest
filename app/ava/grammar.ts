@@ -1464,6 +1464,79 @@ export const compileSemanticQuery = (
   context: AvaCompilerContext,
 ): SemanticCompilation => {
   const { normalized: input } = normalizeSemanticInput(raw);
+  const hardRead = (() => {
+    const simple = input.match(/^(stats?|winning|losing|mission|missions|playing|how to play)$/);
+    if (simple) {
+      const operation = /^(stats?|winning|losing)$/.test(simple[1])
+        ? "SUMMARIZE"
+        : /^(mission|missions)$/.test(simple[1])
+          ? "LIST"
+          : "EXPLAIN";
+      const subject = operation === "SUMMARIZE"
+        ? "REPORT"
+        : operation === "LIST"
+          ? "CAMPAIGN_CHOICE"
+          : "SYSTEM";
+      return {
+        query: {
+          operation,
+          subject: { type: subject, entityIds: [] },
+          scope: { domains: [], excludedDomains: [] },
+          timeframe: "CURRENT_DOCKET",
+          criteria: ["OVERALL_VALUE"],
+          polarity: "AFFIRMATIVE",
+          requestedDetail: "JUDGMENT",
+          perspective: "PLAYER",
+          outputForm: "TERMINAL",
+          overlays: [],
+          confidence: 1,
+          sourceSpans: {},
+        } as AvaSemanticQuery,
+        source: simple[1],
+      };
+    }
+    const pair = input.match(
+      /^(advise|compare|list|stats?)\s+(m\d*|p\d*|n\d*)\s+(m\d*|p\d*|n\d*)$/,
+    );
+    if (!pair) return null;
+    const family = (value: string) =>
+      value[0] === "m" ? "military" : value[0] === "p" ? "production" : "network";
+    const operands = [family(pair[2]), family(pair[3])];
+    if (pair[2] === pair[3]) return null;
+    const operation = pair[1] === "advise"
+      ? "ADVISE"
+      : pair[1] === "compare"
+        ? "COMPARE"
+        : pair[1] === "list"
+          ? "LIST"
+          : "SUMMARIZE";
+    return {
+      query: {
+        operation,
+        subject: { type: "METRIC", entityIds: [] },
+        scope: { domains: [], excludedDomains: [] },
+        metricOperands: operands,
+        timeframe: "CURRENT_DOCKET",
+        criteria: ["OVERALL_VALUE"],
+        polarity: "AFFIRMATIVE",
+        requestedDetail: "JUDGMENT",
+        perspective: "PLAYER",
+        outputForm: "TERMINAL",
+        overlays: [],
+        confidence: 1,
+        sourceSpans: {},
+      } as AvaSemanticQuery,
+      source: input,
+    };
+  })();
+  if (hardRead)
+    return {
+      query: hardRead.query,
+      concepts: [{ kind: "HARD_FAMILY", canonical: hardRead.query.operation, source: hardRead.source }],
+      contextualResolutions: [],
+      grammarProvenance: [`HARD_FAMILY:${hardRead.source}`],
+      exactIndexHit: true,
+    };
   const bucket =
     AVA_UTTERANCE_INDEX.get(stableUtteranceHash(input)) ?? [];
   const indexed = bucket.find((entry) => entry.normalized === input);

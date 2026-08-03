@@ -21,6 +21,17 @@ const displayTitle = (title?: string) =>
 
 function AvaInline({ text }: { text: string }) {
   return tokenizeAvaInline(text).map((token, index) => {
+    if (token.kind === "category")
+      return (
+        <span
+          className={`ava-category-token ava-category-${token.category}`}
+          data-ava-category={token.category}
+          aria-label={`category: ${token.category}`}
+          key={`${token.category}-${index}`}
+        >
+          <i aria-hidden="true">[{token.category[0].toUpperCase()}]</i>{token.value}
+        </span>
+      );
     if (token.kind === "action-handle")
       return (
         <span

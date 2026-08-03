@@ -42,3 +42,13 @@ test("ordinary prose remains one unchanged text token", () => {
     { kind: "text", value: "No order has been issued." },
   ]);
 });
+
+test("categorical words receive stable department tokens and preserve text", () => {
+  const source = "Production meets Military while Diplomacy watches Network.";
+  const tokens = inline.tokenizeAvaInline(source);
+  assert.deepEqual(
+    tokens.filter((token) => token.kind === "category").map((token) => token.category),
+    ["production", "military", "diplomacy", "network"],
+  );
+  assert.equal(tokens.map((token) => token.value).join(""), source);
+});

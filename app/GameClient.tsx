@@ -141,6 +141,11 @@ import {
 import { avaInterfaceIntent } from "./ava/interface-intent";
 import { warFeedForInvocation } from "./war-feed";
 import { visibleDirectiveView } from "./substrate/visible-directives";
+import {
+  departmentDispatchFor,
+  scenarioForFamily,
+  validateEpoch006Scenario,
+} from "./epoch-006-content";
 import { getVisibleChoice } from "./substrate/services";
 import {
   campaignPayloadSeal,
@@ -2044,6 +2049,11 @@ function ModulePage({
   focus?: string;
   epigraph: Aphorism | null;
 }) {
+  const department = page === "national" ? "production" : page;
+  const dailyDispatch = useMemo(
+    () => departmentDispatchFor(s, department),
+    [department, s],
+  );
   const descriptions: Record<
     "national" | "military" | "diplomacy",
     [string, string, string]
@@ -2101,6 +2111,12 @@ function ModulePage({
         <span className="eyebrow">{desc[0]}</span>
         <h1>{desc[1]}</h1>
         <p>{desc[2]}</p>
+        <aside className="department-dispatch" aria-label="Daily department dispatch">
+          <span>DAY {s.day} // {dailyDispatch.pressure} // DAILY STATUS</span>
+          <h2>{dailyDispatch.headline}</h2>
+          <p>{dailyDispatch.body}</p>
+          <b>{s.actions} ORDERS AVAILABLE // SELECT TO INSPECT, ISSUE TO COMMIT</b>
+        </aside>
       </header>
       <section
         className={`os-window ${isProduction ? "production-command-window" : ""}`}
@@ -2229,6 +2245,13 @@ function ModulePage({
                       : `${selectedFamily.lock} DAY FAMILY COOLDOWN`}
                   </b>
                 </div>
+                {(() => {
+                  const scenario = validateEpoch006Scenario(
+                    scenarioForFamily(selectedFamily, department),
+                    selectedFamily,
+                  );
+                  return <p className="issue-scenario">{scenario.situation}</p>;
+                })()}
                 <p>{previewChoice?.flavor ?? selectedFamily.brief}</p>
               </section>
               <div className="menu-choice-list expanded single-surface">
