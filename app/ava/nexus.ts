@@ -100,6 +100,7 @@ type DirectiveChannel = Extract<
 
 type AvaCapabilityHandler =
   | "campaign-choice"
+  | "metric-comparison"
   | "mission-objective"
   | "metric-challenge"
   | "directive-rank"
@@ -128,6 +129,11 @@ export const AVA_CAPABILITY_REGISTRY = createCapabilityRegistry<
     operation: "RECOMMEND",
     subject: "CAMPAIGN_CHOICE",
     handler: "campaign-choice",
+  },
+  {
+    operation: "COMPARE",
+    subject: "METRIC",
+    handler: "metric-comparison",
   },
   {
     operation: "COMPARE",
@@ -1639,6 +1645,8 @@ const executeInstructionRequest = (
   if (
     unresolvedEntityIds.length ||
     (semantic.operation === "COMPARE" &&
+      semantic.subject.type === "UNKNOWN") ||
+    (semantic.operation === "COMPARE" &&
       semantic.subject.type === "CAMPAIGN_CHOICE" &&
       (semantic.subject.entityIds.length < 2 ||
         semantic.subject.entityIds.length > 20))
@@ -1650,7 +1658,9 @@ const executeInstructionRequest = (
       "UNRESOLVED_SEMANTIC_TARGET",
       unresolvedEntityIds.length
         ? `These semantic targets are not in the current visible ontology: ${unresolvedEntityIds.join(", ")}.`
-        : "COMPARE requires 2 to 20 current visible targets.",
+        : semantic.subject.type === "UNKNOWN"
+          ? "Name at least two declared comparison targets (for example, two maneuvers or two fields)."
+          : "COMPARE requires 2 to 20 current visible targets.",
     );
   const overlayIssue = overlayTargetIssue(semantic, visible.entities);
   if (overlayIssue)
@@ -1748,6 +1758,47 @@ const executeInstructionRequest = (
       opportunityFraction,
     );
 
+  if (
+    instruction.kind === "SEMANTIC" &&
+    capability.handler === "metric-comparison"
+  ) {
+    const operands = semantic.metricOperands ?? [];
+    if (operands.length < 2)
+      return responseFailure(
+        state,
+        session,
+        "AMBIGUOUS",
+        "COMPARE_METRIC_TARGETS_REQUIRED",
+        "Name at least two declared fields to compare.",
+      );
+    const response: SemanticResponse<unknown> = {
+      status: "OK",
+      fact: {
+        operation: "COMPARE",
+        subject: "METRIC",
+        operands,
+        order: operands.map((_, index) => index),
+        authority: "READ_ONLY",
+        values: "NOT_AVAILABLE",
+      },
+      rendering: {
+        compact: "FIELD COMPARISON",
+        brief: `FIELD COMPARISON\n${operands.join(" → ")}\n\nThe fields are preserved in the order requested. No numeric ranking was applied because this comparison cell has no authoritative value provider.`,
+      },
+      campaignRevision: revisionOf(state),
+    };
+    return {
+      state,
+      session,
+      response,
+      text: responseText(
+        state,
+        response,
+        { mode: "detail" },
+        session.terminal.voiceCursor,
+      ),
+    };
+  }
   if (
     instruction.kind === "SEMANTIC" &&
     capability.handler === "terminal-instruction"
