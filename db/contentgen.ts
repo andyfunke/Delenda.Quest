@@ -364,6 +364,54 @@ export function unresolvedCandidateCount(store: ContentgenStore, batchId: string
   ).length;
 }
 
+export function listBatches(store: ContentgenStore) {
+  return [...store.batches.values()]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map((batch) => ({
+      id: batch.id,
+      medium: batch.medium,
+      sourceVersion: batch.sourceVersion,
+      seed: batch.seed,
+      manifestHash: batch.manifestHash,
+      status: batch.status,
+      unresolvedCandidateCount: unresolvedCandidateCount(store, batch.id),
+      createdAt: batch.createdAt,
+    }));
+}
+
+export function getBatchDetail(store: ContentgenStore, batchId: string) {
+  const batch = store.batches.get(batchId);
+  if (!batch) throw new Error("BATCH_NOT_FOUND");
+  const candidates = [...store.candidates.values()]
+    .filter((row) => row.batchId === batchId)
+    .sort(
+      (a, b) =>
+        a.queueRank - b.queueRank || String(a.id).localeCompare(String(b.id)),
+    );
+  const reviews = [...store.reviews.values()]
+    .filter((row) => row.batchId === batchId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+  return {
+    batch: {
+      id: batch.id,
+      medium: batch.medium,
+      sourceVersion: batch.sourceVersion,
+      seed: batch.seed,
+      manifestHash: batch.manifestHash,
+      status: batch.status,
+      creatorReceiptId: batch.creatorReceiptId,
+      unresolvedCandidateCount: unresolvedCandidateCount(store, batchId),
+      policyVersion: batch.policyVersion,
+    },
+    candidates,
+    reviews,
+  };
+}
+
+export function legalDispositionsForStatus(compileStatus: CompileStatus) {
+  return [...LEGAL[compileStatus]];
+}
+
 function publicBatch(store: ContentgenStore, batchId: string) {
   const batch = store.batches.get(batchId)!;
   return {

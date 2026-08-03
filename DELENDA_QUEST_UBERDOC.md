@@ -891,3 +891,13 @@ Production path remains Workers Builds on `main` / `delenda.quest`. Migration `0
 | Deploy SSH gateway | FAIL — pre-existing Ava Nexus assertion drift (FIELD NOTE / COMPARE capability) |
 
 Direct `wrangler deploy` unavailable (no auth). Cloudflare Workers Builds remains the hosting deploy path for `main`. Follow-up commit updates realizationCount expectation to 15.
+
+## Epoch 015 seal — Appified Contentgen Lab (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-lab` | PASS 6/6 |
+| `npx tsc --noEmit` | PASS |
+| `git diff --check` | PASS |
+
+Exit: `/admin/contentgen` lab UI + `/api/admin/contentgen` adapters; §4.14 sampler; NONE-mode (no AI provenance); D1 flush/hydrate adapters. No auto-promote. Ordinary accounts fail closed.
