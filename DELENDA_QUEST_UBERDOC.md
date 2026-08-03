@@ -842,3 +842,13 @@ Exit: `contentgen-contract/v1` in `packages/contentgen-contracts/`; `SUBSTRATE_D
 | `npm run test:ava-content-quality` | PASS 4/4 |
 
 Inventory fixture names Epoch 009 producers. Ava legacy CLI preserved via adapter.
+
+## Epoch 012 seal — decompiler matrix and hard prisms (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:decompile` | PASS feature matrix + prism verdicts + blast report |
+| `npm run contentgen:prisms` | PASS |
+| `npm run validate:contentgen-prisms` | PASS 10/10 mutation fixtures |
+
+P0–P4 per §4.4; dual authority lints A/B share no helpers beyond schemas.

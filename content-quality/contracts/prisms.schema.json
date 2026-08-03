@@ -1,0 +1,24 @@
+{
+  "$id": "contentgen-prisms/v1",
+  "title": "ExclusionPrism",
+  "type": "object",
+  "required": ["id", "version", "applicableMedia", "failureClass", "rationale"],
+  "properties": {
+    "id": { "type": "string" },
+    "version": { "type": "string" },
+    "applicableMedia": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "ava",
+          "campaign-brief",
+          "maneuver-procedure",
+          "romantic-arc",
+          "execution-scene"
+        ]
+      }
+    },
+    "failureClass": { "type": "string" },
+    "rationale": { "type": "string" }
+  }
+}

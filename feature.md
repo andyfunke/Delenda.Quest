@@ -252,3 +252,8 @@ substrate grammar/architecture notes, and `npm run test:contentgen-contracts`
 Added `packages/contentgen` enumerator, explicit production inventory, CLI
 `contentgen:enumerate`, and independent byte-identity validator. 68 candidates
 at seed 7; Ava content-quality adapter preserved.
+
+## Epoch 012 — decompiler and prisms
+
+Added P0–P4 decompiler, 13 exclusion prisms with blast-radius reports, dual
+independent authority lints, and mutation-fixture validator (10/10).
