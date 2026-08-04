@@ -18,6 +18,6 @@
 
 **updated_epoch.md SHA-256:** `e4a443896f9b129ce3fa1820546d81854c5ddb6097738eae0406a1529b6be4d2`
 
-**Completed commit tip:** recorded in UBERDOC at seal time.
+**Completed commit tip:** `f45a5c02bdaeecacbda9c1c8b9edc7162d84859e`
 
 **Deploy:** not performed (separate release decision).
