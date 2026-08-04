@@ -981,3 +981,35 @@ ActiveOperation lifecycle, MainThreadPrompt union, legacy one-day migration path
 | `npm run validate:doomsday-probability` | PASS |
 
 Sealed occurrence/terminal tickets; declared bounds; six Doomsday families.
+
+## Epoch 025 seal — semantic prosecution (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run test:execution-scenes` | PASS 5/5 |
+
+Exit: every resolved day persists a replayable §4.17 prosecution scene.
+
+## Epoch 026 seal — Battle Log adapters (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run test:battle-log` | PASS 5/5 |
+
+Exit: Battle Log is the canonical in-campaign prosecution history; Account Campaign Records unchanged.
+
+## Epoch 027 seal — independent proof (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run validate:epoch-009-027` | PASS suites 0–19 |
+| `npm run typecheck` | PASS |
+| `npm run build` | PASS |
+| `npm run cloudflare:types` | PASS |
+| `npm run cloudflare:validate` | PASS |
+| `git diff --check` | PASS |
+| pack legal capacity | 281664 |
+| `updated_epoch.md` SHA-256 | `e4a443896f9b129ce3fa1820546d81854c5ddb6097738eae0406a1529b6be4d2` |
+
+Exit: sealed, local, doctrine-compliant implementation; no deployment.
+

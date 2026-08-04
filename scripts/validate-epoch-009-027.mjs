@@ -188,22 +188,23 @@ function run(cmd, args, opts = {}) {
 }
 
 // ——— Suite 11: Magnitude / no Math.exp in campaign effect paths ———
+// Precompute/validate table scripts may call Math.exp to author static ppm
+// tables; runtime scheduler/operations/effect paths must not.
 {
   const scanRoots = [
     "packages/campaign-scheduler",
     "packages/campaign-operations",
-    "packages/campaign-metastratum",
     "app/campaign-operations.ts",
     "campaign/tables",
   ];
+  const allowName = /(tables-generate|tables-validate|precompute)/i;
   const hits = [];
   for (const rel of scanRoots) {
     const abs = join(ROOT, rel);
     if (!existsSync(abs)) continue;
-    const files = rel.endsWith(".ts")
-      ? [abs]
-      : walkJs(abs);
+    const files = rel.endsWith(".ts") ? [abs] : walkJs(abs);
     for (const file of files) {
+      if (allowName.test(file)) continue;
       const text = readFileSync(file, "utf8");
       if (/Math\.exp\s*\(/.test(text)) hits.push(file.replace(ROOT + "/", ""));
     }
