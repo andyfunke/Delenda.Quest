@@ -1265,9 +1265,17 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
     preserved = openingArmed ? (state.armed / openingArmed) * 100 : 100,
     closed = state.status !== "active",
     score = campaignScoreForState(state);
+  const battleEntries = state.resolutionHistory.slice(0, requested).map((record) => ({
+    day: record.resolvedDay,
+    sector: record.sector,
+    semanticId:
+      record.executionScene?.resolutionId ?? `res:${record.resolvedDay}`,
+    realizationId:
+      record.realizationId ?? record.executionScene?.realizationId ?? null,
+  }));
   return {
     topic: "service-record",
-    title: "Campaign service record",
+    title: "Campaign battle log",
     direct: closed
       ? `Campaign ${campaignSeedId(state.campaignSeed)} is ${state.status}. Its transparent Campaign Score is ${score.total.toLocaleString()}; permanent cohort rank and Player Rating issuance occur at the records office.`
       : `If Campaign ${campaignSeedId(state.campaignSeed)} were terminated now, its partial Campaign Score would be ${score.total.toLocaleString()}. The completed result remains unissued while the campaign is active.`,
@@ -1316,20 +1324,30 @@ function serviceRecordReport(state: GameState, requested = 5): AvaReportCard {
         },
       ],
     },
-    history: historyLayer(state, records, requested, [
-      closed
-        ? "The score is calculated from the completed ledger. Cohort rank and Player Rating are added only when the records office persists the result."
-        : "This is the surrender/termination value of the present ledger, not a prediction of the final score.",
-    ]),
+    history: historyLayer(
+      state,
+      records,
+      requested,
+      [
+        closed
+          ? "The score is calculated from the completed ledger. Cohort rank and Player Rating are added only when the records office persists the result."
+          : "Battle Log entries reuse persisted execution-scene semantic IDs; surfaces do not recompute resolution.",
+        ...battleEntries.map(
+          (entry) =>
+            `Day ${entry.day} · ${entry.sector} · ${entry.semanticId}${entry.realizationId ? ` · ${entry.realizationId}` : ""}`,
+        ),
+      ],
+    ),
     recommendation: closed
       ? "Open the records office to verify whether this completed campaign received a permanent record. Until then, no score, rank, or public citation is claimed."
       : "Complete the campaign before requesting a permanent record. Use the decision ledger or retrospective for current-run history.",
     links: [
-      { id: "service-record", label: "Service Record" },
+      { id: "service-record", label: "Battle Log" },
       { id: "campaign-record", label: "Campaign Record" },
       { id: "actions", label: "Decision ledger" },
     ],
     commands: [
+      "battle log",
       "open account",
       "report decision ledger",
       "retrospective",

@@ -1,0 +1,2853 @@
+{
+  "version": "romantic-pack/v1",
+  "arcs": [
+    {
+      "id": "romantic-contact-oath",
+      "medium": "romantic-arc",
+      "phases": [
+        "contact"
+      ],
+      "gates": {
+        "phases": [
+          "contact"
+        ]
+      },
+      "durationDays": 2,
+      "beatCount": 2,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-contact-oath",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-contact-oath-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-contact-oath-beat0-hot",
+            "medium": "romantic-contact-oath-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-oath-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-oath-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-oath-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-oath beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-oath beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-contact-oath-beat1-hot",
+            "medium": "romantic-contact-oath-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-oath-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-oath-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-oath-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-oath beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-oath beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-contact-oath"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "contact"
+          ]
+        },
+        "duration": {
+          "values": [
+            "2"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-contact-letter",
+      "medium": "romantic-arc",
+      "phases": [
+        "contact"
+      ],
+      "gates": {
+        "phases": [
+          "contact"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-contact-letter",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-contact-letter-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-contact-letter-beat0-hot",
+            "medium": "romantic-contact-letter-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-letter-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-letter-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-letter-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-letter beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-letter beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-contact-letter"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "contact"
+          ]
+        },
+        "duration": {
+          "values": [
+            "1"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-contact-witness",
+      "medium": "romantic-arc",
+      "phases": [
+        "contact"
+      ],
+      "gates": {
+        "phases": [
+          "contact"
+        ]
+      },
+      "durationDays": 3,
+      "beatCount": 3,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-contact-witness",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-contact-witness-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-contact-witness-beat0-hot",
+            "medium": "romantic-contact-witness-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-witness-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-witness-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-witness-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-witness beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-witness beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-contact-witness-beat1-hot",
+            "medium": "romantic-contact-witness-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-witness-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-witness-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-witness-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-witness beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-witness beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 2,
+          "heatRealizations": {
+            "hot": "romantic-contact-witness-beat2-hot",
+            "medium": "romantic-contact-witness-beat2-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-contact-witness-b2-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-contact-witness-b2-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-contact-witness-b2-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-contact-witness beat 2 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-contact-witness beat 2 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-contact-witness"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "contact"
+          ]
+        },
+        "duration": {
+          "values": [
+            "3"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-compression-debt",
+      "medium": "romantic-arc",
+      "phases": [
+        "compression"
+      ],
+      "gates": {
+        "phases": [
+          "compression"
+        ]
+      },
+      "durationDays": 2,
+      "beatCount": 2,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-compression-debt",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-compression-debt-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-compression-debt-beat0-hot",
+            "medium": "romantic-compression-debt-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-debt-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-debt-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-debt-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-debt beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-debt beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-compression-debt-beat1-hot",
+            "medium": "romantic-compression-debt-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-debt-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-debt-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-debt-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-debt beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-debt beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-compression-debt"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "compression"
+          ]
+        },
+        "duration": {
+          "values": [
+            "2"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-compression-silence",
+      "medium": "romantic-arc",
+      "phases": [
+        "compression"
+      ],
+      "gates": {
+        "phases": [
+          "compression"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-compression-silence",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-compression-silence-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-compression-silence-beat0-hot",
+            "medium": "romantic-compression-silence-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-silence-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-silence-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-silence-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-silence beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-silence beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-compression-silence"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "compression"
+          ]
+        },
+        "duration": {
+          "values": [
+            "1"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-compression-roster",
+      "medium": "romantic-arc",
+      "phases": [
+        "compression"
+      ],
+      "gates": {
+        "phases": [
+          "compression"
+        ]
+      },
+      "durationDays": 3,
+      "beatCount": 3,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-compression-roster",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-compression-roster-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-compression-roster-beat0-hot",
+            "medium": "romantic-compression-roster-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-roster-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-roster-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-roster-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-roster beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-roster beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-compression-roster-beat1-hot",
+            "medium": "romantic-compression-roster-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-roster-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-roster-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-roster-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-roster beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-roster beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 2,
+          "heatRealizations": {
+            "hot": "romantic-compression-roster-beat2-hot",
+            "medium": "romantic-compression-roster-beat2-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-compression-roster-b2-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-compression-roster-b2-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-compression-roster-b2-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-compression-roster beat 2 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-compression-roster beat 2 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-compression-roster"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "compression"
+          ]
+        },
+        "duration": {
+          "values": [
+            "3"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-exhaustion-memory",
+      "medium": "romantic-arc",
+      "phases": [
+        "exhaustion"
+      ],
+      "gates": {
+        "phases": [
+          "exhaustion"
+        ]
+      },
+      "durationDays": 2,
+      "beatCount": 2,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-exhaustion-memory",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-exhaustion-memory-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-memory-beat0-hot",
+            "medium": "romantic-exhaustion-memory-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-memory-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-memory-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-memory-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-memory beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-memory beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-memory-beat1-hot",
+            "medium": "romantic-exhaustion-memory-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-memory-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-memory-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-memory-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-memory beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-memory beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-exhaustion-memory"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "exhaustion"
+          ]
+        },
+        "duration": {
+          "values": [
+            "2"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-exhaustion-rescue",
+      "medium": "romantic-arc",
+      "phases": [
+        "exhaustion"
+      ],
+      "gates": {
+        "phases": [
+          "exhaustion"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-exhaustion-rescue",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-exhaustion-rescue-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-rescue-beat0-hot",
+            "medium": "romantic-exhaustion-rescue-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-rescue-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-rescue-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-rescue-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-rescue beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-rescue beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-exhaustion-rescue"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "exhaustion"
+          ]
+        },
+        "duration": {
+          "values": [
+            "1"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-exhaustion-custody",
+      "medium": "romantic-arc",
+      "phases": [
+        "exhaustion"
+      ],
+      "gates": {
+        "phases": [
+          "exhaustion"
+        ]
+      },
+      "durationDays": 3,
+      "beatCount": 3,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-exhaustion-custody",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-exhaustion-custody-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-custody-beat0-hot",
+            "medium": "romantic-exhaustion-custody-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-custody-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-custody beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-custody beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-custody-beat1-hot",
+            "medium": "romantic-exhaustion-custody-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-custody-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-custody beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-custody beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 2,
+          "heatRealizations": {
+            "hot": "romantic-exhaustion-custody-beat2-hot",
+            "medium": "romantic-exhaustion-custody-beat2-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-exhaustion-custody-b2-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b2-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-exhaustion-custody-b2-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-exhaustion-custody beat 2 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-exhaustion-custody beat 2 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-exhaustion-custody"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "exhaustion"
+          ]
+        },
+        "duration": {
+          "values": [
+            "3"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-terminal-farewell",
+      "medium": "romantic-arc",
+      "phases": [
+        "terminal"
+      ],
+      "gates": {
+        "phases": [
+          "terminal"
+        ]
+      },
+      "durationDays": 2,
+      "beatCount": 2,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-terminal-farewell",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-terminal-farewell-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-terminal-farewell-beat0-hot",
+            "medium": "romantic-terminal-farewell-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-farewell-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-farewell-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-farewell-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-farewell beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-farewell beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-terminal-farewell-beat1-hot",
+            "medium": "romantic-terminal-farewell-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-farewell-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-farewell-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-farewell-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-farewell beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-farewell beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-terminal-farewell"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "terminal"
+          ]
+        },
+        "duration": {
+          "values": [
+            "2"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-terminal-ledger",
+      "medium": "romantic-arc",
+      "phases": [
+        "terminal"
+      ],
+      "gates": {
+        "phases": [
+          "terminal"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-terminal-ledger",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-terminal-ledger-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-terminal-ledger-beat0-hot",
+            "medium": "romantic-terminal-ledger-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-ledger-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-ledger-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-ledger-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-ledger beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-ledger beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-terminal-ledger"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "terminal"
+          ]
+        },
+        "duration": {
+          "values": [
+            "1"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "romantic-terminal-name",
+      "medium": "romantic-arc",
+      "phases": [
+        "terminal"
+      ],
+      "gates": {
+        "phases": [
+          "terminal"
+        ]
+      },
+      "durationDays": 3,
+      "beatCount": 3,
+      "alwaysEligible": false,
+      "optional": false,
+      "setup": "Setup for romantic-terminal-name",
+      "pressure": "Private obligation becomes public liability.",
+      "immediateCost": "Readiness or legitimacy debt",
+      "operationalInteraction": "May overlay ActiveOperation standing intent",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Typed residue persisted",
+      "carriedResidue": [
+        "romantic-terminal-name-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "romantic-terminal-name-beat0-hot",
+            "medium": "romantic-terminal-name-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-name-b0-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-name-b0-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-name-b0-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-name beat 0 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-name beat 0 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 1,
+          "heatRealizations": {
+            "hot": "romantic-terminal-name-beat1-hot",
+            "medium": "romantic-terminal-name-beat1-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-name-b1-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-name-b1-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-name-b1-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-name beat 1 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-name beat 1 (medium): the obligation is quieter and still expensive."
+          }
+        },
+        {
+          "beatIndex": 2,
+          "heatRealizations": {
+            "hot": "romantic-terminal-name-beat2-hot",
+            "medium": "romantic-terminal-name-beat2-medium"
+          },
+          "choices": [
+            {
+              "id": "romantic-terminal-name-b2-duty",
+              "label": "Hold the obligation",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {
+                "readiness": -1
+              },
+              "tradeoff": "force-preservation vs private duty"
+            },
+            {
+              "id": "romantic-terminal-name-b2-tempo",
+              "label": "Spend the person for tempo",
+              "mechanicIds": [
+                "exploit"
+              ],
+              "cost": {
+                "legitimacy": -1
+              },
+              "tradeoff": "tempo vs institutional affection"
+            },
+            {
+              "id": "romantic-terminal-name-b2-withdraw",
+              "label": "Withdraw the name from the map",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {
+                "intelligence": -1
+              },
+              "tradeoff": "memory vs classification"
+            }
+          ],
+          "prose": {
+            "hot": "romantic-terminal-name beat 2 (hot): loyalty collides with the timetable.",
+            "medium": "romantic-terminal-name beat 2 (medium): the obligation is quieter and still expensive."
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "romantic-terminal-name"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "terminal"
+          ]
+        },
+        "duration": {
+          "values": [
+            "3"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fallback-contact",
+      "medium": "romantic-arc",
+      "phases": [
+        "contact"
+      ],
+      "gates": {
+        "phases": [
+          "contact"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": true,
+      "optional": false,
+      "setup": "Fallback contact",
+      "pressure": "Guarantee surface",
+      "immediateCost": "Minimal readiness",
+      "operationalInteraction": "Standing intent continues",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Fallback closure",
+      "carriedResidue": [
+        "fallback-contact-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "fallback-contact-beat0-hot",
+            "medium": "fallback-contact-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "fallback-contact-c1",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {},
+              "tradeoff": "duty"
+            },
+            {
+              "id": "fallback-contact-c2",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {},
+              "tradeoff": "withdrawal"
+            },
+            {
+              "id": "fallback-contact-c3",
+              "mechanicIds": [
+                "network"
+              ],
+              "cost": {},
+              "tradeoff": "signal"
+            }
+          ],
+          "prose": {
+            "hot": "fallback-contact hot",
+            "medium": "fallback-contact medium"
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "fallback-contact"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "contact"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fallback-compression",
+      "medium": "romantic-arc",
+      "phases": [
+        "compression"
+      ],
+      "gates": {
+        "phases": [
+          "compression"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": true,
+      "optional": false,
+      "setup": "Fallback compression",
+      "pressure": "Guarantee surface",
+      "immediateCost": "Minimal readiness",
+      "operationalInteraction": "Standing intent continues",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Fallback closure",
+      "carriedResidue": [
+        "fallback-compression-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "fallback-compression-beat0-hot",
+            "medium": "fallback-compression-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "fallback-compression-c1",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {},
+              "tradeoff": "duty"
+            },
+            {
+              "id": "fallback-compression-c2",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {},
+              "tradeoff": "withdrawal"
+            },
+            {
+              "id": "fallback-compression-c3",
+              "mechanicIds": [
+                "network"
+              ],
+              "cost": {},
+              "tradeoff": "signal"
+            }
+          ],
+          "prose": {
+            "hot": "fallback-compression hot",
+            "medium": "fallback-compression medium"
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "fallback-compression"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "compression"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fallback-exhaustion",
+      "medium": "romantic-arc",
+      "phases": [
+        "exhaustion"
+      ],
+      "gates": {
+        "phases": [
+          "exhaustion"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": true,
+      "optional": false,
+      "setup": "Fallback exhaustion",
+      "pressure": "Guarantee surface",
+      "immediateCost": "Minimal readiness",
+      "operationalInteraction": "Standing intent continues",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Fallback closure",
+      "carriedResidue": [
+        "fallback-exhaustion-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "fallback-exhaustion-beat0-hot",
+            "medium": "fallback-exhaustion-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "fallback-exhaustion-c1",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {},
+              "tradeoff": "duty"
+            },
+            {
+              "id": "fallback-exhaustion-c2",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {},
+              "tradeoff": "withdrawal"
+            },
+            {
+              "id": "fallback-exhaustion-c3",
+              "mechanicIds": [
+                "network"
+              ],
+              "cost": {},
+              "tradeoff": "signal"
+            }
+          ],
+          "prose": {
+            "hot": "fallback-exhaustion hot",
+            "medium": "fallback-exhaustion medium"
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "fallback-exhaustion"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "exhaustion"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fallback-terminal",
+      "medium": "romantic-arc",
+      "phases": [
+        "terminal"
+      ],
+      "gates": {
+        "phases": [
+          "terminal"
+        ]
+      },
+      "durationDays": 1,
+      "beatCount": 1,
+      "alwaysEligible": true,
+      "optional": false,
+      "setup": "Fallback terminal",
+      "pressure": "Guarantee surface",
+      "immediateCost": "Minimal readiness",
+      "operationalInteraction": "Standing intent continues",
+      "interruptionBehavior": "close-with-residue",
+      "closure": "Fallback closure",
+      "carriedResidue": [
+        "fallback-terminal-residue"
+      ],
+      "beats": [
+        {
+          "beatIndex": 0,
+          "heatRealizations": {
+            "hot": "fallback-terminal-beat0-hot",
+            "medium": "fallback-terminal-beat0-medium"
+          },
+          "choices": [
+            {
+              "id": "fallback-terminal-c1",
+              "mechanicIds": [
+                "reinforce"
+              ],
+              "cost": {},
+              "tradeoff": "duty"
+            },
+            {
+              "id": "fallback-terminal-c2",
+              "mechanicIds": [
+                "abandon"
+              ],
+              "cost": {},
+              "tradeoff": "withdrawal"
+            },
+            {
+              "id": "fallback-terminal-c3",
+              "mechanicIds": [
+                "network"
+              ],
+              "cost": {},
+              "tradeoff": "signal"
+            }
+          ],
+          "prose": {
+            "hot": "fallback-terminal hot",
+            "medium": "fallback-terminal medium"
+          }
+        }
+      ],
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "fallback-terminal"
+      },
+      "slotDomains": {
+        "phase": {
+          "values": [
+            "terminal"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot",
+            "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
+        }
+      }
+    }
+  ]
+}

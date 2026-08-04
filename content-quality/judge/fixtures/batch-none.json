@@ -1,0 +1,32 @@
+{
+  "id": "fixture-batch-none",
+  "medium": "ava",
+  "callBudget": 20,
+  "costCeiling": 0,
+  "candidates": [
+    {
+      "id": "j-1",
+      "compileStatus": "COMPILED",
+      "text": "Delay is still a choice.",
+      "novelty": 0.2,
+      "chordCoverageDeficit": 0.1,
+      "crossMediumTransferDisagreement": 0.1
+    },
+    {
+      "id": "j-2",
+      "compileStatus": "HARD_FAILURE",
+      "text": "Do attack now.",
+      "failureSeverity": 1,
+      "novelty": 0.9
+    },
+    {
+      "id": "j-3",
+      "compileStatus": "COMPILED",
+      "text": "What remains after the network fails.",
+      "novelty": 0.95,
+      "chordCoverageDeficit": 0.9,
+      "crossMediumTransferDisagreement": 0.8,
+      "weakLabelProbability": 0.5
+    }
+  ]
+}

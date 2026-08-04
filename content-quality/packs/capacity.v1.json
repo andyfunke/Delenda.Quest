@@ -1,0 +1,9 @@
+{
+  "version": "pack-capacity/v1",
+  "packs": {
+    "routine-maneuver-v1": 139392,
+    "romantic-v1": 129024,
+    "escalatory-doomsday-v1": 13248
+  },
+  "total": 281664
+}

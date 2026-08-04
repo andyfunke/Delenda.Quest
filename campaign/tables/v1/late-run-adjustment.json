@@ -1,0 +1,125 @@
+{
+  "version": "campaign-pacing-tables/v1",
+  "rows": [
+    {
+      "day": 1,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 2,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 3,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 4,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 5,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 6,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 7,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 8,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 9,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 10,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 11,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 12,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 13,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 14,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 15,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 16,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 17,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 18,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 19,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 20,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 21,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 22,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 23,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 24,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 25,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 26,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 27,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 28,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 29,
+      "adjustmentPpm": 0
+    },
+    {
+      "day": 30,
+      "adjustmentPpm": 0
+    }
+  ]
+}

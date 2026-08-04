@@ -1,0 +1,28 @@
+{
+  "version": "contentgen-promoted-pack/v1",
+  "packId": "romantic-v1",
+  "status": "PROMOTED",
+  "humanSigned": true,
+  "signerReceiptId": "receipt:pack-builder",
+  "recipeIds": [
+    "fallback-compression",
+    "fallback-contact",
+    "fallback-exhaustion",
+    "fallback-terminal",
+    "romantic-compression-debt",
+    "romantic-compression-roster",
+    "romantic-compression-silence",
+    "romantic-contact-letter",
+    "romantic-contact-oath",
+    "romantic-contact-witness",
+    "romantic-exhaustion-custody",
+    "romantic-exhaustion-memory",
+    "romantic-exhaustion-rescue",
+    "romantic-terminal-farewell",
+    "romantic-terminal-ledger",
+    "romantic-terminal-name"
+  ],
+  "policyGate": "quality-policy/v1",
+  "manifestHash": "8806050d6f1a285766a6d6827e8817482e2dab113f4ce9568bf29fcc5d1a8d91",
+  "authenticatedCount": 16
+}

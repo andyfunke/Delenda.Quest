@@ -1,0 +1,455 @@
+{
+  "version": "campaign-pacing-tables/v1",
+  "rows": [
+    {
+      "day": 1,
+      "curvePpm": 0,
+      "routinePpm": 1000000,
+      "romanticPpm": 1000000,
+      "escalatoryStandardPpm": 1150000,
+      "escalatoryMaximumPpm": 1400000,
+      "doc": {
+        "curve": 0,
+        "routine": 1,
+        "romantic": 1,
+        "escalatoryStandard": 1.15,
+        "escalatoryMaximum": 1.4
+      }
+    },
+    {
+      "day": 2,
+      "curvePpm": 9821,
+      "routinePpm": 1003437,
+      "romanticPpm": 1007857,
+      "escalatoryStandardPpm": 1163258,
+      "escalatoryMaximumPpm": 1420624,
+      "doc": {
+        "curve": 0.0098,
+        "routine": 1.003,
+        "romantic": 1.008,
+        "escalatoryStandard": 1.163,
+        "escalatoryMaximum": 1.421
+      }
+    },
+    {
+      "day": 3,
+      "curvePpm": 20416,
+      "routinePpm": 1007146,
+      "romanticPpm": 1016333,
+      "escalatoryStandardPpm": 1177562,
+      "escalatoryMaximumPpm": 1442874,
+      "doc": {
+        "curve": 0.0204,
+        "routine": 1.007,
+        "romantic": 1.016,
+        "escalatoryStandard": 1.178,
+        "escalatoryMaximum": 1.443
+      }
+    },
+    {
+      "day": 4,
+      "curvePpm": 31846,
+      "routinePpm": 1011146,
+      "romanticPpm": 1025477,
+      "escalatoryStandardPpm": 1192992,
+      "escalatoryMaximumPpm": 1466877,
+      "doc": {
+        "curve": 0.0318,
+        "routine": 1.011,
+        "romantic": 1.025,
+        "escalatoryStandard": 1.193,
+        "escalatoryMaximum": 1.467
+      }
+    },
+    {
+      "day": 5,
+      "curvePpm": 44177,
+      "routinePpm": 1015462,
+      "romanticPpm": 1035342,
+      "escalatoryStandardPpm": 1209639,
+      "escalatoryMaximumPpm": 1492772,
+      "doc": {
+        "curve": 0.0442,
+        "routine": 1.015,
+        "romantic": 1.035,
+        "escalatoryStandard": 1.21,
+        "escalatoryMaximum": 1.493
+      }
+    },
+    {
+      "day": 6,
+      "curvePpm": 57480,
+      "routinePpm": 1020118,
+      "romanticPpm": 1045984,
+      "escalatoryStandardPpm": 1227598,
+      "escalatoryMaximumPpm": 1520708,
+      "doc": {
+        "curve": 0.0575,
+        "routine": 1.02,
+        "romantic": 1.046,
+        "escalatoryStandard": 1.228,
+        "escalatoryMaximum": 1.521
+      }
+    },
+    {
+      "day": 7,
+      "curvePpm": 71831,
+      "routinePpm": 1025141,
+      "romanticPpm": 1057465,
+      "escalatoryStandardPpm": 1246972,
+      "escalatoryMaximumPpm": 1550845,
+      "doc": {
+        "curve": 0.0718,
+        "routine": 1.025,
+        "romantic": 1.057,
+        "escalatoryStandard": 1.247,
+        "escalatoryMaximum": 1.551
+      }
+    },
+    {
+      "day": 8,
+      "curvePpm": 87313,
+      "routinePpm": 1030560,
+      "romanticPpm": 1069851,
+      "escalatoryStandardPpm": 1267873,
+      "escalatoryMaximumPpm": 1583358,
+      "doc": {
+        "curve": 0.0873,
+        "routine": 1.031,
+        "romantic": 1.07,
+        "escalatoryStandard": 1.268,
+        "escalatoryMaximum": 1.583
+      }
+    },
+    {
+      "day": 9,
+      "curvePpm": 104016,
+      "routinePpm": 1036406,
+      "romanticPpm": 1083213,
+      "escalatoryStandardPpm": 1290421,
+      "escalatoryMaximumPpm": 1618433,
+      "doc": {
+        "curve": 0.104,
+        "routine": 1.036,
+        "romantic": 1.083,
+        "escalatoryStandard": 1.29,
+        "escalatoryMaximum": 1.618
+      }
+    },
+    {
+      "day": 10,
+      "curvePpm": 122035,
+      "routinePpm": 1042712,
+      "romanticPpm": 1097628,
+      "escalatoryStandardPpm": 1314747,
+      "escalatoryMaximumPpm": 1656273,
+      "doc": {
+        "curve": 0.122,
+        "routine": 1.043,
+        "romantic": 1.098,
+        "escalatoryStandard": 1.315,
+        "escalatoryMaximum": 1.656
+      }
+    },
+    {
+      "day": 11,
+      "curvePpm": 141474,
+      "routinePpm": 1049516,
+      "romanticPpm": 1113179,
+      "escalatoryStandardPpm": 1340990,
+      "escalatoryMaximumPpm": 1697095,
+      "doc": {
+        "curve": 0.1415,
+        "routine": 1.05,
+        "romantic": 1.113,
+        "escalatoryStandard": 1.341,
+        "escalatoryMaximum": 1.697
+      }
+    },
+    {
+      "day": 12,
+      "curvePpm": 162445,
+      "routinePpm": 1056856,
+      "romanticPpm": 1129956,
+      "escalatoryStandardPpm": 1369301,
+      "escalatoryMaximumPpm": 1741134,
+      "doc": {
+        "curve": 0.1624,
+        "routine": 1.057,
+        "romantic": 1.13,
+        "escalatoryStandard": 1.369,
+        "escalatoryMaximum": 1.741
+      }
+    },
+    {
+      "day": 13,
+      "curvePpm": 185069,
+      "routinePpm": 1064774,
+      "romanticPpm": 1148055,
+      "escalatoryStandardPpm": 1399843,
+      "escalatoryMaximumPpm": 1788644,
+      "doc": {
+        "curve": 0.1851,
+        "routine": 1.065,
+        "romantic": 1.148,
+        "escalatoryStandard": 1.4,
+        "escalatoryMaximum": 1.789
+      }
+    },
+    {
+      "day": 14,
+      "curvePpm": 209476,
+      "routinePpm": 1073317,
+      "romanticPpm": 1167581,
+      "escalatoryStandardPpm": 1432792,
+      "escalatoryMaximumPpm": 1839899,
+      "doc": {
+        "curve": 0.2095,
+        "routine": 1.073,
+        "romantic": 1.168,
+        "escalatoryStandard": 1.433,
+        "escalatoryMaximum": 1.84
+      }
+    },
+    {
+      "day": 15,
+      "curvePpm": 235806,
+      "routinePpm": 1082532,
+      "romanticPpm": 1188645,
+      "escalatoryStandardPpm": 1468339,
+      "escalatoryMaximumPpm": 1895193,
+      "doc": {
+        "curve": 0.2358,
+        "routine": 1.083,
+        "romantic": 1.189,
+        "escalatoryStandard": 1.468,
+        "escalatoryMaximum": 1.895
+      }
+    },
+    {
+      "day": 16,
+      "curvePpm": 264212,
+      "routinePpm": 1092474,
+      "romanticPpm": 1211370,
+      "escalatoryStandardPpm": 1506686,
+      "escalatoryMaximumPpm": 1954845,
+      "doc": {
+        "curve": 0.2642,
+        "routine": 1.092,
+        "romantic": 1.211,
+        "escalatoryStandard": 1.507,
+        "escalatoryMaximum": 1.955
+      }
+    },
+    {
+      "day": 17,
+      "curvePpm": 294857,
+      "routinePpm": 1103200,
+      "romanticPpm": 1235885,
+      "escalatoryStandardPpm": 1548057,
+      "escalatoryMaximumPpm": 2019199,
+      "doc": {
+        "curve": 0.2949,
+        "routine": 1.103,
+        "romantic": 1.236,
+        "escalatoryStandard": 1.548,
+        "escalatoryMaximum": 2.019
+      }
+    },
+    {
+      "day": 18,
+      "curvePpm": 327916,
+      "routinePpm": 1114771,
+      "romanticPpm": 1262333,
+      "escalatoryStandardPpm": 1592687,
+      "escalatoryMaximumPpm": 2088625,
+      "doc": {
+        "curve": 0.3279,
+        "routine": 1.115,
+        "romantic": 1.262,
+        "escalatoryStandard": 1.593,
+        "escalatoryMaximum": 2.089
+      }
+    },
+    {
+      "day": 19,
+      "curvePpm": 363582,
+      "routinePpm": 1127254,
+      "romanticPpm": 1290865,
+      "escalatoryStandardPpm": 1640835,
+      "escalatoryMaximumPpm": 2163522,
+      "doc": {
+        "curve": 0.3636,
+        "routine": 1.127,
+        "romantic": 1.291,
+        "escalatoryStandard": 1.641,
+        "escalatoryMaximum": 2.164
+      }
+    },
+    {
+      "day": 20,
+      "curvePpm": 402058,
+      "routinePpm": 1140720,
+      "romanticPpm": 1321646,
+      "escalatoryStandardPpm": 1692778,
+      "escalatoryMaximumPpm": 2244322,
+      "doc": {
+        "curve": 0.4021,
+        "routine": 1.141,
+        "romantic": 1.322,
+        "escalatoryStandard": 1.693,
+        "escalatoryMaximum": 2.244
+      }
+    },
+    {
+      "day": 21,
+      "curvePpm": 443567,
+      "routinePpm": 1155248,
+      "romanticPpm": 1354853,
+      "escalatoryStandardPpm": 1748815,
+      "escalatoryMaximumPpm": 2331490,
+      "doc": {
+        "curve": 0.4436,
+        "routine": 1.155,
+        "romantic": 1.355,
+        "escalatoryStandard": 1.749,
+        "escalatoryMaximum": 2.331
+      }
+    },
+    {
+      "day": 22,
+      "curvePpm": 488347,
+      "routinePpm": 1170921,
+      "romanticPpm": 1390678,
+      "escalatoryStandardPpm": 1809268,
+      "escalatoryMaximumPpm": 2425529,
+      "doc": {
+        "curve": 0.4883,
+        "routine": 1.171,
+        "romantic": 1.391,
+        "escalatoryStandard": 1.809,
+        "escalatoryMaximum": 2.426
+      }
+    },
+    {
+      "day": 23,
+      "curvePpm": 536656,
+      "routinePpm": 1187830,
+      "romanticPpm": 1429325,
+      "escalatoryStandardPpm": 1874486,
+      "escalatoryMaximumPpm": 2526979,
+      "doc": {
+        "curve": 0.5367,
+        "routine": 1.188,
+        "romantic": 1.429,
+        "escalatoryStandard": 1.874,
+        "escalatoryMaximum": 2.527
+      }
+    },
+    {
+      "day": 24,
+      "curvePpm": 588773,
+      "routinePpm": 1206071,
+      "romanticPpm": 1471019,
+      "escalatoryStandardPpm": 1944844,
+      "escalatoryMaximumPpm": 2636424,
+      "doc": {
+        "curve": 0.5888,
+        "routine": 1.206,
+        "romantic": 1.471,
+        "escalatoryStandard": 1.945,
+        "escalatoryMaximum": 2.636
+      }
+    },
+    {
+      "day": 25,
+      "curvePpm": 644998,
+      "routinePpm": 1225749,
+      "romanticPpm": 1515998,
+      "escalatoryStandardPpm": 2020747,
+      "escalatoryMaximumPpm": 2754495,
+      "doc": {
+        "curve": 0.645,
+        "routine": 1.226,
+        "romantic": 1.516,
+        "escalatoryStandard": 2.021,
+        "escalatoryMaximum": 2.754
+      }
+    },
+    {
+      "day": 26,
+      "curvePpm": 705654,
+      "routinePpm": 1246979,
+      "romanticPpm": 1564523,
+      "escalatoryStandardPpm": 2102632,
+      "escalatoryMaximumPpm": 2881872,
+      "doc": {
+        "curve": 0.7057,
+        "routine": 1.247,
+        "romantic": 1.565,
+        "escalatoryStandard": 2.103,
+        "escalatoryMaximum": 2.882
+      }
+    },
+    {
+      "day": 27,
+      "curvePpm": 771090,
+      "routinePpm": 1269881,
+      "romanticPpm": 1616872,
+      "escalatoryStandardPpm": 2190971,
+      "escalatoryMaximumPpm": 3019289,
+      "doc": {
+        "curve": 0.7711,
+        "routine": 1.27,
+        "romantic": 1.617,
+        "escalatoryStandard": 2.191,
+        "escalatoryMaximum": 3.019
+      }
+    },
+    {
+      "day": 28,
+      "curvePpm": 841683,
+      "routinePpm": 1294589,
+      "romanticPpm": 1673347,
+      "escalatoryStandardPpm": 2286272,
+      "escalatoryMaximumPpm": 3167535,
+      "doc": {
+        "curve": 0.8417,
+        "routine": 1.295,
+        "romantic": 1.673,
+        "escalatoryStandard": 2.286,
+        "escalatoryMaximum": 3.168
+      }
+    },
+    {
+      "day": 29,
+      "curvePpm": 917841,
+      "routinePpm": 1321244,
+      "romanticPpm": 1734272,
+      "escalatoryStandardPpm": 2389085,
+      "escalatoryMaximumPpm": 3327465,
+      "doc": {
+        "curve": 0.9178,
+        "routine": 1.321,
+        "romantic": 1.734,
+        "escalatoryStandard": 2.389,
+        "escalatoryMaximum": 3.327
+      }
+    },
+    {
+      "day": 30,
+      "curvePpm": 1000000,
+      "routinePpm": 1350000,
+      "romanticPpm": 1800000,
+      "escalatoryStandardPpm": 2500000,
+      "escalatoryMaximumPpm": 3500000,
+      "doc": {
+        "curve": 1,
+        "routine": 1.35,
+        "romantic": 1.8,
+        "escalatoryStandard": 2.5,
+        "escalatoryMaximum": 3.5
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+{"id":"choice-exclusion","label":1,"medium":"ava","values":[0.2,0.25,0.275,0.3,0.6,0.5,0.9,0.5,0.8],"groupKey":"choice|choice|ava-taste/v2-calibrated"}
+{"id":"keyword-trust-v1","label":0,"medium":"ava","values":[0.2,0.25,0.175,0.7,0.6,0.5,0.9,0.5,0.8],"groupKey":"keyword|trust|ava-taste/v2-calibrated"}

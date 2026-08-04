@@ -1,0 +1,74 @@
+{
+  "version": "contentgen-lab-staging-manifest/v1",
+  "medium": "ava",
+  "sourceVersion": "contentgen-inventory/v1",
+  "seed": 7,
+  "manifestHash": "87344ae6379c3fdf652af1d942a0753a6c49e213495a709872f8081653d8ce23",
+  "note": "Frozen staging fixture for Epoch 015 lab batch creation. Browser never enumerates.",
+  "candidates": [
+    {
+      "id": "lab-ava-001",
+      "compileStatus": "COMPILED",
+      "text": "Delay is still a choice.",
+      "payload": {
+        "text": "Delay is still a choice.",
+        "medium": "ava"
+      },
+      "tags": []
+    },
+    {
+      "id": "lab-ava-002",
+      "compileStatus": "COMPILED",
+      "text": "Compare reinforce with interdict.",
+      "payload": {
+        "text": "Compare reinforce with interdict.",
+        "medium": "ava"
+      },
+      "tags": []
+    },
+    {
+      "id": "lab-ava-003",
+      "compileStatus": "HARD_FAILURE",
+      "text": "Do attack now.",
+      "payload": {
+        "text": "Do attack now.",
+        "medium": "ava"
+      },
+      "tags": [
+        "#failures"
+      ]
+    },
+    {
+      "id": "lab-ava-004",
+      "compileStatus": "COMPILED",
+      "text": "Explain the secondary objective.",
+      "payload": {
+        "text": "Explain the secondary objective.",
+        "medium": "ava"
+      },
+      "tags": []
+    },
+    {
+      "id": "lab-ava-005",
+      "compileStatus": "COMPILED",
+      "text": "What remains after the network fails.",
+      "payload": {
+        "text": "What remains after the network fails.",
+        "medium": "ava"
+      },
+      "tags": []
+    },
+    {
+      "id": "lab-ava-006",
+      "compileStatus": "HARD_FAILURE",
+      "text": "You must win immediately.",
+      "payload": {
+        "text": "You must win immediately.",
+        "medium": "ava"
+      },
+      "tags": [
+        "#failures"
+      ]
+    }
+  ]
+}

@@ -891,3 +891,125 @@ Production path remains Workers Builds on `main` / `delenda.quest`. Migration `0
 | Deploy SSH gateway | FAIL — pre-existing Ava Nexus assertion drift (FIELD NOTE / COMPARE capability) |
 
 Direct `wrangler deploy` unavailable (no auth). Cloudflare Workers Builds remains the hosting deploy path for `main`. Follow-up commit updates realizationCount expectation to 15.
+
+## Epoch 015 seal — Appified Contentgen Lab (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-lab` | PASS 6/6 |
+| `npx tsc --noEmit` | PASS |
+| `git diff --check` | PASS |
+
+Exit: `/admin/contentgen` lab UI + `/api/admin/contentgen` adapters; §4.14 sampler; NONE-mode (no AI provenance); D1 flush/hydrate adapters. No auto-promote. Ordinary accounts fail closed.
+
+## Epoch 016 seal — ContentJudge + curious queue (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-judge` | PASS 9/9 |
+| `npm run contentgen:judge -- --judge NONE` | PASS |
+
+Exit: provider-neutral judge contracts; frozen Ava checklist; §4.9 queue; NONE mode. Non-NONE not operational (provider gate).
+
+## Epoch 017 seal — deterministic self-training (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-train` | PASS 6/6 |
+| `npm run contentgen:train` / `contentgen:evaluate` | PASS |
+
+Exit: trainer (§4.5), independent evaluator, PROPOSED prism mining, audit-slot helper.
+
+## Epoch 018 seal — policy promotion verifier (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:contentgen-policy` | PASS 3/3 |
+| `npm run contentgen:verify-policy` | PASS on promoted v1 manifest |
+
+Exit: promotion gate (§4.9), Git-versioned `quality-policy.v1.json`, mutation fail-closed.
+
+## Epoch 019 seal — campaign metastratum + pacing tables (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run campaign:precompute-tables` | PASS |
+| `npm run validate:campaign-tables` | PASS |
+| `npm run test:campaign-metastratum-contracts` | PASS 5/5 |
+
+Exit: §4.10 types, ContentLink, TerminalRisk registry metadata, three checked-in ppm tables, restore defaults, stableHash consolidation.
+
+## Epoch 020 seal — narrative itinerary / scheduler (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:campaign-metastratum` | PASS |
+| `npm run validate:campaign-itineraries -- --seeds 10000` | PASS |
+
+§4.12(i) scheduler; R05 three completed Romantic instances; strict heat alternation.
+
+## Epoch 021 seal — multi-day operations (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run test:campaign-operations` | PASS 5/5 |
+
+ActiveOperation lifecycle, MainThreadPrompt union, legacy one-day migration path.
+
+## Epoch 022 seal — Routine/manoeuvre pack (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack routine-maneuver-v1` | PASS |
+| `npm run validate:epoch-009` | PASS |
+
+32 routine spines (4 theaters × 8 problems); 56 maneuver frames (7×8); promoted manifest.
+
+## Epoch 023 seal — Romantic pack (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack romantic-v1` | PASS |
+
+12 arcs + 4 always-eligible fallbacks; both heats; phase minima from gates.
+
+## Epoch 024 seal — Escalatory/Doomsday (2026-08-03)
+
+| Command | Result |
+|---|---|
+| `npm run contentgen:pack-report -- --pack escalatory-doomsday-v1` | PASS |
+| `npm run validate:doomsday-probability` | PASS |
+
+Sealed occurrence/terminal tickets; declared bounds; six Doomsday families.
+
+## Epoch 025 seal — semantic prosecution (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run test:execution-scenes` | PASS 5/5 |
+
+Exit: every resolved day persists a replayable §4.17 prosecution scene.
+
+## Epoch 026 seal — Battle Log adapters (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run test:battle-log` | PASS 5/5 |
+
+Exit: Battle Log is the canonical in-campaign prosecution history; Account Campaign Records unchanged.
+
+## Epoch 027 seal — independent proof (2026-08-04)
+
+| Command | Result |
+|---|---|
+| `npm run validate:epoch-009-027` | PASS suites 0–19 |
+| `npm run typecheck` | PASS |
+| `npm run build` | PASS |
+| `npm run cloudflare:types` | PASS |
+| `npm run cloudflare:validate` | PASS |
+| `git diff --check` | PASS |
+| pack legal capacity | 281664 |
+| `updated_epoch.md` SHA-256 | `e4a443896f9b129ce3fa1820546d81854c5ddb6097738eae0406a1529b6be4d2` |
+
+Exit: sealed, local, doctrine-compliant implementation; no deployment.
+

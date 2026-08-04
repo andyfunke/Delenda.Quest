@@ -103,6 +103,7 @@ export type CommandOperation =
   | "CANCEL"
   | "INTERRUPTS"
   | "MISSIONS"
+  | "BATTLE_LOG"
   | "SERVICE_RECORD"
   | "RECENT_DISPATCHES"
   | "WHOAMI"

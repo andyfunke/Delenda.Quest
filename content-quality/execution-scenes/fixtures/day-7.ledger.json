@@ -1,0 +1,57 @@
+{
+  "resolvedDay": 7,
+  "resolutionId": "fixture-day-7",
+  "sector": "Kesh Corridor",
+  "sectorId": "kesh",
+  "tier": "romantic",
+  "intensity": "none",
+  "heat": "hot",
+  "epochId": "romantic-contact-oath",
+  "operationId": "op:reinforce:5",
+  "maneuverId": "reinforce",
+  "stageAdvanced": true,
+  "operationStatus": "active",
+  "friendlyLosses": 1200,
+  "materielLosses": 40,
+  "groundMovement": -1.5,
+  "residueIdsCreated": ["op:reinforce:5:day7"],
+  "productionDeltas": { "munitions": -18 },
+  "shortageFlags": [],
+  "personnel": {
+    "combatLosses": 1200,
+    "effectiveGraduates": 200,
+    "netDesertion": 15
+  },
+  "readinessDelta": -2,
+  "domestic": {
+    "stabilityDelta": -1,
+    "moraleDelta": 0,
+    "incidentIds": ["domestic-notice-7"]
+  },
+  "networkTransitions": [
+    { "sectorId": "kesh", "from": "intermittent", "to": "degraded" }
+  ],
+  "adversary": {
+    "posture": "pressuring",
+    "estimateBand": "estimated",
+    "disclosedEventIds": ["obs-fires-7"]
+  },
+  "narrative": {
+    "arcId": "romantic-contact-oath",
+    "beatIndex": 0,
+    "choiceId": "romantic-contact-oath-b0-duty",
+    "residueIds": ["romantic-contact-oath-residue"]
+  },
+  "doomsday": { "occurred": false },
+  "residues": [
+    {
+      "residueId": "op:reinforce:5:day7",
+      "sourceId": "op:reinforce:5",
+      "createdDay": 7,
+      "expiresDay": 10
+    }
+  ],
+  "projectedPressureMarkers": ["corridor-pressure"],
+  "lapsedOrderCount": 0,
+  "issuedChoiceIds": ["romantic-contact-oath-b0-duty"]
+}

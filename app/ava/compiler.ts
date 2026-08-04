@@ -953,7 +953,7 @@ const reportTopic = (
   if (/\b(effects|locks|active policies)\b/.test(input)) return "effects";
   if (/\b(opportunities|opportunity)\b/.test(input)) return "opportunities";
   if (/\b(decision ledger|decisions)\b/.test(input)) return "decision-ledger";
-  if (/\b(service record|campaign score|player rating|score if|current score|surrender value|termination value)\b/.test(input)) return "service-record";
+  if (/\b(battle log|service record|campaign score|player rating|score if|current score|surrender value|termination value)\b/.test(input)) return "service-record";
   if (/\b(daily brief|briefing)\b/.test(input)) return "daily-brief";
   return moduleTopic(targetModule);
 };
@@ -1317,7 +1317,7 @@ function compileLegacyCommand(
     /\b(report|reports|brief|briefing|retrospective|recap|after action|losses|casualties|attrition|projection|outlook)\b/.test(
       input,
     ) ||
-    /^(production|domestic|network|intelligence|personnel|resources|military|diplomacy|doctrine|adversary|enemy|enemyt|effects|opportunities|decision ledger|service record|daily brief|what happens next)$/.test(
+    /^(production|domestic|network|intelligence|personnel|resources|military|diplomacy|doctrine|adversary|enemy|enemyt|effects|opportunities|decision ledger|battle log|service record|daily brief|what happens next)$/.test(
       input,
     ) ||
     /\b(how are (the )?factories|do we have enough (ammunition|ammo|munitions)|where are we losing (people|men|soldiers))\b/.test(

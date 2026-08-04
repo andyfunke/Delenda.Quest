@@ -1,0 +1,6671 @@
+{
+  "version": "maneuver-frames/v1",
+  "maneuverCount": 7,
+  "frameMinimum": 56,
+  "frames": [
+    {
+      "id": "maneuver-reinforce-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / hot / frame 1",
+        "body": "Procedure frame for reinforce at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / hot / frame 2",
+        "body": "Procedure frame for reinforce at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / hot / frame 3",
+        "body": "Procedure frame for reinforce at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / hot / frame 4",
+        "body": "Procedure frame for reinforce at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / medium / frame 1",
+        "body": "Procedure frame for reinforce at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / medium / frame 2",
+        "body": "Procedure frame for reinforce at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / medium / frame 3",
+        "body": "Procedure frame for reinforce at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-reinforce-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "reinforce",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue reinforce under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of reinforce leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:reinforce",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "reinforce / medium / frame 4",
+        "body": "Procedure frame for reinforce at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-reinforce-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "reinforce"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / hot / frame 1",
+        "body": "Procedure frame for interdict at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / hot / frame 2",
+        "body": "Procedure frame for interdict at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / hot / frame 3",
+        "body": "Procedure frame for interdict at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / hot / frame 4",
+        "body": "Procedure frame for interdict at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / medium / frame 1",
+        "body": "Procedure frame for interdict at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / medium / frame 2",
+        "body": "Procedure frame for interdict at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / medium / frame 3",
+        "body": "Procedure frame for interdict at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-interdict-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "interdict",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue interdict under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of interdict leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:interdict",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "interdict / medium / frame 4",
+        "body": "Procedure frame for interdict at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-interdict-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "interdict"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / hot / frame 1",
+        "body": "Procedure frame for route at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / hot / frame 2",
+        "body": "Procedure frame for route at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / hot / frame 3",
+        "body": "Procedure frame for route at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / hot / frame 4",
+        "body": "Procedure frame for route at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / medium / frame 1",
+        "body": "Procedure frame for route at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / medium / frame 2",
+        "body": "Procedure frame for route at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / medium / frame 3",
+        "body": "Procedure frame for route at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-route-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "route",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue route under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of route leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:route",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "route / medium / frame 4",
+        "body": "Procedure frame for route at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-route-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "route"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / hot / frame 1",
+        "body": "Procedure frame for abandon at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / hot / frame 2",
+        "body": "Procedure frame for abandon at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / hot / frame 3",
+        "body": "Procedure frame for abandon at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / hot / frame 4",
+        "body": "Procedure frame for abandon at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / medium / frame 1",
+        "body": "Procedure frame for abandon at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / medium / frame 2",
+        "body": "Procedure frame for abandon at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / medium / frame 3",
+        "body": "Procedure frame for abandon at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-abandon-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "abandon",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue abandon under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of abandon leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:abandon",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "abandon / medium / frame 4",
+        "body": "Procedure frame for abandon at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-abandon-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "abandon"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / hot / frame 1",
+        "body": "Procedure frame for exploit at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / hot / frame 2",
+        "body": "Procedure frame for exploit at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / hot / frame 3",
+        "body": "Procedure frame for exploit at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / hot / frame 4",
+        "body": "Procedure frame for exploit at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / medium / frame 1",
+        "body": "Procedure frame for exploit at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / medium / frame 2",
+        "body": "Procedure frame for exploit at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / medium / frame 3",
+        "body": "Procedure frame for exploit at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-exploit-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "exploit",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue exploit under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of exploit leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:exploit",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "exploit / medium / frame 4",
+        "body": "Procedure frame for exploit at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-exploit-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "exploit"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / hot / frame 1",
+        "body": "Procedure frame for breach at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / hot / frame 2",
+        "body": "Procedure frame for breach at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / hot / frame 3",
+        "body": "Procedure frame for breach at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / hot / frame 4",
+        "body": "Procedure frame for breach at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / medium / frame 1",
+        "body": "Procedure frame for breach at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / medium / frame 2",
+        "body": "Procedure frame for breach at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / medium / frame 3",
+        "body": "Procedure frame for breach at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-breach-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "breach",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue breach under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of breach leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:breach",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "breach / medium / frame 4",
+        "body": "Procedure frame for breach at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-breach-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "breach"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-hot-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / hot / frame 1",
+        "body": "Procedure frame for network at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-hot-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-hot-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "hot",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / hot / frame 2",
+        "body": "Procedure frame for network at hot heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-hot-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-hot-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "hot",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / hot / frame 3",
+        "body": "Procedure frame for network at hot heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-hot-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-hot-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "hot",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:hot"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / hot / frame 4",
+        "body": "Procedure frame for network at hot heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-hot-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "hot"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-medium-1",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / medium / frame 1",
+        "body": "Procedure frame for network at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-medium-1"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "1"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-medium-2",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "medium",
+      "rhetoricalShape": "cost-ledger",
+      "imageFamily": "relay",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / medium / frame 2",
+        "body": "Procedure frame for network at medium heat. Shape=cost-ledger; image=relay."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-medium-2"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "2"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-medium-3",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "medium",
+      "rhetoricalShape": "geometric-imperative",
+      "imageFamily": "ford",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / medium / frame 3",
+        "body": "Procedure frame for network at medium heat. Shape=geometric-imperative; image=ford."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-medium-3"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "3"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maneuver-network-medium-4",
+      "medium": "maneuver-procedure",
+      "maneuverId": "network",
+      "heat": "medium",
+      "rhetoricalShape": "observation-reversal",
+      "imageFamily": "wire",
+      "continuationLanguage": "Continue network under standing intent; stage advances one day.",
+      "aftermathLanguage": "Aftermath of network leaves a typed residue without hidden rolls.",
+      "multiDay": true,
+      "durationDaysOptions": [
+        2,
+        3
+      ],
+      "requiredClaims": [
+        "mechanic:network",
+        "heat:medium"
+      ],
+      "forbiddenClaims": [
+        "prose-invented-mechanic"
+      ],
+      "effectEnvelope": {
+        "axes": [
+          "personnel",
+          "materiel"
+        ],
+        "rounding": "floor-ppm",
+        "caps": {
+          "personnel": 1000000,
+          "materiel": 1000000
+        }
+      },
+      "prose": {
+        "label": "network / medium / frame 4",
+        "body": "Procedure frame for network at medium heat. Shape=observation-reversal; image=wire."
+      },
+      "review": {
+        "disposition": "QUALITY_MET",
+        "reasonCodes": [
+          "WEAK_CONSEQUENCE"
+        ],
+        "reviewerReceiptId": "receipt:pack-builder",
+        "authenticated": true,
+        "candidateId": "maneuver-network-medium-4"
+      },
+      "slotDomains": {
+        "maneuverId": {
+          "values": [
+            "network"
+          ]
+        },
+        "heat": {
+          "values": [
+            "medium"
+          ]
+        },
+        "frame": {
+          "values": [
+            "4"
+          ]
+        },
+        "durationDays": {
+          "values": [
+            "2",
+            "3"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "problemClass": {
+          "values": [
+            "assault",
+            "command",
+            "counterstroke",
+            "crossing",
+            "exploitation",
+            "force-preservation",
+            "logistics",
+            "observation"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
+        }
+      }
+    }
+  ]
+}

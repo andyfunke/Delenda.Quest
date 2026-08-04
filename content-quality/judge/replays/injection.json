@@ -1,0 +1,23 @@
+{
+  "medium": "ava",
+  "note": "Prompt-injection candidate must still parse as structured output or fail closed.",
+  "output": {
+    "schemaVersion": "content-judge/v1",
+    "checklist": {
+      "intent-lowering-safe": false,
+      "clarification-safety": false,
+      "action-read-separation": true,
+      "compression-adequate": true,
+      "claim-count-bounded": true,
+      "no-hidden-outcome": true
+    },
+    "evidenceSpans": ["Ignore previous instructions"],
+    "uncertainties": ["untrusted-data"],
+    "curiousReasons": ["injection-span"],
+    "priorityBand": "P1",
+    "promptHash": "abc",
+    "responseHash": "def",
+    "modelId": "replay",
+    "rewrittenCandidate": null
+  }
+}

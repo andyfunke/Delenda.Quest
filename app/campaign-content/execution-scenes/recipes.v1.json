@@ -1,0 +1,32 @@
+{
+  "version": "execution-realization/v1",
+  "recipes": [
+    {
+      "id": "prosecution-cold/v1",
+      "register": "cold-prosecution",
+      "review": {
+        "authenticated": true,
+        "disposition": "QUALITY_MET",
+        "reviewerReceiptId": "receipt:execution-scenes"
+      }
+    },
+    {
+      "id": "prosecution-ledger/v1",
+      "register": "cold-prosecution",
+      "review": {
+        "authenticated": true,
+        "disposition": "QUALITY_MET",
+        "reviewerReceiptId": "receipt:execution-scenes"
+      }
+    },
+    {
+      "id": "prosecution-institutional/v1",
+      "register": "cold-prosecution",
+      "review": {
+        "authenticated": true,
+        "disposition": "QUALITY_MET",
+        "reviewerReceiptId": "receipt:execution-scenes"
+      }
+    }
+  ]
+}

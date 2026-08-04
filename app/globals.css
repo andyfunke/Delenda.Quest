@@ -12067,6 +12067,75 @@ small,
 .admin-bug p { font:16px/1.5 var(--ui); }
 @media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-wide{grid-column:auto}.admin-override,.admin-row{grid-template-columns:1fr}}
 
+.contentgen-lab-route { padding-bottom: 48px; }
+.contentgen-lab header h1 { font: 800 clamp(28px,4vw,42px)/1.1 var(--display,var(--ui)); margin: 8px 0; }
+.contentgen-lab-status { color: #244; font: 14px/1.5 var(--ui); min-height: 1.5em; }
+.contentgen-lab-error { color: #7a1d1d; font: 14px/1.4 var(--ui); }
+.contentgen-lab-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  margin-top: 18px;
+}
+.contentgen-lab-grid > article {
+  background: linear-gradient(180deg,#f7f4ec,#efe8d8);
+  border: 1px solid #222;
+  padding: 16px;
+}
+.contentgen-lab-wide { grid-column: 1/-1; }
+.contentgen-lab label { display:block; font: 700 12px/1.4 var(--mono); letter-spacing: .06em; margin-top: 10px; }
+.contentgen-lab input,.contentgen-lab select,.contentgen-lab textarea {
+  display: block;
+  font: 16px var(--ui);
+  margin-top: 6px;
+  padding: 9px;
+  width: 100%;
+}
+.contentgen-lab button {
+  background: #111;
+  border: 0;
+  color: #fff;
+  font: 700 11px var(--ui);
+  margin-top: 12px;
+  margin-right: 8px;
+  padding: 8px 10px;
+}
+.contentgen-lab button:disabled { opacity: .45; }
+.contentgen-lab-note { color: #555; font: 13px/1.45 var(--ui); margin-top: 10px; }
+.contentgen-lab-list { list-style: none; margin: 0; padding: 0; }
+.contentgen-lab-list button {
+  background: transparent;
+  border: 1px solid #333;
+  color: #111;
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+.contentgen-lab-list button.is-selected { background: #111; color: #f4f1e8; }
+.contentgen-lab-list em { font-style: normal; font: 15px/1.4 var(--ui); }
+.contentgen-lab-text { font: 18px/1.45 var(--ui); }
+.contentgen-lab-payload {
+  background: #111;
+  color: #d8d2c2;
+  font: 12px/1.4 var(--mono);
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+}
+.contentgen-lab-side-by-side {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+@media(max-width:760px){
+  .contentgen-lab-grid{grid-template-columns:1fr}
+  .contentgen-lab-wide{grid-column:auto}
+  .contentgen-lab-side-by-side{grid-template-columns:1fr}
+}
+
 .turn-blackout {
   animation: turn-blackout 240ms ease-in-out both;
   background: #000;
