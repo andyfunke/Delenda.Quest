@@ -55,7 +55,9 @@ test("aliases normalize", () => {
     ["choose choice-1", "PREPARE"],
     ["versus a b", "COMPARE"],
     ["vs a b", "COMPARE"],
-    ["record", "SERVICE_RECORD"],
+    ["record", "BATTLE_LOG"],
+    ["service record", "BATTLE_LOG"],
+    ["battle log", "BATTLE_LOG"],
     ["history", "RECENT_DISPATCHES"],
     ["exit", "QUIT"],
   ];

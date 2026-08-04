@@ -57,6 +57,9 @@ type Props = {
   remaining: string;
   canResolve: boolean;
   initialModule: Module;
+  battleLogFocusDay?: number | null;
+  battleLogUnreadDay?: number | null;
+  onBattleLogOpened?: () => void;
   issue: (input: BriefingIssue) => void;
   issueDirective: (family: Family, choice: Choice) => void;
   resolveDay: () => void | Promise<boolean>;
@@ -517,62 +520,115 @@ function ManualSurface({
   );
 }
 
-function ServiceSurface({ s }: { s: GameState }) {
-  const resolved = s.resolutionHistory.length,
-    orders = s.resolutionHistory.reduce((sum, day) => sum + day.orders.used, 0),
-    losses = s.resolutionHistory.reduce(
-      (sum, day) => sum + day.personnel.combatLosses,
-      0,
-    ),
-    netFlight = s.resolutionHistory.reduce(
-      (sum, day) => sum + day.personnel.netDesertion,
-      0,
-    );
+function BattleLogSurface({
+  s,
+  focusDay,
+  unreadDay,
+  onOpened,
+}: {
+  s: GameState;
+  focusDay: number | null;
+  unreadDay: number | null;
+  onOpened: () => void;
+}) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(
+    focusDay ?? s.resolutionHistory[0]?.resolvedDay ?? null,
+  );
+  useEffect(() => {
+    if (focusDay != null) setSelectedDay(focusDay);
+  }, [focusDay]);
+  useEffect(() => {
+    onOpened();
+    // Mount-only: opening Battle Log clears the unread affordance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const selected =
+    s.resolutionHistory.find((day) => day.resolvedDay === selectedDay) ?? null;
+  const scene = selected?.executionScene ?? null;
+  const prose = scene
+    ? [
+        `DAY ${scene.resolvedDay} // ${scene.operations.sectorId.toUpperCase()}`,
+        `TIER ${scene.mainThread.tier}/${scene.mainThread.intensity} · HEAT ${scene.mainThread.heat}`,
+        `OPERATION ${scene.operations.maneuverId} · STATUS ${scene.operations.status}`,
+        `LOSSES personnel ${scene.operations.losses.personnel} · materiel ${scene.operations.losses.materiel}`,
+        `MOVEMENT ${scene.operations.groundMovementKm} km`,
+        scene.narrative
+          ? `ROMANTIC ${scene.narrative.arcId} beat ${scene.narrative.beatIndex}`
+          : "ROMANTIC none",
+        scene.doomsday?.occurred
+          ? `DOOMSDAY ${scene.doomsday.eventId} · ${scene.doomsday.outcomeClass}`
+          : "DOOMSDAY none",
+        `RESIDUES ${scene.residues.map((row) => row.residueId).join(", ") || "none"}`,
+      ].join("\n")
+    : selected
+      ? `Day ${selected.resolvedDay} · ${selected.sector} · ${selected.outcome.outcomeBand} (legacy dispatch; scene unavailable)`
+      : "Select a resolved day.";
   return (
-    <section className="modern-surface">
+    <section className="modern-surface" data-surface="battle-log">
       <header>
-        <span>SERVICE RECORD // CURRENT CAMPAIGN</span>
+        <span>
+          BATTLE LOG // CURRENT CAMPAIGN
+          {unreadDay != null ? ` · UNREAD DAY ${unreadDay}` : ""}
+        </span>
         <h1>{campaignSeedId(s.campaignSeed)}</h1>
         <p>
-          This live command record becomes a permanent, pseudonymous Campaign
-          Record when the run closes.
+          Persisted prosecution history for this run. Completed campaigns remain
+          under Account → Campaign Records.
         </p>
       </header>
-      <div className="modern-metric-grid">
-        <article>
-          <small>STATUS</small>
-          <b>{s.status.toUpperCase()}</b>
-          <span>Day {s.day}</span>
-        </article>
-        <article>
-          <small>RESOLVED DAYS</small>
-          <b>{resolved}</b>
-          <span>{orders} issued orders preserved</span>
-        </article>
-        <article>
-          <small>CUMULATIVE COMBAT LOSS</small>
-          <b>{fmt(losses, true)}</b>
-          <span>{fmt(netFlight, true)} net flight</span>
-        </article>
-        <article>
-          <small>DECISION LEDGER</small>
-          <b>{s.decisions.length}</b>
-          <span>{s.subMissionHistory.length} sub-missions preserved</span>
-        </article>
-      </div>
       <div className="modern-service-ledger">
-        {s.resolutionHistory.slice(0, 8).map((day) => (
-          <article key={day.resolvedDay}>
-            <span>DAY {day.resolvedDay}</span>
-            <b>{day.sector}</b>
-            <small>
-              {day.outcome.outcomeBand.toUpperCase()} ·{" "}
-              {signed(day.outcome.groundMovement, " KM")} ·{" "}
-              {fmt(day.personnel.combatLosses, true)} LOSSES
-            </small>
-          </article>
-        ))}
+        {s.resolutionHistory.map((day) => {
+          const entryScene = day.executionScene;
+          return (
+            <article
+              key={day.resolvedDay}
+              data-semantic-id={
+                entryScene?.resolutionId ?? `res:${day.resolvedDay}`
+              }
+              data-focused={day.resolvedDay === selectedDay ? "true" : "false"}
+              data-unread={day.resolvedDay === unreadDay ? "true" : "false"}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedDay(day.resolvedDay)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  setSelectedDay(day.resolvedDay);
+                }
+              }}
+            >
+              <span>DAY {day.resolvedDay}</span>
+              <b>{day.sector}</b>
+              <small>
+                {(entryScene?.mainThread.tier ?? "routine").toUpperCase()} ·{" "}
+                {(entryScene?.mainThread.heat ?? "—").toString().toUpperCase()} ·{" "}
+                {day.outcome.outcomeBand.toUpperCase()} ·{" "}
+                {signed(
+                  entryScene?.operations.groundMovementKm ??
+                    day.outcome.groundMovement,
+                  " KM",
+                )}{" "}
+                ·{" "}
+                {fmt(
+                  entryScene?.operations.losses.personnel ??
+                    day.personnel.combatLosses,
+                  true,
+                )}{" "}
+                LOSSES
+                {entryScene?.narrative?.arcId
+                  ? ` · ${entryScene.narrative.arcId}`
+                  : ""}
+                {entryScene?.doomsday?.occurred
+                  ? ` · DOOMSDAY ${entryScene.doomsday.outcomeClass}`
+                  : ""}
+              </small>
+            </article>
+          );
+        })}
       </div>
+      <article className="modern-battle-log-prose">
+        <small>PROSECUTION // DAY {selectedDay ?? "—"}</small>
+        <pre>{prose}</pre>
+      </article>
     </section>
   );
 }
@@ -966,19 +1022,21 @@ const surfaceFor = (target: string): Surface =>
           ? "manual"
           : target === "account"
             ? "account"
-            : [
-                  "daily",
-                  "brief",
-                  "production",
-                  "military",
-                  "diplomacy",
-                  "doctrine",
-                  "manual",
-                  "service",
-                  "account",
-                ].includes(target)
-              ? (target as Surface)
-              : "brief";
+            : target === "battle-log" || target === "battlelog"
+              ? "service"
+              : [
+                    "daily",
+                    "brief",
+                    "production",
+                    "military",
+                    "diplomacy",
+                    "doctrine",
+                    "manual",
+                    "service",
+                    "account",
+                  ].includes(target)
+                ? (target as Surface)
+                : "brief";
 
 export function BriefingInterface({
   s,
@@ -986,6 +1044,9 @@ export function BriefingInterface({
   remaining,
   canResolve,
   initialModule,
+  battleLogFocusDay = null,
+  battleLogUnreadDay = null,
+  onBattleLogOpened,
   issue,
   issueDirective,
   resolveDay,
@@ -1001,6 +1062,7 @@ export function BriefingInterface({
     [manualArticle, setManualArticle] = useState("resolution"),
     [confirmResolve, setConfirmResolve] = useState(false),
     [accountMenuOpen, setAccountMenuOpen] = useState(false),
+    [logFocusDay, setLogFocusDay] = useState<number | null>(battleLogFocusDay),
     [doctrineConfirm, setDoctrineConfirm] = useState<{
       vector: DoctrineVector;
       stage: DoctrineStage;
@@ -1037,12 +1099,23 @@ export function BriefingInterface({
     setSurface(surfaceFor(initialModule));
   }, [initialModule]);
   useEffect(() => {
+    if (battleLogFocusDay != null) {
+      setLogFocusDay(battleLogFocusDay);
+      setSurface("service");
+    }
+  }, [battleLogFocusDay]);
+  useEffect(() => {
     const open = (event: Event) => {
       const detail = (
-          event as CustomEvent<string | { module: string; family?: string }>
+          event as CustomEvent<
+            string | { module: string; family?: string; focusDay?: number }
+          >
         ).detail,
         target = typeof detail === "string" ? detail : detail.module;
       setFocusFamilyId(typeof detail === "string" ? undefined : detail.family);
+      if (typeof detail !== "string" && typeof detail.focusDay === "number") {
+        setLogFocusDay(detail.focusDay);
+      }
       setSurface(surfaceFor(target));
     };
     const manual = (event: Event) => {
@@ -1075,7 +1148,7 @@ export function BriefingInterface({
     ["military", "MILITARY"],
     ["diplomacy", "DIPLOMACY"],
     ["doctrine", "DOCTRINE"],
-    ["service", "SERVICE RECORD"],
+    ["service", "BATTLE LOG"],
   ];
   const chooseSurface = (next: Surface) => {
     setFocusFamilyId(undefined);
@@ -1211,7 +1284,12 @@ export function BriefingInterface({
         ) : surface === "manual" ? (
           <ManualSurface article={manualArticle} navigate={navigate} />
         ) : surface === "service" ? (
-          <ServiceSurface s={s} />
+          <BattleLogSurface
+            s={s}
+            focusDay={logFocusDay}
+            unreadDay={battleLogUnreadDay}
+            onOpened={onBattleLogOpened ?? (() => {})}
+          />
         ) : (
           <section className="modern-surface briefing-account-surface">
             <AccountPage onNewCampaign={onNewCampaign} />

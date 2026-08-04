@@ -73,6 +73,44 @@
             "near-miss",
             "terminal"
           ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
         }
       }
     },
@@ -147,6 +185,44 @@
             "nonterminal",
             "near-miss",
             "terminal"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
           ]
         }
       }
@@ -223,6 +299,44 @@
             "near-miss",
             "terminal"
           ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
         }
       }
     },
@@ -297,6 +411,44 @@
             "nonterminal",
             "near-miss",
             "terminal"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
           ]
         }
       }
@@ -373,6 +525,44 @@
             "near-miss",
             "terminal"
           ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
+          ]
         }
       }
     },
@@ -447,6 +637,44 @@
             "nonterminal",
             "near-miss",
             "terminal"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "archetype": {
+          "values": [
+            "siege-state",
+            "industrial-republic",
+            "conscription-directorate",
+            "mercantile-compact",
+            "officer-regency",
+            "ruined-federation"
           ]
         }
       }

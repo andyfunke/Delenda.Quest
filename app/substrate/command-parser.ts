@@ -58,7 +58,7 @@ const aliasMap: Array<{ pattern: RegExp; rewrite: string }> = [
   { pattern: /^evaluate\s+(.+)$/i, rewrite: "advise $1" },
   { pattern: /^(versus|vs)\s+/i, rewrite: "compare " },
   { pattern: /^(execute|issue|choose)\s+/i, rewrite: "prepare " },
-  { pattern: /^record$/i, rewrite: "service record" },
+  { pattern: /^(service record|record)$/i, rewrite: "battle log" },
   { pattern: /^history$/i, rewrite: "recent dispatches" },
   { pattern: /^exit$/i, rewrite: "quit" },
 ];
@@ -132,8 +132,16 @@ export const parseDelendaCommand = (
   if (text === "status") return { ok: true, command: base("STATUS", rawInput, "exact") };
   if (text === "interrupts") return { ok: true, command: base("INTERRUPTS", rawInput, "exact") };
   if (text === "missions") return { ok: true, command: base("MISSIONS", rawInput, "exact") };
-  if (text === "service record") {
-    return { ok: true, command: base("SERVICE_RECORD", rawInput, "normalized") };
+  if (text === "battle log") {
+    const canonical = /^battle\s+log$/i.test(normalize(rawInput));
+    return {
+      ok: true,
+      command: base(
+        "BATTLE_LOG",
+        rawInput,
+        canonical ? "exact" : "normalized",
+      ),
+    };
   }
   if (text === "recent dispatches") {
     return { ok: true, command: base("RECENT_DISPATCHES", rawInput, "normalized") };

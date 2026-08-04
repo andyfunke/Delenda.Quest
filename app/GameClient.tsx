@@ -3787,6 +3787,8 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [ledgerNow, setLedgerNow] = useState(() => Date.now());
   const [turnBlackout, setTurnBlackout] = useState(false);
+  const [battleLogFocusDay, setBattleLogFocusDay] = useState<number | null>(null);
+  const [battleLogUnreadDay, setBattleLogUnreadDay] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [seedOverride, setSeedOverride] = useState<number | null>(null);
@@ -5542,11 +5544,24 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
       window.setTimeout(() => setTurnBlackout(false), 240);
       setOpportunityInterruptAcknowledged(false);
       setAlertMenuOpen(false);
+      const resolvedDay = next.day - 1;
+      if (source === "manual") {
+        setBattleLogFocusDay(resolvedDay);
+        setBattleLogUnreadDay(null);
+        window.dispatchEvent(
+          new CustomEvent("briefing-open-surface", {
+            detail: { module: "battle-log", focusDay: resolvedDay },
+          }),
+        );
+      } else {
+        // Automatic turnover: same authorized transition; unread affordance only (§4.15)
+        setBattleLogUnreadDay(resolvedDay);
+      }
       setSystemNotice(
         redeemed.turn.godMode
           ? `GODMODE TURN RESOLVED // DAY ${next.day} IS OPEN // UNLIMITED PROGRESSION REMAINS ENABLED`
           : source === "automatic"
-            ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN`
+            ? `DAILY TURNOVER COMPLETE // DAY ${next.day} IS OPEN · BATTLE LOG UPDATED`
             : `DAY RESOLVED // DAY ${next.day} IS OPEN // NEXT TURNOVER AT ACCOUNT MIDNIGHT`,
       );
       return true;
@@ -6278,6 +6293,9 @@ export default function Home({ logoutPath }: { logoutPath: string }) {
           remaining={clockText(remaining)}
           canResolve={canResolveDay}
           initialModule={gameModuleForPage(page)}
+          battleLogFocusDay={battleLogFocusDay}
+          battleLogUnreadDay={battleLogUnreadDay}
+          onBattleLogOpened={() => setBattleLogUnreadDay(null)}
           issue={issueConverged}
           issueDirective={issueDirective}
           resolveDay={advance}

@@ -35,6 +35,50 @@ const MANEUVERS = [
 const PHASES = ["contact", "compression", "exhaustion", "terminal"];
 const SHAPES = ["observation-reversal", "cost-ledger", "geometric-imperative"];
 const IMAGES = ["wire", "relay", "ford"];
+const ARCHETYPES = [
+  "siege-state",
+  "industrial-republic",
+  "conscription-directorate",
+  "mercantile-compact",
+  "officer-regency",
+  "ruined-federation",
+];
+const ADVERSARIES = ["attritional", "adaptive", "opportunist", "cautious"];
+const SECTORS_BY_THEATER = {
+  industrial: [
+    "hollow-relay-district",
+    "calder-foundry-belt",
+    "blackglass-rail-yards",
+    "cinder-ward",
+    "annealing-quarter",
+    "south-switch",
+  ],
+  lowland: [
+    "kesh-corridor",
+    "vell-plain",
+    "ossuary-mile",
+    "morrow-depot",
+    "calve-junction",
+    "saint-orsen-fields",
+  ],
+  ridge: [
+    "thorne-line",
+    "ash-spine",
+    "varren-steps",
+    "pilgrim-cut",
+    "redoubt-nine",
+    "talus-road",
+  ],
+  river: [
+    "dalca-crossing",
+    "neme-locks",
+    "charnel-ford",
+    "west-reach",
+    "upper-pool",
+    "ferry-nine",
+  ],
+};
+const ALL_SECTORS = Object.values(SECTORS_BY_THEATER).flat();
 
 const GEOMETRIES = [
   "crossings",
@@ -100,6 +144,10 @@ function buildRoutinePack() {
           theater: { values: [theater] },
           problemClass: { values: [problem] },
           heat: { values: ["hot", "medium"] },
+          sectorId: { values: SECTORS_BY_THEATER[theater] },
+          rhetoricalShape: { values: SHAPES },
+          imageFamily: { values: IMAGES },
+          mechanicId: { values: MANEUVERS.slice(0, 3) },
         },
       });
       n += 1;
@@ -141,6 +189,10 @@ function buildManeuverFrames() {
             maneuverId: { values: [maneuverId] },
             heat: { values: [heat] },
             frame: { values: [String(i + 1)] },
+            durationDays: { values: ["2", "3"] },
+            sectorId: { values: ALL_SECTORS },
+            problemClass: { values: PROBLEMS },
+            archetype: { values: ARCHETYPES },
           },
         });
       }
@@ -227,6 +279,10 @@ function buildRomanticPack() {
         phase: { values: [phase] },
         duration: { values: [String(durationDays)] },
         heat: { values: ["hot", "medium"] },
+        theater: { values: THEATERS },
+        sectorId: { values: ALL_SECTORS },
+        choicePath: { cardinality: 3 ** durationDays },
+        adversaryPersonality: { values: ADVERSARIES },
       },
     });
   }
@@ -268,6 +324,10 @@ function buildRomanticPack() {
       slotDomains: {
         phase: { values: [phase] },
         heat: { values: ["hot", "medium"] },
+        theater: { values: THEATERS },
+        sectorId: { values: ALL_SECTORS },
+        choicePath: { cardinality: 3 },
+        adversaryPersonality: { values: ADVERSARIES },
       },
     });
   }
@@ -297,6 +357,8 @@ function buildEscalatoryPack() {
         intensity: { values: ["standard"] },
         heat: { values: ["hot", "medium"] },
         index: { values: [String(i)] },
+        sectorId: { values: ALL_SECTORS },
+        archetype: { values: ARCHETYPES },
       },
     });
   }
@@ -319,6 +381,8 @@ function buildEscalatoryPack() {
         intensity: { values: ["maximum"] },
         heat: { values: ["hot", "medium"] },
         index: { values: [String(i)] },
+        sectorId: { values: ALL_SECTORS },
+        archetype: { values: ARCHETYPES },
       },
     });
   }
@@ -378,6 +442,8 @@ function buildDoomsdayPack() {
         family: { values: [family] },
         heat: { values: ["hot", "medium"] },
         outcome: { values: ["nonterminal", "near-miss", "terminal"] },
+        sectorId: { values: ALL_SECTORS },
+        archetype: { values: ARCHETYPES },
       },
     };
   });
@@ -387,6 +453,9 @@ function capacityOf(entry) {
   const domains = Object.values(entry.slotDomains ?? {});
   if (!domains.length) return 1;
   return domains.reduce((product, domain) => {
+    if (typeof domain.cardinality === "number") {
+      return product * Math.max(1, domain.cardinality);
+    }
     const card = domain.values?.length ?? 1;
     return product * card;
   }, 1);

@@ -17,6 +17,10 @@ import { ADDITIONAL_DIRECTIVE_FAMILIES, DIRECTIVE_CATEGORY_OVERRIDES, DIRECTIVE_
 import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-event-expansion";
 import { compileAllDailyDockets } from "./substrate/docket";
 import type { DocketRecord } from "./substrate/contracts";
+import {
+  compileExecutionScene,
+  type ExecutionScene,
+} from "./execution-scenes";
 
 export {
   CAMPAIGN_SEED_NAME_COUNT,
@@ -93,6 +97,9 @@ export type DailyResolutionRecord = {
   adversaryObserved:{estimatedForce:number;estimateLow:number;estimateHigh:number;observedOrders:string[];hiddenOrders:number;signals:string[]};
   personnel:{combatLosses:number;desertionAttempts:number;retained:number;intercepted:number;netDesertion:number;effectiveGraduates:number;deployableAssigned:number};
   outcome:{groundMovement:number;outcomeBand:OutcomeBand;doctrineGain:number;factsCreated:string[]};
+  /** §4.17 semantic prosecution — additive; absent on pre-025 restores. */
+  executionScene?:ExecutionScene;
+  realizationId?:string;
 };
 
 export type GameState = {
@@ -863,6 +870,19 @@ const validSubMissionHistoryRecord=(value:unknown):value is SubMissionHistoryRec
   if(!recordObject(value)||(value.domain!=="domestic"&&value.domain!=="network")||!finiteNumber(value.day)||typeof value.archetypeId!=="string"||subMissionArchetypeById(value.archetypeId)?.domain!==value.domain||typeof value.frameId!=="string"||subMissionFrameById(value.frameId)?.archetypeId!==value.archetypeId)return false;
   return typeof value.realizationId==="string"&&typeof value.contentId==="string"&&pressureBandValue(value.pressureBand)&&typeof value.category==="string"&&typeof value.resolutionTicket==="string"&&nullableString(value.optionId)&&nullableString(value.familyId)&&nullableString(value.choiceId)&&(value.outcome==="issued"||value.outcome==="lapsed");
 };
+const validExecutionScene=(value:unknown):value is ExecutionScene=>{
+  if(!recordObject(value)||typeof value.version!=="string"||!finiteNumber(value.resolvedDay)||typeof value.resolutionId!=="string"||typeof value.realizationId!=="string")return false;
+  if(!recordObject(value.mainThread)||!recordObject(value.operations)||!recordObject(value.production)||!recordObject(value.personnel))return false;
+  if(!recordObject(value.domestic)||!recordObject(value.network)||!recordObject(value.adversary)||!Array.isArray(value.residues)||!recordObject(value.nextDayCondition))return false;
+  if(value.doomsday!=null){
+    if(!recordObject(value.doomsday)||typeof value.doomsday.occurred!=="boolean")return false;
+    for(const key of Object.keys(value.doomsday)){
+      if(/roll/i.test(key)||/ppm/i.test(key))return false;
+    }
+  }
+  if(recordObject(value.adversary)&&"actualForce" in value.adversary)return false;
+  return true;
+};
 const validResolutionHistoryRecord=(value:unknown):value is DailyResolutionRecord=>{
   if(!recordObject(value)||value.schemaVersion!==1||!finiteNumber(value.resolvedDay)||typeof value.sector!=="string"||!recordObject(value.opening)||!recordObject(value.closing))return false;
   const orders=value.orders,operations=value.operations,production=value.production,forceGeneration=value.forceGeneration,domestic=value.domestic,diplomacy=value.diplomacy,observed=value.adversaryObserved,personnel=value.personnel,outcome=value.outcome;
@@ -870,7 +890,11 @@ const validResolutionHistoryRecord=(value:unknown):value is DailyResolutionRecor
   if(!recordObject(operations)||typeof operations.succeeded!=="boolean"||!finiteNumber(operations.enemyLosses)||!recordObject(production)||!Array.isArray(production.lines)||!production.lines.every(line=>recordObject(line)&&typeof line.resource==="string"&&finiteNumber(line.net)))return false;
   if(!recordObject(forceGeneration)||!recordObject(domestic)||!finiteNumber(domestic.legitimacyChange)||!finiteNumber(domestic.resistanceChange)||!recordObject(diplomacy))return false;
   if(!recordObject(observed)||!stringArray(observed.observedOrders)||!stringArray(observed.signals)||!recordObject(personnel)||!["combatLosses","desertionAttempts","retained","intercepted","netDesertion","effectiveGraduates","deployableAssigned"].every(field=>finiteNumber(personnel[field])))return false;
-  return recordObject(outcome)&&finiteNumber(outcome.groundMovement)&&typeof outcome.outcomeBand==="string"&&finiteNumber(outcome.doctrineGain)&&stringArray(outcome.factsCreated);
+  if(!(recordObject(outcome)&&finiteNumber(outcome.groundMovement)&&typeof outcome.outcomeBand==="string"&&finiteNumber(outcome.doctrineGain)&&stringArray(outcome.factsCreated)))return false;
+  // Restore compatibility: pre-025 records omit executionScene; when present it must validate.
+  if(value.executionScene!=null&&!validExecutionScene(value.executionScene))return false;
+  if(value.realizationId!=null&&typeof value.realizationId!=="string")return false;
+  return true;
 };
 
 export const restoreCampaignState=(value:unknown):GameState|null=>{
@@ -1157,7 +1181,62 @@ export const resolve = (state: GameState) => {
   s.eventHistory.unshift({day:s.day,phase:director.phase.label,event:director.event.label,eventId:director.event.id,calculusId:director.event.calculusId??director.event.id,trigger:director.trigger});
   const todayDirectives=s.decisions.filter(decision=>decision.day===s.day);
   for(const domain of campaignAlternateDomainsForState(s)){const mission=docket[domain];const issued=todayDirectives.find(decision=>decision.domain===domain&&decision.missionId===mission.contentId);s.subMissionHistory.unshift({day:s.day,domain,archetypeId:mission.archetypeId,frameId:mission.frameId,realizationId:mission.realizationId,contentId:mission.contentId,category:mission.category,pressureBand:mission.pressureBand,resolutionTicket:mission.resolutionTicket,optionId:issued?.choiceId??null,familyId:issued?.familyId??null,choiceId:issued?.choiceId??null,outcome:issued?"issued":"lapsed"});}
-  const closing=strategicSnapshot(s);s.resolutionHistory.unshift({schemaVersion:1,resolvedDay:s.day,phaseId:director.phase.id,eventId:director.event.id,sector:situation.sector,blueprintId:situation.blueprintId,opening,closing,orders:{used:DAILY_ORDERS-s.actions,unused:s.actions,maneuverId:maneuver?.id??null,directives:todayDirectives.map(decision=>({familyId:decision.familyId,choiceId:decision.choiceId,family:decision.family,choice:decision.choice,domain:decision.domain,missionId:decision.missionId}))},operations:operationResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,domestic:domesticResult.ledger,diplomacy:diplomacyResult.ledger,adversaryObserved:{estimatedForce:adversaryResult.ledger.estimatedForce,estimateLow:adversaryResult.ledger.estimateLow,estimateHigh:adversaryResult.ledger.estimateHigh,observedOrders:[...adversaryResult.ledger.observedOrders],hiddenOrders:adversaryResult.ledger.hiddenOrders,signals:[...adversaryResult.ledger.signals]},personnel:{combatLosses:losses,desertionAttempts:desert.desertion,retained:desert.retained,intercepted:desert.intercepted,netDesertion:desert.netDesertion,effectiveGraduates:forceResult.ledger.effectiveGraduates,deployableAssigned:forceResult.ledger.deployableAssigned},outcome:{groundMovement:move,outcomeBand,doctrineGain,factsCreated:aftermath.createdFacts.map(fact=>fact.id)}});
+  const closing=strategicSnapshot(s);
+  const resolutionId=`res:${s.campaignSeed}:${s.day}:${situation.blueprintId}`;
+  const residueIdsCreated=aftermath.createdFacts.map(fact=>fact.id);
+  const issuedChoiceIds=todayDirectives.map(decision=>decision.choiceId).filter((id):id is string=>typeof id==="string");
+  const lapsedOrderCount=campaignAlternateDomainsForState(s).filter(domain=>{
+    const mission=docket[domain];
+    return !todayDirectives.some(decision=>decision.domain===domain&&decision.missionId===mission.contentId);
+  }).length;
+  const productionDeltas=Object.fromEntries(
+    (productionResult.ledger.lines??[]).map((line:{resource:string;net:number})=>[line.resource,line.net]),
+  );
+  const shortageFlags=Object.entries(s.production)
+    .filter(([,line])=>line.stock<line.use*2)
+    .map(([resource])=>resource);
+  const executionScene=compileExecutionScene({
+    resolvedDay:s.day,
+    resolutionId,
+    sector:situation.sector,
+    sectorId:situation.sectorId??situation.blueprintId,
+    tier:"routine",
+    heat:s.day%2===0?"hot":"medium",
+    operationId:maneuver?`op:${maneuver.id}:${s.day}`:null,
+    maneuverId:maneuver?.id??"standing-tempo",
+    stageAdvanced:Boolean(maneuver),
+    operationStatus:maneuver?"completed":"standing",
+    friendlyLosses:losses,
+    materielLosses:Math.max(0,Math.round(losses/18000)),
+    groundMovement:move,
+    residueIdsCreated,
+    productionDeltas,
+    shortageFlags,
+    personnel:{combatLosses:losses,effectiveGraduates:forceResult.ledger.effectiveGraduates,netDesertion:desert.netDesertion},
+    readinessDelta:grads>losses?0.7:-1.2,
+    domestic:{
+      stabilityDelta:domesticResult.ledger.legitimacyChange??0,
+      moraleDelta:domesticResult.ledger.resistanceChange??0,
+      incidentIds:[],
+    },
+    networkTransitions:[],
+    adversary:{
+      posture:adversaryResult.ledger.signals?.[0]??"estimated",
+      estimateBand:"estimated",
+      disclosedEventIds:[...adversaryResult.ledger.observedOrders],
+    },
+    doomsday:{occurred:false},
+    residues:residueIdsCreated.map(residueId=>({
+      residueId,
+      sourceId:resolutionId,
+      createdDay:s.day,
+      expiresDay:s.day+3,
+    })),
+    projectedPressureMarkers:shortageFlags.length?["supply-pressure"]:[],
+    lapsedOrderCount,
+    issuedChoiceIds,
+  }) as ExecutionScene;
+  s.resolutionHistory.unshift({schemaVersion:1,resolvedDay:s.day,phaseId:director.phase.id,eventId:director.event.id,sector:situation.sector,blueprintId:situation.blueprintId,opening,closing,orders:{used:DAILY_ORDERS-s.actions,unused:s.actions,maneuverId:maneuver?.id??null,directives:todayDirectives.map(decision=>({familyId:decision.familyId,choiceId:decision.choiceId,family:decision.family,choice:decision.choice,domain:decision.domain,missionId:decision.missionId}))},operations:operationResult.ledger,production:productionResult.ledger,forceGeneration:forceResult.ledger,domestic:domesticResult.ledger,diplomacy:diplomacyResult.ledger,adversaryObserved:{estimatedForce:adversaryResult.ledger.estimatedForce,estimateLow:adversaryResult.ledger.estimateLow,estimateHigh:adversaryResult.ledger.estimateHigh,observedOrders:[...adversaryResult.ledger.observedOrders],hiddenOrders:adversaryResult.ledger.hiddenOrders,signals:[...adversaryResult.ledger.signals]},personnel:{combatLosses:losses,desertionAttempts:desert.desertion,retained:desert.retained,intercepted:desert.intercepted,netDesertion:desert.netDesertion,effectiveGraduates:forceResult.ledger.effectiveGraduates,deployableAssigned:forceResult.ledger.deployableAssigned},outcome:{groundMovement:move,outcomeBand,doctrineGain,factsCreated:aftermath.createdFacts.map(fact=>fact.id)},executionScene,realizationId:executionScene.realizationId});
   s.day+=1; s.actions=DAILY_ORDERS; s.maneuver=null;s.currentSituation=null; s.reports.unshift({ day:s.day, ...dispatch, epigraph:director.event.quote });
   const resolvedDay=s.day-1,terminalResolutionOpen=resolvedDay>=balance.designHorizonDay;
   if(s.front>=12&&s.victorySecuredDay===null)s.victorySecuredDay=resolvedDay;

@@ -144,6 +144,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -243,6 +290,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }
@@ -436,6 +530,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -582,6 +723,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -681,6 +869,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }
@@ -874,6 +1109,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -1020,6 +1302,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -1119,6 +1448,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }
@@ -1312,6 +1688,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -1458,6 +1881,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 9
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -1557,6 +2027,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }
@@ -1750,6 +2267,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 27
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -1835,6 +2399,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }
@@ -1922,6 +2533,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -2008,6 +2666,53 @@
             "hot",
             "medium"
           ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
+          ]
         }
       }
     },
@@ -2093,6 +2798,53 @@
           "values": [
             "hot",
             "medium"
+          ]
+        },
+        "theater": {
+          "values": [
+            "industrial",
+            "lowland",
+            "ridge",
+            "river"
+          ]
+        },
+        "sectorId": {
+          "values": [
+            "hollow-relay-district",
+            "calder-foundry-belt",
+            "blackglass-rail-yards",
+            "cinder-ward",
+            "annealing-quarter",
+            "south-switch",
+            "kesh-corridor",
+            "vell-plain",
+            "ossuary-mile",
+            "morrow-depot",
+            "calve-junction",
+            "saint-orsen-fields",
+            "thorne-line",
+            "ash-spine",
+            "varren-steps",
+            "pilgrim-cut",
+            "redoubt-nine",
+            "talus-road",
+            "dalca-crossing",
+            "neme-locks",
+            "charnel-ford",
+            "west-reach",
+            "upper-pool",
+            "ferry-nine"
+          ]
+        },
+        "choicePath": {
+          "cardinality": 3
+        },
+        "adversaryPersonality": {
+          "values": [
+            "attritional",
+            "adaptive",
+            "opportunist",
+            "cautious"
           ]
         }
       }

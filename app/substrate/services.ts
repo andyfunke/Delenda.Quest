@@ -704,6 +704,61 @@ export const dispatchCanonicalCommand = (
       const evaluated = evaluateChoices(ctx, state, command.targetIds ?? [], command.posture);
       return { state, response: evaluated };
     }
+    case "BATTLE_LOG":
+    case "SERVICE_RECORD": {
+      const active =
+        Boolean(ctx.campaignId) &&
+        ctx.campaignId !== "none" &&
+        state.status === "active";
+      if (!active && !(state.resolutionHistory?.length > 0)) {
+        return {
+          state,
+          response: ok(
+            state,
+            {
+              notice:
+                "No active campaign; completed campaigns live under Account → Campaign Records.",
+            },
+            {
+              compact: "NO ACTIVE CAMPAIGN",
+              brief:
+                "No active campaign; completed campaigns live under Account → Campaign Records.",
+            },
+          ),
+        };
+      }
+      const entries = (state.resolutionHistory ?? []).map((record) => ({
+        day: record.resolvedDay,
+        sector: record.sector,
+        semanticId:
+          record.executionScene?.resolutionId ?? `res:${record.resolvedDay}`,
+        realizationId:
+          record.realizationId ?? record.executionScene?.realizationId ?? null,
+        tier: record.executionScene?.mainThread?.tier ?? "routine",
+        heat: record.executionScene?.mainThread?.heat ?? null,
+        losses: record.personnel?.combatLosses ?? 0,
+        movement: record.outcome?.groundMovement ?? 0,
+      }));
+      return {
+        state,
+        response: ok(
+          state,
+          { topic: "battle-log", entries },
+          {
+            compact: `BATTLE LOG // ${entries.length} DAYS`,
+            brief: entries.length
+              ? entries
+                  .slice(0, 5)
+                  .map(
+                    (entry) =>
+                      `Day ${entry.day} · ${entry.sector} · ${entry.semanticId}`,
+                  )
+                  .join(" · ")
+              : "Battle Log empty.",
+          },
+        ),
+      };
+    }
     case "WHOAMI":
       return {
         state,
