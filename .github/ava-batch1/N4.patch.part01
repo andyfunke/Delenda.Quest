@@ -1,0 +1,97 @@
+/contextual-language-projection.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_PROJECTION_BUNDLE" >/dev/null
+ DELENDA_INTRUSION_LIBRARY_BUNDLE="file://$INTRUSION_LIBRARY_BUNDLE" node --test tests/intrusion-library.test.mjs
+ DELENDA_AVA_INLINE_TOKENS_BUNDLE="file://$INLINE_TOKENS_BUNDLE" node --test tests/ava-inline-tokens.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" node --test tests/ava-contextual-language-contracts.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" DELENDA_AVA_CONTEXTUAL_CATALOG_BUNDLE="file://$CONTEXTUAL_CATALOG_BUNDLE" node --test tests/ava-contextual-language-catalog.test.mjs
+ DELENDA_PRIORITIES_BUNDLE="file://$PRIORITIES_BUNDLE" node --test tests/priorities-contextual-intent.test.mjs
++DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE="file://$CONTEXTUAL_PROJECTION_BUNDLE" DELENDA_AVA_GAME_BUNDLE="file://$GAME_BUNDLE" DELENDA_AVA_CONTEXT_BUNDLE="file://$CONTEXT_BUNDLE" node --test tests/ava-contextual-language-projection.test.mjs
+ DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+ DELENDA_AVA_CHAT_EXPORT_BUNDLE="file://$CHAT_EXPORT_BUNDLE" node --test tests/ava-chat-export.test.mjs
+ DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
+diff --git a/tests/ava-contextual-language-projection.test.mjs b/tests/ava-contextual-language-projection.test.mjs
+new file mode 100644
+index 0000000..4a665de
+--- /dev/null
++++ b/tests/ava-contextual-language-projection.test.mjs
+@@ -0,0 +1,81 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++
++const projectionModule = await import(
++  process.env.DELENDA_AVA_CONTEXTUAL_PROJECTION_BUNDLE
++);
++const gameModule = await import(process.env.DELENDA_AVA_GAME_BUNDLE);
++const contextModule = await import(process.env.DELENDA_AVA_CONTEXT_BUNDLE);
++
++const { buildAvaContextualLanguage } = projectionModule;
++const { initialState } = gameModule;
++const { avaEntitiesForState } = contextModule;
++
++const clone = (value) => structuredClone(value);
++
++const languageFor = (state) => {
++  const entities = avaEntitiesForState(state);
++  return { language: buildAvaContextualLanguage(state, entities), entities };
++};
++
++test("contextual projection is deterministic and state-bound", () => {
++  const state = initialState({ seed: 1729 });
++  const before = clone(state);
++  const first = languageFor(state).language;
++  const second = languageFor(state).language;
++  assert.deepEqual(first, second);
++  assert.deepEqual(state, before);
++
++  const changed = clone(state);
++  changed.currentSituation = {
++    ...changed.currentSituation,
++    sector: `${changed.currentSituation.sector} / changed`,
++  };
++  const changedLanguage = languageFor(changed).language;
++  assert.notEqual(first.contentRevision, changedLanguage.contentRevision);
++  assert.notEqual(first.digest, changedLanguage.digest);
++});
++
++test("objective language and entity use disclosed current situation only", () => {
++  const state = initialState({ seed: 1729 });
++  const { language, entities } = languageFor(state);
++  const objective = language.entries.find((entry) => entry.id === "objective.current");
++  const objectiveEntity = entities.find((entity) => entity.id === "campaign-objective");
++  assert.ok(objective);
++  assert.equal(objective.route, "OBJECTIVE_EXPLANATION");
++  assert.equal(objective.entityId, "campaign-objective");
++  assert.ok(objectiveEntity);
++  assert.equal(objectiveEntity.kind, "mission");
++  assert.equal(objectiveEntity.action, undefined);
++
++  const withoutSituation = clone(state);
++  withoutSituation.currentSituation = null;
++  const missing = languageFor(withoutSituation);
++  assert.equal(
++    missing.language.entries.some((entry) => entry.id === "objective.current"),
++    false,
++  );
++  assert.equal(
++    missing.entities.some((entity) => entity.id === "campaign-objective"),
++    false,
++  );
++});
++
++test("contextual projection excludes hidden and mutation-bearing state", () => {
++  const state = initialState({ seed: 1729 });
++  const before = {
++    day: state.day,
++    actions: state.actions,
++    decisions: clone(state.decisions),
++    preparedOrders: clone(state.preparedOrders),
++  };
++  const { language } = languageFor(state);
++  const serialized = JSON.stringify(language);
++  assert.equal(serialized.includes("resolutionTicket"), false);
++  assert.equal(serialized.includes(String(state.campaignSeed)), false);
++  assert.equal(serialized.includes("preparedOrders"), false);
++  assert.equal(state.day, before.day);
++  assert.equal(state.actions, before.actions);
++  assert.deepEqual(state.decisions, before.decisions);
++  assert.deepEqual(state.preparedOrders, before.preparedOrders);
++});

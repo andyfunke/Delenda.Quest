@@ -1,0 +1,99 @@
+="$receipt_remote"
+test -z "$(git status --short)"
+
+echo "NODE-02 Declare Ava contextual language catalog"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+cp .github/ava-batch1/N2.patch /tmp/N2.patch
+python - <<'PATCH'
+from pathlib import Path
+p = Path("/tmp/N2.patch")
+s = p.read_text()
+s = s.replace(
+    ' import type { PriorityAxis } from "../../packages/priorities-library/src/schema";\n import type { AvaReportTopic } from "./schema";\n',
+    ' type PriorityAxis = import("../../packages/priorities-library/src/schema").PriorityAxis;\n type AvaReportTopic = import("./schema").AvaReportTopic;\n',
+)
+p.write_text(s)
+PATCH
+git apply --index --whitespace=error-all "/tmp/N2.patch"
+cat > /tmp/N2.manifest <<'EOF'
+app/ava/contextual-language-catalog.ts
+app/ava/contextual-language.ts
+scripts/test-ava.sh
+tests/ava-contextual-language-catalog.test.mjs
+EOF
+verify_manifest /tmp/N2.manifest
+validate_all
+git commit -m "Declare Ava contextual language catalog"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Declare Ava contextual language catalog" "app/ava/contextual-language-catalog.ts" "app/ava/contextual-language.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-catalog.test.mjs")"
+append_receipt "2" "Declare Ava contextual language catalog" "$remote_parent" "$completed_remote" "Declare exact normalized contextual vocabulary as deterministic data." "app/ava/contextual-language-catalog.ts, app/ava/contextual-language.ts, scripts/test-ava.sh, tests/ava-contextual-language-catalog.test.mjs" "Contextual surface normalization, canonical digesting, collision detection, and typed static ownership." "ava-contextual-language-catalog.test.mjs" "No formation, reserve, route, opening, authored indexing, or compiler branches." "NODE-03: lower declared priority axes through the package-owned priority compiler."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAGE-N2 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N2 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent="$receipt_remote"
+test -z "$(git status --short)"
+
+echo "NODE-03 Lower declared contextual priorities"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+git apply --index --whitespace=error-all ".github/ava-batch1/N3.patch"
+cat > /tmp/N3.manifest <<'EOF'
+packages/priorities-library/src/catalog/index.ts
+packages/priorities-library/src/compiler.ts
+packages/priorities-library/src/index.ts
+scripts/test-ava.sh
+tests/priorities-contextual-intent.test.mjs
+EOF
+verify_manifest /tmp/N3.manifest
+validate_all
+git commit -m "Lower declared contextual priorities"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Lower declared contextual priorities" "packages/priorities-library/src/catalog/index.ts" "packages/priorities-library/src/compiler.ts" "packages/priorities-library/src/index.ts" "scripts/test-ava.sh" "tests/priorities-contextual-intent.test.mjs")"
+append_receipt "3" "Lower declared contextual priorities" "$remote_parent" "$completed_remote" "Restore a bounded package-owned priority catalog and lower declared axes without Ava-side fabrication." "packages/priorities-library/src/catalog/index.ts, packages/priorities-library/src/compiler.ts, packages/priorities-library/src/index.ts, scripts/test-ava.sh, tests/priorities-contextual-intent.test.mjs" "Deterministic attack/territory axis ownership, declared focus compilation, signals, and chord identity." "priorities-contextual-intent.test.mjs" "No campaign mutation or generalized priority generation." "NODE-04: project current objective language from disclosed state."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAGE-N3 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N3 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent="$receipt_remote"
+test -z "$(git status --short)"
+
+echo "NODE-04 Project Ava contextual language from current state"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+cat .github/ava-batch1/N4.patch.part* > "/tmp/N4.patch"
+git apply --index --whitespace=error-all "/tmp/N4.patch"
+cat > /tmp/N4.manifest <<'EOF'
+app/ava/contextual-language-projection.ts
+app/ava/game-context.ts
+scripts/test-ava.sh
+tests/ava-contextual-language-projection.test.mjs
+EOF
+verify_manifest /tmp/N4.manifest
+validate_all
+git commit -m "Project Ava contextual language from current state"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Project Ava contextual language from current state" "app/ava/contextual-language-projection.ts" "app/ava/game-context.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-projection.test.mjs")"
+append_receipt "4" "Project Ava contextual language from current state" "$remote_parent" "$completed_remote" "Project the static catalog and current disclosed operational objective into a state-bound language artifact." "app/ava/contextual-language-projection.ts, app/ava/game-context.ts, scripts/test-ava.sh, tests/ava-contextual-language-projection.test.mjs" "Non-action campaign-objective entity, current objective entry, state/content revisions, and deterministic projection digest." "ava-contextual-language-projection.test.mjs" "No operational target table, prose indexing, hidden state, or mutation." "NODE-05: exact contextual matching and lowering into existing instructions."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAGE-N4 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N4 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent="$receipt_remote"
+test -z "$(git status --short)"
+
+echo "NODE-05 Compile and lower contextual Ava language"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+cat .github/ava-batch1/N5.patch.part* > "/tmp/N5.patch"
+git apply --index --whitespace=error-all "/tmp/N5.patch"
+cat > /tmp/N5.manifest <<'EOF'
+app/ava/compiler.ts
+app/ava/contextual-language-compiler.ts
+scripts/test-ava.sh
+tests/ava-contextual-language-compiler.test.mjs
+EOF
+verify_manifest /tmp/N5.manifest
+validate_all
+git commit -m "Compile and lower contextual Ava language"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Compile and lower contextual Ava language" "app/ava/compiler.ts" "app/ava/contextual-language-compiler.ts" "scripts/test-ava.sh" "tests/ava-contextual-language-compiler.test.mjs")"
+append_receipt "5" "Compile and lower contextual Ava language" "$remote_parent" "$completed_remote" "Compile exact contextual matches into existing ADVISE, REPORT, and EXPLAIN semantics." "app/ava/compiler.ts, app/ava/contextual-language-compiler.ts, scripts/test-ava.sh, tests/ava-contextual-language-compiler.test.mjs" "Exact index matching, deterministic source precedence, structured ambiguity, typed lowering, and trace provenance." "ava-contextual-language-compiler.test.mjs" "No fuzzy matchin

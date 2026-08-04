@@ -1,0 +1,236 @@
+diff --git a/packages/priorities-library/src/catalog/index.ts b/packages/priorities-library/src/catalog/index.ts
+new file mode 100644
+index 0000000..aa4d658
+--- /dev/null
++++ b/packages/priorities-library/src/catalog/index.ts
+@@ -0,0 +1,41 @@
++import type { PriorityAxis, PriorityChord } from "../schema";
++
++export type PriorityAxisDefinition = {
++  id: PriorityAxis;
++  signals: readonly string[];
++};
++
++export const PRIORITY_AXIS_CATALOG: readonly PriorityAxisDefinition[] =
++  Object.freeze([
++    Object.freeze({
++      id: "attack",
++      signals: Object.freeze([
++        "attack",
++        "advance",
++        "advancing",
++        "break through",
++        "breakthrough",
++        "offense",
++        "offensive",
++      ]),
++    }),
++    Object.freeze({
++      id: "territory",
++      signals: Object.freeze([
++        "territory",
++        "ground",
++        "front",
++        "front line",
++        "territorial",
++      ]),
++    }),
++  ]);
++
++export const PRIORITY_CHORDS: readonly PriorityChord[] = Object.freeze([
++  Object.freeze({ id: "attack", axes: Object.freeze(["attack"]) }),
++  Object.freeze({
++    id: "attack>territory",
++    axes: Object.freeze(["attack", "territory"]),
++  }),
++  Object.freeze({ id: "territory", axes: Object.freeze(["territory"]) }),
++]);
+diff --git a/packages/priorities-library/src/compiler.ts b/packages/priorities-library/src/compiler.ts
+new file mode 100644
+index 0000000..ac84187
+--- /dev/null
++++ b/packages/priorities-library/src/compiler.ts
+@@ -0,0 +1,71 @@
++import { PRIORITY_AXIS_CATALOG, PRIORITY_CHORDS } from "./catalog/index";
++import {
++  PRIORITY_SCHEMA_VERSION,
++  type CompiledPriorityIntent,
++  type PriorityAxis,
++  type PrioritySignal,
++} from "./schema";
++
++export const normalizePriorityInput = (raw: string): string =>
++  raw
++    .normalize("NFKC")
++    .toLowerCase()
++    .replace(/[’‘]/g, "'")
++    .replace(/[^\p{L}\p{N}']+/gu, " ")
++    .trim()
++    .replace(/\s+/g, " ");
++
++const catalogAxes = new Set<PriorityAxis>(
++  PRIORITY_AXIS_CATALOG.map((definition) => definition.id),
++);
++
++const matchedSignals = (normalizedInput: string): PrioritySignal[] => {
++  const padded = ` ${normalizedInput} `;
++  return PRIORITY_AXIS_CATALOG.flatMap((definition) =>
++    definition.signals
++      .filter((surface) => padded.includes(` ${normalizePriorityInput(surface)} `))
++      .map((surface) => ({ axis: definition.id, surface })),
++  );
++};
++
++export const compileDeclaredPriorityFocus = (
++  axes: readonly PriorityAxis[],
++  surface: string,
++): CompiledPriorityIntent => {
++  const normalizedInput = normalizePriorityInput(surface);
++  if (!normalizedInput)
++    throw new Error("declared priority focus requires a non-empty surface");
++  if (!axes.length)
++    throw new Error("declared priority focus requires at least one axis");
++  if (axes.length > 4)
++    throw new Error("declared priority focus supports at most four axes");
++  if (new Set(axes).size !== axes.length)
++    throw new Error("declared priority focus axes must be unique");
++  for (const axis of axes)
++    if (!catalogAxes.has(axis)) throw new Error(`invalid priority axis ${axis}`);
++
++  const requestedAxes = new Set(axes);
++  const orderedAxes = PRIORITY_AXIS_CATALOG.map((definition) => definition.id).filter(
++    (axis) => requestedAxes.has(axis),
++  );
++  const signals = matchedSignals(normalizedInput).filter((signal) =>
++    requestedAxes.has(signal.axis),
++  );
++  const chordId = orderedAxes.join(">");
++  const chord = PRIORITY_CHORDS.find((candidate) => candidate.id === chordId) ?? null;
++  if (!chord)
++    throw new Error(`no declared priority chord owns ${chordId}`);
++
++  return {
++    schemaVersion: PRIORITY_SCHEMA_VERSION,
++    normalizedInput,
++    requested: true,
++    axes: [...orderedAxes],
++    orderedAxes: [...orderedAxes],
++    signals,
++    chord,
++    ignoredNegation: normalizedInput
++      .split(" ")
++      .some((token) => ["no", "not", "never", "dont", "don't"].includes(token)),
++  };
++};
+diff --git a/packages/priorities-library/src/index.ts b/packages/priorities-library/src/index.ts
+new file mode 100644
+index 0000000..eaad4b2
+--- /dev/null
++++ b/packages/priorities-library/src/index.ts
+@@ -0,0 +1,16 @@
++export {
++  PRIORITY_AXIS_CATALOG,
++  PRIORITY_CHORDS,
++  type PriorityAxisDefinition,
++} from "./catalog/index";
++export {
++  compileDeclaredPriorityFocus,
++  normalizePriorityInput,
++} from "./compiler";
++export {
++  PRIORITY_SCHEMA_VERSION,
++  type CompiledPriorityIntent,
++  type PriorityAxis,
++  type PriorityChord,
++  type PrioritySignal,
++} from "./schema";
+diff --git a/scripts/test-ava.sh b/scripts/test-ava.sh
+index 6f9835c..9bfe2ee 100755
+--- a/scripts/test-ava.sh
++++ b/scripts/test-ava.sh
+@@ -15,7 +15,8 @@ INTRUSION_LIBRARY_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-intrusion-library.XXXXX
+ INLINE_TOKENS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-inline-tokens.XXXXXX.mjs")"
+ CONTEXTUAL_LANGUAGE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-language.XXXXXX.mjs")"
+ CONTEXTUAL_CATALOG_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-contextual-catalog.XXXXXX.mjs")"
+-trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE"' EXIT
++PRIORITIES_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-priorities-contextual.XXXXXX.mjs")"
++trap 'rm -f "$BUNDLE" "$REPORTS_BUNDLE" "$GAME_BUNDLE" "$TERMINAL_BUNDLE" "$RUNTIME_BUNDLE" "$CONTEXT_BUNDLE" "$INTERFACE_BUNDLE" "$CHAT_EXPORT_BUNDLE" "$INTRUSION_LIBRARY_BUNDLE" "$INLINE_TOKENS_BUNDLE" "$CONTEXTUAL_LANGUAGE_BUNDLE" "$CONTEXTUAL_CATALOG_BUNDLE" "$PRIORITIES_BUNDLE"' EXIT
+ 
+ node_modules/.bin/esbuild app/ava/compiler.ts --bundle --platform=node --format=esm --outfile="$BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/reports.ts --bundle --platform=node --format=esm --outfile="$REPORTS_BUNDLE" >/dev/null
+@@ -29,10 +30,12 @@ node_modules/.bin/esbuild packages/intrusion-library/src/index.ts --bundle --pla
+ node_modules/.bin/esbuild app/ava/inline-tokens.ts --bundle --platform=node --format=esm --outfile="$INLINE_TOKENS_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/contextual-language.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_LANGUAGE_BUNDLE" >/dev/null
+ node_modules/.bin/esbuild app/ava/contextual-language-catalog.ts --bundle --platform=node --format=esm --outfile="$CONTEXTUAL_CATALOG_BUNDLE" >/dev/null
++node_modules/.bin/esbuild packages/priorities-library/src/index.ts --bundle --platform=node --format=esm --outfile="$PRIORITIES_BUNDLE" >/dev/null
+ DELENDA_INTRUSION_LIBRARY_BUNDLE="file://$INTRUSION_LIBRARY_BUNDLE" node --test tests/intrusion-library.test.mjs
+ DELENDA_AVA_INLINE_TOKENS_BUNDLE="file://$INLINE_TOKENS_BUNDLE" node --test tests/ava-inline-tokens.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" node --test tests/ava-contextual-language-contracts.test.mjs
+ DELENDA_AVA_CONTEXTUAL_LANGUAGE_BUNDLE="file://$CONTEXTUAL_LANGUAGE_BUNDLE" DELENDA_AVA_CONTEXTUAL_CATALOG_BUNDLE="file://$CONTEXTUAL_CATALOG_BUNDLE" node --test tests/ava-contextual-language-catalog.test.mjs
++DELENDA_PRIORITIES_BUNDLE="file://$PRIORITIES_BUNDLE" node --test tests/priorities-contextual-intent.test.mjs
+ DELENDA_AVA_BUNDLE="file://$BUNDLE" node --test tests/ava-compiler.test.mjs
+ DELENDA_AVA_CHAT_EXPORT_BUNDLE="file://$CHAT_EXPORT_BUNDLE" node --test tests/ava-chat-export.test.mjs
+ DELENDA_INTERFACE_BUNDLE="file://$INTERFACE_BUNDLE" node --test tests/interface-switch.test.mjs
+diff --git a/tests/priorities-contextual-intent.test.mjs b/tests/priorities-contextual-intent.test.mjs
+new file mode 100644
+index 0000000..ee906e8
+--- /dev/null
++++ b/tests/priorities-contextual-intent.test.mjs
+@@ -0,0 +1,57 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++
++const priorities = await import(process.env.DELENDA_PRIORITIES_BUNDLE);
++const {
++  PRIORITY_AXIS_CATALOG,
++  PRIORITY_SCHEMA_VERSION,
++  compileDeclaredPriorityFocus,
++} = priorities;
++
++test("declared territory focus uses the authoritative priority schema", () => {
++  const intent = compileDeclaredPriorityFocus(["territory"], "gain territory");
++  assert.equal(intent.schemaVersion, PRIORITY_SCHEMA_VERSION);
++  assert.deepEqual(intent.axes, ["territory"]);
++  assert.deepEqual(intent.orderedAxes, ["territory"]);
++  assert.equal(intent.chord.id, "territory");
++  assert.deepEqual(intent.signals, [{ axis: "territory", surface: "territory" }]);
++});
++
++test("declared advance focus preserves a declared axis without lexical fabrication", () => {
++  const intent = compileDeclaredPriorityFocus(
++    ["attack", "territory"],
++    "advance",
++  );
++  assert.deepEqual(intent.axes, ["attack", "territory"]);
++  assert.deepEqual(intent.orderedAxes, ["attack", "territory"]);
++  assert.equal(intent.chord.id, "attack>territory");
++  assert.deepEqual(intent.signals, [{ axis: "attack", surface: "advance" }]);
++});
++
++test("declared priority focus rejects invalid declarations", () => {
++  assert.throws(() => compileDeclaredPriorityFocus([], "advance"), /at least one/i);
++  assert.throws(
++    () => compileDeclaredPriorityFocus(["territory", "territory"], "advance"),
++    /unique/i,
++  );
++  assert.throws(
++    () => compileDeclaredPriorityFocus(["unknown"], "advance"),
++    /invalid priority axis/i,
++  );
++  assert.throws(
++    () =>
++      compileDeclaredPriorityFocus(
++        ["attack", "territory", "attack", "territory", "attack"],
++        "advance",
++      ),
++    /at most four/i,
++  );
++});
++
++test("declared priority focus is deterministic and does not mutate the catalog", () => {
++  const before = JSON.stringify(PRIORITY_AXIS_CATALOG);
++  const first = compileDeclaredPriorityFocus(["attack", "territory"], "advance");
++  const second = compileDeclaredPriorityFocus(["territory", "attack"], "advance");
++  assert.deepEqual(first, second);
++  assert.equal(JSON.stringify(PRIORITY_AXIS_CATALOG), before);
++});

@@ -1,0 +1,117 @@
+ tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs tests/ava-contextual-language-live.test.mjs tests/ava-contextual-language-mutation.test.mjs
+diff --git a/tests/ava-contextual-language-live.test.mjs b/tests/ava-contextual-language-live.test.mjs
+new file mode 100644
+index 0000000..883b506
+--- /dev/null
++++ b/tests/ava-contextual-language-live.test.mjs
+@@ -0,0 +1,49 @@
++import assert from "node:assert/strict";
++import test from "node:test";
++
++const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
++const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
++
++const state = game.initialState({ seed: 1729 });
++const ctxFor = (surface = "web") => ({
++  playerId: "contextual-language-player",
++  campaignId: state.campaignId,
++  campaignRevision: nexus.avaNexusStateRevision(state),
++  surface,
++  authority: "command",
++  nowMs: 1_700_010_000_000,
++});
++
++const run = (input, session = nexus.createAvaNexusSession()) =>
++  nexus.runAvaNexusLine(input, ctxFor(), state, session);
++
++for (const [input, kind, detail] of [
++  ["gain territory", "ADVISE", ["territory"]],
++  ["advance", "ADVISE", ["attack", "territory"]],
++  ["kilometers", "EXPLAIN", "front"],
++  ["front", "EXPLAIN", "front"],
++  ["enemy position", "REPORT", "adversary"],
++  ["condition", "REPORT", "overview"],
++  ["attrition", "REPORT", "losses"],
++  ["goals", "EXPLAIN", "campaign-objective"],
++  ["strategy", "ADVISE", null],
++]) {
++  test(`${input} compiles through the real Nexus boundary`, () => {
++    const before = structuredClone(state);
++    const result = run(input);
++    assert.equal(result.compile?.status, "compiled");
++    assert.equal(result.compile.instruction.kind, kind);
++    assert.match(result.compile.trace.rule, /^CONTEXTUAL_LANGUAGE:/);
++    if (kind === "ADVISE" && detail)
++      assert.deepEqual(result.compile.instruction.priorityIntent.axes, detail);
++    if (kind === "EXPLAIN")
++      assert.equal(result.compile.instruction.entity.id, detail);
++    if (kind === "REPORT") assert.equal(result.compile.instruction.topic, detail);
++    assert.deepEqual(result.state, before);
++  });
++}
++
++test("condition has one contextual owner", () => {
++  const result = run("condition");
++  assert.equal(result.compile?.trace.rule, "CONTEXTUAL_LANGUAGE:report.overview");
++});
+diff --git a/tests/ava-contextual-language-mutation.test.mjs b/tests/ava-contextual-language-mutation.test.mjs
+new file mode 100644
+index 0000000..6310576
+--- /dev/null
++++ b/tests/ava-contextual-language-mutation.test.mjs
+@@ -0,0 +1,55 @@
++import assert from "node:assert/strict";
++import test from "node:test";
++
++const game = await import(process.env.DELENDA_SUBSTRATE_GAME_BUNDLE);
++const nexus = await import(process.env.DELENDA_AVA_NEXUS_BUNDLE);
++
++const state = game.initialState({ seed: 1729 });
++const ctx = {
++  playerId: "contextual-mutation-player",
++  campaignId: state.campaignId,
++  campaignRevision: nexus.avaNexusStateRevision(state),
++  surface: "web",
++  authority: "command",
++  nowMs: 1_700_010_000_000,
++};
++
++const run = (input, session = nexus.createAvaNexusSession()) =>
++  nexus.runAvaNexusLine(input, ctx, state, session);
++
++for (const input of [
++  "gain territory",
++  "advance",
++  "front",
++  "kilometers",
++  "enemy position",
++  "condition",
++  "strategy",
++  "goals",
++]) {
++  test(`${input} is read-only`, () => {
++    const session = nexus.createAvaNexusSession();
++    const beforeState = structuredClone(state);
++    const beforePlan = structuredClone(session.terminal.plan);
++    const result = run(input, session);
++    assert.deepEqual(result.state, beforeState);
++    assert.deepEqual(result.session.terminal.plan, beforePlan);
++    assert.notEqual(result.envelope.instructionKind, "RESOLVE_DAY");
++  });
++}
++
++for (const input of [
++  "stage advance",
++  "prepare gain territory",
++  "issue advance",
++  "do not advance",
++  "confirm advance",
++  "resolve the front",
++]) {
++  test(`${input} is never captured as contextual advice`, () => {
++    const result = run(input);
++    assert.notEqual(result.compile?.trace.rule, "CONTEXTUAL_LANGUAGE:priority.advance");
++    assert.notEqual(result.compile?.trace.rule, "CONTEXTUAL_LANGUAGE:priority.territory");
++    assert.equal(result.envelope.instructionKind === "RESOLVE_DAY", false);
++  });
++}

@@ -1,0 +1,214 @@
+diff --git a/app/ava/compiler.ts b/app/ava/compiler.ts
+index d093e3c..f3e71f4 100644
+--- a/app/ava/compiler.ts
++++ b/app/ava/compiler.ts
+@@ -46,6 +46,7 @@ export type {
+   GrammarSpec,
+ } from "./grammar";
+ export { AVA_COMMAND_HELP } from "./schema";
++export { compileAvaContextualLanguage } from "./contextual-language-compiler";
+ export {
+   validateContextualLanguage,
+   validateLanguageEntries,
+diff --git a/app/ava/contextual-language-compiler.ts b/app/ava/contextual-language-compiler.ts
+new file mode 100644
+index 0000000..b7174ff
+--- /dev/null
++++ b/app/ava/contextual-language-compiler.ts
+@@ -0,0 +1,225 @@
++import { compileDeclaredPriorityFocus } from "../../packages/priorities-library/src";
++import {
++  normalizeAvaLanguageSurface,
++  type AvaLanguageEntry,
++} from "./contextual-language";
++import { genericSemanticQuery } from "./grammar";
++import type {
++  AvaCompileResult,
++  AvaCompilerContext,
++  AvaCompilerTrace,
++  AvaInstruction,
++  AvaSemanticQuery,
++} from "./schema";
++
++const destinationSignature = (entry: AvaLanguageEntry): string =>
++  JSON.stringify({
++    route: entry.route,
++    entityId: entry.entityId ?? null,
++    reportTopic: entry.reportTopic ?? null,
++    facet: entry.facet ?? null,
++    priorityAxes: entry.priorityAxes ? [...entry.priorityAxes] : null,
++  });
++
++const sourcePriority: Record<AvaLanguageEntry["source"], number> = {
++  CURRENT_SITUATION: 0,
++  CURRENT_METRIC: 1,
++  CURRENT_ACTION: 2,
++  AUTHORED_BRIEF: 3,
++  STATIC_CATALOG: 4,
++};
++
++const interactionFor = (normalized: string): AvaCompilerTrace["interaction"] =>
++  /^(?:what|why|how|where|when|who|which|tell me|give me|explain)\b/.test(
++    normalized,
++  )
++    ? "open-ended"
++    : "explicit";
++
++const traceFor = (
++  raw: string,
++  normalized: string,
++  entry: AvaLanguageEntry,
++  semanticQuery: AvaSemanticQuery,
++  entityKinds: AvaCompilerTrace["entityKinds"],
++): AvaCompilerTrace => {
++  const normalizedTokens = normalized ? normalized.split(" ") : [];
++  return {
++    rule: `CONTEXTUAL_LANGUAGE:${entry.id}`,
++    rawInput: raw,
++    interaction: interactionFor(normalized),
++    normalizedInput: normalized,
++    normalizedTokens,
++    recognizedConcepts: [
++      {
++        kind: "CONTEXTUAL_LANGUAGE",
++        canonical: entry.id,
++        source: entry.source,
++      },
++    ],
++    semanticQuery,
++    contextualResolutions: [entry.id],
++    grammarProvenance: entry.provenance.map(
++      (value) => `CONTEXTUAL_LANGUAGE:${value}`,
++    ),
++    exactIndexHit: true,
++    tokenCount: normalizedTokens.length,
++    tokenLedger: normalizedTokens.map((token, index) => ({
++      token,
++      index,
++      status: "consumed",
++      material: true,
++      consumedBy: `contextual-language:${entry.id}`,
++    })),
++    entityKinds,
++    unresolvedTokenCount: 0,
++  };
++};
++
++const clarify = (
++  raw: string,
++  normalized: string,
++  entry: AvaLanguageEntry,
++  context: AvaCompilerContext,
++  prompt: string,
++): AvaCompileResult => {
++  const instruction: AvaInstruction = { kind: "HELP", subject: entry.label };
++  const semantic = genericSemanticQuery(instruction, context);
++  return {
++    status: "clarify",
++    failure: "ambiguous-target",
++    prompt,
++    semantic,
++    trace: traceFor(raw, normalized, entry, semantic, []),
++  };
++};
++
++const lowerContextualEntry = (
++  raw: string,
++  normalized: string,
++  entry: AvaLanguageEntry,
++  context: AvaCompilerContext,
++): AvaCompileResult => {
++  let instruction: AvaInstruction;
++  let entityKinds: AvaCompilerTrace["entityKinds"] = [];
++
++  switch (entry.route) {
++    case "PRIORITY_FOCUS":
++      instruction = {
++        kind: "ADVISE",
++        priorityIntent: compileDeclaredPriorityFocus(
++          entry.priorityAxes ?? [],
++          raw,
++        ),
++      };
++      break;
++    case "STRATEGIC_ADVICE":
++      instruction = { kind: "ADVISE" };
++      break;
++    case "REPORT":
++      if (!entry.reportTopic)
++        return clarify(
++          raw,
++          normalized,
++          entry,
++          context,
++          "The contextual report owner is unavailable.",
++        );
++      instruction = {
++        kind: "REPORT",
++        topic: entry.reportTopic,
++        scope: "current",
++      };
++      break;
++    case "METRIC_EXPLANATION":
++    case "OBJECTIVE_EXPLANATION": {
++      const entity = context.entities.find(
++        (candidate) => candidate.id === entry.entityId,
++      );
++      if (!entity)
++        return clarify(
++          raw,
++          normalized,
++          entry,
++          context,
++          `The current disclosed ${entry.label} owner is unavailable.`,
++        );
++      instruction = {
++        kind: "EXPLAIN",
++        entity,
++        facet: entry.facet ?? "meaning",
++      };
++      entityKinds = [entity.kind];
++      break;
++    }
++    case "NARRATIVE_REFERENCE":
++      return clarify(
++        raw,
++        normalized,
++        entry,
++        context,
++        "Authored briefing references are not enabled in this compiler cohort.",
++      );
++  }
++
++  let semantic = genericSemanticQuery(instruction, context);
++  if (instruction.kind === "ADVISE" && instruction.priorityIntent) {
++    const axes = instruction.priorityIntent.axes;
++    semantic = {
++      ...semantic,
++      criteria:
++        axes.includes("attack") && axes.includes("territory")
++          ? ["FRONT", "IMMEDIATE"]
++          : axes.includes("territory")
++            ? ["FRONT"]
++            : semantic.criteria,
++    };
++  }
++  return {
++    status: "compiled",
++    instruction,
++    semantic,
++    trace: traceFor(raw, normalized, entry, semantic, entityKinds),
++  };
++};
++
++export const compileAvaContextualLanguage = (
++  raw: string,
++  context: AvaCompilerContext,
++): AvaCompileResult | null => {
++  if (!context.language) return null;
++  const normalized = normalizeAvaLanguageSurface(raw);
++  if (!normalized) return null;
++
++  const candidates = context.language.entries.filter((entry) =>
++    entry.surfaces.some(
++      (surface) => normalizeAvaLa

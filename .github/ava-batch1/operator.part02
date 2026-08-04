@@ -1,0 +1,43 @@
+g, LLM inference, authored-reference activation, or mutation path." "NODE-06: inject the projection at the Nexus compiler boundary and prove the vertical slice."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAGE-N5 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N5 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent="$receipt_remote"
+test -z "$(git status --short)"
+
+echo "NODE-06 Wire contextual language through Ava Nexus"
+test -z "$(git status --short)"
+base_local="$(git rev-parse HEAD)"
+cat .github/ava-batch1/N6.patch.part* > "/tmp/N6.patch"
+git apply --index --whitespace=error-all "/tmp/N6.patch"
+cat > /tmp/N6.manifest <<'EOF'
+app/ava/compiler.ts
+app/ava/nexus.ts
+scripts/test-substrate.sh
+tests/ava-contextual-language-live.test.mjs
+tests/ava-contextual-language-mutation.test.mjs
+EOF
+verify_manifest /tmp/N6.manifest
+bash scripts/test-substrate.sh
+validate_all
+git commit -m "Wire contextual language through Ava Nexus"
+test -z "$(git status --short)"
+completed_remote="$(create_remote_commit "$remote_parent" "Wire contextual language through Ava Nexus" "app/ava/compiler.ts" "app/ava/nexus.ts" "scripts/test-substrate.sh" "tests/ava-contextual-language-live.test.mjs" "tests/ava-contextual-language-mutation.test.mjs")"
+append_receipt "6" "Wire contextual language through Ava Nexus" "$remote_parent" "$completed_remote" "Inject one state-bound projection at every Nexus compiler boundary and prove read-only live behavior." "app/ava/compiler.ts, app/ava/nexus.ts, scripts/test-substrate.sh, tests/ava-contextual-language-live.test.mjs, tests/ava-contextual-language-mutation.test.mjs" "Nexus-owned contextual projection, compiler precedence, single condition owner, live typed routing, and mutation invariants." "ava-contextual-language-live.test.mjs; ava-contextual-language-mutation.test.mjs" "No browser/terminal/SSH-local parser, authored indexing, deployment, production change, or shadow-worker change." "Batch 2 begins with authored briefing indexing and typed evidence-bound references."
+git add DELENDA_QUEST_UBERDOC.md
+git commit -m "Record AVA-LANGUAGE-N6 receipt"
+receipt_remote="$(create_remote_commit "$completed_remote" "Record AVA-LANGUAGE-N6 receipt" "DELENDA_QUEST_UBERDOC.md")"
+remote_parent="$receipt_remote"
+test -z "$(git status --short)"
+
+git rm -r .github/ava-batch1 .github/workflows/ava-batch1-operator.yml
+git commit -m "Remove temporary Ava Batch 1 operator"
+base_tree="$(gh_api GET "/git/commits/${remote_parent}" | jq -r .tree.sha)"
+jq -n --arg base_tree "$base_tree" '{base_tree:$base_tree,tree:[{path:".github/ava-batch1",mode:"040000",type:"tree",sha:null},{path:".github/workflows/ava-batch1-operator.yml",mode:"100644",type:"blob",sha:null}]}' > /tmp/cleanup-tree.json
+cleanup_tree="$(gh_api POST "/git/trees" /tmp/cleanup-tree.json | jq -r .sha)"
+jq -n --arg tree "$cleanup_tree" --arg parent "$remote_parent" '{message:"Remove temporary Ava Batch 1 operator",tree:$tree,parents:[$parent]}' > /tmp/cleanup-commit.json
+remote_parent="$(gh_api POST "/git/commits" /tmp/cleanup-commit.json | jq -r .sha)"
+jq -n --arg sha "$remote_parent" '{sha:$sha,force:false}' > /tmp/ref.json
+gh_api PATCH "/git/refs/heads/${BRANCH}" /tmp/ref.json > /tmp/ref-response.json
+jq -e --arg sha "$remote_parent" ".object.sha == \$sha" /tmp/ref-response.json
+echo "Ava Batch 1 sealed at ${remote_parent}"

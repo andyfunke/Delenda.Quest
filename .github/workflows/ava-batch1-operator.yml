@@ -1,0 +1,33 @@
+name: Ava Batch 1 Operator
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    if: github.head_ref == 'automation/ava-batch1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      BRANCH: automation/ava-batch1
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/ava-batch1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm run install:ci
+      - name: Execute NODE-00 through NODE-06
+        run: |
+          cat .github/ava-batch1/operator.part* > /tmp/ava-batch1-operator.sh
+          chmod +x /tmp/ava-batch1-operator.sh
+          /tmp/ava-batch1-operator.sh
