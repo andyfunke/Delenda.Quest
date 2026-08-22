@@ -1,6 +1,7 @@
 /**
  * Contentgen Lab route store + D1 persistence adapter.
- * Staging/review only — never runtime content authority (§21.7).
+ * Staging/review only — never runtime content authority (doctrine §22.7,
+ * Contentgen compiler law promotion rule).
  */
 
 import { eq } from "drizzle-orm";

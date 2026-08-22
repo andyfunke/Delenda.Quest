@@ -81,6 +81,32 @@ test("scalar gate keys map only onto declared metrics", () => {
   }
 });
 
+test("scalar-key declaration sites are re-exports, not forks", () => {
+  const campaign = readFileSync(resolve("app/campaign-substrate.ts"), "utf8");
+  assert.doesNotMatch(campaign, /type ScalarKey\s*=\s*"/);
+  assert.match(campaign, /SCALAR_KEYS,/);
+  assert.match(campaign, /type ScalarKey,/);
+  // The docket compiler supplies exactly the scalars DOCKET_SCALAR_KEYS
+  // declares (source-pinned; the record is built inline).
+  const docket = readFileSync(resolve("app/substrate/docket.ts"), "utf8");
+  const scalarsBlock = docket.match(/scalars:\s*\{([\s\S]*?)\}/);
+  assert.ok(scalarsBlock, "docket scalars record not found");
+  const supplied = [...scalarsBlock[1].matchAll(/(\w+):\s*state\.\w+/g)].map(
+    (match) => match[1],
+  );
+  assert.equal(sortedKey(supplied), sortedKey(vocabulary.DOCKET_SCALAR_KEYS));
+  assert.ok(vocabulary.METRIC_IDS.includes("treasury"));
+});
+
+test("the live typed-request operation gate derives from the vocabulary", () => {
+  const requestIr = readFileSync(resolve("app/ava/request-ir.ts"), "utf8");
+  assert.match(
+    requestIr,
+    /new Set<AvaSemanticOperation>\(AVA_SEMANTIC_OPERATIONS\)/,
+  );
+  assert.match(requestIr, /from "\.\.\/substrate\/substrate-core"/);
+});
+
 test("operation mapping is complete and closed", () => {
   assert.equal(
     sortedKey(Object.keys(vocabulary.AVA_OPERATION_TO_COMMAND)),

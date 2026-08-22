@@ -6,8 +6,7 @@ SSH is a transport over the same Ava Nexus and application services used by ever
 
 ## Components
 
-- `app/ava/nexus.ts` — authoritative language, discourse, capability, authority, and response runtime
-- `app/ava/kernel.ts` — temporary compatibility re-export of the Nexus
+- `app/ava/nexus.ts` — authoritative language, discourse, capability, authority, and response runtime (the former `app/ava/kernel.ts` compatibility re-export has been removed; import the Nexus directly)
 - `app/api/ssh/credentials` — signed-in public-key registration and revocation
 - `app/api/ssh/gateway/*` — bearer-authenticated key authorization, campaign persistence, and audit API
 - `packages/ssh-gateway` — production OpenSSH image and forced Ava session

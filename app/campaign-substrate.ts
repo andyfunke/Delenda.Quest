@@ -3,18 +3,20 @@ import {
   FUNGIBLE_SITUATION_TEMPLATES,
 } from "./main-situation-content";
 import {
+  SCALAR_KEYS,
   evaluateGate as evaluateSubstrateGate,
   hashInt,
   phaseIdForDay,
   stableHash,
   type CampaignPhaseId,
   type ProblemClass,
+  type ScalarKey,
   type SubstrateGate,
   type Theater,
 } from "./substrate/substrate-core";
 
 export { phaseIdForDay, stableHash };
-export type { CampaignPhaseId, ProblemClass, Theater };
+export type { CampaignPhaseId, ProblemClass, ScalarKey, Theater };
 
 export type OutcomeBand = "clean" | "executed" | "disrupted" | "collapse";
 export type TargetSelector = "fixed" | "highest-pressure" | "lowest-supply" | "weakest-network" | "most-damaged" | "frontline";
@@ -73,7 +75,6 @@ export type OperationalBands = {
   infrastructure:"severed"|"damaged"|"serviceable"|"intact";
 };
 
-export type ScalarKey = "front"|"readiness"|"reserves"|"intelligence"|"legitimacy"|"resistance"|"dependency"|"munitionsCoverage"|"sectorSupply"|"sectorDamage"|"sectorFortification";
 export type BandKey = keyof OperationalBands;
 /** Campaign gates use the shared substrate grammar (authoritative in app/substrate/gates.ts). */
 export type Gate = SubstrateGate;
@@ -459,7 +460,7 @@ const scalarValue=(context:GateContext,key:ScalarKey)=>{
 };
 export const evaluateGate=(gate:Gate,context:GateContext):boolean=>{
   const scalars:Record<string,number|undefined>={};
-  for(const key of ["front","readiness","reserves","intelligence","legitimacy","resistance","dependency","munitionsCoverage","sectorSupply","sectorDamage","sectorFortification"] as ScalarKey[]){
+  for(const key of SCALAR_KEYS){
     scalars[key]=scalarValue(context,key);
   }
   const bands:Record<string,string>={};

@@ -10,8 +10,9 @@
  * Ownership rules:
  * - A set declared here is canonical. Legacy declaration sites re-export or
  *   are locked to these sets by `tests/vocabulary-drift.test.mjs`.
- * - Never add a mechanic, effect, or operation here; this file owns names,
- *   not law. Handlers stay with their existing authorities.
+ * - Never add a mechanic, effect, or handler here; this file owns names
+ *   and their static lookup tables (such as the phase-boundary table), not
+ *   law. Handlers stay with their existing authorities.
  * - Emission order in offline materializers (for example
  *   `scripts/build-campaign-packs.mjs`) is allowed to differ; those scripts
  *   assert set-equality against this module instead of importing order.
@@ -137,7 +138,11 @@ export const METRIC_IDS = [
 ] as const;
 export type MetricId = (typeof METRIC_IDS)[number];
 
-/** Scalar gate keys used by the campaign gate evaluator. */
+/**
+ * Scalar gate keys supplied by the campaign situation compiler's gate
+ * context (`app/campaign-substrate.ts` builds its scalar record from this
+ * list).
+ */
 export const SCALAR_KEYS = [
   "front",
   "readiness",
@@ -154,9 +159,26 @@ export const SCALAR_KEYS = [
 export type ScalarKey = (typeof SCALAR_KEYS)[number];
 
 /**
+ * Scalar keys the daily docket compiler supplies to the same shared gate
+ * evaluator (`app/substrate/docket.ts`); it adds `treasury`, which has an
+ * Ava metric owner but is not part of the situation compiler's record.
+ * Pinned against the docket source by `tests/vocabulary-drift.test.mjs`.
+ */
+export const DOCKET_SCALAR_KEYS = [
+  "readiness",
+  "legitimacy",
+  "resistance",
+  "dependency",
+  "intelligence",
+  "treasury",
+  "front",
+] as const;
+
+/**
  * Which Ava metric a campaign gate scalar refers to, when the two names
  * denote the same disclosed quantity. `null` marks gate-only scalars with no
- * Ava metric owner; a client must not invent one.
+ * Ava metric owner; a client must not invent one. Documentation contract
+ * consumed by the drift tests; no runtime consumer yet.
  */
 export const SCALAR_TO_METRIC: Record<ScalarKey, MetricId | null> = {
   front: "front",
@@ -226,7 +248,8 @@ export type AvaSemanticOperation = (typeof AVA_SEMANTIC_OPERATIONS)[number];
  * semantic operations whose lowering depends on the resolved subject; they
  * have no single canonical command form and must not be given one here.
  * Only documented grammar aliases may create non-identity rows
- * (`recommend` → `advise` per `docs/substrate/grammar.md`).
+ * (`recommend` → `advise` per `docs/substrate/grammar.md`). Documentation
+ * contract consumed by the drift tests; no runtime consumer yet.
  */
 export const AVA_OPERATION_TO_COMMAND: Record<
   AvaSemanticOperation,

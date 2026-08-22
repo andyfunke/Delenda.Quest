@@ -9,7 +9,10 @@
  * `packages/contentgen-lab/src/hash.mjs`) additionally NFC-normalize their
  * input; that divergence only matters for non-NFC input and is pinned by
  * `tests/hash-parity.test.mjs` until the scheduler wiring epoch reconciles
- * the copies. Never fork another inline copy in app code.
+ * the copies. `packages/execution-scenes/src/compile.mjs` keeps a private
+ * un-normalized copy for its realization ticket, locked by the
+ * draw-stability assertions in `tests/execution-scene-recipes.test.mjs`.
+ * Never fork another inline copy in app code.
  */
 export const hashInt = (text: string) => {
   let h = 2166136261;
