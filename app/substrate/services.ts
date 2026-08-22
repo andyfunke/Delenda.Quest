@@ -606,6 +606,16 @@ export const rankVisibleChoices = (
   };
 };
 
+/**
+ * Reference-only canonical command dispatcher. The live dispatch authority
+ * is the canonical Nexus (`app/ava/nexus.ts`), which wires this module's
+ * mutation services (`prepareOrder`/`confirmOrder`/`cancelPreparedOrder`)
+ * and visibility reads directly; no production surface calls this
+ * dispatcher (enforced by `tests/substrate-architecture.test.mjs`). It is
+ * retained as the deterministic oracle for parser/service parity tests.
+ */
+export const SERVICES_DISPATCH_REFERENCE_ONLY = true;
+
 export const dispatchCanonicalCommand = (
   ctx: PlayerContext,
   state: GameState,

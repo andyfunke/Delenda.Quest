@@ -1,7 +1,7 @@
 import type {
   AvaEvaluationCriterion,
 } from "./schema";
-import type { StrategicDimension } from "../substrate/gates";
+import type { StrategicDimension } from "../substrate/substrate-core";
 
 export type AvaDeclaredPriorityFocus = {
   axes: StrategicDimension[];

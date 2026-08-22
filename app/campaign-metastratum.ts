@@ -3,10 +3,13 @@
  * Selection/resolution changes arrive in later epochs.
  */
 
-export type CampaignTier = "routine" | "romantic" | "escalatory";
-export type EscalationIntensity = "none" | "standard" | "maximum";
+export type CampaignTier =
+  import("./substrate/substrate-core").CampaignTier;
+export type EscalationIntensity =
+  import("./substrate/substrate-core").EscalationIntensity;
 export type TerminalRisk = "none" | "doomsday";
-export type ProcedureHeat = "hot" | "medium";
+export type ProcedureHeat =
+  import("./substrate/substrate-core").ProcedureHeat;
 
 export type ContentLink = {
   id: string;

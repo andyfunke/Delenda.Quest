@@ -266,7 +266,11 @@ text requests, browser/Nexus, terminal-core, and native SSH on one semantic
 identity while preserving the disclosure boundary. The activation route's
 text-digest fixtures were updated to the canonical rendered semantic output.
 
-## 21. Contentgen compiler law
+## 22. Contentgen compiler law
+
+(Renumbered from a duplicate §21; sealed epoch receipts and earlier
+logbook entries that cite "doctrine §21" for the Contentgen compiler law
+refer to this section.)
 
 Contentgen is the offline, authenticated compiler for Ava and narrative grammar
 candidates. It does not own campaign state, day resolution, intent, or player

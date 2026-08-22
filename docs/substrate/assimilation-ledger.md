@@ -177,3 +177,22 @@ Permutation policy for this epoch:
   fails closed instead of changing an open puzzle.
 - Recovery documents may record that content shipped and point to the package;
   they are not canonical specifications for the content itself.
+
+## Epoch 2026-08-22: shared substrate owner and parser demotion
+
+The canonical Nexus was already the sole coordinator wiring the live
+control-plane services; this epoch makes the remaining structure explicit
+rather than incidental.
+
+| Concern | Canonical owner | Assimilation rule |
+|---|---|---|
+| Shared identifier sets (channels, theaters, phases, problem classes, maneuvers, tiers, heats, metric ids, operation mappings) | `app/substrate/vocabulary.ts` via `app/substrate/substrate-core.ts` | Legacy declaration sites re-export the vocabulary; `tests/vocabulary-drift.test.mjs` locks the rest. No new forked declarations. |
+| Seeded-draw hash | `app/substrate/hash.ts` via `substrate-core` | Inline FNV-1a copies in `app/game.ts` and `app/submission-schema.ts` were replaced by imports (byte-identical output). Offline `.mjs` copies keep NFC normalization, pinned by `tests/hash-parity.test.mjs` until the scheduler wiring epoch. |
+| Player-language parsing | Ava grammar compiler behind the canonical Nexus | `app/substrate/command-parser.ts` is demoted to `COMMAND_PARSER_REFERENCE_ONLY`: retained for Ava Classic differential parity plus the SSH lexical kill switch `isConsequentialCommandAttempt`. The terminal-core re-export of `parseDelendaCommand` was removed; no production adapter parses here. |
+| Execution-scene realization pool | `app/execution-scene-recipes.ts` | The Git-versioned promoted manifest `recipes.v1.json` is verified fail-closed and supplies the pool for the live draw; a defective manifest falls back to the compiler's built-in identical pool, so existing campaigns draw identically. |
+| Dead compatibility surface | canonical Nexus | `app/ava/kernel.ts` and the `AvaKernel*` aliases were removed (zero consumers). `dispatchCanonicalCommand` and the unconsumed read services carry `SERVICES_DISPATCH_REFERENCE_ONLY`. |
+
+Permutation policy for this epoch: no grammar production, alias, or
+utterance behavior changed; the Ava corpus and campaign draws are
+byte-identical. Only ownership, wiring, markers, and enforcement tests were
+added.

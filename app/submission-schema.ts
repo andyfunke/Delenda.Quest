@@ -2,6 +2,7 @@ import {
   SUB_MISSION_FRAMES, auditSubMissionContent, framesForArchetype, realizationsForArchetype, subMissionFrameById,
   type SubMissionFrame,
 } from "./sub-mission-content";
+import { hashInt, stableHash } from "./substrate/substrate-core";
 
 export type SubMissionDomain = "domestic" | "network";
 export type SubMissionPressureBand = "watch" | "active" | "cascade";
@@ -88,8 +89,7 @@ export const NETWORK_SUB_MISSIONS:SubMissionArchetype[]=[
 
 export const SUB_MISSION_ARCHETYPES=[...DOMESTIC_SUB_MISSIONS,...NETWORK_SUB_MISSIONS];
 
-const stableHashInt=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
-const stableHash=(text:string)=>stableHashInt(text)/4294967295;
+const stableHashInt=hashInt;
 const pressureBand=(pressure:number):SubMissionPressureBand=>pressure>=7?"cascade":pressure>=3.5?"active":"watch";
 const bindSector=(summary:string,sector:string)=>summary.replaceAll("{sector}",sector);
 

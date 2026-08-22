@@ -1,3 +1,12 @@
+/**
+ * Generated grammar index — reference only. Production alias resolution
+ * lives in the Ava grammar compiler behind the canonical Nexus; this index
+ * is retained as a validated reference projection of the same vocabulary
+ * (collision detection, coverage tests). Consuming it from a production
+ * adapter would create a second alias authority; do not.
+ */
+export const SEMANTIC_INDEX_REFERENCE_ONLY = true;
+
 import { FAMILIES } from "../game";
 import { DIPLOMACY_ACTOR_METADATA } from "./actor-metadata";
 import type { CommandOperation } from "./contracts";

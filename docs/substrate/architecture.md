@@ -8,19 +8,24 @@ Adapters never mutate the database or invent alternate simulations.
 
 ## Application services
 
-Surface-neutral services live in `app/substrate/services.ts`:
+Surface-neutral services live in `app/substrate/services.ts`. The canonical
+Nexus (`app/ava/nexus.ts`) is the one coordinator that wires the live ones:
 
-- `getDailyBrief`, `getCampaignStatus`
-- `getVisibleDocket`, `getVisibleChoice`
-- `evaluateChoices`, `rankVisibleChoices`
-- `prepareOrder`, `confirmOrder`, `cancelPreparedOrder`
-- `dispatchCanonicalCommand`
+- Live, Nexus-wired: `getVisibleDocket`, `prepareOrder`, `confirmOrder`,
+  `cancelPreparedOrder` (plus `getVisibleChoice` as the sanctioned web
+  read seam).
+- Reference-only (marked `SERVICES_DISPATCH_REFERENCE_ONLY`):
+  `dispatchCanonicalCommand` and the unconsumed reads `getDailyBrief`,
+  `getCampaignStatus`, `evaluateChoices` (Ava Classic differential only),
+  `rankVisibleChoices`, `listDirectiveFamilyCatalog`. They stay as
+  deterministic parity oracles; no production surface may call them
+  (enforced by `tests/substrate-architecture.test.mjs`).
 
 The legacy directive evaluators remain deterministic compatibility/reference
 services. Production Ava compiles their authored component vector into the
 cognitive decision model and takes ranking authority only from that engine
-result. Surfaces may call read-only visibility helpers directly, but all agent
-semantics and mutations enter the Nexus.
+result. Surfaces may call the sanctioned read-only visibility helpers
+directly, but all agent semantics and mutations enter the Nexus.
 
 The cognitive engine bay is `app/ava/cognitive-nexus.ts`. It compiles validated
 read and plan-validation requests into closed cognitive programs, executes only
@@ -30,11 +35,36 @@ campaign state. Plan-only validation must pass before Nexus can create a
 confirmation; only Nexus can confirm or mutate. The active route and
 trust-boundary contract is documented in `docs/ava-cognitive-nexus.md`.
 
+## The shared substrate
+
+`app/substrate/substrate-core.ts` is the named owner of the three layers
+that inform both the canonical Nexus (Ava) and the campaign deck/draw
+compilers, and the only sanctioned route to them from either side:
+
+- Gate calculus (`app/substrate/gates.ts`) — situation eligibility, daily
+  dockets, and Ava visibility evaluate the same recursive gate grammar.
+- Draw idiom (`app/substrate/hash.ts`) — the canonical FNV-1a seeded-ticket
+  hash behind every deterministic draw; no inline copies in app code.
+- Vocabulary (`app/substrate/vocabulary.ts`) — the typed identifier sets
+  both sides speak: channels, theaters, campaign phases and the live
+  phase-boundary table, problem classes, maneuver ids, tiers, heats,
+  metric ids, scalar-to-metric ownership, and the Ava-semantic-operation to
+  command-operation mapping. Legacy declaration sites re-export it;
+  `tests/vocabulary-drift.test.mjs` locks the rest (including the offline
+  scheduler's divergent arc-pacing phase table, pinned until its wiring
+  epoch).
+
 ## Semantic contracts
 
 `app/substrate/contracts.ts`, `posture.ts`, `gates.ts`, `command-parser.ts`,
 `llm-packets.ts`, and `semantic-index.ts` define typed inputs/outputs.
 No Zod dependency is present; validation is explicit TypeScript validators.
+`command-parser.ts` is a reference interpreter
+(`COMMAND_PARSER_REFERENCE_ONLY`): production language authority is the Ava
+grammar compiler behind the Nexus, and the parser's one live export is the
+SSH lexical kill switch `isConsequentialCommandAttempt`. `semantic-index.ts`
+(`SEMANTIC_INDEX_REFERENCE_ONLY`) and `llm-packets.ts`
+(`LLM_PACKETS_FUTURE_SEAM_ONLY`) are likewise reference/seam artifacts.
 
 ## Content compiler
 
@@ -45,6 +75,14 @@ No Zod dependency is present; validation is explicit TypeScript validators.
 - Contentgen contracts (offline): `packages/contentgen-contracts`
   (`contentgen-contract/v1`) — chord recipes, canonical JSON/hash idiom,
   taxonomies, trainer/threshold constants. No player-path imports.
+- Promoted execution-scene recipes: `app/execution-scene-recipes.ts`
+  verifies the Git-versioned manifest
+  `app/campaign-content/execution-scenes/recipes.v1.json` fail-closed and
+  supplies the realization pool for the execution-scene draw in
+  `app/game.ts` — the one runtime bridge from a promoted chord-metagrammar
+  manifest into a live campaign draw (doctrine §22). The other authored
+  packs under `app/campaign-content/` remain offline until their own
+  wiring epochs.
 
 ## Adapter boundaries
 

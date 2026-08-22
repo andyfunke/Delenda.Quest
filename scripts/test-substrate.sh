@@ -29,7 +29,10 @@ OPERATIONAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-operational.XXXXXX.mjs")"
 CONCEPTS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-ava-concepts.XXXXXX.mjs")"
 EMAIL_NEXUS_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-email-nexus.XXXXXX.mjs")"
 CREDENTIAL_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-credential.XXXXXX.mjs")"
-trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$CONTEXTUAL_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE" "$CONTEXT_BUNDLE" "$REQUEST_IR_BUNDLE" "$OPERATIONAL_BUNDLE" "$CONCEPTS_BUNDLE" "$EMAIL_NEXUS_BUNDLE" "$CREDENTIAL_BUNDLE"' EXIT
+VOCAB_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-substrate-vocabulary.XXXXXX.mjs")"
+RECIPES_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-execution-recipes.XXXXXX.mjs")"
+CORE_BUNDLE="$(mktemp "${TEMP_ROOT}/delenda-substrate-core.XXXXXX.mjs")"
+trap 'rm -f "$GATE_BUNDLE" "$DOCKET_BUNDLE" "$SERVICES_BUNDLE" "$PARSER_BUNDLE" "$AVA_BUNDLE" "$INDEX_BUNDLE" "$LLM_BUNDLE" "$MCP_BUNDLE" "$TERMINAL_BUNDLE" "$SSH_BUNDLE" "$SSH_GATEWAY_BUNDLE" "$NEXUS_BUNDLE" "$COMPILER_BUNDLE" "$GAME_BUNDLE" "$COGNITIVE_BUNDLE" "$COGNITIVE_NEXUS_BUNDLE" "$AVA_RUNTIME_BUNDLE" "$AVA_PROJECTION_BUNDLE" "$CONTEXTUAL_BUNDLE" "$CONTEXTUAL_PROJECTION_BUNDLE" "$CONTEXT_BUNDLE" "$REQUEST_IR_BUNDLE" "$OPERATIONAL_BUNDLE" "$CONCEPTS_BUNDLE" "$EMAIL_NEXUS_BUNDLE" "$CREDENTIAL_BUNDLE" "$VOCAB_BUNDLE" "$RECIPES_BUNDLE" "$CORE_BUNDLE"' EXIT
 
 node_modules/.bin/esbuild app/substrate/gates.ts --bundle --platform=node --format=esm --outfile="$GATE_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/substrate/docket.ts --bundle --platform=node --format=esm --outfile="$DOCKET_BUNDLE" >/dev/null
@@ -57,6 +60,9 @@ node_modules/.bin/esbuild app/ava/operational-semantics.ts --bundle --platform=n
 node_modules/.bin/esbuild app/concepts.ts --bundle --platform=node --format=esm --outfile="$CONCEPTS_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/email/nexus.ts --bundle --platform=node --format=esm --outfile="$EMAIL_NEXUS_BUNDLE" >/dev/null
 node_modules/.bin/esbuild app/credential.ts --bundle --platform=node --format=esm --outfile="$CREDENTIAL_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/substrate/vocabulary.ts --bundle --platform=node --format=esm --outfile="$VOCAB_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/execution-scene-recipes.ts --bundle --platform=node --format=esm --outfile="$RECIPES_BUNDLE" >/dev/null
+node_modules/.bin/esbuild app/substrate/substrate-core.ts --bundle --platform=node --format=esm --outfile="$CORE_BUNDLE" >/dev/null
 
 DELENDA_SUBSTRATE_GATES_BUNDLE="file://$GATE_BUNDLE" \
 DELENDA_SUBSTRATE_DOCKET_BUNDLE="file://$DOCKET_BUNDLE" \
@@ -84,4 +90,7 @@ DELENDA_AVA_OPERATIONAL_BUNDLE="file://$OPERATIONAL_BUNDLE" \
 DELENDA_AVA_CONCEPTS_BUNDLE="file://$CONCEPTS_BUNDLE" \
 DELENDA_EMAIL_NEXUS_BUNDLE="file://$EMAIL_NEXUS_BUNDLE" \
 DELENDA_CREDENTIAL_BUNDLE="file://$CREDENTIAL_BUNDLE" \
-node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/credential.test.mjs tests/ava-nexus.test.mjs tests/ava-contextual-language.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs tests/ava-operational-semantics.test.mjs tests/ava-operational-semantics-generated.test.mjs
+DELENDA_SUBSTRATE_VOCAB_BUNDLE="file://$VOCAB_BUNDLE" \
+DELENDA_EXECUTION_RECIPES_BUNDLE="file://$RECIPES_BUNDLE" \
+DELENDA_SUBSTRATE_CORE_BUNDLE="file://$CORE_BUNDLE" \
+node --test tests/substrate-gates.test.mjs tests/substrate-docket.test.mjs tests/substrate-parser.test.mjs tests/substrate-services.test.mjs tests/substrate-ava-classic.test.mjs tests/substrate-parity.test.mjs tests/substrate-ssh.test.mjs tests/ssh-gateway-session.test.mjs tests/substrate-llm.test.mjs tests/substrate-architecture.test.mjs tests/email-nexus.test.mjs tests/credential.test.mjs tests/ava-nexus.test.mjs tests/ava-contextual-language.test.mjs tests/ava-cognitive-base.test.mjs tests/ava-cognitive-activation.test.mjs tests/ava-semantic-tree.test.mjs tests/ava-operator-algebra.test.mjs tests/ava-proof-graph.test.mjs tests/ava-constraint-engine.test.mjs tests/ava-temporal-engine.test.mjs tests/ava-causal-engine.test.mjs tests/ava-epistemic-engine.test.mjs tests/ava-decision-engine.test.mjs tests/ava-planning-engine.test.mjs tests/ava-operational-semantics.test.mjs tests/ava-operational-semantics-generated.test.mjs tests/vocabulary-drift.test.mjs tests/hash-parity.test.mjs tests/execution-scene-recipes.test.mjs

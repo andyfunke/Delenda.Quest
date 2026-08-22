@@ -1,3 +1,17 @@
+/**
+ * Legacy deterministic surface parser — reference interpreter only.
+ *
+ * The production language authority is the Ava grammar compiler behind the
+ * canonical Nexus (`app/ava/compiler.ts` via `app/ava/nexus.ts`); no
+ * production adapter may parse player language here (enforced by
+ * `tests/substrate-architecture.test.mjs`). This module is retained for the
+ * Ava Classic differential reference (`./ava-classic.ts`) and its parser
+ * parity tests, plus one live export: `isConsequentialCommandAttempt`, the
+ * parse-independent lexical kill switch used by the SSH server before a
+ * session may mutate.
+ */
+export const COMMAND_PARSER_REFERENCE_ONLY = true;
+
 import type { CanonicalCommand, CommandOperation } from "./contracts";
 import type { Channel } from "./gates";
 import {

@@ -1,15 +1,8 @@
 import type { Channel, SubstrateGate, SurfaceId } from "./gates";
 import type { StrategicPosture } from "./posture";
+import { CHANNELS, COMMAND_OPERATIONS } from "./vocabulary";
 
-export const CHANNELS = [
-  "campaign",
-  "production",
-  "military",
-  "diplomacy",
-  "upgrade",
-  "domestic",
-  "network",
-] as const;
+export { CHANNELS };
 
 export type { Channel };
 
@@ -88,27 +81,8 @@ export type SubstrateNode = {
   risk?: string[];
 };
 
-export type CommandOperation =
-  | "HELP"
-  | "BRIEF"
-  | "STATUS"
-  | "SHOW_DOCKET"
-  | "SHOW_CHOICE"
-  | "ASK_AVA"
-  | "ADVISE"
-  | "COMPARE"
-  | "RANK"
-  | "PREPARE"
-  | "CONFIRM"
-  | "CANCEL"
-  | "INTERRUPTS"
-  | "MISSIONS"
-  | "BATTLE_LOG"
-  | "SERVICE_RECORD"
-  | "RECENT_DISPATCHES"
-  | "WHOAMI"
-  | "LOGOUT"
-  | "QUIT";
+export { COMMAND_OPERATIONS };
+export type CommandOperation = (typeof COMMAND_OPERATIONS)[number];
 
 export type CanonicalCommand = {
   operation: CommandOperation;

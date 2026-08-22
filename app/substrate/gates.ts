@@ -3,10 +3,11 @@
  * Campaign situation gates and channel dockets evaluate through this module.
  */
 
-export type Comparator = "eq" | "neq" | "gt" | "gte" | "lt" | "lte";
+import type { CampaignPhaseId, Channel, Theater } from "./vocabulary";
 
-export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
-export type Theater = "lowland" | "ridge" | "industrial" | "river";
+export type { CampaignPhaseId, Channel, Theater };
+
+export type Comparator = "eq" | "neq" | "gt" | "gte" | "lt" | "lte";
 
 export type StrategicDimension =
   | "production_integrity"
@@ -36,15 +37,6 @@ export type StrategicWeight = "ignore" | "low" | "moderate" | "high" | "critical
 export type ToleranceLevel = "none" | "low" | "moderate" | "high" | "unrestricted";
 
 export type SurfaceId = "web" | "ava" | "ssh" | "mcp" | "internal";
-
-export type Channel =
-  | "campaign"
-  | "production"
-  | "military"
-  | "diplomacy"
-  | "upgrade"
-  | "domestic"
-  | "network";
 
 export type ScalarCompare = Comparator | "between" | "outside";
 

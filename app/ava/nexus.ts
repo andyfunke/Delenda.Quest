@@ -249,7 +249,6 @@ export type AvaNexusSession = {
   }>;
 };
 
-export type AvaKernelSession = AvaNexusSession;
 
 export type AvaNexusResult = {
   state: GameState;
@@ -264,7 +263,6 @@ export type AvaNexusResult = {
   operationalSemantics?: AvaOperationalSemanticResult;
 };
 
-export type AvaKernelResult = AvaNexusResult;
 
 /**
  * Trusted capabilities supplied by a server adapter only after it has
@@ -289,7 +287,6 @@ export const createAvaNexusSession = (
   typedPreparations: [],
 });
 
-export const createAvaKernelSession = createAvaNexusSession;
 
 export const avaNexusStateRevision = (state: GameState) =>
   avaRequestStateSeal(state);
@@ -418,7 +415,7 @@ const directiveEntityIdsForDocket = (fact: DocketFact) =>
 
 const directiveEntityForInstruction = (
   instruction: AvaInstruction,
-  session: AvaKernelSession,
+  session: AvaNexusSession,
 ): AvaEntity | null => {
   if (
     instruction.kind === "SELECT" &&
@@ -500,7 +497,7 @@ type AvaNexusExecutionResult = Omit<
 const prepareDirective = (
   ctx: PlayerContext,
   state: GameState,
-  session: AvaKernelSession,
+  session: AvaNexusSession,
   entity: AvaEntity,
   variant: number,
   idempotencyKey = `ava:${ctx.surface}:${ctx.playerId}:${session.commandsRead}:${entity.action?.kind === "directive" ? entity.action.choiceId : entity.id}`,
@@ -3118,5 +3115,3 @@ export const runAvaNexusLine = (
     },
   };
 };
-
-export const runAvaKernelLine = runAvaNexusLine;

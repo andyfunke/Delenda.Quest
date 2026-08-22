@@ -3,17 +3,22 @@ import {
   FUNGIBLE_SITUATION_TEMPLATES,
 } from "./main-situation-content";
 import {
+  SCALAR_KEYS,
   evaluateGate as evaluateSubstrateGate,
+  hashInt,
+  phaseIdForDay,
+  stableHash,
+  type CampaignPhaseId,
+  type ProblemClass,
+  type ScalarKey,
   type SubstrateGate,
-} from "./substrate/gates";
-import { hashInt, stableHash } from "./substrate/hash";
+  type Theater,
+} from "./substrate/substrate-core";
 
-export { stableHash };
+export { phaseIdForDay, stableHash };
+export type { CampaignPhaseId, ProblemClass, ScalarKey, Theater };
 
-export type Theater = "lowland" | "ridge" | "industrial" | "river";
-export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
 export type OutcomeBand = "clean" | "executed" | "disrupted" | "collapse";
-export type ProblemClass = "force-preservation" | "logistics" | "command" | "assault" | "crossing" | "exploitation" | "counterstroke" | "observation";
 export type TargetSelector = "fixed" | "highest-pressure" | "lowest-supply" | "weakest-network" | "most-damaged" | "frontline";
 
 const OPERATIONAL_OBJECTIVES: Record<ProblemClass, string> = {
@@ -70,7 +75,6 @@ export type OperationalBands = {
   infrastructure:"severed"|"damaged"|"serviceable"|"intact";
 };
 
-export type ScalarKey = "front"|"readiness"|"reserves"|"intelligence"|"legitimacy"|"resistance"|"dependency"|"munitionsCoverage"|"sectorSupply"|"sectorDamage"|"sectorFortification";
 export type BandKey = keyof OperationalBands;
 /** Campaign gates use the shared substrate grammar (authoritative in app/substrate/gates.ts). */
 export type Gate = SubstrateGate;
@@ -309,7 +313,7 @@ const compileManeuverPresentations=(
   }];
   }));
 };
-export const phaseIdForDay=(day:number):CampaignPhaseId=>day<=5?"contact":day<=12?"compression":day<=20?"exhaustion":"terminal";
+/** Canonical phase table lives in the shared substrate (`app/substrate/vocabulary.ts`). */
 export const outcomeBandForMargin=(margin:number):OutcomeBand=>margin>=.2?"clean":margin>=0?"executed":margin>=-.2?"disrupted":"collapse";
 export const outcomeBandLabel:Record<OutcomeBand,string>={clean:"CLEAN EXECUTION",executed:"EXECUTED WITH FRICTION",disrupted:"DISRUPTED",collapse:"OPERATIONAL COLLAPSE"};
 
@@ -456,7 +460,7 @@ const scalarValue=(context:GateContext,key:ScalarKey)=>{
 };
 export const evaluateGate=(gate:Gate,context:GateContext):boolean=>{
   const scalars:Record<string,number|undefined>={};
-  for(const key of ["front","readiness","reserves","intelligence","legitimacy","resistance","dependency","munitionsCoverage","sectorSupply","sectorDamage","sectorFortification"] as ScalarKey[]){
+  for(const key of SCALAR_KEYS){
     scalars[key]=scalarValue(context,key);
   }
   const bands:Record<string,string>={};

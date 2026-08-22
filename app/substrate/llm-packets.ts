@@ -1,3 +1,10 @@
+/**
+ * LLM realization/deliberation packet contracts — future seam, no
+ * production consumer yet. An attached LLM inherits the compiler through
+ * these shapes (doctrine §6); it never gains a mutation path here.
+ */
+export const LLM_PACKETS_FUTURE_SEAM_ONLY = true;
+
 import type { Channel } from "./gates";
 import type { ChoiceEvaluation } from "./choice-evaluation";
 import type { StrategicPosture } from "./posture";

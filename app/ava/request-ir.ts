@@ -4,6 +4,7 @@ import type {
 } from "../game";
 import type { SemanticResponse } from "../substrate/contracts";
 import type { Channel } from "../substrate/gates";
+import { AVA_SEMANTIC_OPERATIONS } from "../substrate/substrate-core";
 import { avaStateRevision } from "./runtime";
 import type {
   AvaActionRef,
@@ -244,26 +245,7 @@ export const executeAvaPlanRequest = (
   ...input,
 });
 
-const OPERATIONS = new Set<AvaSemanticOperation>([
-  "ADVISE",
-  "EXPLAIN",
-  "COMPARE",
-  "RANK",
-  "SUMMARIZE",
-  "INSPECT",
-  "CALCULATE",
-  "PREDICT",
-  "DIAGNOSE",
-  "RECOMMEND",
-  "WARN",
-  "IDENTIFY",
-  "DEFINE",
-  "LIST",
-  "JUSTIFY",
-  "CHALLENGE",
-  "CONFIRM",
-  "CORRECT",
-]);
+const OPERATIONS = new Set<AvaSemanticOperation>(AVA_SEMANTIC_OPERATIONS);
 
 const SUBJECTS = new Set<AvaSemanticSubject>([
   "CAMPAIGN_CHOICE",
