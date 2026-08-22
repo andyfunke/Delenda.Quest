@@ -46,12 +46,13 @@ test("metastratum restore does not invent active operations", () => {
 test("stableHash consolidated to substrate/hash", () => {
   assert.ok(Number.isFinite(substrateHash("campaign-seed:1")));
   const source = readFileSync("app/campaign-substrate.ts", "utf8");
-  assert.match(source, /from \"\.\/substrate\/hash\"/);
-  assert.match(source, /export \{ stableHash \}/);
-  assert.doesNotMatch(
-    source,
-    /const hashInt=\(text:string\)=>\{let h=2166136261/,
-  );
+  // The canonical hash now arrives through the shared substrate owner,
+  // which re-exports app/substrate/hash.ts unchanged.
+  assert.match(source, /from \"\.\/substrate\/substrate-core\"/);
+  assert.match(source, /export \{ phaseIdForDay, stableHash \}/);
+  assert.doesNotMatch(source, /2166136261/);
+  const core = readFileSync("app/substrate/substrate-core.ts", "utf8");
+  assert.match(core, /from \"\.\/hash\"/);
 });
 
 test("independent validator accepts generated tables and anchors", () => {
