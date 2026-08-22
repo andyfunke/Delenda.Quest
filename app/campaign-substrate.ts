@@ -4,16 +4,19 @@ import {
 } from "./main-situation-content";
 import {
   evaluateGate as evaluateSubstrateGate,
+  hashInt,
+  phaseIdForDay,
+  stableHash,
+  type CampaignPhaseId,
+  type ProblemClass,
   type SubstrateGate,
-} from "./substrate/gates";
-import { hashInt, stableHash } from "./substrate/hash";
+  type Theater,
+} from "./substrate/substrate-core";
 
-export { stableHash };
+export { phaseIdForDay, stableHash };
+export type { CampaignPhaseId, ProblemClass, Theater };
 
-export type Theater = "lowland" | "ridge" | "industrial" | "river";
-export type CampaignPhaseId = "contact" | "compression" | "exhaustion" | "terminal";
 export type OutcomeBand = "clean" | "executed" | "disrupted" | "collapse";
-export type ProblemClass = "force-preservation" | "logistics" | "command" | "assault" | "crossing" | "exploitation" | "counterstroke" | "observation";
 export type TargetSelector = "fixed" | "highest-pressure" | "lowest-supply" | "weakest-network" | "most-damaged" | "frontline";
 
 const OPERATIONAL_OBJECTIVES: Record<ProblemClass, string> = {
@@ -309,7 +312,7 @@ const compileManeuverPresentations=(
   }];
   }));
 };
-export const phaseIdForDay=(day:number):CampaignPhaseId=>day<=5?"contact":day<=12?"compression":day<=20?"exhaustion":"terminal";
+/** Canonical phase table lives in the shared substrate (`app/substrate/vocabulary.ts`). */
 export const outcomeBandForMargin=(margin:number):OutcomeBand=>margin>=.2?"clean":margin>=0?"executed":margin>=-.2?"disrupted":"collapse";
 export const outcomeBandLabel:Record<OutcomeBand,string>={clean:"CLEAN EXECUTION",executed:"EXECUTED WITH FRICTION",disrupted:"DISRUPTED",collapse:"OPERATIONAL COLLAPSE"};
 

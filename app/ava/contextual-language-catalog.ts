@@ -1,4 +1,4 @@
-import type { StrategicDimension } from "../substrate/gates";
+import type { StrategicDimension } from "../substrate/substrate-core";
 import type { AvaLanguageEntry } from "./contextual-language";
 
 const entry = (

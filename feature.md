@@ -243,7 +243,8 @@ https://github.com/andyfunke/Delenda.Quest/pull/8. Not production deployed.
 
 ## Epoch 010 — Contentgen contracts
 
-Added `packages/contentgen-contracts` (`contentgen-contract/v1`), doctrine §21,
+Added `packages/contentgen-contracts` (`contentgen-contract/v1`), doctrine §22
+(Contentgen compiler law, cited as §21 before the duplicate-section renumber),
 substrate grammar/architecture notes, and `npm run test:contentgen-contracts`
 (9/9). Quality layer cannot own intent or mechanics.
 

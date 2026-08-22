@@ -2,6 +2,11 @@
 
 All authentication, notification, certificate, and play-by-email traffic enters `app/email/nexus.ts`. Provider adapters may transport a typed decision, but may not invent identity, campaign, or order authority.
 
+Status: `app/email/nexus.ts` is a typed planned seam with no production
+consumer yet (unit-tested only). It is a separate contract from the
+canonical Ava Nexus (`app/ava/nexus.ts`), which remains the one live
+coordinator of campaign semantics and mutation.
+
 ## Parking-lot status
 
 External email activation is parked. The durable execution plans, dependencies,

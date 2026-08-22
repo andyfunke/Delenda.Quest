@@ -17,10 +17,12 @@ import { ADDITIONAL_DIRECTIVE_FAMILIES, DIRECTIVE_CATEGORY_OVERRIDES, DIRECTIVE_
 import { ADDITIONAL_CAMPAIGN_EVENTS, CAMPAIGN_EVENT_CALCULUS } from "./campaign-event-expansion";
 import { compileAllDailyDockets } from "./substrate/docket";
 import type { DocketRecord } from "./substrate/contracts";
+import { stableHash } from "./substrate/substrate-core";
 import {
   compileExecutionScene,
   type ExecutionScene,
 } from "./execution-scenes";
+import { promotedExecutionRecipePool } from "./execution-scene-recipes";
 
 export {
   CAMPAIGN_SEED_NAME_COUNT,
@@ -637,7 +639,9 @@ const normalize = (s: GameState) => {
   ["readiness","equipment","materiel","legitimacy","resistance","dependency","intelligence","quality","atrocityExposure","reciprocity","desertionPressure","maintenanceDebt"].forEach((key) => { (s[key as NumberKey] as number) = Math.max(0, Math.min(100, s[key as NumberKey] as number)); });
   s.deployable = Math.max(0, Math.min(s.armed, Math.round(s.deployable))); s.reserves=Math.max(0,Math.round(s.reserves));s.queue = Math.max(0, Math.round(s.queue)); s.training = Math.max(1000, Math.round(s.training)); s.duration = Math.max(2, Math.min(12, Math.round(s.duration))); s.deserters = Math.max(0, Math.round(s.deserters));s.retained=Math.max(0,Math.round(s.retained??0));s.intercepted=Math.max(0,Math.round(s.intercepted));
 };
-const hash = (text: string) => { let h = 2166136261; for (let i=0;i<text.length;i++) { h ^= text.charCodeAt(i); h = Math.imul(h,16777619); } return (h>>>0)/4294967295; };
+const hash = stableHash;
+/** Promoted execution-scene realization pool; null falls back to the compiler's built-in pool. */
+const EXECUTION_RECIPE_POOL = promotedExecutionRecipePool();
 
 const LEGACY_OPPORTUNITY_TEMPLATES=[
   {id:"displacing-battery",label:"Exposed Battery",headline:"An Enemy Battery Is Displacing in the Open",brief:"Counterbattery observers have retained a firing unit through its first displacement. The road is exposed for minutes, not hours; engaging it will spend stock outside the day’s three strategic orders.",responses:[
@@ -1196,6 +1200,7 @@ export const resolve = (state: GameState) => {
     .filter(([,line])=>line.stock<line.use*2)
     .map(([resource])=>resource);
   const executionScene=compileExecutionScene({
+    recipePool:EXECUTION_RECIPE_POOL??undefined,
     resolvedDay:s.day,
     resolutionId,
     sector:situation.sector,

@@ -25,6 +25,9 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 | Module | Path | Responsibility |
 |---|---|---|
 | Doctrine | `SUBSTRATE_DOCTRINE.md` | Product law |
+| Shared substrate owner | `app/substrate/substrate-core.ts` | Named re-export of gates + draw hash + vocabulary; the one route both Ava and the campaign deck/draw use to reach the shared layers |
+| Shared vocabulary | `app/substrate/vocabulary.ts` | Typed owner of channels, theaters, phases (+ live phase table), problem classes, maneuver ids, tiers, heats, metric ids, scalar/operation mappings |
+| Promoted execution-scene recipes | `app/execution-scene-recipes.ts` | Fail-closed verification of `app/campaign-content/execution-scenes/recipes.v1.json`; supplies the runtime realization pool for the execution-scene draw |
 | Shared gates | `app/substrate/gates.ts` | Recursive gate grammar + pure evaluator |
 | Contracts | `app/substrate/contracts.ts` | Channels, nodes, commands, responses, posture |
 | Posture | `app/substrate/posture.ts` | Strategic posture validation / conflicts |
@@ -52,3 +55,6 @@ and SSH adapter work. Exact existing files and what must not be duplicated.
 - Content copy → mechanic lookup by displayed string
 - Intrusion catalogue / verifier truth → Ava grammar, shell adapter, or recovery ledger
 - Second campaign engine, second Ava parser, SSH-only game logic
+- New inline FNV-1a hash copies, forked vocabulary declarations, or deep
+  gates/hash imports from campaign or Ava consumers (use
+  `app/substrate/substrate-core.ts`)

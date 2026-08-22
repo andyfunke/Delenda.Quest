@@ -1,7 +1,10 @@
 /**
  * Future MCP tool → application service mapping.
  * Compile-time / test fixture only — no public MCP server in this pass.
+ * Every future tool maps 1:1 onto the canonical Nexus request runtime.
  */
+export const MCP_SEAM_FUTURE_ONLY = true;
+
 import { validateStrategicPosture } from "./posture";
 
 type ServiceFn = (...args: never[]) => unknown;

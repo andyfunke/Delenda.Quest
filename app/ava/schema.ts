@@ -70,24 +70,7 @@ export type AvaScopeGroup =
   | "SECONDARY"
   | "ALL";
 export type AvaSemanticOperation =
-  | "ADVISE"
-  | "EXPLAIN"
-  | "COMPARE"
-  | "RANK"
-  | "SUMMARIZE"
-  | "INSPECT"
-  | "CALCULATE"
-  | "PREDICT"
-  | "DIAGNOSE"
-  | "RECOMMEND"
-  | "WARN"
-  | "IDENTIFY"
-  | "DEFINE"
-  | "LIST"
-  | "JUSTIFY"
-  | "CHALLENGE"
-  | "CONFIRM"
-  | "CORRECT";
+  import("../substrate/substrate-core").AvaSemanticOperation;
 export type AvaSemanticSubject =
   | "CAMPAIGN_CHOICE"
   | "MISSION_OBJECTIVE"

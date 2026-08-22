@@ -126,6 +126,94 @@ test("browser Ava and graphical campaign mutations enter the Nexus", () => {
   assert.doesNotMatch(source, /\brecordOpportunity(?:Opened|Expired)\b/);
 });
 
+test("the shared substrate is the named owner of gates, draw hash, and vocabulary", () => {
+  const core = readFileSync(resolve("app/substrate/substrate-core.ts"), "utf8");
+  assert.match(core, /SHARED_SUBSTRATE_VERSION/);
+  assert.match(core, /from "\.\/gates"/);
+  assert.match(core, /from "\.\/hash"/);
+  assert.match(core, /export \* from "\.\/vocabulary"/);
+  for (const path of [
+    "app/campaign-substrate.ts",
+    "app/game.ts",
+    "app/submission-schema.ts",
+  ]) {
+    const source = readFileSync(resolve(path), "utf8");
+    assert.match(source, /from "\.\/substrate\/substrate-core"/, path);
+    assert.doesNotMatch(source, /2166136261/, `${path} forks the draw hash`);
+  }
+  const campaign = readFileSync(resolve("app/campaign-substrate.ts"), "utf8");
+  assert.doesNotMatch(campaign, /from "\.\/substrate\/gates"/);
+  assert.doesNotMatch(campaign, /from "\.\/substrate\/hash"/);
+  for (const path of [
+    "app/ava/contextual-language.ts",
+    "app/ava/contextual-language-catalog.ts",
+    "app/ava/contextual-language-priorities.ts",
+  ]) {
+    const source = readFileSync(resolve(path), "utf8");
+    assert.doesNotMatch(source, /from "\.\.\/substrate\/gates"/, path);
+  }
+});
+
+test("the promoted execution-scene manifest informs the live draw", () => {
+  const source = readFileSync(resolve("app/game.ts"), "utf8");
+  assert.match(source, /promotedExecutionRecipePool/);
+  assert.match(source, /recipePool:EXECUTION_RECIPE_POOL/);
+});
+
+test("legacy control-plane artifacts are explicitly demoted", () => {
+  const markers = [
+    ["app/substrate/command-parser.ts", "COMMAND_PARSER_REFERENCE_ONLY"],
+    ["app/substrate/services.ts", "SERVICES_DISPATCH_REFERENCE_ONLY"],
+    ["app/substrate/semantic-index.ts", "SEMANTIC_INDEX_REFERENCE_ONLY"],
+    ["app/substrate/llm-packets.ts", "LLM_PACKETS_FUTURE_SEAM_ONLY"],
+    ["app/substrate/mcp-seam.ts", "MCP_SEAM_FUTURE_ONLY"],
+  ];
+  for (const [path, marker] of markers) {
+    assert.match(readFileSync(resolve(path), "utf8"), new RegExp(marker), path);
+  }
+  const terminalIndex = readFileSync(
+    resolve("packages/terminal-core/src/index.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(terminalIndex, /\.\/parser/);
+  for (const path of [
+    "packages/terminal-core/src/index.ts",
+    "packages/terminal-core/src/session.ts",
+    "packages/terminal-core/src/renderer.ts",
+  ]) {
+    const source = readFileSync(resolve(path), "utf8");
+    assert.doesNotMatch(source, /\bparseDelendaCommand\b/, path);
+  }
+  const nexus = readFileSync(resolve("app/ava/nexus.ts"), "utf8");
+  assert.doesNotMatch(nexus, /Kernel/);
+  assert.throws(() => readFileSync(resolve("app/ava/kernel.ts")));
+});
+
+test("adapters cannot consume demoted read services or the reference parser", () => {
+  const forbidden = [
+    "getDailyBrief",
+    "getCampaignStatus",
+    "rankVisibleChoices",
+    "listDirectiveFamilyCatalog",
+    "parseDelendaCommand",
+  ];
+  for (const path of [
+    "app/GameClient.tsx",
+    "app/substrate/mcp-seam.ts",
+    "packages/ssh-server/src/server.ts",
+    "packages/ssh-gateway/src/session.ts",
+    "packages/terminal-core/src/session.ts",
+  ]) {
+    const source = readFileSync(resolve(path), "utf8");
+    for (const identifier of forbidden)
+      assert.doesNotMatch(
+        source,
+        new RegExp(`\\b${identifier}\\b`),
+        `${path} references ${identifier}`,
+      );
+  }
+});
+
 test("doctrine and docs exist", () => {
   for (const path of [
     "SUBSTRATE_DOCTRINE.md",

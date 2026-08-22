@@ -1,5 +1,5 @@
 import type { AvaReportTopic } from "./schema";
-import type { StrategicDimension } from "../substrate/gates";
+import type { StrategicDimension } from "../substrate/substrate-core";
 import { cognitiveDigest } from "./cognitive-types";
 
 export const AVA_CONTEXTUAL_LANGUAGE_VERSION =

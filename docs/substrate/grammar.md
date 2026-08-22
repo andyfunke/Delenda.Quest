@@ -207,3 +207,19 @@ refs, required/forbidden claims, register profile, and equivalence classes.
 Bound realizations are deterministic instances of promoted recipes. Quality
 scores never create intent or mechanics. JSON Schemas:
 `content-quality/contracts/`.
+
+The chord metagrammar has one runtime consumer: the promoted
+execution-scene manifest
+(`app/campaign-content/execution-scenes/recipes.v1.json`) is verified
+fail-closed by `app/execution-scene-recipes.ts` and supplies the
+realization pool for the execution-scene draw in `app/game.ts`. All other
+promoted packs remain offline pending their own wiring epochs.
+
+## Shared vocabulary
+
+The typed identifier sets that both the Ava grammar and the campaign
+deck/draw speak (channels, theaters, phases, problem classes, maneuvers,
+tiers, heats, metric ids, operation mappings) are owned by
+`app/substrate/vocabulary.ts` and reached through the shared substrate
+(`app/substrate/substrate-core.ts`). This document's lists describe that
+vocabulary; the module is the authority.

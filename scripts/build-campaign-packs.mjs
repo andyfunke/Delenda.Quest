@@ -8,6 +8,12 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
+import {
+  CAMPAIGN_PHASES as CANON_PHASES,
+  MANEUVER_IDS as CANON_MANEUVERS,
+  PROBLEM_CLASSES as CANON_PROBLEMS,
+  THEATERS as CANON_THEATERS,
+} from "../app/substrate/vocabulary.ts";
 
 const sha256 = (v) =>
   createHash("sha256").update(String(v).normalize("NFC"), "utf8").digest("hex");
@@ -33,6 +39,18 @@ const MANEUVERS = [
   "network",
 ];
 const PHASES = ["contact", "compression", "exhaustion", "terminal"];
+
+// Local arrays keep this script's historical emission order (committed pack
+// bytes must not drift); the shared substrate vocabulary is the id authority.
+const assertCanonSet = (label, local, canon) => {
+  const a = [...local].sort().join("|");
+  const b = [...canon].sort().join("|");
+  if (a !== b) throw new Error(`PACKS_VOCABULARY_DRIFT:${label}:${a}!=${b}`);
+};
+assertCanonSet("theaters", THEATERS, CANON_THEATERS);
+assertCanonSet("problems", PROBLEMS, CANON_PROBLEMS);
+assertCanonSet("maneuvers", MANEUVERS, CANON_MANEUVERS);
+assertCanonSet("phases", PHASES, CANON_PHASES);
 const SHAPES = ["observation-reversal", "cost-ledger", "geometric-imperative"];
 const IMAGES = ["wire", "relay", "ford"];
 const ARCHETYPES = [
