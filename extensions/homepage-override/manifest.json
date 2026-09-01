@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Homepage & New Tab Override",
+  "version": "1.0.0",
+  "description": "Homepage button opens DuckDuckGo; new tabs open Perplexity search.",
+  "chrome_settings_overrides": {
+    "homepage": "https://duckduckgo.com/"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}
