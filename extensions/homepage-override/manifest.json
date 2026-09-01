@@ -1,8 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "Homepage Override",
-  "version": "1.1.0",
-  "description": "Points the homepage button at DuckDuckGo, leaving the browser's native new tab page untouched.",
+  "name": "Home Button: DuckDuckGo",
+  "version": "2.0.0",
+  "description": "Adds a toolbar home button that opens a URL of your choice (default DuckDuckGo). Works in Comet and all Chromium browsers.",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Home (DuckDuckGo)"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Home"
+      },
+      "description": "Open home page"
+    }
+  },
   "chrome_settings_overrides": {
     "homepage": "https://duckduckgo.com/"
   }
