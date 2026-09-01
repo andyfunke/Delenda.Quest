@@ -1,15 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Custom Home Button",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Makes the homepage user-settable. The home button opens whatever URL you save; click the toolbar icon to change it.",
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA8G5DdQejLzXDFom5wGwgYHjYPRqkJpk5y3krPqMnCSFr+QgRpALFaHlSPwa0M0DnuCYBFjiRUZKb9zSPbjV6UW8JX/5DAjU+2hsT3aapc2SFYABcQXe37unhjWP+py5ymmNrleRdiV8ruwezOYoejcmoU7L+tGY71MPPGvDOKpM5jjMUuh0DVMAfSPyjlwvVh0zpTrgjxOE0Qigv7uiQPWCUszAIWW4Uhg25o2iVRthjmydkt4/WoOadbfljworD08N7gWDxJNS4/tJF7PZQiJ4OSTFDliKH2VpamiLM2ciqrmBx8bpBQ2ortFsrKumbl84CC0merbzRFkFa/KFgtwIDAQAB",
-  "permissions": ["storage"],
+  "permissions": ["storage", "declarativeNetRequest"],
+  "host_permissions": ["*://home-button.internal/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "Set home page",
     "default_popup": "popup.html"
   },
   "chrome_settings_overrides": {
-    "homepage": "chrome-extension://ipempehokbkpndbkmcephojgcjfjakke/home.html"
+    "homepage": "https://home-button.internal/"
   }
 }
