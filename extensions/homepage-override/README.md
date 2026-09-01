@@ -1,28 +1,32 @@
-# Homepage & New Tab Override
+# Homepage Override
 
-A tiny Chrome extension that decouples the homepage button from the new tab page:
+A tiny Chromium extension that points the **homepage button (⌂)** at
+[DuckDuckGo](https://duckduckgo.com/) while leaving the browser's native
+new tab page untouched.
 
-- **New tab** → opens [Perplexity](https://www.perplexity.ai/)
-- **Homepage button (⌂)** → opens [DuckDuckGo](https://duckduckgo.com/)
+Built for [Comet](https://www.perplexity.ai/comet) (Perplexity's browser),
+where the new tab is already Perplexity search — so only the homepage needs
+overriding. Works in any Chromium-based browser (Comet, Chrome, Brave, Edge,
+Vivaldi, Arc).
 
-Chrome's built-in settings only let you pick a startup page; the new tab page and
-homepage aren't separately configurable without an extension. This uses
-`chrome_url_overrides.newtab` for the new tab redirect and
-`chrome_settings_overrides.homepage` for the homepage button.
+Chromium's built-in settings only let you pick startup pages; the homepage
+button target isn't separately configurable without an extension. This uses
+`chrome_settings_overrides.homepage`.
 
 ## Install (unpacked)
 
-1. Open `chrome://extensions`
+1. Open `chrome://extensions` (works in Comet too)
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked** and select this folder (`extensions/homepage-override`)
-4. If Chrome asks whether to keep the changed homepage/new tab, choose **Keep changes**
+4. If the browser asks whether to keep the changed homepage, choose **Keep changes**
 
 To show the homepage button if it's hidden: `chrome://settings/appearance` →
 enable **Show home button** (it should now point at DuckDuckGo).
 
 ## Notes
 
-- Only one extension can override the new tab page or homepage at a time; if
-  another extension does, disable it first.
-- Works in Chromium-based browsers (Chrome, Edge, Brave). Edge/Brave may label
-  the settings-override prompt slightly differently.
+- Only one extension can override the homepage at a time; if another extension
+  does, disable it first.
+- If you also want to override the new tab page (e.g. in a browser whose new
+  tab isn't Perplexity), add a `chrome_url_overrides.newtab` entry pointing at
+  a local redirect page.
