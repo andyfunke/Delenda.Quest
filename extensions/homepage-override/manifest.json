@@ -1,25 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Home Button: DuckDuckGo",
-  "version": "2.0.0",
-  "description": "Adds a toolbar home button that opens a URL of your choice (default DuckDuckGo). Works in Comet and all Chromium browsers.",
+  "name": "Custom Home Button",
+  "version": "3.0.0",
+  "description": "A toolbar home button with a user-settable target URL. Click it, type any URL, OK to save and go.",
   "permissions": ["storage"],
-  "background": {
-    "service_worker": "background.js"
-  },
   "action": {
-    "default_title": "Home (DuckDuckGo)"
-  },
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
+    "default_title": "Home",
+    "default_popup": "popup.html"
   },
   "commands": {
     "_execute_action": {
       "suggested_key": {
         "default": "Alt+Home"
       },
-      "description": "Open home page"
+      "description": "Open home button popup"
     }
   },
   "chrome_settings_overrides": {

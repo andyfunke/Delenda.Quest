@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 10px; width: 300px; margin: 0; }
+      label { font-size: 13px; }
+      input { width: 100%; box-sizing: border-box; padding: 6px; margin: 8px 0; font-size: 13px; }
+      .buttons { display: flex; gap: 8px; justify-content: flex-end; }
+      button { padding: 5px 14px; font-size: 13px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <label for="url">Home page URL:</label>
+    <input id="url" type="text" placeholder="https://duckduckgo.com/" autofocus />
+    <div class="buttons">
+      <button id="cancel">Cancel</button>
+      <button id="ok">OK</button>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,20 +1,23 @@
-# Home Button: DuckDuckGo
+# Custom Home Button
 
-Adds a **toolbar home button** that opens a URL of your choice — DuckDuckGo by
-default. Built because Comet (and most Chromium forks) ignore the standard
-`chrome_settings_overrides.homepage` manifest key and pin their native home
-button to their own page.
+A toolbar home button whose target URL is fully user-settable. Clicking the
+button opens a small box with a text field (prefilled with your saved home
+URL) and **OK** / **Cancel**:
 
-- Click the extension's toolbar icon → current tab goes to DuckDuckGo
-- Keyboard shortcut: **Alt+Home** (changeable at `chrome://extensions/shortcuts`)
-- Right-click the icon → **Options** to change the target URL
-- The standard homepage override is still declared, so in browsers that honor
-  it (plain Chrome), the native ⌂ button also points at DuckDuckGo
+- **OK** (or Enter) saves the URL and opens it in the current tab
+- **Cancel** closes the box without doing anything
+
+The URL persists (synced browser storage), so next click it's already set —
+just hit Enter. Default is DuckDuckGo until you change it. **Alt+Home** opens
+the same box (changeable at `chrome://extensions/shortcuts`).
+
+Built for Comet and other Chromium forks that ignore the standard
+`chrome_settings_overrides.homepage` manifest key; that key is still declared
+for browsers (plain Chrome) that honor it on the native ⌂ button.
 
 ## Install (unpacked)
 
 1. Open `chrome://extensions` (works in Comet)
 2. Enable **Developer mode** (top right)
-3. Click **Load unpacked** and select this folder
-4. Click the puzzle-piece icon in the toolbar and **pin** "Home Button:
-   DuckDuckGo" so its button is always visible
+3. Click **Load unpacked** and select this folder (remove any older version first)
+4. Click the puzzle-piece icon in the toolbar and **pin** "Custom Home Button"
